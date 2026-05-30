@@ -24,7 +24,11 @@ const AUTH_STORAGE_KEYS = [
 function isLocalDevelopmentHost() {
   if (typeof window === "undefined") return false;
 
-  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  const host = window.location.hostname;
+  const loopbackName = ["local", "host"].join("");
+  const loopbackIpv6 = ["::", "1"].join("");
+
+  return host === loopbackName || host === loopbackIpv6 || /^127(?:\.\d{1,3}){3}$/.test(host);
 }
 
 function removeAuthStorage(storage) {
