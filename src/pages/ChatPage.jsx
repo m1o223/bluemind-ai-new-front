@@ -743,6 +743,36 @@ function formatHistoryDate(value, language) {
   }
 }
 
+function groupHistoryByDate(items, language) {
+  const groups = [];
+  const formatter = new Intl.DateTimeFormat(language || "en", {
+    month: "short",
+    day: "numeric",
+  });
+
+  items.forEach((item) => {
+    const dateValue = item.lastMessageAt || item.updatedAt;
+    let label = "";
+
+    try {
+      label = dateValue ? formatter.format(new Date(dateValue)) : "";
+    } catch {
+      label = "";
+    }
+
+    const key = label || "recent";
+    const existing = groups.find((group) => group.key === key);
+
+    if (existing) {
+      existing.items.push(item);
+    } else {
+      groups.push({ key, label: label || "", items: [item] });
+    }
+  });
+
+  return groups;
+}
+
 function HighlightedMatch({ text, query }) {
   const value = String(text || "");
   const terms = String(query || "")
@@ -814,15 +844,17 @@ const HistoryItem = memo(function HistoryItem({
   return (
     <div
       className={cn(
-        "group/history relative rounded-xl border px-2.5 py-2 transition-all duration-200",
+        "group/history relative rounded-2xl border px-3 py-2.5 transition-all duration-200",
         isActive
-          ? isDark ? "border-[#3F5F8C] bg-[#27384F] text-white" : "border-[#B7C7FF] bg-[#EAF0FF] text-[#102E5A]"
-          : isDark ? "border-transparent text-[#C7C7C7] hover:border-[#3A3A3A] hover:bg-[#2A2A2A] hover:text-white" : "border-transparent text-[#475569] hover:border-[#CBD5E1] hover:bg-white hover:text-[#0F172A]",
+          ? isDark ? "border-[#3F5F8C]/70 bg-[#20334B] text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)]" : "border-[#B7C7FF] bg-[#EAF0FF] text-[#102E5A] shadow-sm"
+          : isDark ? "border-transparent text-[#C7C7C7] hover:border-white/[0.08] hover:bg-white/[0.06] hover:text-white" : "border-transparent text-[#475569] hover:border-[#CBD5E1] hover:bg-white hover:text-[#0F172A]",
       )}
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
-        <button type="button" onClick={() => onOpen(item.conversationId)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left" data-testid={`history-chat-${item.conversationId}`} title={item.title || t("newChat")}>
-          <MessageSquare className={cn("h-[17px] w-[17px] flex-shrink-0", isActive && (isDark ? "text-white" : "text-[#193B68]"))} />
+        <button type="button" onClick={() => onOpen(item.conversationId)} className="flex min-w-0 flex-1 items-center gap-3 text-left" data-testid={`history-chat-${item.conversationId}`} title={item.title || t("newChat")}>
+          <span className={cn("flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl", isActive ? (isDark ? "bg-white/10" : "bg-white/70") : (isDark ? "bg-white/[0.045]" : "bg-[#EEF2F7]"))}>
+            <MessageSquare className={cn("h-[16px] w-[16px] flex-shrink-0", isActive && (isDark ? "text-white" : "text-[#193B68]"))} />
+          </span>
           {isEditing ? (
             <input
               value={draftTitle}
@@ -928,7 +960,7 @@ const HistoryItem = memo(function HistoryItem({
         </div>
       )}
 
-      <p className={cn("ml-[27px] mt-1 truncate text-[10.5px] font-medium leading-4", isDark ? "text-[#8A8A8A]" : "text-[#7C8798]")}>
+      <p className={cn("ml-11 mt-1 truncate text-[11px] font-medium leading-4", isDark ? "text-[#8A8A8A]" : "text-[#7C8798]")}>
         {formatHistoryDate(item.lastMessageAt || item.updatedAt, language)}
       </p>
     </div>
@@ -1018,6 +1050,7 @@ function Sidebar({
       ].slice(0, 10)
     : localSearchResults;
   const searchPanelTitle = normalizedSearchQuery ? "Matching conversations" : "Recent Conversations";
+  const historyGroups = groupHistoryByDate(history, prefs.language);
 
   const navItems = [
     {
@@ -1087,10 +1120,10 @@ function Sidebar({
       }}
       className={cn(
         "h-full flex flex-col overflow-visible flex-shrink-0",
-        isDark ? "bg-[#1e1e1e]/96" : "bg-[#F7F8FA]/96",
+        isDark ? "bg-[#171717]/98" : "bg-[#F7F8FA]/98",
         isMobile && [
           "mobile-chat-drawer shadow-2xl",
-          isDark ? "!bg-[#1f1f1f]" : "!bg-[#F7F8FA]",
+          isDark ? "!bg-[#171717]" : "!bg-[#F7F8FA]",
           isRTL ? "fixed right-0 top-0 z-50" : "fixed left-0 top-0 z-50",
         ],
       )}
@@ -1098,13 +1131,13 @@ function Sidebar({
     >
       <div
         className={cn(
-          "flex items-center justify-between border-b p-4",
+          "flex items-center justify-between border-b px-4 pb-3 pt-4",
           isDark ? "border-[#333]" : "border-[#E5E7EB]",
         )}
       >
         {isHistoryOpen ? (
           <>
-            <span className={cn("truncate text-xl font-semibold tracking-tight", isDark ? "text-white" : "text-[#111827]")}>
+            <span className={cn("truncate text-[19px] font-semibold tracking-tight", isDark ? "text-white" : "text-[#111827]")}>
               {APP_NAME}
             </span>
             <button
@@ -1143,9 +1176,9 @@ function Sidebar({
           <button
             onClick={onNewChat}
             className={cn(
-              "flex w-full items-center gap-3 rounded-xl border px-3.5 py-3.5 transition-all duration-200 cursor-pointer",
+              "flex min-h-[48px] w-full items-center gap-3 rounded-2xl border px-3.5 py-3 transition-all duration-200 cursor-pointer shadow-sm",
               isDark
-                ? "border-[#343434] bg-[#252525] text-white hover:border-[#4A4A4A] hover:bg-[#2D2D2D]"
+                ? "border-white/[0.08] bg-white/[0.065] text-white hover:border-white/[0.14] hover:bg-white/[0.1]"
                 : "border-[#D6DEE9] bg-white text-[#0F172A] hover:border-[#B8C4D6] hover:bg-[#F8FAFC]",
             )}
             data-testid="new-chat-button"
@@ -1253,7 +1286,7 @@ function Sidebar({
         </div>
       )}
 
-      <nav className={cn("space-y-2 px-3.5 pt-4", !isHistoryOpen && "px-4")} data-testid="chat-sidebar-nav">
+      <nav className={cn("space-y-1.5 px-3.5 pt-3.5", !isHistoryOpen && "px-4")} data-testid="chat-sidebar-nav">
         {navItems.map((item) => (
           <div key={item.id} className="relative">
             <button
@@ -1262,8 +1295,8 @@ function Sidebar({
                 if (isMobile && !["chat", "search"].includes(item.id)) onClose?.();
               }}
               className={cn(
-                "group flex w-full items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer",
-                isHistoryOpen ? "px-3.5 py-3" : "h-12 justify-center px-0 py-0",
+                "group flex min-h-[46px] w-full items-center gap-3 rounded-2xl transition-all duration-200 cursor-pointer",
+                isHistoryOpen ? "px-3.5 py-2.5" : "h-12 justify-center px-0 py-0",
                 isDark
                   ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
                   : "text-[#1F2937] hover:bg-black/[0.05] hover:text-[#0F172A]",
@@ -1383,9 +1416,10 @@ function Sidebar({
 
       <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
         {isHistoryOpen && (
-          <div className="px-3.5 pb-2 pt-5">
-            <div className={cn("flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-[0.12em]", isDark ? "text-[#A7A7A7]" : "text-[#475569]")}>
+          <div className="px-3.5 pb-2 pt-4">
+            <div className={cn("flex items-center justify-between px-1 text-[11px] font-bold uppercase tracking-[0.16em]", isDark ? "text-[#8E8E8E]" : "text-[#64748B]")}>
               <span className="truncate">{t("history")}</span>
+              <span className="tabular-nums">{history.length}</span>
             </div>
           </div>
         )}
@@ -1400,32 +1434,41 @@ function Sidebar({
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="min-h-0 flex-1 overflow-hidden"
             >
-              <div className="mobile-sidebar-history h-full max-h-full space-y-2 overflow-y-auto overscroll-contain px-3 pb-4">
-                {history.map((item) => (
-                  <HistoryItem
-                    key={item.conversationId}
-                    item={item}
-                    isActive={activeConversationId === item.conversationId}
-                    isDark={isDark}
-                    isSidebarOpen={isHistoryOpen}
-                    language={prefs.language}
-                    menuOpenId={menuOpenId}
-                    onMenuToggle={setMenuOpenId}
-                    onOpen={(id) => {
-                      onOpenConversation(id);
-                      if (isMobile) onClose?.();
-                    }}
-                    onRename={(conversation, title) => {
-                      setMenuOpenId(null);
-                      onRenameConversation(conversation, title);
-                    }}
-                    onShare={(conversation) => navigator.clipboard?.writeText(`${window.location.origin}/chat?conversation=${conversation.conversationId}`).then(() => toast.success("Link copied")).catch(() => toast.info("Copy link unavailable"))}
-                    onDelete={(conversation) => {
-                      setMenuOpenId(null);
-                      onDeleteConversation(conversation);
-                    }}
-                    t={t}
-                  />
+              <div className="mobile-sidebar-history h-full max-h-full space-y-4 overflow-y-auto overscroll-contain px-3 pb-5">
+                {historyGroups.map((group) => (
+                  <section key={group.key} className="space-y-1.5">
+                    {group.label && (
+                      <p className={cn("px-2 text-[11px] font-bold uppercase tracking-[0.13em]", isDark ? "text-[#777]" : "text-[#8492A6]")}>
+                        {group.label}
+                      </p>
+                    )}
+                    {group.items.map((item) => (
+                      <HistoryItem
+                        key={item.conversationId}
+                        item={item}
+                        isActive={activeConversationId === item.conversationId}
+                        isDark={isDark}
+                        isSidebarOpen={isHistoryOpen}
+                        language={prefs.language}
+                        menuOpenId={menuOpenId}
+                        onMenuToggle={setMenuOpenId}
+                        onOpen={(id) => {
+                          onOpenConversation(id);
+                          if (isMobile) onClose?.();
+                        }}
+                        onRename={(conversation, title) => {
+                          setMenuOpenId(null);
+                          onRenameConversation(conversation, title);
+                        }}
+                        onShare={(conversation) => navigator.clipboard?.writeText(`${window.location.origin}/chat?conversation=${conversation.conversationId}`).then(() => toast.success("Link copied")).catch(() => toast.info("Copy link unavailable"))}
+                        onDelete={(conversation) => {
+                          setMenuOpenId(null);
+                          onDeleteConversation(conversation);
+                        }}
+                        t={t}
+                      />
+                    ))}
+                  </section>
                 ))}
               </div>
             </motion.div>
@@ -3422,16 +3465,39 @@ export default function ChatPage() {
     );
   };
 
+  const homeToolItems = [
+    { id: "create_image", labelKey: "createImage", icon: Palette, tone: "image" },
+    { id: "write_edit", labelKey: "writeEdit", icon: Edit3, tone: "write" },
+    { id: "web_search", labelKey: "search", icon: Search, tone: "search" },
+  ];
+
+  const renderMobileHomeTools = () => (
+    <div className="mobile-home-actions md:hidden">
+      {homeToolItems.map((tool) => (
+        <button
+          key={tool.id}
+          type="button"
+          onClick={() => setActiveMode(tool.id)}
+          className={cn(
+            "mobile-home-action",
+            isDark ? "mobile-home-action--dark" : "mobile-home-action--light",
+          )}
+        >
+          <span className={cn("mobile-home-action-icon", `mobile-home-action-icon--${tool.tone}`)}>
+            <tool.icon className="h-[17px] w-[17px] stroke-[2.2]" />
+          </span>
+          <span className="min-w-0 truncate">{t(tool.labelKey)}</span>
+        </button>
+      ))}
+    </div>
+  );
+
   const renderHomeTools = () => (
     <div className={cn(
       "mb-3 mt-0 flex flex-col items-start gap-1.5 md:mb-0 md:mt-4 md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-2",
       mobileComposerFocused && "mb-2",
     )}>
-      {[
-        { id: "create_image", labelKey: "createImage", icon: Palette },
-        { id: "write_edit", labelKey: "writeEdit", icon: Edit3 },
-        { id: "web_search", labelKey: "search", icon: Search },
-      ].map((tool) => (
+      {homeToolItems.map((tool) => (
         <button
           key={tool.id}
           type="button"
@@ -3518,18 +3584,21 @@ export default function ChatPage() {
     const isMobileComposerDocked = isMobileViewport && mobileComposerFocused;
     const hasComposerPayload = Boolean(input.trim() || attachments.length > 0);
     const showMobileSendAction = isAiTyping || isListening || hasComposerPayload;
+    const showMobileHomeActions = isMobileViewport && !testSuffix && messages.length === 0 && activeMode === "default";
 
     return (
     <div
       className={cn(
         "chat-composer-shell",
         isMobileComposerDocked && "chat-composer-shell--docked",
+        showMobileHomeActions && "chat-composer-shell--home",
       )}
       style={{
         "--mobile-keyboard-offset": `${mobileKeyboardOffset}px`,
         "--mobile-composer-safe-bottom": mobileKeyboardOffset > 0 ? "24px" : "max(10px, env(safe-area-inset-bottom))",
       }}
     >
+      {showMobileHomeActions && renderMobileHomeTools()}
       <AttachmentTray
         attachments={attachments}
         onRemove={removeAttachment}
@@ -3545,10 +3614,10 @@ export default function ChatPage() {
           onClick={() => setAttachmentMenuOpen((open) => !open)}
           disabled={isUploading}
           className={cn(
-            "mobile-composer-plus flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border shadow-sm transition-colors duration-200 md:hidden",
+            "mobile-composer-plus flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-full border shadow-sm transition-all duration-200 md:hidden",
             isDark
-              ? "border-white/[0.08] bg-[#202020] text-[#F4F4F5] hover:bg-[#2A2A2A] hover:text-white"
-              : "border-black/[0.08] bg-white text-[#111827] hover:bg-[#F8FAFC]",
+              ? "border-white/[0.09] bg-[#202020] text-[#F4F4F5] hover:bg-[#2A2A2A] hover:text-white"
+              : "border-[#D5DFEA] bg-white text-[#111827] hover:bg-[#F8FAFC]",
           )}
           aria-label={t("uploadFile")}
         >
@@ -3556,13 +3625,13 @@ export default function ChatPage() {
         </button>
       <div
         className={cn(
-          "relative flex max-w-full flex-1 border border-transparent shadow-[0_8px_30px_rgba(0,0,0,0.08)] backdrop-blur-[14px] transition-all duration-200 ease-out max-[380px]:gap-2 max-[380px]:px-3",
+          "mobile-composer-card relative flex max-w-full flex-1 border shadow-[0_14px_42px_rgba(15,23,42,0.10)] backdrop-blur-[14px] transition-all duration-200 ease-out max-[380px]:gap-2 max-[380px]:px-3",
           usesLargeComposer
             ? "min-h-[132px] items-end gap-3 rounded-[34px] px-4 py-4 sm:px-6 sm:py-5 max-[380px]:min-h-[116px] max-md:min-h-[58px] max-md:px-4 max-md:py-2.5"
             : "min-h-[62px] items-center gap-3 rounded-[31px] px-4 py-2.5 sm:gap-3.5 sm:px-5 max-md:min-h-[54px]",
           isDark
-            ? "bg-[#202020]/95 focus-within:bg-[#242424]/98 focus-within:shadow-[0_10px_34px_rgba(0,0,0,0.28),0_0_0_1px_rgba(255,255,255,0.06)]"
-            : "bg-black/[0.04] focus-within:bg-white/75 focus-within:shadow-[0_12px_36px_rgba(15,23,42,0.09),0_0_0_1px_rgba(25,59,104,0.08)]",
+            ? "border-white/[0.08] bg-[#202020]/96 focus-within:bg-[#242424]/98 focus-within:shadow-[0_16px_44px_rgba(0,0,0,0.36),0_0_0_1px_rgba(255,255,255,0.07)]"
+            : "border-[#D8E1EC] bg-white/96 focus-within:bg-white focus-within:shadow-[0_18px_46px_rgba(15,23,42,0.13),0_0_0_1px_rgba(25,59,104,0.08)]",
         )}
       >
         <button
@@ -3590,8 +3659,8 @@ export default function ChatPage() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                 className={cn(
-                  "mobile-action-menu absolute bottom-full left-0 z-40 mb-3 max-h-[min(420px,70vh)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-[28px] border p-2.5 shadow-2xl backdrop-blur-2xl",
-                  isDark ? "border-white/10 bg-[#141414]/96 text-white" : "border-black/10 bg-white/96 text-[#111827]",
+                  "mobile-action-menu absolute bottom-full left-0 z-40 mb-3 max-h-[min(420px,70vh)] w-[min(20.5rem,calc(100vw-1.5rem))] overflow-y-auto rounded-[28px] border p-2.5 shadow-[0_28px_80px_rgba(0,0,0,0.34)]",
+                  "border-white/10 bg-[#141414] text-white",
                 )}
               >
                 {[
@@ -3642,11 +3711,11 @@ export default function ChatPage() {
                     className={cn(
                       "flex min-h-[48px] w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm font-semibold transition-all duration-200 hover:translate-x-0.5",
                       item.mode === activeMode
-                        ? isDark ? "bg-white/12 text-white" : "bg-[#EEF2FF] text-[#193B68]"
-                        : isDark ? "text-[#e5e5e5] hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#F8FAFC]",
+                        ? "bg-white/[0.12] text-white"
+                        : "text-[#e5e5e5] hover:bg-white/[0.08]",
                     )}
                   >
-                    <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF2FF]")}>
+                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.08]">
                       <item.icon className="h-5 w-5 stroke-[2.1]" />
                     </span>
                     {item.label}
@@ -4022,8 +4091,8 @@ export default function ChatPage() {
       <div className="mobile-chat-main flex-1 flex flex-col h-full min-w-0">
         <header
           className={cn(
-            "mobile-chat-header sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3.5 shadow-sm backdrop-blur-xl sm:px-6",
-            isDark ? "border-[#333] bg-[#1a1a1a]/88 shadow-black/10" : "border-[#E5E7EB] bg-white/88 shadow-slate-200/60",
+            "mobile-chat-header sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3 shadow-sm backdrop-blur-xl sm:px-6",
+            isDark ? "border-white/[0.07] bg-[#1a1a1a]/92 shadow-black/10" : "border-[#E5E7EB] bg-white/92 shadow-slate-200/60",
           )}
         >
           <div className="flex items-center gap-3">
@@ -4033,10 +4102,10 @@ export default function ChatPage() {
                 setShowMobileSidebar(true);
               }}
               className={cn(
-                "md:hidden w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer",
+                "md:hidden w-10 h-10 rounded-2xl flex items-center justify-center transition-colors cursor-pointer",
                 isDark
-                  ? "text-[#999] hover:text-white hover:bg-[#333]"
-                  : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]",
+                  ? "text-[#D5D5D5] hover:text-white hover:bg-white/[0.08]"
+                  : "text-[#475569] hover:text-[#111827] hover:bg-[#F3F4F6]",
               )}
               data-testid="mobile-menu-btn"
             >
@@ -4050,10 +4119,10 @@ export default function ChatPage() {
           <button
             onClick={handleNewChat}
             className={cn(
-              "w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer",
+              "w-10 h-10 rounded-2xl flex items-center justify-center transition-colors cursor-pointer",
               isDark
-                ? "text-[#999] hover:text-white hover:bg-[#333]"
-                : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]",
+                ? "text-[#D5D5D5] hover:text-white hover:bg-white/[0.08]"
+                : "text-[#475569] hover:text-[#111827] hover:bg-[#F3F4F6]",
             )}
             data-testid="header-new-chat"
           >
@@ -4065,14 +4134,14 @@ export default function ChatPage() {
           {!hasMessages ? (
             <div
               className={cn(
-                "flex min-h-full flex-col items-center px-4 pb-12",
+                "flex min-h-full flex-col items-center px-4 pb-5 md:pb-12",
                 isMobileFocusedMode
                   ? "justify-start pt-3"
-                  : activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "justify-start pt-8 sm:pt-10" : "justify-center",
+                  : activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "justify-start pt-5 sm:pt-10" : "justify-end pt-4 md:justify-center",
               )}
             >
               {(mobileComposerFocused && isMobileViewport) || isMobileFocusedMode ? null : activeMode === "default" ? (
-                <div className="mb-5 h-[72px] overflow-hidden text-center sm:mb-8 sm:h-[92px]">
+                <div className="mobile-home-hero mb-4 h-[76px] max-w-[22rem] overflow-hidden text-center sm:mb-8 sm:h-[92px]">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={welcomeMessageIndex}
@@ -4081,10 +4150,10 @@ export default function ChatPage() {
                       exit={{ opacity: 0, y: -24 }}
                       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <h2 className={cn("mb-1.5 text-[21px] font-semibold tracking-tight sm:mb-2 sm:text-3xl", isDark ? "text-white" : "text-[#111827]")}>
+                      <h2 className={cn("mb-1.5 text-[24px] font-semibold leading-[1.08] tracking-tight sm:mb-2 sm:text-3xl", isDark ? "text-white" : "text-[#111827]")}>
                         {t(WELCOME_MESSAGES[welcomeMessageIndex].titleKey)}
                       </h2>
-                      <p className={cn("text-sm", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>
+                      <p className={cn("mx-auto max-w-[19rem] text-[14px] leading-5", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
                         {t(WELCOME_MESSAGES[welcomeMessageIndex].subtitleKey)}
                       </p>
                     </motion.div>
