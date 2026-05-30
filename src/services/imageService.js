@@ -1,0 +1,38 @@
+import api, { unwrapApiResponse } from "./api";
+
+export const uploadChatImage = async (file, conversationId) => {
+  const params = conversationId ? { conversationId } : {};
+  const response = await api.post("/images/upload-binary", file, {
+    params,
+    headers: {
+      "Content-Type": file.type,
+      "X-File-Name": encodeURIComponent(file.name),
+    },
+  });
+
+  return unwrapApiResponse(response)?.image;
+};
+
+export const analyzeImage = async (imageId, prompt) => {
+  const response = await api.post(`/images/${imageId}/analyze`, {
+    prompt,
+  });
+
+  return unwrapApiResponse(response);
+};
+
+export const generateImage = async (prompt, conversationId) => {
+  const response = await api.post("/images/generate", {
+    prompt,
+    conversationId,
+    n: 1,
+    size: "1024x1024",
+  });
+
+  return unwrapApiResponse(response);
+};
+
+export const getImageUrl = (imageId) => {
+  const baseUrl = api.defaults.baseURL?.replace(/\/$/, "");
+  return `${baseUrl}/images/${imageId}/file`;
+};

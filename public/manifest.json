@@ -1,0 +1,23 @@
+{
+  "short_name": "BlueMind AI",
+  "name": "BlueMind AI",
+  "description": "BlueMind AI - Your intelligent assistant",
+  "icons": [
+    {
+      "src": "/bluemind-logo-black.png",
+      "sizes": "1027x1027",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/bluemind-logo-white.png",
+      "sizes": "845x845",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#193B68",
+  "background_color": "#ffffff"
+}

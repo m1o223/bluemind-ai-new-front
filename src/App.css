@@ -1,0 +1,40 @@
+/* BlueMind AI - Clean Modern Styles */
+
+.btn-accent {
+  background-color: var(--accent);
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.btn-accent:hover {
+  background-color: var(--accent-hover);
+}
+
+.card-modern {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+/* Landing page scroll animations */
+.landing-section {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.landing-section.landing-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Text overflow prevention */
+.break-words {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
