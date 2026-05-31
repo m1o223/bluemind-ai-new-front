@@ -7,6 +7,7 @@ import {
   BookOpen,
   Brain,
   Camera,
+  ChevronDown,
   Clock3,
   FileText,
   Image,
@@ -321,6 +322,7 @@ export default function MobileChat() {
   const { resolvedTheme, t, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -481,6 +483,11 @@ export default function MobileChat() {
     setMenuOpen(false);
     setMenuSearchOpen(false);
     setMenuSearchQuery("");
+  };
+
+  const selectResponseMode = (mode) => {
+    setResponseMode(mode);
+    setResponseModeMenuOpen(false);
   };
 
   const goTo = (path) => {
@@ -782,7 +789,7 @@ export default function MobileChat() {
   const renderComposerArea = (centered = false) => (
     <div className={centered ? "mx-auto w-full max-w-[430px] px-1" : "px-4 pb-3"}>
       {showEmptyActions && (
-        <div className={centered ? "mx-auto mb-5 flex w-full max-w-[320px] flex-col items-start gap-3" : "mb-3 flex flex-col items-start gap-2"}>
+        <div className={centered ? "mb-5 ml-2 flex w-full max-w-[320px] flex-col items-start gap-3" : "mb-3 flex flex-col items-start gap-2"}>
           {QUICK_ACTIONS.map(({ label, path, icon: Icon }) => (
             <button
               key={label}
@@ -802,30 +809,6 @@ export default function MobileChat() {
               <span>{label}</span>
             </button>
           ))}
-        </div>
-      )}
-
-      {!isImageMode && (
-        <div className="mb-3 flex items-center justify-center gap-1">
-          {AI_RESPONSE_MODES.map((mode) => {
-            const active = responseMode === mode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setResponseMode(mode)}
-                className={`h-8 rounded-full px-3 text-xs font-semibold capitalize transition ${
-                  active
-                    ? "bg-[#193B68] text-white shadow-sm"
-                    : isDark
-                      ? "text-[#BFC6D1] active:bg-white/[0.08]"
-                      : "text-[#64748B] active:bg-[#EEF2F7]"
-                }`}
-              >
-                {mode}
-              </button>
-            );
-          })}
         </div>
       )}
 
@@ -898,14 +881,14 @@ export default function MobileChat() {
               }
               setAttachmentSheetOpen(true);
             }}
-            className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_12px_30px_rgba(0,0,0,0.16)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_12px_30px_rgba(15,23,42,0.12)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+            className={isDark ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
             aria-label="Attach"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
           </button>
 
           <div
-            className={`flex min-h-[52px] flex-1 items-center rounded-[26px] border pl-4 pr-1 shadow-[0_18px_45px_rgba(15,23,42,0.10)] ${borderColor}`}
+            className={`flex min-h-[48px] flex-1 items-center rounded-[24px] border pl-4 pr-1 shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor}`}
             style={{
               backgroundColor: isDark ? "rgba(32,32,32,0.9)" : "rgba(255,255,255,0.88)",
               backdropFilter: "blur(18px)",
@@ -918,12 +901,12 @@ export default function MobileChat() {
               onChange={(event) => setMessage(event.target.value)}
               rows={1}
               placeholder={isImageMode ? "Describe an image..." : "Ask anything..."}
-              className={`max-h-[132px] min-h-[50px] flex-1 resize-none bg-transparent py-[15px] text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+              className={`max-h-[128px] min-h-[46px] flex-1 resize-none bg-transparent py-[13px] text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
             />
 
             <button
               type="submit"
-              className="mb-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.22)] disabled:opacity-45"
+              className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] disabled:opacity-45"
               style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
               disabled={!hasComposerContent || isGeneratingImage || isChatSending}
               aria-label="Send"
@@ -931,7 +914,7 @@ export default function MobileChat() {
               {isGeneratingImage || isChatSending ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               ) : (
-                <ArrowUp className="h-5 w-5 stroke-[2.8]" />
+                <ArrowUp className="h-5 w-5 -translate-y-px stroke-[3]" />
               )}
             </button>
           </div>
@@ -951,25 +934,62 @@ export default function MobileChat() {
       }}
       data-testid="mobile-chat-page"
     >
-      <header className={`flex h-14 items-center justify-between border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+      <header className={`flex h-14 items-center border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
+        <div className="relative flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
 
-        <button type="button" onClick={() => navigate("/mobile/chat")} className="flex items-center gap-2">
-          <BrandLogo showName={false} logoClassName="h-7 w-7" />
-          <span className="text-base font-bold tracking-tight">BlueMind</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setResponseModeMenuOpen((open) => !open)}
+            className={isDark ? "inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-sm font-semibold capitalize text-white active:bg-white/[0.08]" : "inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-sm font-semibold capitalize text-[#111827] active:bg-[#EEF2F7]"}
+            aria-label="Select AI mode"
+            aria-expanded={responseModeMenuOpen}
+          >
+            <span>{responseMode}</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          <AnimatePresence>
+            {responseModeMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                transition={{ duration: 0.16 }}
+                className={`absolute left-12 top-12 z-30 w-36 overflow-hidden rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[#202020]" : "border-[#E5E7EB] bg-white"}`}
+              >
+                {AI_RESPONSE_MODES.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => selectResponseMode(mode)}
+                    className={`flex h-10 w-full items-center rounded-xl px-3 text-left text-sm font-semibold capitalize ${
+                      responseMode === mode
+                        ? "bg-[#193B68] text-white"
+                        : isDark
+                          ? "text-[#D7D7D7] active:bg-white/[0.08]"
+                          : "text-[#111827] active:bg-[#EEF2F7]"
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         <button
           type="button"
           onClick={startNewChat}
-          className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+          className={isDark ? "ml-auto flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "ml-auto flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
           aria-label="New chat"
         >
           <PenLine className="h-5 w-5" />
