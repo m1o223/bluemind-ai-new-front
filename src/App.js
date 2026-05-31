@@ -144,6 +144,7 @@ function AppContent() {
             <Route path="create-image" element={<MobileAccessRoute><MobileCreateImage /></MobileAccessRoute>} />
             <Route path="write-edit" element={<MobileAccessRoute><MobileWriteEdit /></MobileAccessRoute>} />
             <Route path="reminders" element={<MobileAccessRoute><MobileReminders /></MobileAccessRoute>} />
+            <Route path="reminders/:reminderId" element={<MobileAccessRoute><MobileReminders /></MobileAccessRoute>} />
             <Route path="learning" element={<MobileAccessRoute><MobileLearning /></MobileAccessRoute>} />
             <Route path="profile" element={<MobileAccessRoute><MobileProfile /></MobileAccessRoute>} />
             <Route path="settings" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
