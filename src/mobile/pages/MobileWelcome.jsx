@@ -52,7 +52,7 @@ export default function MobileWelcome() {
       }}
     >
       <section className="mx-auto flex h-full w-full max-w-[430px] flex-col px-6">
-        <div className="flex min-h-0 flex-1 -translate-y-5 flex-col items-center justify-center py-5">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-start py-5">
           <BrandLogo showName={false} logoClassName="h-20 w-20" />
 
           <h1 className="mt-5 text-center text-[32px] font-bold leading-tight tracking-tight">
