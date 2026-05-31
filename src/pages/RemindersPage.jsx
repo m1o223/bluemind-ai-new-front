@@ -5,6 +5,7 @@ import {
   deleteReminder,
 } from "../services/reminderService"
 import {
+  getNotificationDebugSnapshot,
   inspectNotificationSetup,
   sendTestNotification,
   setupReminderNotifications,
@@ -505,6 +506,13 @@ function NotificationSetupPanel({
           serviceWorkerRegistered: Boolean(debugState?.serviceWorkerRegistered),
           pushSupported: Boolean(debugState?.pushSupported),
           subscriptionExists: Boolean(debugState?.subscriptionExists),
+          isIOS: Boolean(debugState?.isIOS),
+          isStandalone: Boolean(debugState?.isStandalone),
+          hasWindow: Boolean(debugState?.hasWindow),
+          hasNotification: Boolean(debugState?.hasNotification),
+          hasServiceWorker: Boolean(debugState?.hasServiceWorker),
+          hasPushManager: Boolean(debugState?.hasPushManager),
+          userAgent: debugState?.userAgent || "",
           serviceWorkerError: debugState?.serviceWorkerError,
           setupError: debugState?.setupError,
           backendDeviceSaved: Boolean(debugState?.backendDeviceSaved),
@@ -525,12 +533,7 @@ export default function RemindersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [modalOpen, setModalOpen] = useState(false)
   const [editingReminder, setEditingReminder] = useState(null)
-  const [notificationDebug, setNotificationDebug] = useState({
-    permission: typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported",
-    serviceWorkerRegistered: false,
-    pushSupported: typeof window !== "undefined" && "PushManager" in window,
-    subscriptionExists: false,
-  })
+  const [notificationDebug, setNotificationDebug] = useState(() => getNotificationDebugSnapshot())
   const [notificationBusy, setNotificationBusy] = useState({
     enabling: false,
     refreshing: false,
@@ -616,9 +619,8 @@ const fetchReminders = useCallback(async () => {
           .then((result) => {
             setNotificationDebug((prev) => ({
               ...prev,
-              permission: "Notification" in window ? Notification.permission : "unsupported",
+              ...getNotificationDebugSnapshot(),
               serviceWorkerRegistered: Boolean(result?.registration || prev.serviceWorkerRegistered),
-              pushSupported: Boolean("PushManager" in window),
               subscriptionExists: Boolean(result?.device || prev.subscriptionExists),
               backendDeviceSaved: Boolean(result?.device),
               setupError: result?.reason,
@@ -673,7 +675,7 @@ const fetchReminders = useCallback(async () => {
         setupError: result?.reason,
       })
 
-      if (Notification.permission === "granted" && (result?.device || debug.subscriptionExists)) {
+      if (debug.permission === "granted" && (result?.device || debug.subscriptionExists)) {
         toast.success(t("notificationsEnabled"))
       } else {
         toast.error(result?.reason || t("notificationsDisabled"))

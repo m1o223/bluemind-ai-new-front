@@ -13,6 +13,51 @@ function hasFirebaseConfig() {
   return Object.values(FIREBASE_CONFIG).every(Boolean);
 }
 
+function hasWindowObject() {
+  return typeof window !== "undefined";
+}
+
+function hasNavigatorObject() {
+  return typeof navigator !== "undefined";
+}
+
+function getUserAgent() {
+  return hasNavigatorObject() ? navigator.userAgent || "" : "";
+}
+
+function getNotificationApi() {
+  if (!hasWindowObject()) return null;
+  return typeof window.Notification !== "undefined" ? window.Notification : null;
+}
+
+function getNotificationPermission() {
+  return getNotificationApi()?.permission || "unsupported";
+}
+
+function getCapabilityDiagnostics() {
+  const hasWindow = hasWindowObject();
+  const hasNavigator = hasNavigatorObject();
+  const userAgent = getUserAgent();
+  const hasNotification = Boolean(getNotificationApi());
+  const hasServiceWorker = Boolean(hasNavigator && "serviceWorker" in navigator);
+  const hasPushManager = Boolean(hasWindow && "PushManager" in window);
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+  const isStandalone = Boolean(
+    hasWindow
+      && (window.navigator?.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches)
+  );
+
+  return {
+    isIOS,
+    isStandalone,
+    hasWindow,
+    hasNotification,
+    hasServiceWorker,
+    hasPushManager,
+    userAgent,
+  };
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = `${base64String}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
@@ -27,7 +72,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 function getBrowserPlatform() {
-  const ua = navigator.userAgent || "";
+  const ua = getUserAgent();
 
   if (/iPad|iPhone|iPod/.test(ua)) return "ios";
   if (/Android/i.test(ua)) return "android";
@@ -35,17 +80,22 @@ function getBrowserPlatform() {
 }
 
 function isStandaloneAppleWebApp() {
-  return window.navigator.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches;
+  return getCapabilityDiagnostics().isStandalone;
 }
 
 export function getNotificationDebugSnapshot(extra = {}) {
-  const serviceWorkerRegistered = Boolean(navigator.serviceWorker?.controller || extra.serviceWorkerRegistered);
+  const diagnostics = getCapabilityDiagnostics();
+  const serviceWorkerRegistered = Boolean(
+    diagnostics.hasServiceWorker
+      && (navigator.serviceWorker?.controller || extra.serviceWorkerRegistered)
+  );
 
   return {
-    permission: "Notification" in window ? Notification.permission : "unsupported",
+    permission: getNotificationPermission(),
     serviceWorkerRegistered,
-    pushSupported: Boolean("PushManager" in window),
+    pushSupported: diagnostics.hasPushManager,
     subscriptionExists: Boolean(extra.subscriptionExists),
+    ...diagnostics,
     ...extra,
   };
 }
@@ -53,7 +103,7 @@ export function getNotificationDebugSnapshot(extra = {}) {
 export async function inspectNotificationSetup() {
   const snapshot = getNotificationDebugSnapshot();
 
-  if (!("serviceWorker" in navigator)) {
+  if (!snapshot.hasServiceWorker) {
     return {
       ...snapshot,
       serviceWorkerRegistered: false,
@@ -70,7 +120,7 @@ export async function inspectNotificationSetup() {
 
     return getNotificationDebugSnapshot({
       serviceWorkerRegistered: true,
-      pushSupported: Boolean("PushManager" in window && registration.pushManager),
+      pushSupported: Boolean(snapshot.hasPushManager && registration.pushManager),
       subscriptionExists: Boolean(subscription),
       endpoint: subscription?.endpoint,
     });
@@ -89,7 +139,7 @@ export async function registerDeviceToken(token, metadata = {}) {
   const response = await api.post("/reminders/register-device", {
     token,
     platform: getBrowserPlatform(),
-    browser: navigator.userAgent.slice(0, 80),
+    browser: getUserAgent().slice(0, 80),
     metadata,
   });
 
@@ -100,7 +150,7 @@ export async function registerWebPushSubscription(subscription, metadata = {}) {
   const response = await api.post("/reminders/register-device", {
     subscription: subscription.toJSON(),
     platform: getBrowserPlatform(),
-    browser: navigator.userAgent.slice(0, 80),
+    browser: getUserAgent().slice(0, 80),
     metadata: {
       ...metadata,
       provider: "web-push",
@@ -122,33 +172,48 @@ export async function sendTestNotification(payload = {}) {
 }
 
 export async function setupReminderNotifications() {
-  if (!("Notification" in window)) {
-    return { ready: false, reason: "notifications_not_supported" };
+  const diagnostics = getCapabilityDiagnostics();
+  const NotificationApi = getNotificationApi();
+
+  if (!diagnostics.hasNotification || !NotificationApi) {
+    return {
+      ready: false,
+      reason: "notifications_not_supported",
+      diagnostics,
+      permission: "unsupported",
+    };
   }
 
-  if (!("serviceWorker" in navigator)) {
-    return { ready: false, reason: "service_worker_not_supported" };
+  if (!diagnostics.hasServiceWorker) {
+    return {
+      ready: false,
+      reason: "service_worker_not_supported",
+      diagnostics,
+      permission: NotificationApi.permission,
+    };
   }
 
   const registration = await navigator.serviceWorker.register("/sw.js");
   await navigator.serviceWorker.ready;
 
-  if (!("PushManager" in window) || !registration.pushManager) {
+  if (!diagnostics.hasPushManager || !registration.pushManager) {
     return {
       ready: false,
       registration,
+      diagnostics,
+      permission: NotificationApi.permission,
       reason: getBrowserPlatform() === "ios" && !isStandaloneAppleWebApp()
         ? "ios_requires_home_screen_install"
         : "push_manager_not_supported",
     };
   }
 
-  const permission = Notification.permission === "granted"
+  const permission = NotificationApi.permission === "granted"
     ? "granted"
-    : await Notification.requestPermission();
+    : await NotificationApi.requestPermission();
 
   if (permission !== "granted") {
-    return { ready: false, registration, reason: "permission_denied" };
+    return { ready: false, registration, diagnostics, permission, reason: "permission_denied" };
   }
 
   if (!WEB_PUSH_PUBLIC_KEY) {
@@ -156,6 +221,8 @@ export async function setupReminderNotifications() {
       ready: true,
       registration,
       webPush: false,
+      diagnostics,
+      permission,
       reason: "web_push_public_key_missing",
     };
   }
@@ -173,6 +240,7 @@ export async function setupReminderNotifications() {
       webPush: true,
       device,
       registration,
+      diagnostics,
       permission,
     };
   } catch (error) {
@@ -181,6 +249,8 @@ export async function setupReminderNotifications() {
         ready: true,
         webPush: false,
         registration,
+        diagnostics,
+        permission,
         reason: error.message,
       };
     }
@@ -191,6 +261,8 @@ export async function setupReminderNotifications() {
       ready: true,
       registration,
       fcm: false,
+      diagnostics,
+      permission,
       reason: "firebase_web_config_missing",
     };
   }
