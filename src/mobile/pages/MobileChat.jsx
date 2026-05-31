@@ -23,7 +23,9 @@ import {
 
 import BrandLogo from "@/components/BrandLogo";
 import { useApp } from "@/context/AppContext";
+import { getApiErrorMessage } from "@/services/api";
 import { listConversations, searchConversations } from "@/services/chatService";
+import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 
 const QUICK_ACTIONS = [
   { label: "Create Image", path: "/mobile/create-image", icon: Image },
@@ -33,30 +35,115 @@ const QUICK_ACTIONS = [
 
 const MAX_IMAGE_ATTACHMENTS = 6;
 
-const IMAGE_INSPIRATIONS = [
+const IMAGE_TEMPLATES = [
   {
+    id: "desk-setup",
     title: "Improve Your Desk Setup",
+    category: "Workspace",
+    requiresImage: true,
+    prompt: "Analyze the uploaded desk or workspace photo, then create a polished upgraded desk setup concept. Keep the real room constraints in mind, improve lighting, cable management, ergonomics, monitor placement, storage, decor, and color harmony. Generate a realistic premium workspace visualization with practical improvements, natural materials, clean organization, and a calm BlueMind-inspired modern atmosphere.",
     gradient: "from-[#193B68] via-[#315F9C] to-[#8FB7FF]",
   },
   {
-    title: "Logo Design",
+    id: "modern-logo",
+    title: "Modern Logo Design",
+    category: "Branding",
+    prompt: "Create a premium modern logo concept for a refined AI-era brand. Use clean geometry, strong negative space, balanced proportions, scalable vector-like shapes, and a memorable mark. Present it on a simple neutral background with professional spacing, subtle BlueMind-inspired blue accents, and no mockup clutter.",
     gradient: "from-[#102A43] via-[#1D4E89] to-[#7AB8FF]",
   },
   {
-    title: "App UI",
+    id: "professional-headshot",
+    title: "Professional Headshot",
+    category: "Portrait",
+    requiresImage: true,
+    prompt: "Use the uploaded portrait as identity reference and create a professional studio headshot. Preserve recognizable facial features while improving lighting, posture, background, wardrobe polish, and clarity. Make it realistic, confident, approachable, high-resolution, and suitable for LinkedIn or a business profile.",
     gradient: "from-[#243B53] via-[#3B6EA8] to-[#C7D9FF]",
   },
   {
-    title: "Product Mockup",
+    id: "anime-portrait",
+    title: "Anime Portrait",
+    category: "Stylized",
+    requiresImage: true,
+    prompt: "Transform the uploaded portrait into a polished anime-style character portrait. Preserve the person's key identity cues while using expressive eyes, clean linework, soft cinematic lighting, detailed hair, elegant shading, and a tasteful modern background. Avoid exaggerated distortions.",
     gradient: "from-[#16324F] via-[#496C95] to-[#DCE9FF]",
   },
   {
-    title: "Infographic",
+    id: "product-ad",
+    title: "Product Advertisement",
+    category: "Marketing",
+    requiresImage: true,
+    prompt: "Use the uploaded product image as the hero product reference and create a premium product advertisement. Improve lighting, composition, reflections, background styling, and visual hierarchy. Make it suitable for a high-end ecommerce campaign with clean copy space and polished commercial photography.",
     gradient: "from-[#1F3A5F] via-[#5077AA] to-[#A9C7EF]",
   },
   {
-    title: "Fantasy Art",
+    id: "instagram-post",
+    title: "Instagram Post",
+    category: "Social",
+    prompt: "Create a premium Instagram post design with a clear visual hook, elegant layout, readable text zones, refined spacing, modern gradients, and BlueMind-inspired accent colors. Make it feel useful, polished, and ready for a high-quality brand account.",
     gradient: "from-[#182B49] via-[#345C8E] to-[#9EBCE3]",
+  },
+  {
+    id: "youtube-thumbnail",
+    title: "YouTube Thumbnail",
+    category: "Creator",
+    prompt: "Create a high-click professional YouTube thumbnail concept with a bold focal point, clean readable title area, strong contrast, cinematic lighting, and modern AI-product polish. Avoid clutter and keep the composition clear on small screens.",
+    gradient: "from-[#12355B] via-[#2E6F9E] to-[#9ED8FF]",
+  },
+  {
+    id: "mobile-app-ui",
+    title: "Mobile App UI",
+    category: "Interface",
+    prompt: "Design a premium mobile app UI screen for an intelligent productivity assistant. Use clean hierarchy, elegant typography, tactile controls, subtle depth, rounded components, BlueMind blue accents, and a native iOS-quality layout. Show a realistic app screen, not a marketing poster.",
+    gradient: "from-[#172A46] via-[#466E9C] to-[#B8CEF1]",
+  },
+  {
+    id: "website-landing",
+    title: "Website Landing Page",
+    category: "Web",
+    prompt: "Create a modern website landing page concept for a premium AI product. Include a strong hero area, clear product visual, elegant navigation, concise value proposition, refined spacing, and BlueMind-inspired blue accents. Make it polished, minimal, and conversion-focused.",
+    gradient: "from-[#0F2B46] via-[#2D5E88] to-[#93BDE6]",
+  },
+  {
+    id: "business-card",
+    title: "Business Card",
+    category: "Print",
+    prompt: "Create a premium business card design with clean typography, generous spacing, subtle BlueMind blue accents, professional front-and-back composition, and print-ready visual clarity. Make it elegant, modern, and credible.",
+    gradient: "from-[#19324C] via-[#426B92] to-[#D8E7F8]",
+  },
+  {
+    id: "infographic",
+    title: "Infographic Design",
+    category: "Education",
+    prompt: "Create a clear modern infographic that explains a complex idea with simple sections, icons, charts, hierarchy, and concise visual storytelling. Use a polished BlueMind-inspired palette, excellent readability, and professional editorial spacing.",
+    gradient: "from-[#1F3A5F] via-[#5077AA] to-[#A9C7EF]",
+  },
+  {
+    id: "fantasy-character",
+    title: "Fantasy Character",
+    category: "Concept Art",
+    prompt: "Create a cinematic fantasy character concept with detailed costume design, expressive pose, rich materials, dramatic lighting, and a premium concept-art finish. Keep the character original, memorable, and visually balanced.",
+    gradient: "from-[#182B49] via-[#345C8E] to-[#9EBCE3]",
+  },
+  {
+    id: "childrens-illustration",
+    title: "Children’s Illustration",
+    category: "Storybook",
+    prompt: "Create a warm children’s book illustration with charming characters, gentle colors, readable composition, soft texture, expressive storytelling, and a friendly magical atmosphere. Make it polished and age-appropriate.",
+    gradient: "from-[#264E73] via-[#6A95C2] to-[#D5E8FF]",
+  },
+  {
+    id: "architecture-concept",
+    title: "Architecture Concept",
+    category: "Architecture",
+    prompt: "Create a premium architecture concept visualization for a modern building. Use elegant forms, realistic materials, natural light, thoughtful landscape integration, clean composition, and high-end architectural rendering quality.",
+    gradient: "from-[#1A344F] via-[#587FA6] to-[#CADDF2]",
+  },
+  {
+    id: "gaming-wallpaper",
+    title: "Gaming Wallpaper",
+    category: "Wallpaper",
+    prompt: "Create a cinematic gaming wallpaper with a powerful focal subject, atmospheric lighting, dynamic depth, crisp details, and a premium blue-accented color grade. Make it suitable for a mobile lock screen with clean negative space.",
+    gradient: "from-[#10213D] via-[#234F87] to-[#76B2FF]",
   },
 ];
 
@@ -88,7 +175,12 @@ export default function MobileChat() {
   const [historyError, setHistoryError] = useState("");
   const [message, setMessage] = useState("");
   const [isImageMode, setIsImageMode] = useState(false);
+  const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
+  const [generatedImages, setGeneratedImages] = useState([]);
+  const [imageModeError, setImageModeError] = useState("");
+  const [imageModeStatus, setImageModeStatus] = useState("");
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
   const [imageSourceSheetOpen, setImageSourceSheetOpen] = useState(false);
   const attachedImagesRef = useRef([]);
@@ -120,6 +212,7 @@ export default function MobileChat() {
   }, [conversations, menuSearchQuery, searchResults]);
 
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
+  const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
 
   useEffect(() => {
     let cancelled = false;
@@ -220,6 +313,11 @@ export default function MobileChat() {
   const startNewChat = () => {
     closeMenu();
     setMessage("");
+    setIsImageMode(false);
+    setSelectedImageTemplate(null);
+    setGeneratedImages([]);
+    setImageModeError("");
+    setImageModeStatus("");
     setAttachedImages((current) => {
       current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
       return [];
@@ -255,11 +353,27 @@ export default function MobileChat() {
 
   const enterImageMode = () => {
     setIsImageMode(true);
+    setImageModeError("");
     setAttachmentSheetOpen(false);
   };
 
   const exitImageMode = () => {
     setIsImageMode(false);
+    setSelectedImageTemplate(null);
+    setImageModeError("");
+    setImageModeStatus("");
+  };
+
+  const selectImageTemplate = (template) => {
+    setIsImageMode(true);
+    setSelectedImageTemplate(template);
+    setMessage(template.prompt);
+    setImageModeError("");
+    setImageModeStatus("");
+
+    if (template.requiresImage && attachedImages.length === 0) {
+      window.setTimeout(() => setImageSourceSheetOpen(true), 120);
+    }
   };
 
   const openSheetDestination = (path) => {
@@ -280,6 +394,8 @@ export default function MobileChat() {
       return;
     }
 
+    setIsImageMode(true);
+    setImageModeError("");
     setAttachedImages((current) => {
       const availableSlots = Math.max(0, MAX_IMAGE_ATTACHMENTS - current.length);
       const nextImages = files.slice(0, availableSlots).map((file) => ({
@@ -316,16 +432,110 @@ export default function MobileChat() {
     }
   };
 
-  const handleComposerSubmit = (event) => {
-    event.preventDefault();
-    if (!hasComposerContent) return;
+  const buildGenerationPrompt = (basePrompt, imageAnalyses = []) => {
+    const templateContext = selectedImageTemplate
+      ? [
+          `Template: ${selectedImageTemplate.title}`,
+          `Template category: ${selectedImageTemplate.category}`,
+          selectedImageTemplate.requiresImage ? "This template should use the uploaded image as a visual reference." : "",
+        ].filter(Boolean).join("\n")
+      : "";
 
-    setMessage("");
-    setAttachedImages((current) => {
-      current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
-      return [];
-    });
-    setIsImageMode(false);
+    const imageContext = imageAnalyses.length
+      ? imageAnalyses.map((item, index) => [
+          `Reference image ${index + 1}:`,
+          item.analysis?.description && `Description: ${item.analysis.description}`,
+          item.analysis?.extractedText && `Readable text: ${item.analysis.extractedText}`,
+          item.analysis?.objects?.length && `Visible objects: ${item.analysis.objects.join(", ")}`,
+          item.analysis?.safetyNotes && `Safety notes: ${item.analysis.safetyNotes}`,
+        ].filter(Boolean).join("\n")).join("\n\n")
+      : "";
+
+    return [
+      templateContext,
+      imageContext,
+      "Create the final image from this request:",
+      basePrompt,
+      "Output a polished, production-quality image. Keep the composition mobile-friendly, visually clear, and consistent with BlueMind's refined modern identity.",
+    ].filter(Boolean).join("\n\n");
+  };
+
+  const handleComposerSubmit = async (event) => {
+    event.preventDefault();
+    if (!hasComposerContent || isGeneratingImage) return;
+
+    if (!isImageMode) {
+      setMessage("");
+      return;
+    }
+
+    if (selectedImageTemplate?.requiresImage && attachedImages.length === 0) {
+      setImageModeError("Add a photo for this template before generating.");
+      setImageSourceSheetOpen(true);
+      return;
+    }
+
+    const prompt = message.trim() || selectedImageTemplate?.prompt || "Create a polished BlueMind image.";
+    setIsGeneratingImage(true);
+    setImageModeError("");
+    setImageModeStatus(attachedImages.length ? "Uploading images..." : "Generating image...");
+
+    try {
+      const uploadedImages = [];
+      for (const attachment of attachedImages) {
+        const image = await uploadChatImage(attachment.file, activeConversationId);
+        if (image) {
+          uploadedImages.push(image);
+        }
+      }
+
+      const analyses = [];
+      if (uploadedImages.length > 0) {
+        setImageModeStatus("Reading image context...");
+        for (const image of uploadedImages) {
+          const analysisPrompt = selectedImageTemplate?.requiresImage
+            ? selectedImageTemplate.prompt
+            : "Analyze this image as a visual reference for image generation. Describe composition, objects, style, colors, readable text, and details that should influence the generated image.";
+          const analysis = await analyzeImage(image.id, analysisPrompt);
+          analyses.push(analysis);
+        }
+      }
+
+      setImageModeStatus("Generating image...");
+      const finalPrompt = buildGenerationPrompt(prompt, analyses);
+      const result = await generateImage(finalPrompt, activeConversationId, {
+        n: 1,
+        size: "1024x1024",
+        quality: "auto",
+        outputFormat: "png",
+        metadata: {
+          source: "mobile_image_mode",
+          templateId: selectedImageTemplate?.id,
+          templateTitle: selectedImageTemplate?.title,
+          uploadedImageIds: uploadedImages.map((image) => image.id),
+        },
+      });
+
+      setGeneratedImages((result?.images || []).map((image) => ({
+        id: image.id,
+        url: getImageUrl(image.id),
+        prompt: image.prompt,
+        revisedPrompt: image.revisedPrompt,
+      })));
+      setImageModeStatus("Image generated.");
+      setMessage("");
+      setSelectedImageTemplate(null);
+      setAttachedImages((current) => {
+        current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+        return [];
+      });
+      setIsImageMode(false);
+    } catch (error) {
+      setImageModeError(getApiErrorMessage(error, "Image generation failed"));
+      setImageModeStatus("");
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   return (
@@ -366,7 +576,33 @@ export default function MobileChat() {
 
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-28 pt-4">
-          {isImageMode && !message.trim() && (
+          {generatedImages.length > 0 && (
+            <div className="mb-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold">Generated image</p>
+                <button
+                  type="button"
+                  onClick={() => setGeneratedImages([])}
+                  className={`text-xs font-bold ${mutedText}`}
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="grid gap-3">
+                {generatedImages.map((image) => (
+                  <div
+                    key={image.id}
+                    className={`overflow-hidden rounded-[26px] border ${borderColor}`}
+                    style={{ backgroundColor: panelColor }}
+                  >
+                    <img src={image.url} alt="Generated BlueMind result" className="aspect-square w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {shouldShowImageTemplates && (
             <div className="pt-2">
               <div className="mb-4 flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}>
@@ -379,11 +615,11 @@ export default function MobileChat() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {IMAGE_INSPIRATIONS.map((item) => (
+                {IMAGE_TEMPLATES.map((item) => (
                   <button
                     key={item.title}
                     type="button"
-                    onClick={() => setMessage(item.title)}
+                    onClick={() => selectImageTemplate(item)}
                     className={`relative h-32 overflow-hidden rounded-[24px] bg-gradient-to-br ${item.gradient} p-4 text-left shadow-sm active:scale-[0.99]`}
                   >
                     <div className="absolute inset-0 bg-black/10" />
@@ -391,6 +627,9 @@ export default function MobileChat() {
                     <div className="absolute -bottom-8 left-4 h-20 w-20 rounded-full bg-white/15 blur-2xl" />
                     <span className="relative z-10 block max-w-[8rem] text-sm font-bold leading-5 text-white drop-shadow">
                       {item.title}
+                    </span>
+                    <span className="absolute bottom-3 left-4 z-10 rounded-full bg-black/25 px-2 py-1 text-[10px] font-bold text-white/90 backdrop-blur">
+                      {item.category}
                     </span>
                   </button>
                 ))}
@@ -400,29 +639,59 @@ export default function MobileChat() {
         </div>
 
         <div className="px-4 pb-3">
-          <div className="mb-3 flex flex-col items-start gap-2">
-            {QUICK_ACTIONS.map(({ label, path, icon: Icon }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => {
-                  if (label === "Create Image") {
-                    enterImageMode();
-                    return;
-                  }
-                  navigate(path);
-                }}
-                className={`inline-flex min-h-9 items-center gap-2 rounded-full px-1 text-sm font-semibold transition-opacity active:opacity-70 ${
-                  label === "Create Image" && isImageMode
-                    ? "text-[var(--bluemind-app-color,#193B68)]"
-                    : isDark ? "text-[#D7D7D7]" : "text-[#193B68]"
-                }`}
+          {!isImageMode && (
+            <div className="mb-3 flex flex-col items-start gap-2">
+              {QUICK_ACTIONS.map(({ label, path, icon: Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    if (label === "Create Image") {
+                      enterImageMode();
+                      return;
+                    }
+                    navigate(path);
+                  }}
+                  className={`inline-flex min-h-9 items-center gap-2 rounded-full px-1 text-sm font-semibold transition-opacity active:opacity-70 ${
+                    isDark ? "text-[#D7D7D7]" : "text-[#193B68]"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {isImageMode && (
+            <div className="mb-2 flex items-center justify-between">
+              <span
+                className="inline-flex h-8 items-center gap-2 rounded-full px-3 text-xs font-bold text-white shadow-sm"
+                style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
               >
-                <Icon className="h-4 w-4" />
-                <span>{label}</span>
+                <Image className="h-4 w-4" />
+                Image
+              </span>
+              <button
+                type="button"
+                onClick={exitImageMode}
+                className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-8 w-8 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                aria-label="Exit Image Mode"
+              >
+                <X className="h-4 w-4" />
               </button>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {(imageModeError || imageModeStatus) && (
+            <div className={`mb-2 rounded-2xl px-3 py-2 text-xs font-bold ${
+              imageModeError
+                ? isDark ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-600"
+                : isDark ? "bg-white/[0.06] text-[#D7D7D7]" : "bg-[#EEF2F7] text-[#193B68]"
+            }`}>
+              {imageModeError || imageModeStatus}
+            </div>
+          )}
 
           <form
             className={`flex min-h-[58px] flex-col gap-2 rounded-[28px] border p-2 shadow-[0_18px_45px_rgba(15,23,42,0.10)] ${borderColor}`}
@@ -433,26 +702,6 @@ export default function MobileChat() {
             }}
             onSubmit={handleComposerSubmit}
           >
-            {isImageMode && (
-              <div className="flex items-center justify-between px-1 pt-1">
-                <span
-                  className="inline-flex h-8 items-center gap-2 rounded-full px-3 text-xs font-bold text-white"
-                  style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
-                >
-                  <Image className="h-4 w-4" />
-                  Image
-                </span>
-                <button
-                  type="button"
-                  onClick={exitImageMode}
-                  className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-8 w-8 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
-                  aria-label="Exit Image Mode"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-
             {attachedImages.length > 0 && (
               <div
                 className="flex gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1"
@@ -461,11 +710,7 @@ export default function MobileChat() {
                 {attachedImages.map((image, index) => (
                   <div
                     key={image.id}
-                    className={
-                      attachedImages.length === 1
-                        ? "relative h-36 min-w-full overflow-hidden rounded-[22px]"
-                        : "relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px]"
-                    }
+                    className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px]"
                   >
                     <img
                       src={image.previewUrl}
@@ -522,10 +767,14 @@ export default function MobileChat() {
                 type="submit"
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-45"
                 style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
-                disabled={!hasComposerContent}
+                disabled={!hasComposerContent || isGeneratingImage}
                 aria-label="Send"
               >
-                <Send className="h-5 w-5" />
+                {isGeneratingImage ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
               </button>
             </div>
           </form>
@@ -624,7 +873,10 @@ export default function MobileChat() {
 
                 <button
                   type="button"
-                  onClick={() => openFileInput(cameraInputRef)}
+                  onClick={() => {
+                    enterImageMode();
+                    openFileInput(cameraInputRef);
+                  }}
                   className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
                   <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
@@ -636,6 +888,7 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={() => {
+                    enterImageMode();
                     closeAttachmentSheet();
                     setImageSourceSheetOpen(true);
                   }}
@@ -709,24 +962,24 @@ export default function MobileChat() {
               <div className="grid gap-2">
                 <button
                   type="button"
-                  onClick={() => openFileInput(cameraInputRef)}
-                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
-                >
-                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
-                    <Camera className="h-5 w-5" />
-                  </span>
-                  <span>Take a photo</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => openFileInput(imageInputRef)}
                   className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
                   <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
                     <Image className="h-5 w-5" />
                   </span>
-                  <span>Choose a photo</span>
+                  <span>Choose Photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openFileInput(cameraInputRef)}
+                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <Camera className="h-5 w-5" />
+                  </span>
+                  <span>Take Photo</span>
                 </button>
               </div>
             </motion.section>

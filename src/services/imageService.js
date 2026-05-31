@@ -21,12 +21,16 @@ export const analyzeImage = async (imageId, prompt) => {
   return unwrapApiResponse(response);
 };
 
-export const generateImage = async (prompt, conversationId) => {
+export const generateImage = async (prompt, conversationId, options = {}) => {
   const response = await api.post("/images/generate", {
     prompt,
     conversationId,
-    n: 1,
-    size: "1024x1024",
+    n: options.n || 1,
+    size: options.size || "1024x1024",
+    quality: options.quality || "auto",
+    outputFormat: options.outputFormat || "png",
+    background: options.background || "auto",
+    metadata: options.metadata,
   });
 
   return unwrapApiResponse(response);
