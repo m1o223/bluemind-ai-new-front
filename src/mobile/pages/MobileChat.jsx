@@ -147,6 +147,160 @@ const IMAGE_TEMPLATES = [
   },
 ];
 
+function createIdeaThumbnail(seed, primary, secondary, accent) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+      <defs>
+        <linearGradient id="bg-${seed}" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${primary}"/>
+          <stop offset="58%" stop-color="${secondary}"/>
+          <stop offset="100%" stop-color="${accent}"/>
+        </linearGradient>
+        <radialGradient id="glow-${seed}" cx="35%" cy="25%" r="60%">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.8)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+        <filter id="blur-${seed}" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="18"/>
+        </filter>
+      </defs>
+      <rect width="640" height="420" rx="44" fill="url(#bg-${seed})"/>
+      <circle cx="178" cy="92" r="160" fill="url(#glow-${seed})"/>
+      <circle cx="512" cy="92" r="92" fill="rgba(255,255,255,0.24)" filter="url(#blur-${seed})"/>
+      <rect x="64" y="238" width="236" height="118" rx="34" fill="rgba(255,255,255,0.24)"/>
+      <rect x="340" y="186" width="202" height="170" rx="42" fill="rgba(255,255,255,0.18)"/>
+      <path d="M84 310 C168 216 226 368 310 260 C390 160 456 314 560 214 L560 356 L84 356 Z" fill="rgba(15,23,42,0.22)"/>
+      <path d="M92 306 C170 232 228 348 306 272 C386 192 450 304 548 230" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="450" cy="126" r="38" fill="rgba(255,255,255,0.78)"/>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+const DESKTOP_IMAGE_IDEAS = [
+  {
+    id: "anime",
+    title: "Anime",
+    category: "Stylized Art",
+    description: "Create anime-style artwork from your idea.",
+    prompt: "Create a polished anime-style portrait with cinematic lighting, expressive eyes, and a clean BlueMind-inspired blue atmosphere.",
+    thumbnail: createIdeaThumbnail("anime", "#7C3AED", "#2563EB", "#F472B6"),
+  },
+  {
+    id: "portrait",
+    title: "Portrait",
+    category: "People",
+    description: "Generate a refined studio portrait.",
+    prompt: "Create a refined professional portrait with soft studio lighting, realistic skin texture, sharp details, and a minimal background.",
+    thumbnail: createIdeaThumbnail("portrait", "#0F172A", "#475569", "#D8B4FE"),
+  },
+  {
+    id: "mini-me",
+    title: "Mini Me",
+    category: "Personalized",
+    description: "Turn yourself into a playful mini scene.",
+    prompt: "Create a realistic mini version of me sitting on my desk, highly detailed, playful scale, premium studio lighting, clean modern background.",
+    thumbnail: createIdeaThumbnail("mini-me", "#155E75", "#0E7490", "#FBBF24"),
+  },
+  {
+    id: "research",
+    title: "Research",
+    category: "Knowledge",
+    description: "Visualize notes, data, and discoveries.",
+    prompt: "Create a futuristic research board visual with notes, diagrams, data cards, and a calm blue glassmorphism interface.",
+    thumbnail: createIdeaThumbnail("research", "#193B68", "#2563EB", "#22D3EE"),
+  },
+  {
+    id: "recipe",
+    title: "Recipe",
+    category: "Food",
+    description: "Design an editorial recipe visual.",
+    prompt: "Create a premium recipe card image with fresh ingredients, elegant plating, soft natural light, and clean editorial composition.",
+    thumbnail: createIdeaThumbnail("recipe", "#166534", "#65A30D", "#FDBA74"),
+  },
+  {
+    id: "cyberpunk",
+    title: "Cyberpunk",
+    category: "Sci-Fi",
+    description: "Build a neon cinematic future scene.",
+    prompt: "Create a futuristic cyberpunk city scene with neon blue accents, rain reflections, cinematic depth, and clean high-end detail.",
+    thumbnail: createIdeaThumbnail("cyberpunk", "#020617", "#7C2D12", "#06B6D4"),
+  },
+  {
+    id: "fantasy",
+    title: "Fantasy",
+    category: "Worldbuilding",
+    description: "Create magical landscapes and worlds.",
+    prompt: "Create a fantasy landscape with glowing blue crystals, misty mountains, cinematic light, and an elegant magical atmosphere.",
+    thumbnail: createIdeaThumbnail("fantasy", "#312E81", "#7E22CE", "#A7F3D0"),
+  },
+  {
+    id: "realistic-photo",
+    title: "Realistic Photo",
+    category: "Photography",
+    description: "Make a natural, camera-real image.",
+    prompt: "Create a realistic photo with natural light, believable details, true-to-life textures, shallow depth of field, and professional composition.",
+    thumbnail: createIdeaThumbnail("realistic-photo", "#334155", "#64748B", "#F8FAFC"),
+  },
+  {
+    id: "cartoon",
+    title: "Cartoon",
+    category: "Illustration",
+    description: "Make a friendly polished cartoon.",
+    prompt: "Create a friendly cartoon character with expressive features, modern colors, clean outlines, and a polished app-style finish.",
+    thumbnail: createIdeaThumbnail("cartoon", "#F97316", "#F59E0B", "#38BDF8"),
+  },
+  {
+    id: "logo",
+    title: "Logo Design",
+    category: "Branding",
+    description: "Explore a clean brand mark concept.",
+    prompt: "Create a clean modern logo concept with a premium AI brand feeling, simple geometry, blue accent color, and strong scalability.",
+    thumbnail: createIdeaThumbnail("logo", "#111827", "#193B68", "#E0F2FE"),
+  },
+  {
+    id: "architecture",
+    title: "Architecture",
+    category: "Spaces",
+    description: "Imagine a premium building or interior.",
+    prompt: "Create a modern architectural concept with elegant structure, warm interior lighting, clean materials, dramatic scale, and magazine-quality composition.",
+    thumbnail: createIdeaThumbnail("architecture", "#44403C", "#78716C", "#FDE68A"),
+  },
+  {
+    id: "product-mockup",
+    title: "Product Mockup",
+    category: "Commerce",
+    description: "Stage a product like a launch image.",
+    prompt: "Create a premium product mockup on a clean studio set, refined lighting, realistic shadows, high-end materials, and a polished commercial look.",
+    thumbnail: createIdeaThumbnail("product-mockup", "#0F766E", "#14B8A6", "#CCFBF1"),
+  },
+  {
+    id: "nature",
+    title: "Nature",
+    category: "Landscape",
+    description: "Generate cinematic natural scenery.",
+    prompt: "Create a cinematic nature scene with rich atmosphere, detailed plants, natural light, depth, and a peaceful high-resolution landscape feel.",
+    thumbnail: createIdeaThumbnail("nature", "#14532D", "#16A34A", "#BAE6FD"),
+  },
+  {
+    id: "character-design",
+    title: "Character Design",
+    category: "Characters",
+    description: "Design a memorable original character.",
+    prompt: "Create an original character design sheet with expressive personality, detailed outfit, strong silhouette, polished lighting, and concept-art quality.",
+    thumbnail: createIdeaThumbnail("character-design", "#581C87", "#C026D3", "#FDE68A"),
+  },
+  {
+    id: "concept-art",
+    title: "Concept Art",
+    category: "Creative Direction",
+    description: "Explore a cinematic visual direction.",
+    prompt: "Create cinematic concept art with dramatic composition, rich atmosphere, layered depth, premium lighting, and a clear visual story.",
+    thumbnail: createIdeaThumbnail("concept-art", "#1E1B4B", "#4338CA", "#FB7185"),
+  },
+];
+
 function formatConversationTime(value, language = "en") {
   if (!value) return "";
   const date = new Date(value);
@@ -287,6 +441,17 @@ export default function MobileChat() {
   useEffect(() => {
     attachedImagesRef.current = attachedImages;
   }, [attachedImages]);
+
+  useEffect(() => {
+    if (searchParams.get("mode") === "image") {
+      setIsImageMode(true);
+    }
+
+    const requestedPrompt = searchParams.get("prompt");
+    if (requestedPrompt && !message.trim()) {
+      setMessage(requestedPrompt);
+    }
+  }, [message, searchParams]);
 
   useEffect(() => () => {
     attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
@@ -680,23 +845,43 @@ export default function MobileChat() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {IMAGE_TEMPLATES.map((item) => (
-                  <button
+                {DESKTOP_IMAGE_IDEAS.map((item, index) => (
+                  <motion.button
                     key={item.title}
                     type="button"
                     onClick={() => selectImageTemplate(item)}
-                    className={`relative h-32 overflow-hidden rounded-[24px] bg-gradient-to-br ${item.gradient} p-4 text-left shadow-sm active:scale-[0.99]`}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.16) }}
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.985 }}
+                    className={`group overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                      isDark
+                        ? "border-white/[0.08] bg-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.1]"
+                        : "border-white/75 bg-white/82 shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                    }`}
                   >
-                    <div className="absolute inset-0 bg-black/10" />
-                    <div className="absolute -right-7 -top-7 h-24 w-24 rounded-full bg-white/20 blur-xl" />
-                    <div className="absolute -bottom-8 left-4 h-20 w-20 rounded-full bg-white/15 blur-2xl" />
-                    <span className="relative z-10 block max-w-[8rem] text-sm font-bold leading-5 text-white drop-shadow">
-                      {item.title}
-                    </span>
-                    <span className="absolute bottom-3 left-4 z-10 rounded-full bg-black/25 px-2 py-1 text-[10px] font-bold text-white/90 backdrop-blur">
-                      {item.category}
-                    </span>
-                  </button>
+                    <div className="relative aspect-[1.35] overflow-hidden">
+                      <img
+                        src={item.thumbnail}
+                        alt=""
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        draggable="false"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                      <span className="absolute left-3 top-3 rounded-full bg-white/18 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur">
+                        {item.category}
+                      </span>
+                    </div>
+                    <div className="p-3">
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[#111827]"}`}>
+                        {item.title}
+                      </span>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                        {item.description}
+                      </span>
+                    </div>
+                  </motion.button>
                 ))}
               </div>
             </div>

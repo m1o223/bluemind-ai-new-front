@@ -1,10 +1,18 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { ArrowLeft, Search, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { useApp } from "@/context/AppContext";
 import { getApiErrorMessage } from "@/services/api";
 import { streamChatMessage } from "@/services/chatService";
+
+const SEARCH_SUGGESTIONS = [
+  "Latest AI tools",
+  "Research a product",
+  "Compare travel options",
+  "Find learning resources",
+];
 
 export default function MobileSearch() {
   const navigate = useNavigate();
@@ -82,10 +90,44 @@ export default function MobileSearch() {
       </header>
 
       <section className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        {answer && (
-          <div className={`rounded-[24px] border p-4 text-sm font-medium leading-6 ${borderColor}`} style={{ backgroundColor: panelColor }}>
-            {answer}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`mb-4 overflow-hidden rounded-[30px] border p-4 shadow-sm ${
+            isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-white/80 bg-white/70 shadow-slate-200/70"
+          }`}
+        >
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">Discover with BlueMind</h2>
+            <p className={`mt-1 text-sm ${mutedText}`}>Use the same backend AI search flow with a compact mobile surface.</p>
           </div>
+          <div className="flex snap-x gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {SEARCH_SUGGESTIONS.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setQuery(item)}
+                className={
+                  isDark
+                    ? "snap-start whitespace-nowrap rounded-full border border-white/[0.08] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-[#D7D7D7] active:bg-white/[0.09]"
+                    : "snap-start whitespace-nowrap rounded-full border border-black/[0.05] bg-white/75 px-4 py-2 text-sm font-semibold text-[#475569] shadow-sm active:bg-white"
+                }
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        {answer && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-[24px] border p-4 text-sm font-medium leading-6 ${borderColor}`}
+            style={{ backgroundColor: panelColor }}
+          >
+            {answer}
+          </motion.div>
         )}
         {error && (
           <div className={isDark ? "rounded-[24px] bg-red-500/10 p-4 text-sm font-bold text-red-300" : "rounded-[24px] bg-red-50 p-4 text-sm font-bold text-red-600"}>

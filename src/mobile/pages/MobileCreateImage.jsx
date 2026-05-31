@@ -1,8 +1,5 @@
+import { Navigate } from "react-router-dom";
+
 export default function MobileCreateImage() {
-  return (
-    <section>
-      <h1>Mobile Create Image</h1>
-      <p>مرحبا</p>
-    </section>
-  );
+  return <Navigate to="/mobile/chat?mode=image" replace />;
 }
