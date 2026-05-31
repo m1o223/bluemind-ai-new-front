@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowUp,
   Bell,
   BookOpen,
   Brain,
@@ -15,7 +16,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Send,
   UserCircle,
   X,
 } from "lucide-react";
@@ -31,6 +31,8 @@ const QUICK_ACTIONS = [
   { label: "Write/Edit", path: "/mobile/write-edit", icon: PenLine },
   { label: "Search", path: "/mobile/search", icon: Search },
 ];
+
+const AI_RESPONSE_MODES = ["fast", "smart", "thinking"];
 
 const MAX_IMAGE_ATTACHMENTS = 6;
 
@@ -329,6 +331,10 @@ export default function MobileChat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
+  const [responseMode, setResponseMode] = useState(() => {
+    const storedMode = localStorage.getItem("bluemind-response-mode");
+    return AI_RESPONSE_MODES.includes(storedMode) ? storedMode : "smart";
+  });
   const [isImageMode, setIsImageMode] = useState(false);
   const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
@@ -368,6 +374,7 @@ export default function MobileChat() {
 
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
   const isEmptyChat = !isImageMode && messages.length === 0 && generatedImages.length === 0;
+  const showEmptyActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
 
   useEffect(() => {
@@ -441,6 +448,10 @@ export default function MobileChat() {
   useEffect(() => {
     attachedImagesRef.current = attachedImages;
   }, [attachedImages]);
+
+  useEffect(() => {
+    localStorage.setItem("bluemind-response-mode", responseMode);
+  }, [responseMode]);
 
   useEffect(() => {
     if (searchParams.get("mode") === "image") {
@@ -650,12 +661,12 @@ export default function MobileChat() {
         await streamChatMessage({
           message: currentMessage,
           conversationId: activeConversationId,
-          mode: "smart",
+          mode: responseMode,
           metadata: {
             source: "mobile_chat",
             chatMode: "chat",
-            mode: "smart",
-            responseMode: "smart",
+            mode: responseMode,
+            responseMode,
           },
           onReady: (payload) => {
             if (payload?.conversation?.conversationId) {
@@ -770,7 +781,7 @@ export default function MobileChat() {
 
   const renderComposerArea = (centered = false) => (
     <div className={centered ? "mx-auto w-full max-w-[430px] px-1" : "px-4 pb-3"}>
-      {!isImageMode && (
+      {showEmptyActions && (
         <div className={centered ? "mx-auto mb-5 flex w-full max-w-[320px] flex-col items-start gap-3" : "mb-3 flex flex-col items-start gap-2"}>
           {QUICK_ACTIONS.map(({ label, path, icon: Icon }) => (
             <button
@@ -791,6 +802,30 @@ export default function MobileChat() {
               <span>{label}</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {!isImageMode && (
+        <div className="mb-3 flex items-center justify-center gap-1">
+          {AI_RESPONSE_MODES.map((mode) => {
+            const active = responseMode === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setResponseMode(mode)}
+                className={`h-8 rounded-full px-3 text-xs font-semibold capitalize transition ${
+                  active
+                    ? "bg-[#193B68] text-white shadow-sm"
+                    : isDark
+                      ? "text-[#BFC6D1] active:bg-white/[0.08]"
+                      : "text-[#64748B] active:bg-[#EEF2F7]"
+                }`}
+              >
+                {mode}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -870,7 +905,7 @@ export default function MobileChat() {
           </button>
 
           <div
-            className={`flex min-h-[52px] flex-1 items-end rounded-[26px] border pl-4 pr-1 shadow-[0_18px_45px_rgba(15,23,42,0.10)] ${borderColor}`}
+            className={`flex min-h-[52px] flex-1 items-center rounded-[26px] border pl-4 pr-1 shadow-[0_18px_45px_rgba(15,23,42,0.10)] ${borderColor}`}
             style={{
               backgroundColor: isDark ? "rgba(32,32,32,0.9)" : "rgba(255,255,255,0.88)",
               backdropFilter: "blur(18px)",
@@ -883,7 +918,7 @@ export default function MobileChat() {
               onChange={(event) => setMessage(event.target.value)}
               rows={1}
               placeholder={isImageMode ? "Describe an image..." : "Ask anything..."}
-              className={`max-h-[132px] min-h-11 flex-1 resize-none bg-transparent py-3 text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+              className={`max-h-[132px] min-h-[50px] flex-1 resize-none bg-transparent py-[15px] text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
             />
 
             <button
@@ -896,7 +931,7 @@ export default function MobileChat() {
               {isGeneratingImage || isChatSending ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               ) : (
-                <Send className="h-4 w-4" />
+                <ArrowUp className="h-5 w-5 stroke-[2.8]" />
               )}
             </button>
           </div>
@@ -933,11 +968,11 @@ export default function MobileChat() {
 
         <button
           type="button"
-          onClick={() => navigate("/mobile/search")}
+          onClick={startNewChat}
           className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
-          aria-label="Search"
+          aria-label="New chat"
         >
-          <Search className="h-5 w-5" />
+          <PenLine className="h-5 w-5" />
         </button>
       </header>
 
