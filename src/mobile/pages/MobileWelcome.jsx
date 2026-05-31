@@ -33,6 +33,7 @@ export default function MobileWelcome() {
   const surfaceClass = isDark
     ? "bg-[#1a1a1a] text-white"
     : "bg-[#FAFBFC] text-[#111827]";
+  const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
   const mutedText = isDark ? "text-[#D7D7D7]" : "text-[#475569]";
   const googleButtonClass = isDark
     ? "border-white/[0.12] bg-white/[0.075] text-white shadow-[0_14px_34px_rgba(0,0,0,0.18)] active:bg-white/[0.11]"
@@ -45,6 +46,10 @@ export default function MobileWelcome() {
     <main
       className={`${surfaceClass} overflow-hidden`}
       style={{
+        position: "fixed",
+        inset: 0,
+        width: "100vw",
+        backgroundColor: surfaceColor,
         minHeight: "100dvh",
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
