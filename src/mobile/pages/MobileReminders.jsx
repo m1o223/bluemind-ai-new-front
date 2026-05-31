@@ -27,6 +27,7 @@ import {
   updateReminder,
 } from "@/services/reminderService";
 import {
+  getNotificationStatus,
   getNotificationDebugSnapshot,
   inspectNotificationSetup,
   sendTestNotification,
@@ -78,6 +79,10 @@ function notificationLabel(permission) {
   if (permission === "denied") return "Notifications Disabled";
   if (permission === "unsupported") return "Notifications Unsupported";
   return "Notifications Not Requested";
+}
+
+function isUnauthorizedError(error) {
+  return error?.response?.status === 401;
 }
 
 function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
@@ -513,26 +518,44 @@ export default function MobileReminders() {
       const result = await getReminders();
       setReminders(result.items || result.reminders || []);
     } catch (error) {
-      console.error(error);
+      if (isUnauthorizedError(error)) {
+        navigate("/mobile", { replace: true });
+        return;
+      }
       toast.error(getApiErrorMessage(error, "Could not load reminders"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   const refreshNotificationStatus = useCallback(async () => {
     setNotificationBusy((prev) => ({ ...prev, refreshing: true }));
 
     try {
       const debug = await inspectNotificationSetup();
-      setNotificationDebug(debug);
+      let backendStatus = null;
+
+      try {
+        backendStatus = await getNotificationStatus();
+      } catch (error) {
+        if (isUnauthorizedError(error)) {
+          navigate("/mobile", { replace: true });
+          return;
+        }
+        backendStatus = { statusError: getApiErrorMessage(error, "Notification status unavailable") };
+      }
+
+      setNotificationDebug({
+        ...debug,
+        backendStatus,
+        backendDeviceSaved: Boolean(backendStatus?.devices?.length || backendStatus?.deviceCount),
+      });
     } catch (error) {
-      console.error(error);
       setNotificationDebug((prev) => ({ ...prev, setupError: error.message }));
     } finally {
       setNotificationBusy((prev) => ({ ...prev, refreshing: false }));
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     loadReminders();
@@ -608,7 +631,10 @@ export default function MobileReminders() {
       setEditingReminder(null);
       if (routeReminderId) navigate("/mobile/reminders", { replace: true });
     } catch (error) {
-      console.error(error);
+      if (isUnauthorizedError(error)) {
+        navigate("/mobile", { replace: true });
+        return;
+      }
       toast.error(getApiErrorMessage(error, "Could not save reminder"));
     }
   };
@@ -619,7 +645,10 @@ export default function MobileReminders() {
       setReminders((prev) => prev.filter((reminder) => String(reminderId(reminder)) !== String(id)));
       toast.success("Reminder deleted");
     } catch (error) {
-      console.error(error);
+      if (isUnauthorizedError(error)) {
+        navigate("/mobile", { replace: true });
+        return;
+      }
       toast.error(getApiErrorMessage(error, "Could not delete reminder"));
     }
   };
@@ -637,7 +666,10 @@ export default function MobileReminders() {
         String(reminderId(item)) === String(reminderId(reminder)) ? updated : item
       )));
     } catch (error) {
-      console.error(error);
+      if (isUnauthorizedError(error)) {
+        navigate("/mobile", { replace: true });
+        return;
+      }
       toast.error(getApiErrorMessage(error, "Could not update reminder"));
     }
   };
@@ -661,7 +693,10 @@ export default function MobileReminders() {
         toast.error(result?.reason || "Notifications are not enabled");
       }
     } catch (error) {
-      console.error(error);
+      if (isUnauthorizedError(error)) {
+        navigate("/mobile", { replace: true });
+        return;
+      }
       setNotificationDebug((prev) => ({ ...prev, setupError: error.message }));
       toast.error(error.message || "Notifications are not enabled");
     } finally {
@@ -680,7 +715,10 @@ export default function MobileReminders() {
       });
       toast.success("Test notification sent");
     } catch (error) {
-      console.error(error);
+      if (isUnauthorizedError(error)) {
+        navigate("/mobile", { replace: true });
+        return;
+      }
       toast.error(getApiErrorMessage(error, "Could not send test notification"));
     } finally {
       setNotificationBusy((prev) => ({ ...prev, sendingTest: false }));

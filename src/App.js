@@ -100,11 +100,25 @@ function ProtectedRoute({ children }) {
 }
 
 function MobileAccessRoute({ children }) {
-  if (localStorage.getItem("token")) {
-    return children;
+  const [status, setStatus] = useState("checking");
+
+  useEffect(() => {
+    const restore = localStorage.getItem("token") ? getCurrentUser : restoreSession;
+
+    restore()
+      .then(() => setStatus("ready"))
+      .catch(() => restoreSession().then(() => setStatus("ready")).catch(() => setStatus("unauthenticated")));
+  }, []);
+
+  if (status === "checking") {
+    return <AppLoadingScreen />;
   }
 
-  return <Navigate to="/mobile" replace />;
+  if (status === "unauthenticated") {
+    return <Navigate to="/mobile" replace />;
+  }
+
+  return children;
 }
 
 function AppContent() {
