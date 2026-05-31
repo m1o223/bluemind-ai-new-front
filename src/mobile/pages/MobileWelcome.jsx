@@ -42,9 +42,17 @@ export default function MobileWelcome() {
   const comingSoonClass = "rounded-full bg-white/[0.16] px-2 py-0.5 text-[11px] font-semibold text-white/85";
 
   return (
-    <main className={`min-h-screen ${surfaceClass}`}>
-      <section className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col px-6 pb-8 pt-14">
-        <div className="flex flex-1 flex-col items-center justify-center">
+    <main
+      className={`${surfaceClass} overflow-hidden`}
+      style={{
+        minHeight: "100dvh",
+        height: "100dvh",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+    >
+      <section className="mx-auto flex h-full w-full max-w-[430px] flex-col px-6">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-5">
           <BrandLogo showName={false} logoClassName="h-20 w-20" />
 
           <h1 className="mt-5 text-center text-[32px] font-bold leading-tight tracking-tight">
