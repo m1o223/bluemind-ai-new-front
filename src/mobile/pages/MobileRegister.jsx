@@ -23,12 +23,28 @@ function GoogleIcon() {
   );
 }
 
+function AppleIcon() {
+  return (
+    <img
+      src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
+      alt=""
+      aria-hidden="true"
+      className="h-5 w-5"
+    />
+  );
+}
+
+function LoadingSpinner({ className = "border-[#9CA3AF]/30 border-t-[#193B68]" }) {
+  return <span className={`h-4 w-4 animate-spin rounded-full border-2 ${className}`} />;
+}
+
 export default function MobileRegister() {
   const navigate = useNavigate();
   const { resolvedTheme, t } = useApp();
   const isDark = resolvedTheme === "dark";
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
     fullName: "",
@@ -73,6 +89,16 @@ export default function MobileRegister() {
     }
   };
 
+  const handleGoogleLogin = () => {
+    setSocialLoading("google");
+    startGoogleLogin();
+  };
+
+  const handleAppleLogin = () => {
+    setSocialLoading("apple");
+    window.setTimeout(() => setSocialLoading(""), 500);
+  };
+
   return (
     <motion.main
       initial={{ opacity: 0 }}
@@ -91,12 +117,13 @@ export default function MobileRegister() {
         <button
           type="button"
           onClick={() => navigate("/mobile/email")}
-          className={`mb-6 flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+          className={`mb-6 inline-flex h-11 items-center gap-2 self-start rounded-full px-3 text-sm font-semibold transition-colors ${
             isDark ? "bg-white/[0.06] text-white" : "bg-white text-[#111827] shadow-sm"
           }`}
           aria-label={t("back")}
         >
           <ArrowLeft className="h-5 w-5" />
+          <span>{t("back")}</span>
         </button>
 
         <div className="mb-7 text-center">
@@ -184,7 +211,7 @@ export default function MobileRegister() {
             style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
             data-testid="mobile-register-submit-button"
           >
-            {isLoading ? t("creating") : t("createAccountButton")}
+            {isLoading ? <LoadingSpinner className="border-white/30 border-t-white" /> : t("createAccountButton")}
           </Button>
 
           {errorMessage && (
@@ -200,17 +227,28 @@ export default function MobileRegister() {
           <div className={isDark ? "h-px flex-1 bg-white/[0.1]" : "h-px flex-1 bg-[#E5E7EB]"} />
         </div>
 
-        <button
-          type="button"
-          onClick={startGoogleLogin}
-          className={`flex h-[52px] w-full items-center justify-center gap-3 rounded-2xl border text-[15px] font-semibold transition-colors ${
-            isDark ? "border-white/[0.12] bg-white/[0.075] text-white" : "border-[#E1E7F0] bg-white text-[#111827] shadow-sm"
-          }`}
-          data-testid="mobile-register-google-login"
-        >
-          <GoogleIcon />
-          <span>{t("google")}</span>
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={Boolean(socialLoading)}
+            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl border border-[#E1E7F0] bg-white text-[15px] font-semibold text-[#111827] shadow-sm transition-colors disabled:opacity-70"
+            data-testid="mobile-register-google-login"
+          >
+            {socialLoading === "google" ? <LoadingSpinner /> : <GoogleIcon />}
+            <span>{t("google")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleAppleLogin}
+            disabled={Boolean(socialLoading)}
+            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl border border-[#E1E7F0] bg-white text-[15px] font-semibold text-[#111827] shadow-sm transition-colors disabled:opacity-70"
+            data-testid="mobile-register-apple-login"
+          >
+            {socialLoading === "apple" ? <LoadingSpinner /> : <AppleIcon />}
+            <span>{t("apple")}</span>
+          </button>
+        </div>
 
         <p className={`mt-7 text-center text-sm ${mutedText}`}>
           {t("alreadyHaveAccount")}{" "}
