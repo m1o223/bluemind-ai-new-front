@@ -2,6 +2,8 @@ export const STORAGE_KEYS = {
   token: "token",
   user: "bluemind_user",
   preferences: "bluemind_prefs",
+  refreshSession: "bluemind_refresh_session",
+  authDebug: "bluemind_auth_debug",
   pendingVerificationEmail: "pendingVerificationEmail",
 };
 
@@ -65,9 +67,32 @@ export function storePreferences(preferences) {
   localStorage.removeItem(LEGACY_STORAGE_KEYS.preferences);
 }
 
+export function readStoredRefreshSession() {
+  return readJson(STORAGE_KEYS.refreshSession);
+}
+
+export function storeRefreshSession(session) {
+  if (!session?.expiresAt) return;
+
+  localStorage.setItem(STORAGE_KEYS.refreshSession, JSON.stringify({
+    id: session.id,
+    expiresAt: session.expiresAt,
+  }));
+}
+
+export function removeStoredRefreshSession() {
+  localStorage.removeItem(STORAGE_KEYS.refreshSession);
+}
+
 export function removeStoredUser() {
   localStorage.removeItem(STORAGE_KEYS.user);
   localStorage.removeItem(LEGACY_STORAGE_KEYS.user);
+}
+
+export function removeStoredAuthSession() {
+  localStorage.removeItem(STORAGE_KEYS.token);
+  removeStoredUser();
+  removeStoredRefreshSession();
 }
 
 export function dispatchUserUpdated(detail) {

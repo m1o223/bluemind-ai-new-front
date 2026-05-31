@@ -1,5 +1,11 @@
 import axios from "axios";
-import { removeStoredUser, STORAGE_KEYS } from "./storageKeys";
+import {
+  readStoredRefreshSession,
+  readStoredUser,
+  removeStoredAuthSession,
+  STORAGE_KEYS,
+  storeRefreshSession,
+} from "./storageKeys";
 
 export const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -12,12 +18,86 @@ const api = axios.create({
   withCredentials: true,
 });
 
+function authDebugEnabled() {
+  if (typeof window === "undefined") return false;
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const debugParam = params.get("authDebug");
+
+    if (debugParam === "1") {
+      localStorage.setItem(STORAGE_KEYS.authDebug, "1");
+    }
+
+    if (debugParam === "0") {
+      localStorage.removeItem(STORAGE_KEYS.authDebug);
+    }
+
+    return localStorage.getItem(STORAGE_KEYS.authDebug) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function tokenExpiryState(token) {
+  if (!token || typeof window === "undefined") {
+    return { hasAccessToken: Boolean(token), accessTokenExpired: null };
+  }
+
+  try {
+    const payload = JSON.parse(window.atob(token.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/") || ""));
+    const expiresAtMs = Number(payload.exp || 0) * 1000;
+
+    return {
+      hasAccessToken: true,
+      accessTokenExpired: expiresAtMs ? expiresAtMs <= Date.now() + 5000 : null,
+      accessTokenExpiresAt: expiresAtMs ? new Date(expiresAtMs).toISOString() : null,
+    };
+  } catch {
+    return { hasAccessToken: true, accessTokenExpired: null };
+  }
+}
+
+function logAuthRequest(config, token) {
+  if (!authDebugEnabled()) return;
+
+  const url = String(config.url || "");
+  const isRelevant = url.includes("/auth/") || url.includes("/reminders");
+
+  if (!isRelevant) return;
+
+  const refreshSession = readStoredRefreshSession();
+
+  console.info("[BlueMind auth debug] request", {
+    method: String(config.method || "get").toUpperCase(),
+    url,
+    baseURL: config.baseURL || API_BASE_URL,
+    withCredentials: config.withCredentials ?? true,
+    authorizationHeaderPresent: Boolean(config.headers?.Authorization),
+    ...tokenExpiryState(token),
+    hasRefreshSessionMarker: Boolean(refreshSession?.expiresAt),
+    refreshSessionExpired: refreshSession?.expiresAt
+      ? new Date(refreshSession.expiresAt).getTime() <= Date.now()
+      : null,
+    hasStoredUser: Boolean(readStoredUser()),
+  });
+}
+
+function canAttemptRefreshSession() {
+  const refreshSession = readStoredRefreshSession();
+
+  if (!refreshSession?.expiresAt) return false;
+  return new Date(refreshSession.expiresAt).getTime() > Date.now();
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(STORAGE_KEYS.token);
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  logAuthRequest(config, token);
 
   return config;
 });
@@ -55,7 +135,8 @@ api.interceptors.response.use(
       !originalRequest._retry &&
       !isAuthRefresh &&
       !isAuthLogin &&
-      !isAuthRegister
+      !isAuthRegister &&
+      canAttemptRefreshSession()
     ) {
       originalRequest._retry = true;
 
@@ -69,14 +150,18 @@ api.interceptors.response.use(
 
         if (session?.token) {
           localStorage.setItem(STORAGE_KEYS.token, session.token);
+          storeRefreshSession(session.session);
           originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${session.token}`;
           return api(originalRequest);
         }
       } catch {
-        localStorage.removeItem(STORAGE_KEYS.token);
-        removeStoredUser();
+        removeStoredAuthSession();
       }
+    }
+
+    if (status === 401 && !isAuthLogin && !isAuthRegister && !isAuthRefresh && !canAttemptRefreshSession()) {
+      removeStoredAuthSession();
     }
 
     return Promise.reject(error);

@@ -1,15 +1,22 @@
 import api, { API_BASE_URL, unwrapApiResponse } from "./api";
 import {
   dispatchUserUpdated,
-  removeStoredUser,
+  readStoredRefreshSession,
+  removeStoredAuthSession,
+  removeStoredRefreshSession,
   STORAGE_KEYS,
   storePreferences,
+  storeRefreshSession,
   storeUser,
 } from "./storageKeys";
 
 function persistSession(session) {
   if (session?.token) {
     localStorage.setItem(STORAGE_KEYS.token, session.token);
+  }
+
+  if (session?.session) {
+    storeRefreshSession(session.session);
   }
 
   if (session?.user) {
@@ -25,6 +32,56 @@ function persistSession(session) {
   }
 
   return session;
+}
+
+function readAccessTokenPayload(token) {
+  if (!token || typeof window === "undefined") return null;
+
+  try {
+    return JSON.parse(window.atob(token.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/") || ""));
+  } catch {
+    return null;
+  }
+}
+
+export function getAuthDebugSnapshot() {
+  const token = localStorage.getItem(STORAGE_KEYS.token);
+  const payload = readAccessTokenPayload(token);
+  const accessTokenExpiresAt = payload?.exp ? new Date(payload.exp * 1000).toISOString() : null;
+  const refreshSession = readStoredRefreshSession();
+  const refreshSessionExpiresAt = refreshSession?.expiresAt || null;
+
+  return {
+    hasAccessToken: Boolean(token),
+    accessTokenExpiresAt,
+    accessTokenExpired: payload?.exp ? payload.exp * 1000 <= Date.now() + 5000 : null,
+    hasRefreshSessionMarker: Boolean(refreshSessionExpiresAt),
+    refreshSessionExpiresAt,
+    refreshSessionExpired: refreshSessionExpiresAt
+      ? new Date(refreshSessionExpiresAt).getTime() <= Date.now()
+      : null,
+    hasStoredUser: Boolean(localStorage.getItem(STORAGE_KEYS.user)),
+    authHeaderExpected: Boolean(token),
+  };
+}
+
+function authDebugEnabled() {
+  return localStorage.getItem(STORAGE_KEYS.authDebug) === "1";
+}
+
+function logAuthDebug(event, details = {}) {
+  if (!authDebugEnabled()) return;
+  console.info("[BlueMind auth debug]", event, {
+    ...getAuthDebugSnapshot(),
+    ...details,
+  });
+}
+
+function shouldAttemptRefresh() {
+  const refreshSession = readStoredRefreshSession();
+
+  if (!refreshSession?.expiresAt) return false;
+  return new Date(refreshSession.expiresAt).getTime() > Date.now();
 }
 
 export const registerUser = async (name, email, password) => {
@@ -66,11 +123,23 @@ export const loginGuestUser = async () => {
 };
 
 export const restoreSession = async () => {
+  logAuthDebug("restoreSession:before-request", {
+    endpoint: "/auth/refresh",
+    method: "POST",
+    authorizationHeaderExpected: Boolean(localStorage.getItem(STORAGE_KEYS.token)),
+  });
+
   const response = await api.post("/auth/refresh", {});
   return persistSession(unwrapApiResponse(response));
 };
 
 export const getCurrentUser = async () => {
+  logAuthDebug("getCurrentUser:before-request", {
+    endpoint: "/auth/me",
+    method: "GET",
+    authorizationHeaderExpected: Boolean(localStorage.getItem(STORAGE_KEYS.token)),
+  });
+
   const response = await api.get("/auth/me");
   const user = unwrapApiResponse(response)?.user;
 
@@ -81,6 +150,27 @@ export const getCurrentUser = async () => {
   return user;
 };
 
+export const restoreExistingSession = async () => {
+  const snapshot = getAuthDebugSnapshot();
+  logAuthDebug("restoreExistingSession:start", snapshot);
+
+  if (snapshot.hasAccessToken && snapshot.accessTokenExpired !== true) {
+    return getCurrentUser();
+  }
+
+  if (snapshot.hasAccessToken && snapshot.accessTokenExpired === true && !shouldAttemptRefresh()) {
+    removeStoredAuthSession();
+    throw new Error("AUTH_SESSION_EXPIRED");
+  }
+
+  if (!snapshot.hasAccessToken && !shouldAttemptRefresh()) {
+    removeStoredRefreshSession();
+    throw new Error("AUTH_SESSION_MISSING");
+  }
+
+  return restoreSession();
+};
+
 export const startGoogleLogin = () => {
   window.location.href = `${API_BASE_URL}/auth/google`;
 };
@@ -89,15 +179,13 @@ export const logoutUser = async () => {
   try {
     await api.post("/auth/logout", {});
   } finally {
-    localStorage.removeItem(STORAGE_KEYS.token);
-    removeStoredUser();
+    removeStoredAuthSession();
     sessionStorage.removeItem(STORAGE_KEYS.pendingVerificationEmail);
   }
 };
 
 export const clearLocalSession = () => {
-  localStorage.removeItem(STORAGE_KEYS.token);
-  removeStoredUser();
+  removeStoredAuthSession();
 };
 
 export const requestPasswordReset = async (email) => {
@@ -112,8 +200,7 @@ export const resetPassword = async (email, code, password) => {
     password,
   });
 
-  localStorage.removeItem(STORAGE_KEYS.token);
-  removeStoredUser();
+  removeStoredAuthSession();
   return unwrapApiResponse(response);
 };
 

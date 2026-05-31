@@ -33,7 +33,7 @@ import MobileSmartHub from "@/mobile/pages/MobileSmartHub";
 import MobileWelcome from "@/mobile/pages/MobileWelcome";
 import MobileEmail from "@/mobile/pages/MobileEmail";
 import MobileRegister from "@/mobile/pages/MobileRegister";
-import { getCurrentUser, restoreSession } from "@/services/authService";
+import { restoreExistingSession } from "@/services/authService";
 import { getPreferredAppRoute } from "@/services/navigationPreferences";
 import "@/App.css";
 
@@ -56,9 +56,7 @@ function LandingGate() {
   const [target, setTarget] = useState("");
 
   useEffect(() => {
-    const restore = localStorage.getItem("token") ? getCurrentUser : restoreSession;
-
-    restore()
+    restoreExistingSession()
       .then((result) => {
         setTarget(getPreferredAppRoute(result?.user || result));
         setStatus("authenticated");
@@ -81,11 +79,9 @@ function ProtectedRoute({ children }) {
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
-    const restore = localStorage.getItem("token") ? getCurrentUser : restoreSession;
-
-    restore()
+    restoreExistingSession()
       .then(() => setStatus("ready"))
-      .catch(() => restoreSession().then(() => setStatus("ready")).catch(() => setStatus("unauthenticated")));
+      .catch(() => setStatus("unauthenticated"));
   }, []);
 
   if (status === "checking") {
@@ -103,11 +99,9 @@ function MobileAccessRoute({ children }) {
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
-    const restore = localStorage.getItem("token") ? getCurrentUser : restoreSession;
-
-    restore()
+    restoreExistingSession()
       .then(() => setStatus("ready"))
-      .catch(() => restoreSession().then(() => setStatus("ready")).catch(() => setStatus("unauthenticated")));
+      .catch(() => setStatus("unauthenticated"));
   }, []);
 
   if (status === "checking") {
