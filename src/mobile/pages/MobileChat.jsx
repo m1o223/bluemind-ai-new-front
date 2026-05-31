@@ -24,7 +24,7 @@ import {
 import BrandLogo from "@/components/BrandLogo";
 import { useApp } from "@/context/AppContext";
 import { getApiErrorMessage } from "@/services/api";
-import { listConversations, searchConversations } from "@/services/chatService";
+import { listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 
 const QUICK_ACTIONS = [
@@ -174,6 +174,8 @@ export default function MobileChat() {
   const [isSearching, setIsSearching] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [isChatSending, setIsChatSending] = useState(false);
   const [isImageMode, setIsImageMode] = useState(false);
   const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
@@ -462,10 +464,73 @@ export default function MobileChat() {
 
   const handleComposerSubmit = async (event) => {
     event.preventDefault();
-    if (!hasComposerContent || isGeneratingImage) return;
+    if (!hasComposerContent || isGeneratingImage || isChatSending) return;
 
     if (!isImageMode) {
+      const currentMessage = message.trim();
+      if (!currentMessage) return;
+
+      const userMessageId = crypto.randomUUID();
+      const aiMessageId = crypto.randomUUID();
+      setMessages((current) => [
+        ...current,
+        { id: userMessageId, role: "user", content: currentMessage },
+        { id: aiMessageId, role: "ai", content: "", isStreaming: true },
+      ]);
       setMessage("");
+      setIsChatSending(true);
+      setImageModeError("");
+
+      try {
+        await streamChatMessage({
+          message: currentMessage,
+          conversationId: activeConversationId,
+          mode: "smart",
+          metadata: {
+            source: "mobile_chat",
+            chatMode: "chat",
+            mode: "smart",
+            responseMode: "smart",
+          },
+          onReady: (payload) => {
+            if (payload?.conversation?.conversationId) {
+              setSearchParams({ conversation: payload.conversation.conversationId });
+            }
+          },
+          onDelta: (payload) => {
+            if (!payload?.token) return;
+            setMessages((current) =>
+              current.map((item) =>
+                item.id === aiMessageId
+                  ? { ...item, content: `${item.content || ""}${payload.token}` }
+                  : item,
+              ),
+            );
+          },
+          onComplete: (payload) => {
+            if (payload?.conversation?.conversationId) {
+              setSearchParams({ conversation: payload.conversation.conversationId });
+            }
+            setMessages((current) =>
+              current.map((item) =>
+                item.id === aiMessageId
+                  ? { ...item, content: item.content || payload?.message?.content || "", isStreaming: false }
+                  : item,
+              ),
+            );
+          },
+        });
+      } catch (error) {
+        setMessages((current) =>
+          current.map((item) =>
+            item.id === aiMessageId
+              ? { ...item, content: getApiErrorMessage(error, "Chat request failed"), isStreaming: false }
+              : item,
+          ),
+        );
+      } finally {
+        setIsChatSending(false);
+      }
       return;
     }
 
@@ -636,6 +701,26 @@ export default function MobileChat() {
               </div>
             </div>
           )}
+
+          {messages.length > 0 && (
+            <div className="space-y-3">
+              {messages.map((item) => (
+                <div
+                  key={item.id}
+                  className={`max-w-[86%] rounded-[22px] px-4 py-3 text-sm font-medium leading-6 ${
+                    item.role === "user"
+                      ? "ml-auto text-white"
+                      : isDark
+                        ? "mr-auto bg-white/[0.07] text-white"
+                        : "mr-auto bg-white text-[#111827] shadow-sm"
+                  }`}
+                  style={item.role === "user" ? { backgroundColor: "var(--bluemind-app-color, #193B68)" } : undefined}
+                >
+                  {item.content || (item.isStreaming ? "Thinking..." : "")}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="px-4 pb-3">
@@ -767,10 +852,10 @@ export default function MobileChat() {
                 type="submit"
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-45"
                 style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
-                disabled={!hasComposerContent || isGeneratingImage}
+                disabled={!hasComposerContent || isGeneratingImage || isChatSending}
                 aria-label="Send"
               >
-                {isGeneratingImage ? (
+                {isGeneratingImage || isChatSending ? (
                   <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 ) : (
                   <Send className="h-5 w-5" />

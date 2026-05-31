@@ -60,6 +60,11 @@ export const loginUser = async (email, password) => {
   return persistSession(unwrapApiResponse(response));
 };
 
+export const loginGuestUser = async () => {
+  const response = await api.post("/auth/guest", {});
+  return persistSession(unwrapApiResponse(response));
+};
+
 export const restoreSession = async () => {
   const response = await api.post("/auth/refresh", {});
   return persistSession(unwrapApiResponse(response));

@@ -33,7 +33,6 @@ import MobileSmartHub from "@/mobile/pages/MobileSmartHub";
 import MobileWelcome from "@/mobile/pages/MobileWelcome";
 import MobileEmail from "@/mobile/pages/MobileEmail";
 import MobileRegister from "@/mobile/pages/MobileRegister";
-import { hasMobileGuestAccess } from "@/mobile/mobileGuestSession";
 import { getCurrentUser, restoreSession } from "@/services/authService";
 import { getPreferredAppRoute } from "@/services/navigationPreferences";
 import "@/App.css";
@@ -101,7 +100,7 @@ function ProtectedRoute({ children }) {
 }
 
 function MobileAccessRoute({ children }) {
-  if (localStorage.getItem("token") || hasMobileGuestAccess()) {
+  if (localStorage.getItem("token")) {
     return children;
   }
 

@@ -1,9 +1,12 @@
 import { Mail } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import BrandLogo from "@/components/BrandLogo";
 import { useApp } from "@/context/AppContext";
 import { startMobileGuestSession } from "@/mobile/mobileGuestSession";
-import { startGoogleLogin } from "@/services/authService";
+import { getApiErrorMessage } from "@/services/api";
+import { loginGuestUser, startGoogleLogin } from "@/services/authService";
 
 const BLUE_PRIMARY = "#193B68";
 
@@ -29,9 +32,14 @@ function AppleIcon() {
   );
 }
 
+function LoadingSpinner() {
+  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />;
+}
+
 export default function MobileWelcome() {
   const navigate = useNavigate();
   const { resolvedTheme } = useApp();
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const isDark = resolvedTheme === "dark";
 
   const surfaceClass = isDark
@@ -105,15 +113,30 @@ export default function MobileWelcome() {
           <div className="mt-7 w-full text-center">
             <button
               type="button"
-              onClick={() => {
-                startMobileGuestSession();
-                navigate("/mobile/chat");
+              disabled={isGuestLoading}
+              onClick={async () => {
+                setIsGuestLoading(true);
+                try {
+                  await loginGuestUser();
+                  startMobileGuestSession();
+                  navigate("/mobile/chat");
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "Could not start guest mode"));
+                } finally {
+                  setIsGuestLoading(false);
+                }
               }}
               className="inline-flex items-center justify-center gap-1 text-[15px] font-semibold transition-opacity active:opacity-70"
               style={{ color: isDark ? "#D7D7D7" : `var(--bluemind-app-color, ${BLUE_PRIMARY})` }}
             >
-              <span>Try BlueMind AI</span>
-              <span className="text-xl font-extrabold leading-none">{"\u2192"}</span>
+              {isGuestLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <>
+                  <span>Try BlueMind AI</span>
+                  <span className="text-xl font-extrabold leading-none">{"\u2192"}</span>
+                </>
+              )}
             </button>
           </div>
         </div>

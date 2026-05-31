@@ -1,8 +1,124 @@
+import { useState } from "react";
+import { ArrowLeft, Search, Send } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+import { useApp } from "@/context/AppContext";
+import { getApiErrorMessage } from "@/services/api";
+import { streamChatMessage } from "@/services/chatService";
+
 export default function MobileSearch() {
+  const navigate = useNavigate();
+  const { resolvedTheme } = useApp();
+  const isDark = resolvedTheme === "dark";
+  const [query, setQuery] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [error, setError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+
+  const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
+  const panelColor = isDark ? "#202020" : "#FFFFFF";
+  const textColor = isDark ? "text-white" : "text-[#111827]";
+  const borderColor = isDark ? "border-white/[0.08]" : "border-[#E5E7EB]";
+  const mutedText = isDark ? "text-[#D7D7D7]" : "text-[#64748B]";
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const currentQuery = query.trim();
+    if (!currentQuery || isSearching) return;
+
+    setAnswer("");
+    setError("");
+    setIsSearching(true);
+
+    try {
+      await streamChatMessage({
+        message: currentQuery,
+        mode: "smart",
+        metadata: {
+          source: "mobile_search",
+          chatMode: "web_search",
+          mode: "smart",
+          responseMode: "smart",
+        },
+        onDelta: (payload) => {
+          if (!payload?.token) return;
+          setAnswer((current) => `${current}${payload.token}`);
+        },
+        onComplete: (payload) => {
+          setAnswer((current) => current || payload?.message?.content || "");
+        },
+      });
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, "Search request failed"));
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
-    <section>
-      <h1>Mobile Search</h1>
-      <p>مرحبا</p>
-    </section>
+    <main
+      className={`fixed inset-0 flex flex-col ${textColor}`}
+      style={{
+        backgroundColor: surfaceColor,
+        minHeight: "100dvh",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+      data-testid="mobile-search-page"
+    >
+      <header className={`flex h-14 items-center gap-3 border-b px-4 ${borderColor}`}>
+        <button
+          type="button"
+          onClick={() => navigate("/mobile/chat")}
+          className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+          aria-label="Back"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div>
+          <h1 className="text-base font-bold">Search</h1>
+          <p className={`text-xs font-semibold ${mutedText}`}>Ask BlueMind to search with backend AI.</p>
+        </div>
+      </header>
+
+      <section className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        {answer && (
+          <div className={`rounded-[24px] border p-4 text-sm font-medium leading-6 ${borderColor}`} style={{ backgroundColor: panelColor }}>
+            {answer}
+          </div>
+        )}
+        {error && (
+          <div className={isDark ? "rounded-[24px] bg-red-500/10 p-4 text-sm font-bold text-red-300" : "rounded-[24px] bg-red-50 p-4 text-sm font-bold text-red-600"}>
+            {error}
+          </div>
+        )}
+      </section>
+
+      <form className="px-4 pb-3" onSubmit={handleSubmit}>
+        <div className={`flex min-h-[58px] items-end gap-2 rounded-[28px] border p-2 shadow-sm ${borderColor}`} style={{ backgroundColor: panelColor }}>
+          <Search className={`mb-3 ml-2 h-5 w-5 shrink-0 ${mutedText}`} />
+          <textarea
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            rows={1}
+            placeholder="Search anything..."
+            className={`max-h-28 min-h-11 flex-1 resize-none bg-transparent px-1 py-3 text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+          />
+          <button
+            type="submit"
+            disabled={!query.trim() || isSearching}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-45"
+            style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+            aria-label="Send search"
+          >
+            {isSearching ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+      </form>
+    </main>
   );
 }
