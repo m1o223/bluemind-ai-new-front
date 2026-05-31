@@ -1,12 +1,28 @@
-import { Apple, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import BrandLogo from "@/components/BrandLogo";
 import { useApp } from "@/context/AppContext";
 
-function GoogleMark() {
+const BLUE_PRIMARY = "#193B68";
+
+function GoogleIcon() {
   return (
-    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[13px] font-bold text-[#4285F4]">
-      G
-    </span>
+    <img
+      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+      alt=""
+      aria-hidden="true"
+      className="h-5 w-5"
+    />
+  );
+}
+
+function AppleIcon() {
+  return (
+    <img
+      src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
+      alt=""
+      aria-hidden="true"
+      className="h-5 w-5 invert opacity-70"
+    />
   );
 }
 
@@ -18,13 +34,16 @@ export default function MobileWelcome() {
     ? "bg-[#1a1a1a] text-white"
     : "bg-[#F8FAFC] text-[#111827]";
   const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
-  const buttonClass = isDark
-    ? "border-white/[0.1] bg-white/[0.065] text-white active:bg-white/[0.1]"
-    : "border-[#E1E7F0] bg-white text-[#111827] shadow-[0_10px_28px_rgba(15,23,42,0.06)] active:bg-[#F3F6FA]";
-  const disabledClass = isDark
-    ? "border-white/[0.06] bg-white/[0.035] text-white/45"
-    : "border-[#E5EAF2] bg-[#EEF2F7] text-[#94A3B8]";
-  const dividerClass = isDark ? "border-white/[0.08]" : "border-[#E1E7F0]";
+  const googleButtonClass = isDark
+    ? "border-white/[0.12] bg-white/[0.075] text-white shadow-[0_14px_34px_rgba(0,0,0,0.18)] active:bg-white/[0.11]"
+    : "border-[#E1E7F0] bg-white/90 text-[#111827] shadow-[0_14px_34px_rgba(15,23,42,0.08)] active:bg-[#F3F6FA]";
+  const appleButtonClass = isDark
+    ? "border-black bg-black text-white/55"
+    : "border-[#111827] bg-[#111827] text-white/70";
+  const emailButtonClass = "border-transparent text-white shadow-[0_16px_36px_rgba(25,59,104,0.24)] active:brightness-95";
+  const comingSoonClass = isDark
+    ? "rounded-full bg-white/[0.1] px-2 py-0.5 text-[11px] font-semibold text-white/55"
+    : "rounded-full bg-white/[0.12] px-2 py-0.5 text-[11px] font-semibold text-white/70";
 
   return (
     <main className={`min-h-screen ${surfaceClass}`}>
@@ -42,42 +61,39 @@ export default function MobileWelcome() {
           <div className="mt-9 w-full space-y-3">
             <button
               type="button"
-              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${buttonClass}`}
+              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${googleButtonClass}`}
             >
-              <GoogleMark />
+              <GoogleIcon />
               <span>Continue with Google</span>
             </button>
 
             <button
               type="button"
-              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${buttonClass}`}
+              disabled
+              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold ${appleButtonClass}`}
+            >
+              <AppleIcon />
+              <span>Continue with Apple</span>
+              <span className={comingSoonClass}>Coming Soon</span>
+            </button>
+
+            <button
+              type="button"
+              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${emailButtonClass}`}
+              style={{ backgroundColor: BLUE_PRIMARY }}
             >
               <Mail className="h-5 w-5 stroke-[2.1]" />
               <span>Continue with Email</span>
             </button>
-
-            <button
-              type="button"
-              disabled
-              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold ${disabledClass}`}
-            >
-              <Apple className="h-5 w-5 stroke-[2.1]" />
-              <span>Continue with Apple</span>
-              <span className={isDark ? "rounded-full bg-white/[0.08] px-2 py-0.5 text-[11px] font-semibold text-white/55" : "rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#64748B]"}>
-                Coming Soon
-              </span>
-            </button>
           </div>
 
-          <div className={`mt-8 w-full border-t pt-6 ${dividerClass}`}>
+          <div className="mt-7 w-full text-center">
             <button
               type="button"
-              className={isDark
-                ? "h-[54px] w-full rounded-2xl border border-white/[0.08] bg-transparent px-5 text-[15px] font-semibold text-white active:bg-white/[0.06]"
-                : "h-[54px] w-full rounded-2xl border border-[#C9D4E3] bg-transparent px-5 text-[15px] font-semibold text-[#193B68] active:bg-[#EEF2F7]"
-              }
+              className="text-[15px] font-semibold transition-opacity active:opacity-70"
+              style={{ color: isDark ? "#D7D7D7" : BLUE_PRIMARY }}
             >
-              Try BlueMind AI
+              Try BlueMind AI →
             </button>
           </div>
         </div>
