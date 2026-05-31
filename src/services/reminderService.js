@@ -52,6 +52,7 @@ function toApiPayload(data) {
     tags: data.tags || [],
     category: data.category || "general",
     priority: data.priority || "normal",
+    recurrence: data.recurrence || { frequency: "none", interval: 1 },
     aiGenerated: Boolean(data.aiGenerated),
     aiSuggested: Boolean(data.aiSuggested),
     aiContext: data.aiContext,

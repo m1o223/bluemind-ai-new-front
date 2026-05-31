@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Clock,
   Calendar,
+  Repeat2,
 } from "lucide-react"
 
 import { useNavigate } from "react-router-dom"
@@ -83,6 +84,13 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
               {formatTime(reminder.reminderTime || reminder.time, language)}
             </span>
           </div>
+
+          {(reminder.recurrence?.frequency || "none") !== "none" && (
+            <span className={cn("mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", isDark ? "bg-[#333] text-[#ddd]" : "bg-[#EEF2FF] text-[#193B68]")}>
+              <Repeat2 className="h-3.5 w-3.5" />
+              {t(`repeat_${reminder.recurrence.frequency}`)}
+            </span>
+          )}
         </div>
 
         <div className="relative">
@@ -146,10 +154,27 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
       description: "",
       date: "",
       time: "09:00",
+      recurrence: {
+        frequency: "none",
+        interval: 1,
+      },
     }
   )
 
   const isEdit = !!editData
+
+  useEffect(() => {
+    setFormData(editData || {
+      title: "",
+      description: "",
+      date: "",
+      time: "09:00",
+      recurrence: {
+        frequency: "none",
+        interval: 1,
+      },
+    })
+  }, [editData, isOpen])
 
   const isValid =
     formData.title.trim() &&
@@ -168,6 +193,10 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
       time: {
         hour: Number(hour),
         minute: Number(minute),
+      },
+      recurrence: {
+        frequency: formData.recurrence?.frequency || "none",
+        interval: Number(formData.recurrence?.interval || 1),
       },
     })
 
@@ -281,6 +310,55 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
                 }
                 className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all", isDark ? "bg-[#1a1a1a] border-[#333] text-white" : "bg-white border-[#E5E7EB] text-[#111827]")}
                 data-testid="modal-time-input"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={cn("text-sm font-medium mb-1.5 flex items-center gap-2", isDark ? "text-[#ddd]" : "text-[#374151]")}>
+              <Repeat2 className="h-4 w-4" />
+              {t("recurringReminder")}
+            </label>
+
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-[1fr_7rem]">
+              <select
+                value={formData.recurrence?.frequency || "none"}
+                onChange={(event) =>
+                  setFormData({
+                    ...formData,
+                    recurrence: {
+                      ...(formData.recurrence || {}),
+                      frequency: event.target.value,
+                    },
+                  })
+                }
+                className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all", isDark ? "bg-[#1a1a1a] border-[#333] text-white" : "bg-white border-[#E5E7EB] text-[#111827]")}
+                data-testid="modal-recurrence-frequency"
+              >
+                <option value="none">{t("doesNotRepeat")}</option>
+                <option value="daily">{t("repeatDaily")}</option>
+                <option value="weekly">{t("repeatWeekly")}</option>
+                <option value="monthly">{t("repeatMonthly")}</option>
+              </select>
+
+              <input
+                type="number"
+                min="1"
+                max="365"
+                disabled={(formData.recurrence?.frequency || "none") === "none"}
+                value={formData.recurrence?.interval || 1}
+                onChange={(event) =>
+                  setFormData({
+                    ...formData,
+                    recurrence: {
+                      ...(formData.recurrence || {}),
+                      interval: Math.max(1, Number(event.target.value || 1)),
+                    },
+                  })
+                }
+                aria-label={t("repeatInterval")}
+                className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all disabled:opacity-50", isDark ? "bg-[#1a1a1a] border-[#333] text-white" : "bg-white border-[#E5E7EB] text-[#111827]")}
+                data-testid="modal-recurrence-interval"
               />
             </div>
           </div>
