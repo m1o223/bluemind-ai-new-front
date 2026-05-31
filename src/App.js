@@ -31,6 +31,7 @@ import MobileProfile from "@/mobile/pages/MobileProfile";
 import MobileSettings from "@/mobile/pages/MobileSettings";
 import MobileSmartHub from "@/mobile/pages/MobileSmartHub";
 import MobileWelcome from "@/mobile/pages/MobileWelcome";
+import MobileEmail from "@/mobile/pages/MobileEmail";
 import { hasMobileGuestAccess } from "@/mobile/mobileGuestSession";
 import { getCurrentUser, restoreSession } from "@/services/authService";
 import { getPreferredAppRoute } from "@/services/navigationPreferences";
@@ -136,6 +137,7 @@ function AppContent() {
           <Route path="/scheman" element={<ProtectedRoute><SchemanPage /></ProtectedRoute>} />
           <Route path="/mobile" element={<MobileLayout />}>
             <Route index element={<MobileWelcome />} />
+            <Route path="email" element={<MobileEmail />} />
             <Route path="chat" element={<MobileAccessRoute><MobileChat /></MobileAccessRoute>} />
             <Route path="search" element={<MobileAccessRoute><MobileSearch /></MobileAccessRoute>} />
             <Route path="create-image" element={<MobileAccessRoute><MobileCreateImage /></MobileAccessRoute>} />

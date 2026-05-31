@@ -1,6 +1,9 @@
 import { Mail } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
 import { useApp } from "@/context/AppContext";
+import { startMobileGuestSession } from "@/mobile/mobileGuestSession";
+import { startGoogleLogin } from "@/services/authService";
 
 const BLUE_PRIMARY = "#193B68";
 
@@ -27,6 +30,7 @@ function AppleIcon() {
 }
 
 export default function MobileWelcome() {
+  const navigate = useNavigate();
   const { resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
 
@@ -70,6 +74,7 @@ export default function MobileWelcome() {
           <div className="mt-9 w-full space-y-3">
             <button
               type="button"
+              onClick={startGoogleLogin}
               className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${googleButtonClass}`}
             >
               <GoogleIcon />
@@ -88,6 +93,7 @@ export default function MobileWelcome() {
 
             <button
               type="button"
+              onClick={() => navigate("/mobile/email")}
               className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${emailButtonClass}`}
               style={{ backgroundColor: `var(--bluemind-app-color, ${BLUE_PRIMARY})` }}
             >
@@ -99,6 +105,10 @@ export default function MobileWelcome() {
           <div className="mt-7 w-full text-center">
             <button
               type="button"
+              onClick={() => {
+                startMobileGuestSession();
+                navigate("/mobile/chat");
+              }}
               className="inline-flex items-center justify-center gap-1 text-[15px] font-semibold transition-opacity active:opacity-70"
               style={{ color: isDark ? "#D7D7D7" : `var(--bluemind-app-color, ${BLUE_PRIMARY})` }}
             >
