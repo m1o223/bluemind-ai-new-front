@@ -31,6 +31,8 @@ const QUICK_ACTIONS = [
   { label: "Search", path: "/mobile/search", icon: Search },
 ];
 
+const MAX_IMAGE_ATTACHMENTS = 6;
+
 function formatConversationTime(value, language = "en") {
   if (!value) return "";
   const date = new Date(value);
@@ -58,7 +60,9 @@ export default function MobileChat() {
   const [isSearching, setIsSearching] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [message, setMessage] = useState("");
+  const [attachedImages, setAttachedImages] = useState([]);
   const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
+  const attachedImagesRef = useRef([]);
   const touchStartXRef = useRef(null);
   const sheetTouchStartYRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -153,6 +157,14 @@ export default function MobileChat() {
     };
   }, [menuSearchOpen, menuSearchQuery]);
 
+  useEffect(() => {
+    attachedImagesRef.current = attachedImages;
+  }, [attachedImages]);
+
+  useEffect(() => () => {
+    attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+  }, []);
+
   const closeMenu = () => {
     setMenuOpen(false);
     setMenuSearchOpen(false);
@@ -167,6 +179,10 @@ export default function MobileChat() {
   const startNewChat = () => {
     closeMenu();
     setMessage("");
+    setAttachedImages((current) => {
+      current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      return [];
+    });
     setSearchParams({});
   };
 
@@ -200,6 +216,35 @@ export default function MobileChat() {
   const openFileInput = (inputRef) => {
     closeAttachmentSheet();
     window.setTimeout(() => inputRef.current?.click(), 0);
+  };
+
+  const handleImageSelection = (event) => {
+    const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+    if (files.length === 0) {
+      event.target.value = "";
+      return;
+    }
+
+    setAttachedImages((current) => {
+      const availableSlots = Math.max(0, MAX_IMAGE_ATTACHMENTS - current.length);
+      const nextImages = files.slice(0, availableSlots).map((file) => ({
+        id: `${file.name}-${file.lastModified}-${globalThis.crypto?.randomUUID?.() || Date.now()}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      }));
+      return [...current, ...nextImages];
+    });
+    event.target.value = "";
+  };
+
+  const removeAttachedImage = (imageId) => {
+    setAttachedImages((current) => {
+      const target = current.find((image) => image.id === imageId);
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return current.filter((image) => image.id !== imageId);
+    });
   };
 
   const handleSheetTouchStart = (event) => {
@@ -271,6 +316,38 @@ export default function MobileChat() {
             ))}
           </div>
 
+          {attachedImages.length > 0 && (
+            <div
+              className="mb-3 flex gap-3 overflow-x-auto overscroll-x-contain pb-1"
+              data-testid="mobile-image-preview-strip"
+            >
+              {attachedImages.map((image, index) => (
+                <div
+                  key={image.id}
+                  className={
+                    attachedImages.length === 1
+                      ? "relative h-40 min-w-full overflow-hidden rounded-[22px]"
+                      : "relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px]"
+                  }
+                >
+                  <img
+                    src={image.previewUrl}
+                    alt={`Attachment ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeAttachedImage(image.id)}
+                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
+                    aria-label="Remove image"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <form
             className={`flex min-h-[58px] items-end gap-2 rounded-[28px] border p-2 shadow-sm ${borderColor}`}
             style={{ backgroundColor: panelColor }}
@@ -316,6 +393,7 @@ export default function MobileChat() {
             type="file"
             accept="image/*"
             capture="environment"
+            onChange={handleImageSelection}
             className="hidden"
             aria-hidden="true"
           />
@@ -323,6 +401,8 @@ export default function MobileChat() {
             ref={imageInputRef}
             type="file"
             accept="image/*"
+            multiple
+            onChange={handleImageSelection}
             className="hidden"
             aria-hidden="true"
           />
