@@ -769,9 +769,9 @@ export default function MobileChat() {
   };
 
   const renderComposerArea = (centered = false) => (
-    <div className={centered ? "w-full px-1" : "px-4 pb-3"}>
+    <div className={centered ? "mx-auto w-full max-w-[430px] px-1" : "px-4 pb-3"}>
       {!isImageMode && (
-        <div className={centered ? "mb-5 flex flex-col items-center gap-3" : "mb-3 flex flex-col items-start gap-2"}>
+        <div className={centered ? "mx-auto mb-5 flex w-full max-w-[320px] flex-col items-start gap-3" : "mb-3 flex flex-col items-start gap-2"}>
           {QUICK_ACTIONS.map(({ label, path, icon: Icon }) => (
             <button
               key={label}
@@ -870,7 +870,7 @@ export default function MobileChat() {
           </button>
 
           <div
-            className={`flex min-h-[52px] flex-1 items-end rounded-[26px] border px-4 shadow-[0_18px_45px_rgba(15,23,42,0.10)] ${borderColor}`}
+            className={`flex min-h-[52px] flex-1 items-end rounded-[26px] border pl-4 pr-1 shadow-[0_18px_45px_rgba(15,23,42,0.10)] ${borderColor}`}
             style={{
               backgroundColor: isDark ? "rgba(32,32,32,0.9)" : "rgba(255,255,255,0.88)",
               backdropFilter: "blur(18px)",
@@ -885,21 +885,21 @@ export default function MobileChat() {
               placeholder={isImageMode ? "Describe an image..." : "Ask anything..."}
               className={`max-h-[132px] min-h-11 flex-1 resize-none bg-transparent py-3 text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
             />
-          </div>
 
-          <button
-            type="submit"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-[0_12px_30px_rgba(25,59,104,0.24)] disabled:opacity-45"
-            style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
-            disabled={!hasComposerContent || isGeneratingImage || isChatSending}
-            aria-label="Send"
-          >
-            {isGeneratingImage || isChatSending ? (
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </button>
+            <button
+              type="submit"
+              className="mb-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.22)] disabled:opacity-45"
+              style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+              disabled={!hasComposerContent || isGeneratingImage || isChatSending}
+              aria-label="Send"
+            >
+              {isGeneratingImage || isChatSending ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </div>
