@@ -4,7 +4,11 @@ import {
   updateReminder,
   deleteReminder,
 } from "../services/reminderService"
-import { setupReminderNotifications } from "../services/notificationService"
+import {
+  inspectNotificationSetup,
+  sendTestNotification,
+  setupReminderNotifications,
+} from "../services/notificationService"
 
 import { useCallback, useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -17,6 +21,10 @@ import {
   Clock,
   Calendar,
   Repeat2,
+  Bell,
+  BellOff,
+  Send,
+  RefreshCw,
 } from "lucide-react"
 
 import { useNavigate } from "react-router-dom"
@@ -388,6 +396,124 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
   )
 }
 
+function NotificationSetupPanel({
+  debugState,
+  onEnable,
+  onRefresh,
+  onSendTest,
+  enabling,
+  refreshing,
+  sendingTest,
+  isDark,
+  appColor,
+  t,
+}) {
+  const permission = debugState?.permission || "default"
+  const isGranted = permission === "granted"
+  const isDenied = permission === "denied"
+  const statusLabel = isGranted
+    ? `✅ ${t("notificationsEnabled")}`
+    : isDenied
+      ? `❌ ${t("notificationsDisabled")}`
+      : `⏳ ${t("notificationsNotRequested")}`
+
+  return (
+    <section
+      className={cn(
+        "mb-6 rounded-2xl border p-4 shadow-sm",
+        isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]",
+      )}
+      data-testid="notification-setup-panel"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div
+            className={cn(
+              "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+              isGranted
+                ? isDark ? "bg-emerald-500/15 text-emerald-300" : "bg-emerald-50 text-emerald-700"
+                : isDark ? "bg-[#333] text-[#ddd]" : "bg-[#F3F4F6] text-[#193B68]",
+            )}
+          >
+            {isDenied ? <BellOff className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+          </div>
+
+          <div className="min-w-0">
+            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>
+              {statusLabel}
+            </p>
+
+            <p className={cn("mt-1 text-xs leading-5", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+              {t("notificationSetupDescription")}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          {!isGranted && (
+            <button
+              type="button"
+              onClick={onEnable}
+              disabled={enabling}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl px-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ backgroundColor: appColor }}
+              data-testid="enable-notifications-button"
+            >
+              {enabling ? t("enablingNotifications") : t("enableNotifications")}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onSendTest}
+            disabled={!isGranted || !debugState?.subscriptionExists || sendingTest}
+            className={cn(
+              "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-3.5 text-sm font-medium transition-colors disabled:opacity-50",
+              isDark ? "border-[#3a3a3a] text-[#ddd] hover:bg-[#2f2f2f]" : "border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]",
+            )}
+            data-testid="send-test-notification-button"
+          >
+            <Send className="h-4 w-4" />
+            {sendingTest ? t("sendingTestNotification") : t("sendTestNotification")}
+          </button>
+
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className={cn(
+              "inline-flex min-h-10 w-10 items-center justify-center rounded-xl border transition-colors disabled:opacity-50",
+              isDark ? "border-[#3a3a3a] text-[#ddd] hover:bg-[#2f2f2f]" : "border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]",
+            )}
+            aria-label={t("refreshNotificationStatus")}
+            data-testid="refresh-notification-status-button"
+          >
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+          </button>
+        </div>
+      </div>
+
+      <pre
+        className={cn(
+          "mt-4 overflow-x-auto rounded-xl border p-3 text-xs leading-5",
+          isDark ? "border-[#333] bg-[#1a1a1a] text-[#ddd]" : "border-[#E5E7EB] bg-[#F9FAFB] text-[#374151]",
+        )}
+        data-testid="notification-debug-panel"
+      >
+        {JSON.stringify({
+          permission: debugState?.permission || "default",
+          serviceWorkerRegistered: Boolean(debugState?.serviceWorkerRegistered),
+          pushSupported: Boolean(debugState?.pushSupported),
+          subscriptionExists: Boolean(debugState?.subscriptionExists),
+          serviceWorkerError: debugState?.serviceWorkerError,
+          setupError: debugState?.setupError,
+          backendDeviceSaved: Boolean(debugState?.backendDeviceSaved),
+        }, null, 2)}
+      </pre>
+    </section>
+  )
+}
+
 export default function RemindersPage() {
   const navigate = useNavigate()
   const { t, prefs, resolvedTheme } = useApp()
@@ -399,6 +525,17 @@ export default function RemindersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [modalOpen, setModalOpen] = useState(false)
   const [editingReminder, setEditingReminder] = useState(null)
+  const [notificationDebug, setNotificationDebug] = useState({
+    permission: typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported",
+    serviceWorkerRegistered: false,
+    pushSupported: typeof window !== "undefined" && "PushManager" in window,
+    subscriptionExists: false,
+  })
+  const [notificationBusy, setNotificationBusy] = useState({
+    enabling: false,
+    refreshing: false,
+    sendingTest: false,
+  })
 
 const fetchReminders = useCallback(async () => {
   try {
@@ -412,9 +549,32 @@ const fetchReminders = useCallback(async () => {
   }
 }, [t])
 
+  const refreshNotificationStatus = useCallback(async () => {
+    setNotificationBusy((prev) => ({ ...prev, refreshing: true }))
+
+    try {
+      const debug = await inspectNotificationSetup()
+      setNotificationDebug(debug)
+      return debug
+    } catch (err) {
+      console.error(err)
+      setNotificationDebug((prev) => ({
+        ...prev,
+        setupError: err.message,
+      }))
+      return null
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, refreshing: false }))
+    }
+  }, [])
+
   useEffect(() => {
     fetchReminders()
   }, [fetchReminders])
+
+  useEffect(() => {
+    refreshNotificationStatus()
+  }, [refreshNotificationStatus])
 
   const filteredReminders = reminders.filter((r) => {
     const query = searchQuery.toLowerCase()
@@ -452,7 +612,25 @@ const fetchReminders = useCallback(async () => {
           ...prev,
           newReminder,
         ])
-        setupReminderNotifications().catch(() => {})
+        setupReminderNotifications()
+          .then((result) => {
+            setNotificationDebug((prev) => ({
+              ...prev,
+              permission: "Notification" in window ? Notification.permission : "unsupported",
+              serviceWorkerRegistered: Boolean(result?.registration || prev.serviceWorkerRegistered),
+              pushSupported: Boolean("PushManager" in window),
+              subscriptionExists: Boolean(result?.device || prev.subscriptionExists),
+              backendDeviceSaved: Boolean(result?.device),
+              setupError: result?.reason,
+            }))
+          })
+          .catch((error) => {
+            console.error(error)
+            setNotificationDebug((prev) => ({
+              ...prev,
+              setupError: error.message,
+            }))
+          })
       }
 
       setEditingReminder(null)
@@ -480,6 +658,54 @@ const fetchReminders = useCallback(async () => {
   const openCreateModal = () => {
     setEditingReminder(null)
     setModalOpen(true)
+  }
+
+  const handleEnableNotifications = async () => {
+    setNotificationBusy((prev) => ({ ...prev, enabling: true }))
+
+    try {
+      const result = await setupReminderNotifications()
+      const debug = await inspectNotificationSetup()
+
+      setNotificationDebug({
+        ...debug,
+        backendDeviceSaved: Boolean(result?.device),
+        setupError: result?.reason,
+      })
+
+      if (Notification.permission === "granted" && (result?.device || debug.subscriptionExists)) {
+        toast.success(t("notificationsEnabled"))
+      } else {
+        toast.error(result?.reason || t("notificationsDisabled"))
+      }
+    } catch (err) {
+      console.error(err)
+      setNotificationDebug((prev) => ({
+        ...prev,
+        setupError: err.message,
+      }))
+      toast.error(err.message || t("notificationsDisabled"))
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, enabling: false }))
+    }
+  }
+
+  const handleSendTestNotification = async () => {
+    setNotificationBusy((prev) => ({ ...prev, sendingTest: true }))
+
+    try {
+      await sendTestNotification({
+        title: "BlueMind AI",
+        body: t("testNotificationBody"),
+        url: "/reminders",
+      })
+      toast.success(t("testNotificationSent"))
+    } catch (err) {
+      console.error(err)
+      toast.error(err.message || t("testNotificationFailed"))
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, sendingTest: false }))
+    }
   }
 
   return (
@@ -528,6 +754,19 @@ const fetchReminders = useCallback(async () => {
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+        <NotificationSetupPanel
+          debugState={notificationDebug}
+          onEnable={handleEnableNotifications}
+          onRefresh={refreshNotificationStatus}
+          onSendTest={handleSendTestNotification}
+          enabling={notificationBusy.enabling}
+          refreshing={notificationBusy.refreshing}
+          sendingTest={notificationBusy.sendingTest}
+          isDark={isDark}
+          appColor={appColor}
+          t={t}
+        />
+
         {/* Search */}
         <div className="mb-6">
           <div className="relative">
@@ -615,6 +854,10 @@ const fetchReminders = useCallback(async () => {
                         ? editingReminder.time
                         : `${String(editingReminder.time?.hour || 9).padStart(2, "0")}:${String(editingReminder.time?.minute || 0).padStart(2, "0")}`
                     ),
+                    recurrence: editingReminder.recurrence || {
+                      frequency: "none",
+                      interval: 1,
+                    },
                   }
                 : null
             }

@@ -38,6 +38,53 @@ function isStandaloneAppleWebApp() {
   return window.navigator.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches;
 }
 
+export function getNotificationDebugSnapshot(extra = {}) {
+  const serviceWorkerRegistered = Boolean(navigator.serviceWorker?.controller || extra.serviceWorkerRegistered);
+
+  return {
+    permission: "Notification" in window ? Notification.permission : "unsupported",
+    serviceWorkerRegistered,
+    pushSupported: Boolean("PushManager" in window),
+    subscriptionExists: Boolean(extra.subscriptionExists),
+    ...extra,
+  };
+}
+
+export async function inspectNotificationSetup() {
+  const snapshot = getNotificationDebugSnapshot();
+
+  if (!("serviceWorker" in navigator)) {
+    return {
+      ...snapshot,
+      serviceWorkerRegistered: false,
+      serviceWorkerError: "service_worker_not_supported",
+    };
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
+    const subscription = registration.pushManager
+      ? await registration.pushManager.getSubscription()
+      : null;
+
+    return getNotificationDebugSnapshot({
+      serviceWorkerRegistered: true,
+      pushSupported: Boolean("PushManager" in window && registration.pushManager),
+      subscriptionExists: Boolean(subscription),
+      endpoint: subscription?.endpoint,
+    });
+  } catch (error) {
+    console.error("Service worker registration failed", error);
+
+    return {
+      ...snapshot,
+      serviceWorkerRegistered: false,
+      serviceWorkerError: error.message,
+    };
+  }
+}
+
 export async function registerDeviceToken(token, metadata = {}) {
   const response = await api.post("/reminders/register-device", {
     token,
