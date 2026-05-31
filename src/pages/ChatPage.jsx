@@ -1744,7 +1744,10 @@ function TypingIndicator({ responseMode = "smart" }) {
   );
 }
 
-export default function ChatPage() {
+export default function ChatPage({
+  initialActiveMode = "default",
+  initialHistoryOpen = true,
+} = {}) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
@@ -1756,12 +1759,12 @@ export default function ChatPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [conversationId, setConversationId] = useState(null);
-  const [historyOpen, setHistoryOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(initialHistoryOpen);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [responseMode, setResponseMode] = useState(() => normalizeResponseModeId(localStorage.getItem(RESPONSE_MODE_STORAGE_KEY)));
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [activeMode, setActiveMode] = useState("default");
+  const [activeMode, setActiveMode] = useState(initialActiveMode);
   const [websiteSearchQuery, setWebsiteSearchQuery] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("All");
   const [websitePage, setWebsitePage] = useState(0);
