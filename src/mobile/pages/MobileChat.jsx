@@ -33,6 +33,33 @@ const QUICK_ACTIONS = [
 
 const MAX_IMAGE_ATTACHMENTS = 6;
 
+const IMAGE_INSPIRATIONS = [
+  {
+    title: "Improve Your Desk Setup",
+    gradient: "from-[#193B68] via-[#315F9C] to-[#8FB7FF]",
+  },
+  {
+    title: "Logo Design",
+    gradient: "from-[#102A43] via-[#1D4E89] to-[#7AB8FF]",
+  },
+  {
+    title: "App UI",
+    gradient: "from-[#243B53] via-[#3B6EA8] to-[#C7D9FF]",
+  },
+  {
+    title: "Product Mockup",
+    gradient: "from-[#16324F] via-[#496C95] to-[#DCE9FF]",
+  },
+  {
+    title: "Infographic",
+    gradient: "from-[#1F3A5F] via-[#5077AA] to-[#A9C7EF]",
+  },
+  {
+    title: "Fantasy Art",
+    gradient: "from-[#182B49] via-[#345C8E] to-[#9EBCE3]",
+  },
+];
+
 function formatConversationTime(value, language = "en") {
   if (!value) return "";
   const date = new Date(value);
@@ -60,12 +87,15 @@ export default function MobileChat() {
   const [isSearching, setIsSearching] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [message, setMessage] = useState("");
+  const [isImageMode, setIsImageMode] = useState(false);
   const [attachedImages, setAttachedImages] = useState([]);
   const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
+  const [imageSourceSheetOpen, setImageSourceSheetOpen] = useState(false);
   const attachedImagesRef = useRef([]);
   const touchStartXRef = useRef(null);
   const sheetTouchStartYRef = useRef(null);
   const searchInputRef = useRef(null);
+  const composerInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -88,6 +118,8 @@ export default function MobileChat() {
     const query = menuSearchQuery.trim();
     return query ? searchResults : conversations;
   }, [conversations, menuSearchQuery, searchResults]);
+
+  const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -165,6 +197,15 @@ export default function MobileChat() {
     attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
   }, []);
 
+  useEffect(() => {
+    const input = composerInputRef.current;
+    if (!input) return;
+    input.style.height = "auto";
+    const nextHeight = Math.min(input.scrollHeight, 132);
+    input.style.height = `${Math.max(nextHeight, 44)}px`;
+    input.style.overflowY = input.scrollHeight > 132 ? "auto" : "hidden";
+  }, [message]);
+
   const closeMenu = () => {
     setMenuOpen(false);
     setMenuSearchOpen(false);
@@ -208,6 +249,19 @@ export default function MobileChat() {
     setAttachmentSheetOpen(false);
   };
 
+  const closeImageSourceSheet = () => {
+    setImageSourceSheetOpen(false);
+  };
+
+  const enterImageMode = () => {
+    setIsImageMode(true);
+    setAttachmentSheetOpen(false);
+  };
+
+  const exitImageMode = () => {
+    setIsImageMode(false);
+  };
+
   const openSheetDestination = (path) => {
     closeAttachmentSheet();
     navigate(path);
@@ -215,6 +269,7 @@ export default function MobileChat() {
 
   const openFileInput = (inputRef) => {
     closeAttachmentSheet();
+    closeImageSourceSheet();
     window.setTimeout(() => inputRef.current?.click(), 0);
   };
 
@@ -257,7 +312,20 @@ export default function MobileChat() {
     sheetTouchStartYRef.current = null;
     if (typeof startY === "number" && typeof endY === "number" && endY - startY > 70) {
       closeAttachmentSheet();
+      closeImageSourceSheet();
     }
+  };
+
+  const handleComposerSubmit = (event) => {
+    event.preventDefault();
+    if (!hasComposerContent) return;
+
+    setMessage("");
+    setAttachedImages((current) => {
+      current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      return [];
+    });
+    setIsImageMode(false);
   };
 
   return (
@@ -297,7 +365,39 @@ export default function MobileChat() {
       </header>
 
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4" />
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-28 pt-4">
+          {isImageMode && !message.trim() && (
+            <div className="pt-2">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}>
+                  <Image className="h-4 w-4 text-white" />
+                </span>
+                <div>
+                  <p className="text-sm font-bold">Image ideas</p>
+                  <p className={`text-xs font-medium ${mutedText}`}>Start with a visual direction.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {IMAGE_INSPIRATIONS.map((item) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    onClick={() => setMessage(item.title)}
+                    className={`relative h-32 overflow-hidden rounded-[24px] bg-gradient-to-br ${item.gradient} p-4 text-left shadow-sm active:scale-[0.99]`}
+                  >
+                    <div className="absolute inset-0 bg-black/10" />
+                    <div className="absolute -right-7 -top-7 h-24 w-24 rounded-full bg-white/20 blur-xl" />
+                    <div className="absolute -bottom-8 left-4 h-20 w-20 rounded-full bg-white/15 blur-2xl" />
+                    <span className="relative z-10 block max-w-[8rem] text-sm font-bold leading-5 text-white drop-shadow">
+                      {item.title}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="px-4 pb-3">
           <div className="mb-3 flex flex-col items-start gap-2">
@@ -305,9 +405,17 @@ export default function MobileChat() {
               <button
                 key={label}
                 type="button"
-                onClick={() => navigate(path)}
+                onClick={() => {
+                  if (label === "Create Image") {
+                    enterImageMode();
+                    return;
+                  }
+                  navigate(path);
+                }}
                 className={`inline-flex min-h-9 items-center gap-2 rounded-full px-1 text-sm font-semibold transition-opacity active:opacity-70 ${
-                  isDark ? "text-[#D7D7D7]" : "text-[#193B68]"
+                  label === "Create Image" && isImageMode
+                    ? "text-[var(--bluemind-app-color,#193B68)]"
+                    : isDark ? "text-[#D7D7D7]" : "text-[#193B68]"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -316,77 +424,110 @@ export default function MobileChat() {
             ))}
           </div>
 
-          {attachedImages.length > 0 && (
-            <div
-              className="mb-3 flex gap-3 overflow-x-auto overscroll-x-contain pb-1"
-              data-testid="mobile-image-preview-strip"
-            >
-              {attachedImages.map((image, index) => (
-                <div
-                  key={image.id}
-                  className={
-                    attachedImages.length === 1
-                      ? "relative h-40 min-w-full overflow-hidden rounded-[22px]"
-                      : "relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px]"
-                  }
-                >
-                  <img
-                    src={image.previewUrl}
-                    alt={`Attachment ${index + 1}`}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeAttachedImage(image.id)}
-                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
-                    aria-label="Remove image"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
           <form
-            className={`flex min-h-[58px] items-end gap-2 rounded-[28px] border p-2 shadow-sm ${borderColor}`}
-            style={{ backgroundColor: panelColor }}
-            onSubmit={(event) => event.preventDefault()}
+            className={`flex min-h-[58px] flex-col gap-2 rounded-[28px] border p-2 shadow-[0_18px_45px_rgba(15,23,42,0.10)] ${borderColor}`}
+            style={{
+              backgroundColor: isDark ? "rgba(32,32,32,0.9)" : "rgba(255,255,255,0.88)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+            }}
+            onSubmit={handleComposerSubmit}
           >
-            <button
-              type="button"
-              onClick={() => setAttachmentSheetOpen(true)}
-              className={isDark ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white active:bg-white/[0.12]" : "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#EEF2F7] text-[#193B68] active:bg-[#E1E7F0]"}
-              aria-label="Attach"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
+            {isImageMode && (
+              <div className="flex items-center justify-between px-1 pt-1">
+                <span
+                  className="inline-flex h-8 items-center gap-2 rounded-full px-3 text-xs font-bold text-white"
+                  style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+                >
+                  <Image className="h-4 w-4" />
+                  Image
+                </span>
+                <button
+                  type="button"
+                  onClick={exitImageMode}
+                  className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-8 w-8 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                  aria-label="Exit Image Mode"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
 
-            <textarea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              rows={1}
-              placeholder="Ask anything..."
-              className={`max-h-28 min-h-11 flex-1 resize-none bg-transparent px-1 py-3 text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-            />
+            {attachedImages.length > 0 && (
+              <div
+                className="flex gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1"
+                data-testid="mobile-image-preview-strip"
+              >
+                {attachedImages.map((image, index) => (
+                  <div
+                    key={image.id}
+                    className={
+                      attachedImages.length === 1
+                        ? "relative h-36 min-w-full overflow-hidden rounded-[22px]"
+                        : "relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px]"
+                    }
+                  >
+                    <img
+                      src={image.previewUrl}
+                      alt={`Attachment ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeAttachedImage(image.id)}
+                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            <button
-              type="button"
-              className={isDark ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
-              aria-label="Voice"
-            >
-              <Mic className="h-5 w-5" />
-            </button>
+            <div className="flex items-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isImageMode) {
+                    setImageSourceSheetOpen(true);
+                    return;
+                  }
+                  setAttachmentSheetOpen(true);
+                }}
+                className={isDark ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white active:bg-white/[0.12]" : "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#EEF2F7] text-[#193B68] active:bg-[#E1E7F0]"}
+                aria-label="Attach"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
 
-            <button
-              type="submit"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-45"
-              style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
-              disabled={!message.trim()}
-              aria-label="Send"
-            >
-              <Send className="h-5 w-5" />
-            </button>
+              <textarea
+                ref={composerInputRef}
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                rows={1}
+                placeholder={isImageMode ? "Describe an image..." : "Ask anything..."}
+                className={`max-h-[132px] min-h-11 flex-1 resize-none bg-transparent px-1 py-3 text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+              />
+
+              <button
+                type="button"
+                className={isDark ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                aria-label="Voice"
+              >
+                <Mic className="h-5 w-5" />
+              </button>
+
+              <button
+                type="submit"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-45"
+                style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+                disabled={!hasComposerContent}
+                aria-label="Send"
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            </div>
           </form>
           <input
             ref={cameraInputRef}
@@ -448,7 +589,7 @@ export default function MobileChat() {
               <div className="grid gap-2">
                 <button
                   type="button"
-                  onClick={() => openSheetDestination("/mobile/create-image")}
+                  onClick={enterImageMode}
                   className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
                   <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
@@ -494,7 +635,10 @@ export default function MobileChat() {
 
                 <button
                   type="button"
-                  onClick={() => openFileInput(imageInputRef)}
+                  onClick={() => {
+                    closeAttachmentSheet();
+                    setImageSourceSheetOpen(true);
+                  }}
                   className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
                   <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
@@ -512,6 +656,77 @@ export default function MobileChat() {
                     <FileText className="h-5 w-5" />
                   </span>
                   <span>Upload File / PDF</span>
+                </button>
+              </div>
+            </motion.section>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {imageSourceSheetOpen && (
+          <div className="fixed inset-0 z-50">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/35"
+              onClick={closeImageSourceSheet}
+              aria-label="Close image source"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            />
+            <motion.section
+              className={`absolute inset-x-0 bottom-0 rounded-t-[28px] border-t px-4 pb-5 pt-3 shadow-[0_-24px_70px_rgba(15,23,42,0.2)] ${borderColor}`}
+              style={{
+                backgroundColor: panelColor,
+                paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
+              }}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              onTouchStart={handleSheetTouchStart}
+              onTouchEnd={handleSheetTouchEnd}
+              data-testid="mobile-image-source-sheet"
+            >
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[#9CA3AF]/55" />
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-base font-bold">Add image</p>
+                  <p className={`text-xs font-semibold ${mutedText}`}>Attach a photo before sending.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeImageSourceSheet}
+                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                  aria-label="Close image source"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => openFileInput(cameraInputRef)}
+                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <Camera className="h-5 w-5" />
+                  </span>
+                  <span>Take a photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openFileInput(imageInputRef)}
+                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <Image className="h-5 w-5" />
+                  </span>
+                  <span>Choose a photo</span>
                 </button>
               </div>
             </motion.section>
