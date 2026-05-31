@@ -4,11 +4,13 @@ import {
   Bell,
   BookOpen,
   Brain,
+  Clock3,
   Image,
   Menu,
   MessageSquare,
   Mic,
   PenLine,
+  Pencil,
   Plus,
   Search,
   Send,
@@ -311,7 +313,7 @@ export default function MobileChat() {
                   onClick={startNewChat}
                   className={isDark ? "flex h-12 w-full items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.06] px-3 text-left text-sm font-semibold text-white active:bg-white/[0.1]" : "flex h-12 w-full items-center gap-3 rounded-2xl border border-[#D6DEE9] bg-white px-3 text-left text-sm font-semibold text-[#111827] shadow-sm active:bg-[#F8FAFC]"}
                 >
-                  <Plus className="h-5 w-5 shrink-0" />
+                  <Pencil className="h-5 w-5 shrink-0" />
                   <span>{t("newChat")}</span>
                 </button>
 
@@ -321,7 +323,7 @@ export default function MobileChat() {
                     onClick={() => setMenuSearchOpen((open) => !open)}
                     className={isDark ? "flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#E5E7EB] active:bg-white/[0.08]" : "flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                   >
-                    <Search className="h-5 w-5 shrink-0" />
+                    <Clock3 className="h-5 w-5 shrink-0" />
                     <span>{t("search")}</span>
                   </button>
 
