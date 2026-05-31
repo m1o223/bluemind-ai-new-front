@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell,
   BookOpen,
   Brain,
+  Camera,
   Clock3,
+  FileText,
   Image,
   Menu,
   MessageSquare,
@@ -55,8 +58,13 @@ export default function MobileChat() {
   const [isSearching, setIsSearching] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [message, setMessage] = useState("");
+  const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
   const touchStartXRef = useRef(null);
+  const sheetTouchStartYRef = useRef(null);
   const searchInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
@@ -180,6 +188,33 @@ export default function MobileChat() {
     }
   };
 
+  const closeAttachmentSheet = () => {
+    setAttachmentSheetOpen(false);
+  };
+
+  const openSheetDestination = (path) => {
+    closeAttachmentSheet();
+    navigate(path);
+  };
+
+  const openFileInput = (inputRef) => {
+    closeAttachmentSheet();
+    window.setTimeout(() => inputRef.current?.click(), 0);
+  };
+
+  const handleSheetTouchStart = (event) => {
+    sheetTouchStartYRef.current = event.touches?.[0]?.clientY ?? null;
+  };
+
+  const handleSheetTouchEnd = (event) => {
+    const startY = sheetTouchStartYRef.current;
+    const endY = event.changedTouches?.[0]?.clientY;
+    sheetTouchStartYRef.current = null;
+    if (typeof startY === "number" && typeof endY === "number" && endY - startY > 70) {
+      closeAttachmentSheet();
+    }
+  };
+
   return (
     <main
       className={`fixed inset-0 flex flex-col overflow-hidden ${textColor}`}
@@ -243,6 +278,7 @@ export default function MobileChat() {
           >
             <button
               type="button"
+              onClick={() => setAttachmentSheetOpen(true)}
               className={isDark ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white active:bg-white/[0.12]" : "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#EEF2F7] text-[#193B68] active:bg-[#E1E7F0]"}
               aria-label="Attach"
             >
@@ -275,8 +311,133 @@ export default function MobileChat() {
               <Send className="h-5 w-5" />
             </button>
           </form>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            aria-hidden="true"
+          />
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            aria-hidden="true"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.txt,.rtf,.md,.csv,.xls,.xlsx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            className="hidden"
+            aria-hidden="true"
+          />
         </div>
       </section>
+
+      <AnimatePresence>
+        {attachmentSheetOpen && (
+          <div className="fixed inset-0 z-50">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/35"
+              onClick={closeAttachmentSheet}
+              aria-label="Close attachment menu"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            />
+            <motion.section
+              className={`absolute inset-x-0 bottom-0 rounded-t-[28px] border-t px-4 pb-5 pt-3 shadow-[0_-24px_70px_rgba(15,23,42,0.2)] ${borderColor}`}
+              style={{
+                backgroundColor: panelColor,
+                paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
+              }}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              onTouchStart={handleSheetTouchStart}
+              onTouchEnd={handleSheetTouchEnd}
+              data-testid="mobile-attachment-sheet"
+            >
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[#9CA3AF]/55" />
+
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => openSheetDestination("/mobile/create-image")}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <Image className="h-5 w-5" />
+                  </span>
+                  <span>Create Image</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openSheetDestination("/mobile/write-edit")}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <PenLine className="h-5 w-5" />
+                  </span>
+                  <span>Write /Edit</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openSheetDestination("/mobile/search")}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <Search className="h-5 w-5" />
+                  </span>
+                  <span>Search</span>
+                </button>
+
+                <div className={`my-2 h-px ${isDark ? "bg-white/[0.08]" : "bg-[#E5E7EB]"}`} />
+
+                <button
+                  type="button"
+                  onClick={() => openFileInput(cameraInputRef)}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <Camera className="h-5 w-5" />
+                  </span>
+                  <span>Camera</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openFileInput(imageInputRef)}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <Image className="h-5 w-5" />
+                  </span>
+                  <span>Upload Image</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openFileInput(fileInputRef)}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <span>Upload File / PDF</span>
+                </button>
+              </div>
+            </motion.section>
+          </div>
+        )}
+      </AnimatePresence>
 
       {menuOpen && (
         <div className="fixed inset-0 z-40">
@@ -419,3 +580,4 @@ export default function MobileChat() {
     </main>
   );
 }
+
