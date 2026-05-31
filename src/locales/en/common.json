@@ -121,6 +121,7 @@
   "testNotificationBody": "This is a BlueMind test notification.",
   "testNotificationSent": "Test notification sent",
   "testNotificationFailed": "Could not send test notification",
+  "reminderNotFound": "This reminder no longer exists.",
   "invalidImageType": "Please upload PNG, JPG, or WEBP images.",
   "invalidImageSize": "Image must be smaller than 8MB.",
   "imageUploadFailed": "Image upload failed",

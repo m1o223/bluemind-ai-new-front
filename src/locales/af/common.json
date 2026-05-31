@@ -121,6 +121,7 @@
   "testNotificationBody": "Dit is 'n BlueMind-toetskennisgewing.",
   "testNotificationSent": "Toetskennisgewing gestuur",
   "testNotificationFailed": "Kon nie toetskennisgewing stuur nie",
+  "reminderNotFound": "Hierdie herinnering bestaan nie meer nie.",
   "selectLanguage": "Kies taal",
   "searchLanguages": "Soek tale...",
   "noLanguagesFound": "Geen tale gevind nie",

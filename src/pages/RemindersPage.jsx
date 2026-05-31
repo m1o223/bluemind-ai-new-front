@@ -28,7 +28,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/context/AppContext"
 import BrandLogo from "@/components/BrandLogo"
@@ -58,7 +58,7 @@ function formatTime(timeObj, language = "en") {
   })
 }
 
-function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColor }) {
+function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColor, isHighlighted }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -68,9 +68,12 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
       exit={{ opacity: 0, y: -8 }}
       className={cn(
         "rounded-xl border p-5 hover:shadow-sm transition-all duration-200 relative",
+        isHighlighted && "ring-2 ring-offset-2 ring-offset-transparent",
         isDark ? "bg-[#252525] border-[#333] hover:border-[#466589]" : "bg-white border-[#E5E7EB] hover:border-[#193B68]/50",
       )}
+      style={isHighlighted ? { "--tw-ring-color": appColor } : undefined}
       data-testid={`reminder-card-${reminder._id}`}
+      id={`reminder-${reminder._id || reminder.id}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -524,12 +527,16 @@ function NotificationSetupPanel({
 
 export default function RemindersPage() {
   const navigate = useNavigate()
+  const { reminderId } = useParams()
   const { t, prefs, resolvedTheme } = useApp()
   const language = prefs.language || "en"
   const isDark = resolvedTheme === "dark"
   const appColor = prefs.appColor || prefs.accentColor || "#193B68"
 
   const [reminders, setReminders] = useState([])
+  const [remindersLoaded, setRemindersLoaded] = useState(false)
+  const [openedDeepLinkId, setOpenedDeepLinkId] = useState("")
+  const [highlightedReminderId, setHighlightedReminderId] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [modalOpen, setModalOpen] = useState(false)
   const [editingReminder, setEditingReminder] = useState(null)
@@ -542,6 +549,7 @@ export default function RemindersPage() {
 
 const fetchReminders = useCallback(async () => {
   try {
+    setRemindersLoaded(false)
     const data = await getReminders()
 
     setReminders(Array.isArray(data.items) ? data.items : [])
@@ -549,6 +557,8 @@ const fetchReminders = useCallback(async () => {
     console.error(err)
     toast.error(err.message || t("createReminderError"))
     setReminders([])
+  } finally {
+    setRemindersLoaded(true)
   }
 }, [t])
 
@@ -578,6 +588,36 @@ const fetchReminders = useCallback(async () => {
   useEffect(() => {
     refreshNotificationStatus()
   }, [refreshNotificationStatus])
+
+  useEffect(() => {
+    if (!reminderId || !remindersLoaded || openedDeepLinkId === reminderId) {
+      return
+    }
+
+    const linkedReminder = reminders.find((reminder) => (
+      String(reminder._id || reminder.id) === String(reminderId)
+    ))
+
+    if (!linkedReminder) {
+      toast.error(t("reminderNotFound"))
+      navigate("/reminders", { replace: true })
+      setOpenedDeepLinkId(reminderId)
+      setHighlightedReminderId("")
+      return
+    }
+
+    setSearchQuery("")
+    setHighlightedReminderId(reminderId)
+    setEditingReminder(linkedReminder)
+    setModalOpen(true)
+    setOpenedDeepLinkId(reminderId)
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`reminder-${reminderId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }, 120)
+  }, [reminderId, reminders, remindersLoaded, openedDeepLinkId, navigate, t])
 
   const filteredReminders = reminders.filter((r) => {
     const query = searchQuery.toLowerCase()
@@ -800,6 +840,7 @@ const fetchReminders = useCallback(async () => {
                 language={language}
                 isDark={isDark}
                 appColor={appColor}
+                isHighlighted={String(reminder._id || reminder.id) === String(highlightedReminderId)}
               />
             ))}
           </AnimatePresence>
@@ -839,6 +880,9 @@ const fetchReminders = useCallback(async () => {
             onClose={() => {
               setModalOpen(false)
               setEditingReminder(null)
+              if (reminderId) {
+                navigate("/reminders", { replace: true })
+              }
             }}
             onSave={handleSave}
             t={t}

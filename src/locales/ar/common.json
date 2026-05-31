@@ -121,6 +121,7 @@
   "testNotificationBody": "هذا إشعار تجريبي من BlueMind.",
   "testNotificationSent": "تم إرسال الإشعار التجريبي",
   "testNotificationFailed": "تعذر إرسال الإشعار التجريبي",
+  "reminderNotFound": "هذا التذكير لم يعد موجودًا.",
   "invalidImageType": "يرجى رفع صور ???? ???? أو ???? ???? أو ???? ???? فقط.",
   "invalidImageSize": "يجب أن تكون الصورة أصغر من ? ????????.",
   "imageUploadFailed": "فشل رفع الصورة",
