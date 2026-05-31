@@ -12,7 +12,6 @@ import {
   ArrowUp,
   ChevronDown,
   Mic,
-  Menu,
   X,
   PanelLeftClose,
   PanelLeft,
@@ -743,36 +742,6 @@ function formatHistoryDate(value, language) {
   }
 }
 
-function groupHistoryByDate(items, language) {
-  const groups = [];
-  const formatter = new Intl.DateTimeFormat(language || "en", {
-    month: "short",
-    day: "numeric",
-  });
-
-  items.forEach((item) => {
-    const dateValue = item.lastMessageAt || item.updatedAt;
-    let label = "";
-
-    try {
-      label = dateValue ? formatter.format(new Date(dateValue)) : "";
-    } catch {
-      label = "";
-    }
-
-    const key = label || "recent";
-    const existing = groups.find((group) => group.key === key);
-
-    if (existing) {
-      existing.items.push(item);
-    } else {
-      groups.push({ key, label: label || "", items: [item] });
-    }
-  });
-
-  return groups;
-}
-
 function HighlightedMatch({ text, query }) {
   const value = String(text || "");
   const terms = String(query || "")
@@ -844,17 +813,15 @@ const HistoryItem = memo(function HistoryItem({
   return (
     <div
       className={cn(
-        "group/history relative rounded-2xl border px-3 py-2.5 transition-all duration-200",
+        "group/history relative rounded-xl border px-2.5 py-2 transition-all duration-200",
         isActive
-          ? isDark ? "border-[#3F5F8C]/70 bg-[#20334B] text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)]" : "border-[#B7C7FF] bg-[#EAF0FF] text-[#102E5A] shadow-sm"
-          : isDark ? "border-transparent text-[#C7C7C7] hover:border-white/[0.08] hover:bg-white/[0.06] hover:text-white" : "border-transparent text-[#475569] hover:border-[#CBD5E1] hover:bg-white hover:text-[#0F172A]",
+          ? isDark ? "border-[#3F5F8C] bg-[#27384F] text-white" : "border-[#B7C7FF] bg-[#EAF0FF] text-[#102E5A]"
+          : isDark ? "border-transparent text-[#C7C7C7] hover:border-[#3A3A3A] hover:bg-[#2A2A2A] hover:text-white" : "border-transparent text-[#475569] hover:border-[#CBD5E1] hover:bg-white hover:text-[#0F172A]",
       )}
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
-        <button type="button" onClick={() => onOpen(item.conversationId)} className="flex min-w-0 flex-1 items-center gap-3 text-left" data-testid={`history-chat-${item.conversationId}`} title={item.title || t("newChat")}>
-          <span className={cn("flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl", isActive ? (isDark ? "bg-white/10" : "bg-white/70") : (isDark ? "bg-white/[0.045]" : "bg-[#EEF2F7]"))}>
-            <MessageSquare className={cn("h-[16px] w-[16px] flex-shrink-0", isActive && (isDark ? "text-white" : "text-[#193B68]"))} />
-          </span>
+        <button type="button" onClick={() => onOpen(item.conversationId)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left" data-testid={`history-chat-${item.conversationId}`} title={item.title || t("newChat")}>
+          <MessageSquare className={cn("h-[17px] w-[17px] flex-shrink-0", isActive && (isDark ? "text-white" : "text-[#193B68]"))} />
           {isEditing ? (
             <input
               value={draftTitle}
@@ -960,7 +927,7 @@ const HistoryItem = memo(function HistoryItem({
         </div>
       )}
 
-      <p className={cn("ml-11 mt-1 truncate text-[11px] font-medium leading-4", isDark ? "text-[#8A8A8A]" : "text-[#7C8798]")}>
+      <p className={cn("ml-[27px] mt-1 truncate text-[10.5px] font-medium leading-4", isDark ? "text-[#8A8A8A]" : "text-[#7C8798]")}>
         {formatHistoryDate(item.lastMessageAt || item.updatedAt, language)}
       </p>
     </div>
@@ -971,8 +938,6 @@ function Sidebar({
   isHistoryOpen,
   onToggleHistory,
   onNewChat,
-  isMobile,
-  onClose,
   history,
   activeConversationId,
   onOpenConversation,
@@ -980,7 +945,7 @@ function Sidebar({
   onDeleteConversation,
 }) {
   const navigate = useNavigate();
-  const { t, prefs, resolvedTheme, isRTL } = useApp();
+  const { t, prefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [recentsOpen, setRecentsOpen] = useState(false);
@@ -1050,7 +1015,6 @@ function Sidebar({
       ].slice(0, 10)
     : localSearchResults;
   const searchPanelTitle = normalizedSearchQuery ? "Matching conversations" : "Recent Conversations";
-  const historyGroups = groupHistoryByDate(history, prefs.language);
 
   const navItems = [
     {
@@ -1100,56 +1064,38 @@ function Sidebar({
 
   return (
     <motion.aside
-      initial={isMobile ? { x: isRTL ? "100%" : "-100%" } : false}
       animate={{
         x: 0,
-        width: isMobile ? "min(328px, calc(100vw - 24px))" : isHistoryOpen ? 328 : 84,
+        width: isHistoryOpen ? 328 : 84,
       }}
-      exit={isMobile ? { x: isRTL ? "100%" : "-100%" } : undefined}
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-      drag={isMobile ? "x" : false}
-      dragDirectionLock
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.08}
-      onDragEnd={(_, info) => {
-        if (!isMobile) return;
-        const shouldClose = isRTL
-          ? info.offset.x > 72 || info.velocity.x > 420
-          : info.offset.x < -72 || info.velocity.x < -420;
-        if (shouldClose) onClose?.();
-      }}
       className={cn(
         "h-full flex flex-col overflow-visible flex-shrink-0",
-        isDark ? "bg-[#171717]/98" : "bg-[#F7F8FA]/98",
-        isMobile && [
-          "mobile-chat-drawer shadow-2xl",
-          isDark ? "!bg-[#171717]" : "!bg-[#F7F8FA]",
-          isRTL ? "fixed right-0 top-0 z-50" : "fixed left-0 top-0 z-50",
-        ],
+        isDark ? "bg-[#1e1e1e]/96" : "bg-[#F7F8FA]/96",
       )}
       data-testid="sidebar"
     >
       <div
         className={cn(
-          "flex items-center justify-between border-b px-4 pb-3 pt-4",
+          "flex items-center justify-between border-b p-4",
           isDark ? "border-[#333]" : "border-[#E5E7EB]",
         )}
       >
         {isHistoryOpen ? (
           <>
-            <span className={cn("truncate text-[19px] font-semibold tracking-tight", isDark ? "text-white" : "text-[#111827]")}>
+            <span className={cn("truncate text-xl font-semibold tracking-tight", isDark ? "text-white" : "text-[#111827]")}>
               {APP_NAME}
             </span>
             <button
-              onClick={isMobile ? onClose : onToggleHistory}
-              aria-label={isMobile ? t("close") : t("collapseSidebar")}
+              onClick={onToggleHistory}
+              aria-label={t("collapseSidebar")}
               className={cn(
                 "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-colors duration-200 cursor-pointer",
                 isDark ? "text-[#D4D4D4] hover:bg-white/[0.08] hover:text-white" : "text-[#334155] hover:bg-black/[0.05] hover:text-[#0F172A]",
               )}
               data-testid="sidebar-toggle"
             >
-              {isMobile ? <X className="h-5 w-5 stroke-[2.25]" /> : <PanelLeftClose className="h-5 w-5 stroke-[2.25]" />}
+              <PanelLeftClose className="h-5 w-5 stroke-[2.25]" />
             </button>
           </>
         ) : (
@@ -1176,9 +1122,9 @@ function Sidebar({
           <button
             onClick={onNewChat}
             className={cn(
-              "flex min-h-[48px] w-full items-center gap-3 rounded-2xl border px-3.5 py-3 transition-all duration-200 cursor-pointer shadow-sm",
+              "flex w-full items-center gap-3 rounded-xl border px-3.5 py-3.5 transition-all duration-200 cursor-pointer",
               isDark
-                ? "border-white/[0.08] bg-white/[0.065] text-white hover:border-white/[0.14] hover:bg-white/[0.1]"
+                ? "border-[#343434] bg-[#252525] text-white hover:border-[#4A4A4A] hover:bg-[#2D2D2D]"
                 : "border-[#D6DEE9] bg-white text-[#0F172A] hover:border-[#B8C4D6] hover:bg-[#F8FAFC]",
             )}
             data-testid="new-chat-button"
@@ -1255,7 +1201,6 @@ function Sidebar({
                         onClick={() => {
                           setSearchOpen(false);
                           onOpenConversation(item.conversationId);
-                          if (isMobile) onClose?.();
                         }}
                         className={cn("flex w-full items-start gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-150", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#F1F5F9]")}
                       >
@@ -1286,17 +1231,16 @@ function Sidebar({
         </div>
       )}
 
-      <nav className={cn("space-y-1.5 px-3.5 pt-3.5", !isHistoryOpen && "px-4")} data-testid="chat-sidebar-nav">
+      <nav className={cn("space-y-2 px-3.5 pt-4", !isHistoryOpen && "px-4")} data-testid="chat-sidebar-nav">
         {navItems.map((item) => (
           <div key={item.id} className="relative">
             <button
               onClick={() => {
                 item.action?.();
-                if (isMobile && !["chat", "search"].includes(item.id)) onClose?.();
               }}
               className={cn(
-                "group flex min-h-[46px] w-full items-center gap-3 rounded-2xl transition-all duration-200 cursor-pointer",
-                isHistoryOpen ? "px-3.5 py-2.5" : "h-12 justify-center px-0 py-0",
+                "group flex w-full items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer",
+                isHistoryOpen ? "px-3.5 py-3" : "h-12 justify-center px-0 py-0",
                 isDark
                   ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
                   : "text-[#1F2937] hover:bg-black/[0.05] hover:text-[#0F172A]",
@@ -1396,7 +1340,6 @@ function Sidebar({
                     onClick={() => {
                       setSearchOpen(false);
                       onOpenConversation(item.conversationId);
-                      if (isMobile) onClose?.();
                     }}
                     className={cn("flex w-full flex-col rounded-2xl px-3 py-2.5 text-left transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#F1F5F9]")}
                   >
@@ -1416,10 +1359,9 @@ function Sidebar({
 
       <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
         {isHistoryOpen && (
-          <div className="px-3.5 pb-2 pt-4">
-            <div className={cn("flex items-center justify-between px-1 text-[11px] font-bold uppercase tracking-[0.16em]", isDark ? "text-[#8E8E8E]" : "text-[#64748B]")}>
+          <div className="px-3.5 pb-2 pt-5">
+            <div className={cn("flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-[0.12em]", isDark ? "text-[#A7A7A7]" : "text-[#475569]")}>
               <span className="truncate">{t("history")}</span>
-              <span className="tabular-nums">{history.length}</span>
             </div>
           </div>
         )}
@@ -1434,41 +1376,31 @@ function Sidebar({
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="min-h-0 flex-1 overflow-hidden"
             >
-              <div className="mobile-sidebar-history h-full max-h-full space-y-4 overflow-y-auto overscroll-contain px-3 pb-5">
-                {historyGroups.map((group) => (
-                  <section key={group.key} className="space-y-1.5">
-                    {group.label && (
-                      <p className={cn("px-2 text-[11px] font-bold uppercase tracking-[0.13em]", isDark ? "text-[#777]" : "text-[#8492A6]")}>
-                        {group.label}
-                      </p>
-                    )}
-                    {group.items.map((item) => (
-                      <HistoryItem
-                        key={item.conversationId}
-                        item={item}
-                        isActive={activeConversationId === item.conversationId}
-                        isDark={isDark}
-                        isSidebarOpen={isHistoryOpen}
-                        language={prefs.language}
-                        menuOpenId={menuOpenId}
-                        onMenuToggle={setMenuOpenId}
-                        onOpen={(id) => {
-                          onOpenConversation(id);
-                          if (isMobile) onClose?.();
-                        }}
-                        onRename={(conversation, title) => {
-                          setMenuOpenId(null);
-                          onRenameConversation(conversation, title);
-                        }}
-                        onShare={(conversation) => navigator.clipboard?.writeText(`${window.location.origin}/chat?conversation=${conversation.conversationId}`).then(() => toast.success("Link copied")).catch(() => toast.info("Copy link unavailable"))}
-                        onDelete={(conversation) => {
-                          setMenuOpenId(null);
-                          onDeleteConversation(conversation);
-                        }}
-                        t={t}
-                      />
-                    ))}
-                  </section>
+              <div className="h-full max-h-full space-y-2 overflow-y-auto overscroll-contain px-3 pb-4">
+                {history.map((item) => (
+                  <HistoryItem
+                    key={item.conversationId}
+                    item={item}
+                    isActive={activeConversationId === item.conversationId}
+                    isDark={isDark}
+                    isSidebarOpen={isHistoryOpen}
+                    language={prefs.language}
+                    menuOpenId={menuOpenId}
+                    onMenuToggle={setMenuOpenId}
+                    onOpen={(id) => {
+                      onOpenConversation(id);
+                    }}
+                    onRename={(conversation, title) => {
+                      setMenuOpenId(null);
+                      onRenameConversation(conversation, title);
+                    }}
+                    onShare={(conversation) => navigator.clipboard?.writeText(`${window.location.origin}/chat?conversation=${conversation.conversationId}`).then(() => toast.success("Link copied")).catch(() => toast.info("Copy link unavailable"))}
+                    onDelete={(conversation) => {
+                      setMenuOpenId(null);
+                      onDeleteConversation(conversation);
+                    }}
+                    t={t}
+                  />
                 ))}
               </div>
             </motion.div>
@@ -1481,7 +1413,6 @@ function Sidebar({
           type="button"
           onClick={() => {
             profileItem.action?.();
-            if (isMobile) onClose?.();
           }}
           className={cn(
             "group relative flex w-full items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer",
@@ -1826,10 +1757,6 @@ export default function ChatPage() {
   const [attachments, setAttachments] = useState([]);
   const [conversationId, setConversationId] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(true);
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [mobileKeyboardOffset, setMobileKeyboardOffset] = useState(0);
-  const [mobileComposerFocused, setMobileComposerFocused] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [responseMode, setResponseMode] = useState(() => normalizeResponseModeId(localStorage.getItem(RESPONSE_MODE_STORAGE_KEY)));
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
@@ -1864,14 +1791,12 @@ export default function ChatPage() {
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const fileInputRef = useRef(null);
-  const composerBlurTimerRef = useRef(null);
-  const mobileSidebarSwipeRef = useRef(null);
   const streamAbortRef = useRef(null);
   const speechRecognitionRef = useRef(null);
   const activeAiMessageRef = useRef(null);
   const stopRequestedRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
-  const { prefs, t, resolvedTheme, isRTL } = useApp();
+  const { prefs, t, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor;
   const inputDirectionStyle = getDirectionalStyle(input);
@@ -1883,114 +1808,6 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isAiTyping, scrollToBottom]);
-
-  useEffect(() => {
-    const query = window.matchMedia("(max-width: 767px)");
-    const syncMobileState = () => setIsMobileViewport(query.matches);
-
-    syncMobileState();
-    query.addEventListener?.("change", syncMobileState);
-    return () => query.removeEventListener?.("change", syncMobileState);
-  }, []);
-
-  useEffect(() => {
-    if (!isMobileViewport) {
-      setMobileKeyboardOffset(0);
-      setMobileComposerFocused(false);
-      return undefined;
-    }
-
-    const viewport = window.visualViewport;
-    const updateKeyboardOffset = () => {
-      if (!viewport) {
-        setMobileKeyboardOffset(0);
-        return;
-      }
-
-      const offset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-      setMobileKeyboardOffset(Math.round(offset));
-    };
-
-    updateKeyboardOffset();
-    viewport?.addEventListener("resize", updateKeyboardOffset);
-    viewport?.addEventListener("scroll", updateKeyboardOffset);
-    window.addEventListener("orientationchange", updateKeyboardOffset);
-
-    return () => {
-      viewport?.removeEventListener("resize", updateKeyboardOffset);
-      viewport?.removeEventListener("scroll", updateKeyboardOffset);
-      window.removeEventListener("orientationchange", updateKeyboardOffset);
-    };
-  }, [isMobileViewport]);
-
-  useEffect(() => {
-    if (!isMobileViewport) return undefined;
-
-    const shouldLock = showMobileSidebar;
-    const previousOverflow = document.body.style.overflow;
-    const previousTouchAction = document.body.style.touchAction;
-
-    if (shouldLock) {
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
-    }
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.touchAction = previousTouchAction;
-    };
-  }, [isMobileViewport, showMobileSidebar]);
-
-  useEffect(() => {
-    if (!isMobileViewport || showMobileSidebar) return undefined;
-
-    const handleTouchStart = (event) => {
-      const touch = event.touches?.[0];
-      if (!touch) return;
-
-      const edgeSize = 24;
-      const viewportWidth = window.innerWidth;
-      const isEdgeGesture = isRTL
-        ? touch.clientX >= viewportWidth - edgeSize
-        : touch.clientX <= edgeSize;
-
-      mobileSidebarSwipeRef.current = isEdgeGesture
-        ? { x: touch.clientX, y: touch.clientY }
-        : null;
-    };
-
-    const handleTouchMove = (event) => {
-      const start = mobileSidebarSwipeRef.current;
-      const touch = event.touches?.[0];
-      if (!start || !touch) return;
-
-      const dx = touch.clientX - start.x;
-      const dy = touch.clientY - start.y;
-      const openGesture = isRTL ? dx < -54 : dx > 54;
-
-      if (openGesture && Math.abs(dx) > Math.abs(dy) * 1.35) {
-        mobileSidebarSwipeRef.current = null;
-        setHistoryOpen(true);
-        setShowMobileSidebar(true);
-      }
-    };
-
-    const clearTouch = () => {
-      mobileSidebarSwipeRef.current = null;
-    };
-
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchmove", handleTouchMove, { passive: true });
-    window.addEventListener("touchend", clearTouch, { passive: true });
-    window.addEventListener("touchcancel", clearTouch, { passive: true });
-
-    return () => {
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", clearTouch);
-      window.removeEventListener("touchcancel", clearTouch);
-    };
-  }, [isMobileViewport, showMobileSidebar, isRTL]);
 
   useEffect(() => {
     if (!attachmentMenuOpen) return undefined;
@@ -3465,39 +3282,13 @@ export default function ChatPage() {
     );
   };
 
-  const homeToolItems = [
-    { id: "create_image", labelKey: "createImage", icon: Palette, tone: "image" },
-    { id: "write_edit", labelKey: "writeEdit", icon: Edit3, tone: "write" },
-    { id: "web_search", labelKey: "search", icon: Search, tone: "search" },
-  ];
-
-  const renderMobileHomeTools = () => (
-    <div className="mobile-home-actions md:hidden">
-      {homeToolItems.map((tool) => (
-        <button
-          key={tool.id}
-          type="button"
-          onClick={() => setActiveMode(tool.id)}
-          className={cn(
-            "mobile-home-action",
-            isDark ? "mobile-home-action--dark" : "mobile-home-action--light",
-          )}
-        >
-          <span className={cn("mobile-home-action-icon", `mobile-home-action-icon--${tool.tone}`)}>
-            <tool.icon className="h-[17px] w-[17px] stroke-[2.2]" />
-          </span>
-          <span className="min-w-0 truncate">{t(tool.labelKey)}</span>
-        </button>
-      ))}
-    </div>
-  );
-
   const renderHomeTools = () => (
-    <div className={cn(
-      "mb-3 mt-0 flex flex-col items-start gap-1.5 md:mb-0 md:mt-4 md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-2",
-      mobileComposerFocused && "mb-2",
-    )}>
-      {homeToolItems.map((tool) => (
+    <div className="mb-0 mt-4 flex flex-row flex-wrap items-center justify-center gap-2">
+      {[
+        { id: "create_image", labelKey: "createImage", icon: Palette },
+        { id: "write_edit", labelKey: "writeEdit", icon: Edit3 },
+        { id: "web_search", labelKey: "search", icon: Search },
+      ].map((tool) => (
         <button
           key={tool.id}
           type="button"
@@ -3505,13 +3296,13 @@ export default function ChatPage() {
             setActiveMode(tool.id);
           }}
           className={cn(
-            "inline-flex min-h-9 items-center justify-start gap-2 rounded-xl px-1.5 py-1 text-[15px] font-semibold transition-colors duration-200 md:h-10 md:min-w-[124px] md:justify-center md:gap-2 md:rounded-full md:border md:px-4 md:py-0 md:text-sm md:shadow-sm md:backdrop-blur-[14px]",
+            "inline-flex min-h-[32px] items-center justify-start gap-2 rounded-xl px-2.5 py-1 text-sm font-medium transition-colors duration-200 md:h-[34px] md:min-w-[104px] md:justify-center md:rounded-full md:px-3 md:py-0",
             activeMode === tool.id
-              ? isDark ? "text-white md:border-white/[0.12] md:bg-white/[0.1]" : "text-[#0F172A] md:border-[#CBD5E1] md:bg-white/90"
-              : isDark ? "text-[#E5E7EB] hover:bg-white/[0.06] md:border-white/[0.08] md:bg-white/[0.06] md:hover:bg-white/[0.1]" : "text-[#334155] hover:bg-black/[0.035] md:border-[#CBD5E1] md:bg-white/70 md:hover:bg-white/95"
+              ? isDark ? "bg-white/[0.075] text-white" : "bg-[#193B68]/[0.075] text-[#193B68]"
+              : isDark ? "text-[#D4D4D4] hover:bg-white/[0.045] hover:text-white" : "text-[#4B5563] hover:bg-[#193B68]/[0.045] hover:text-[#111827]"
           )}
         >
-          <tool.icon className="h-[18px] w-[18px] flex-shrink-0 stroke-[2.05] md:h-4 md:w-4 md:stroke-[2.1]" />
+          <tool.icon className="h-[15px] w-[15px] flex-shrink-0 stroke-[2.05]" />
           <span className="whitespace-nowrap">{t(tool.labelKey)}</span>
         </button>
       ))}
@@ -3581,57 +3372,25 @@ export default function ChatPage() {
 
   const renderInput = (testSuffix = "") => {
     const usesLargeComposer = ["create_image", "web_search", "write_edit"].includes(activeMode) && !testSuffix;
-    const isMobileComposerDocked = isMobileViewport && mobileComposerFocused;
-    const hasComposerPayload = Boolean(input.trim() || attachments.length > 0);
-    const showMobileSendAction = isAiTyping || isListening || hasComposerPayload;
-    const showMobileHomeActions = isMobileViewport && !testSuffix && messages.length === 0 && activeMode === "default";
 
     return (
-    <div
-      className={cn(
-        "chat-composer-shell",
-        isMobileComposerDocked && "chat-composer-shell--docked",
-        showMobileHomeActions && "chat-composer-shell--home",
-      )}
-      style={{
-        "--mobile-keyboard-offset": `${mobileKeyboardOffset}px`,
-        "--mobile-composer-safe-bottom": mobileKeyboardOffset > 0 ? "24px" : "max(10px, env(safe-area-inset-bottom))",
-      }}
-    >
-      {showMobileHomeActions && renderMobileHomeTools()}
+    <div className="chat-composer-shell">
       <AttachmentTray
         attachments={attachments}
         onRemove={removeAttachment}
         isDark={isDark}
         isUploading={isUploading}
       />
-      <div className={cn(
-        "chat-composer-row flex w-full items-center gap-2 md:block",
-        usesLargeComposer && "max-md:items-center",
-      )}>
-        <button
-          type="button"
-          onClick={() => setAttachmentMenuOpen((open) => !open)}
-          disabled={isUploading}
-          className={cn(
-            "mobile-composer-plus flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-full border shadow-sm transition-all duration-200 md:hidden",
-            isDark
-              ? "border-white/[0.09] bg-[#202020] text-[#F4F4F5] hover:bg-[#2A2A2A] hover:text-white"
-              : "border-[#D5DFEA] bg-white text-[#111827] hover:bg-[#F8FAFC]",
-          )}
-          aria-label={t("uploadFile")}
-        >
-          <Plus className="h-[23px] w-[23px] stroke-[2.25]" />
-        </button>
+      <div className="chat-composer-row w-full">
       <div
         className={cn(
-          "mobile-composer-card relative flex max-w-full flex-1 border shadow-[0_14px_42px_rgba(15,23,42,0.10)] backdrop-blur-[14px] transition-all duration-200 ease-out max-[380px]:gap-2 max-[380px]:px-3",
+          "relative flex max-w-full flex-1 border shadow-sm transition-all duration-200 ease-out",
           usesLargeComposer
-            ? "min-h-[132px] items-end gap-3 rounded-[34px] px-4 py-4 sm:px-6 sm:py-5 max-[380px]:min-h-[116px] max-md:min-h-[58px] max-md:px-4 max-md:py-2.5"
-            : "min-h-[62px] items-center gap-3 rounded-[31px] px-4 py-2.5 sm:gap-3.5 sm:px-5 max-md:min-h-[54px]",
+            ? "min-h-[132px] items-end gap-3 rounded-[34px] px-4 py-4 sm:px-6 sm:py-5"
+            : "min-h-[62px] items-center gap-3 rounded-[31px] px-4 py-2.5 sm:gap-3.5 sm:px-5",
           isDark
-            ? "border-white/[0.08] bg-[#202020]/96 focus-within:bg-[#242424]/98 focus-within:shadow-[0_16px_44px_rgba(0,0,0,0.36),0_0_0_1px_rgba(255,255,255,0.07)]"
-            : "border-[#D8E1EC] bg-white/96 focus-within:bg-white focus-within:shadow-[0_18px_46px_rgba(15,23,42,0.13),0_0_0_1px_rgba(25,59,104,0.08)]",
+            ? "border-[#333] bg-[#252525] focus-within:bg-[#272727] focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.05)]"
+            : "border-[#E5E7EB] bg-white focus-within:border-[#D6DEE9] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
         )}
       >
         <button
@@ -3639,13 +3398,13 @@ export default function ChatPage() {
           onClick={() => setAttachmentMenuOpen((open) => !open)}
           disabled={isUploading}
           className={cn(
-            "hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-200 cursor-pointer max-[380px]:h-10 max-[380px]:w-10 md:flex",
+            "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-200 cursor-pointer",
             isDark
-              ? "text-[#D5D5D5] hover:text-white hover:bg-white/[0.08]"
-              : "text-[#334155] hover:text-[#0F172A] hover:bg-black/[0.05]",
+              ? "text-[#D4D4D4] hover:bg-[#333] hover:text-white"
+              : "text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827]",
           )}
         >
-          <Plus className="h-[23px] w-[23px] stroke-[2.2]" />
+          <Plus className="h-[23px] w-[23px] stroke-[2.1]" />
         </button>
         <AnimatePresence>
           {attachmentMenuOpen && (
@@ -3659,8 +3418,8 @@ export default function ChatPage() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                 className={cn(
-                  "mobile-action-menu absolute bottom-full left-0 z-40 mb-3 max-h-[min(420px,70vh)] w-[min(20.5rem,calc(100vw-1.5rem))] overflow-y-auto rounded-[28px] border p-2.5 shadow-[0_28px_80px_rgba(0,0,0,0.34)]",
-                  "border-white/10 bg-[#141414] text-white",
+                  "absolute bottom-full left-0 z-40 mb-3 max-h-[min(420px,70vh)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-[28px] border p-2.5 shadow-2xl backdrop-blur-2xl",
+                  isDark ? "border-white/10 bg-[#141414]/96 text-white" : "border-black/10 bg-white/96 text-[#111827]",
                 )}
               >
                 {[
@@ -3711,11 +3470,11 @@ export default function ChatPage() {
                     className={cn(
                       "flex min-h-[48px] w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm font-semibold transition-all duration-200 hover:translate-x-0.5",
                       item.mode === activeMode
-                        ? "bg-white/[0.12] text-white"
-                        : "text-[#e5e5e5] hover:bg-white/[0.08]",
+                        ? isDark ? "bg-white/12 text-white" : "bg-[#EEF2FF] text-[#193B68]"
+                        : isDark ? "text-[#e5e5e5] hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#F8FAFC]",
                     )}
                   >
-                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.08]">
+                    <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF2FF]")}>
                       <item.icon className="h-5 w-5 stroke-[2.1]" />
                     </span>
                     {item.label}
@@ -3776,18 +3535,6 @@ export default function ChatPage() {
           <textarea
           value={input}
           rows={usesLargeComposer ? 3 : 1}
-          onFocus={() => {
-            if (composerBlurTimerRef.current) {
-              window.clearTimeout(composerBlurTimerRef.current);
-            }
-            setMobileComposerFocused(true);
-          }}
-          onBlur={() => {
-            composerBlurTimerRef.current = window.setTimeout(() => {
-              setMobileComposerFocused(false);
-              setMobileKeyboardOffset(0);
-            }, 120);
-          }}
           onChange={(e) => setInput(e.target.value)}
           onInput={(event) => {
             event.currentTarget.style.height = "auto";
@@ -3808,7 +3555,7 @@ export default function ChatPage() {
           className={cn(
             "block w-full resize-none bg-transparent font-medium outline-none",
             usesLargeComposer
-              ? "max-h-[220px] min-h-[92px] text-[16px] leading-7 max-md:min-h-8 max-md:text-[17px] max-md:leading-8"
+              ? "max-h-[220px] min-h-[92px] text-[16px] leading-7"
               : "max-h-40 min-h-8 text-[17px] leading-8",
             isDark
               ? "text-white placeholder:text-[#A7A7A7]/80"
@@ -3822,12 +3569,12 @@ export default function ChatPage() {
           type="button"
           onClick={startVoiceInput}
           className={cn(
-            "hidden h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-full border backdrop-blur-[10px] transition-colors duration-200 max-[380px]:h-9 max-[380px]:w-9 md:flex",
+            "flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-full border transition-colors duration-200",
             isListening
               ? "text-white"
               : isDark
-                ? "border-white/[0.08] bg-white/[0.07] text-[#D5D5D5] hover:bg-white/[0.11] hover:text-white"
-                : "border-black/[0.05] bg-white/55 text-[#334155] hover:bg-white/80 hover:text-[#0F172A]",
+                ? "border-[#333] bg-[#2a2a2a] text-[#D4D4D4] hover:bg-[#333] hover:text-white"
+                : "border-[#E5E7EB] bg-[#F9FAFB] text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827]",
           )}
           style={isListening ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : undefined}
           aria-label={isListening ? t("stopVoiceInput") : t("startVoiceInput")}
@@ -3842,40 +3589,17 @@ export default function ChatPage() {
           )}
         </button>
         <button
-          type="button"
-          onClick={showMobileSendAction ? (isAiTyping ? handleStopStreaming : isListening ? stopVoiceInput : handleSend) : startVoiceInput}
-          className={cn(
-            "flex h-[42px] w-[42px] flex-shrink-0 items-center justify-center rounded-full transition-colors duration-200 md:hidden",
-            showMobileSendAction
-              ? "text-white"
-              : isDark
-                ? "text-[#D5D5D5] hover:bg-white/[0.08] hover:text-white"
-                : "text-[#334155] hover:bg-black/[0.05] hover:text-[#0F172A]",
-          )}
-          style={showMobileSendAction ? { backgroundColor: appColor } : undefined}
-          data-testid={testSuffix ? `chat-send-button-${testSuffix}-mobile` : "chat-send-button-mobile"}
-          aria-label={showMobileSendAction ? t("sendMessage") : t("startVoiceInput")}
-        >
-          {isAiTyping || isListening ? (
-            <Square className="h-[14px] w-[14px] fill-current text-white" />
-          ) : showMobileSendAction ? (
-            <ArrowUp className="h-[23px] w-[23px] scale-y-[1.08] stroke-[2.2] text-white" />
-          ) : (
-            <Mic className="h-[20px] w-[20px] stroke-[2.1]" />
-          )}
-        </button>
-        <button
           onClick={isAiTyping ? handleStopStreaming : isListening ? stopVoiceInput : handleSend}
           disabled={!isAiTyping && !isListening && (!input.trim() && attachments.length === 0)}
           className={cn(
-            "send-btn hidden h-[42px] w-[42px] flex-shrink-0 items-center justify-center rounded-full border backdrop-blur-[10px] transition-colors duration-200 ease-out max-[380px]:h-10 max-[380px]:w-10 md:flex",
+            "send-btn flex h-[42px] w-[42px] flex-shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ease-out",
             isAiTyping || isListening
               ? "text-white"
             : (input.trim() || attachments.length > 0)
               ? "text-white hover:opacity-95"
               : isDark
-                ? "border-white/[0.08] bg-white/[0.08] text-[#7A7F89] cursor-not-allowed"
-                : "border-black/[0.06] bg-black/[0.05] text-[#94A3B8] cursor-not-allowed",
+                ? "border-[#333] bg-[#2a2a2a] text-[#777] cursor-not-allowed"
+                : "border-[#E5E7EB] bg-[#F9FAFB] text-[#9CA3AF] cursor-not-allowed",
           )}
           style={
             isAiTyping || isListening || input.trim() || attachments.length > 0
@@ -3903,12 +3627,10 @@ export default function ChatPage() {
   };
 
   const hasMessages = messages.length > 0;
-  const isMobileImageMode = isMobileViewport && !hasMessages && activeMode === "create_image";
-  const isMobileFocusedMode = isMobileViewport && !hasMessages && activeMode !== "default";
 
   return (
     <div
-      className={cn("mobile-chat-root h-screen flex overflow-hidden", isDark ? "bg-[#1a1a1a]" : "bg-white")}
+      className={cn("h-screen flex overflow-hidden", isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]")}
       data-testid="chat-page"
     >
       <input
@@ -4035,23 +3757,7 @@ export default function ChatPage() {
 
       {renderWebsiteDetails()}
 
-      <AnimatePresence>
-        {showMobileSidebar && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            className={cn(
-              "fixed inset-0 z-40 md:hidden",
-              isDark ? "bg-black/60 backdrop-blur-[2px]" : "bg-slate-950/42 backdrop-blur-[2px]",
-            )}
-            onClick={() => setShowMobileSidebar(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      <div className="hidden md:block h-full">
+      <div className="h-full flex-shrink-0">
         <Sidebar
           isHistoryOpen={historyOpen}
           onToggleHistory={() => setHistoryOpen((value) => !value)}
@@ -4064,65 +3770,23 @@ export default function ChatPage() {
         />
       </div>
 
-      <AnimatePresence>
-        {showMobileSidebar && (
-          <div className="mobile-sidebar-layer md:hidden fixed inset-y-0 left-0 right-0 z-50 pointer-events-none">
-            <div className="pointer-events-auto h-full">
-              <Sidebar
-                isHistoryOpen={historyOpen}
-                onToggleHistory={() => setHistoryOpen((value) => !value)}
-                onNewChat={() => {
-                  handleNewChat();
-                  setShowMobileSidebar(false);
-                }}
-                history={history}
-                activeConversationId={activeConversationId}
-                onOpenConversation={handleOpenConversation}
-                onRenameConversation={handleRenameConversation}
-                onDeleteConversation={handleDeleteConversation}
-                isMobile
-                onClose={() => setShowMobileSidebar(false)}
-              />
-            </div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <div className="mobile-chat-main flex-1 flex flex-col h-full min-w-0">
+      <div className="flex-1 flex flex-col h-full min-w-0">
         <header
           className={cn(
-            "mobile-chat-header sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3 shadow-sm backdrop-blur-xl sm:px-6",
-            isDark ? "border-white/[0.07] bg-[#1a1a1a]/92 shadow-black/10" : "border-[#E5E7EB] bg-white/92 shadow-slate-200/60",
+            "sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3.5 sm:px-6",
+            isDark ? "border-[#333] bg-[#222]" : "border-[#E5E7EB] bg-white",
           )}
         >
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                setHistoryOpen(true);
-                setShowMobileSidebar(true);
-              }}
-              className={cn(
-                "md:hidden w-10 h-10 rounded-2xl flex items-center justify-center transition-colors cursor-pointer",
-                isDark
-                  ? "text-[#D5D5D5] hover:text-white hover:bg-white/[0.08]"
-                  : "text-[#475569] hover:text-[#111827] hover:bg-[#F3F4F6]",
-              )}
-              data-testid="mobile-menu-btn"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <div className="hidden md:block">{renderResponseModeSelector()}</div>
-            <span className={cn("md:hidden text-[16px] font-semibold tracking-tight", isDark ? "text-white" : "text-[#111827]")}>
-              {APP_NAME}
-            </span>
+            {renderResponseModeSelector()}
           </div>
           <button
             onClick={handleNewChat}
             className={cn(
-              "w-10 h-10 rounded-2xl flex items-center justify-center transition-colors cursor-pointer",
+              "w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer",
               isDark
-                ? "text-[#D5D5D5] hover:text-white hover:bg-white/[0.08]"
-                : "text-[#475569] hover:text-[#111827] hover:bg-[#F3F4F6]",
+                ? "text-[#999] hover:text-white hover:bg-[#333]"
+                : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]",
             )}
             data-testid="header-new-chat"
           >
@@ -4130,18 +3794,16 @@ export default function ChatPage() {
           </button>
         </header>
 
-        <div className="mobile-chat-scroll flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           {!hasMessages ? (
             <div
               className={cn(
-                "flex min-h-full flex-col items-center px-4 pb-5 md:pb-12",
-                isMobileFocusedMode
-                  ? "justify-start pt-3"
-                  : activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "justify-start pt-5 sm:pt-10" : "justify-end pt-4 md:justify-center",
+                "flex min-h-full flex-col items-center px-4 pb-12",
+                activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "justify-start pt-8 sm:pt-10" : "justify-center",
               )}
             >
-              {(mobileComposerFocused && isMobileViewport) || isMobileFocusedMode ? null : activeMode === "default" ? (
-                <div className="mobile-home-hero mb-4 h-[76px] max-w-[22rem] overflow-hidden text-center sm:mb-8 sm:h-[92px]">
+              {activeMode === "default" ? (
+                <div className="mb-5 h-[72px] overflow-hidden text-center sm:mb-8 sm:h-[92px]">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={welcomeMessageIndex}
@@ -4150,10 +3812,10 @@ export default function ChatPage() {
                       exit={{ opacity: 0, y: -24 }}
                       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <h2 className={cn("mb-1.5 text-[24px] font-semibold leading-[1.08] tracking-tight sm:mb-2 sm:text-3xl", isDark ? "text-white" : "text-[#111827]")}>
+                      <h2 className={cn("mb-1.5 text-[21px] font-semibold tracking-tight sm:mb-2 sm:text-3xl", isDark ? "text-white" : "text-[#111827]")}>
                         {t(WELCOME_MESSAGES[welcomeMessageIndex].titleKey)}
                       </h2>
-                      <p className={cn("mx-auto max-w-[19rem] text-[14px] leading-5", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+                      <p className={cn("text-sm", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>
                         {t(WELCOME_MESSAGES[welcomeMessageIndex].subtitleKey)}
                       </p>
                     </motion.div>
@@ -4174,14 +3836,9 @@ export default function ChatPage() {
                 </motion.div>
               )}
 
-              <div className={cn("w-full", isMobileFocusedMode ? "max-w-4xl" : activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "max-w-7xl" : "max-w-4xl")}>
+              <div className={cn("w-full", activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "max-w-7xl" : "max-w-4xl")}>
                 {renderInput()}
-                <div className="hidden md:block">
-                  {activeMode === "create_image" ? renderImageIdeas() : activeMode === "web_search" ? renderWebsiteDiscovery() : activeMode === "write_edit" ? renderWriteEditWorkspace() : renderHomeTools()}
-                </div>
-                <div className="md:hidden">
-                  {activeMode === "create_image" ? renderImageIdeas() : activeMode === "web_search" ? renderWebsiteDiscovery() : activeMode === "write_edit" ? renderWriteEditWorkspace() : null}
-                </div>
+                {activeMode === "create_image" ? renderImageIdeas() : activeMode === "web_search" ? renderWebsiteDiscovery() : activeMode === "write_edit" ? renderWriteEditWorkspace() : renderHomeTools()}
               </div>
             </div>
           ) : (
@@ -4214,8 +3871,8 @@ export default function ChatPage() {
         {hasMessages && (
           <div
             className={cn(
-              "px-3 pb-5 pt-2 backdrop-blur-xl sm:px-6 sm:pb-6",
-              isDark ? "bg-[#1a1a1a]/82" : "bg-white/82",
+              "px-3 pb-5 pt-2 sm:px-6 sm:pb-6",
+              isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]",
             )}
           >
             <div className="mx-auto max-w-5xl">{renderInput("bottom")}</div>

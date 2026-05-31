@@ -20,6 +20,18 @@ import ProfilePage from "@/pages/ProfilePage";
 import LearningPage from "@/pages/LearningPage";
 import SchemanPage from "@/pages/SchemanPage";
 import GoogleCallbackPage from "@/pages/GoogleCallbackPage";
+import MobileLayout from "@/mobile/layouts/MobileLayout";
+import MobileChat from "@/mobile/pages/MobileChat";
+import MobileSearch from "@/mobile/pages/MobileSearch";
+import MobileCreateImage from "@/mobile/pages/MobileCreateImage";
+import MobileWriteEdit from "@/mobile/pages/MobileWriteEdit";
+import MobileReminders from "@/mobile/pages/MobileReminders";
+import MobileLearning from "@/mobile/pages/MobileLearning";
+import MobileProfile from "@/mobile/pages/MobileProfile";
+import MobileSettings from "@/mobile/pages/MobileSettings";
+import MobileSmartHub from "@/mobile/pages/MobileSmartHub";
+import MobileWelcome from "@/mobile/pages/MobileWelcome";
+import { hasMobileGuestAccess } from "@/mobile/mobileGuestSession";
 import { getCurrentUser, restoreSession } from "@/services/authService";
 import { getPreferredAppRoute } from "@/services/navigationPreferences";
 import "@/App.css";
@@ -86,6 +98,14 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function MobileAccessRoute({ children }) {
+  if (localStorage.getItem("token") || hasMobileGuestAccess()) {
+    return children;
+  }
+
+  return <Navigate to="/mobile" replace />;
+}
+
 function AppContent() {
   const location = useLocation();
   const { resolvedTheme, isRTL } = useApp();
@@ -114,6 +134,18 @@ function AppContent() {
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
           <Route path="/scheman" element={<ProtectedRoute><SchemanPage /></ProtectedRoute>} />
+          <Route path="/mobile" element={<MobileLayout />}>
+            <Route index element={<MobileWelcome />} />
+            <Route path="chat" element={<MobileAccessRoute><MobileChat /></MobileAccessRoute>} />
+            <Route path="search" element={<MobileAccessRoute><MobileSearch /></MobileAccessRoute>} />
+            <Route path="create-image" element={<MobileAccessRoute><MobileCreateImage /></MobileAccessRoute>} />
+            <Route path="write-edit" element={<MobileAccessRoute><MobileWriteEdit /></MobileAccessRoute>} />
+            <Route path="reminders" element={<MobileAccessRoute><MobileReminders /></MobileAccessRoute>} />
+            <Route path="learning" element={<MobileAccessRoute><MobileLearning /></MobileAccessRoute>} />
+            <Route path="profile" element={<MobileAccessRoute><MobileProfile /></MobileAccessRoute>} />
+            <Route path="settings" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
+            <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
+          </Route>
         </Routes>
       </AnimatePresence>
       <Toaster position="top-center" />
