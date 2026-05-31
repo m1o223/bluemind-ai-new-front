@@ -1,5 +1,8 @@
-import ChatPage from "@/pages/ChatPage";
-
 export default function MobileCreateImage() {
-  return <ChatPage initialActiveMode="create_image" initialHistoryOpen={false} />;
+  return (
+    <section>
+      <h1>Mobile Create Image</h1>
+      <p>مرحبا</p>
+    </section>
+  );
 }

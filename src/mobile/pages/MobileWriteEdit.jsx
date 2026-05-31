@@ -1,5 +1,8 @@
-import ChatPage from "@/pages/ChatPage";
-
 export default function MobileWriteEdit() {
-  return <ChatPage initialActiveMode="write_edit" initialHistoryOpen={false} />;
+  return (
+    <section>
+      <h1>Mobile Write/Edit</h1>
+      <p>مرحبا</p>
+    </section>
+  );
 }
