@@ -828,6 +828,11 @@ export default function MobileChat() {
               type="button"
               onClick={() => setImageSourceSheetOpen(true)}
               className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+              style={{
+                backgroundColor: isDark ? "rgba(32,32,32,0.82)" : "rgba(255,255,255,0.85)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+              }}
               aria-label="Attach image"
             >
               <Plus className="h-5 w-5" />
@@ -841,7 +846,7 @@ export default function MobileChat() {
                 WebkitBackdropFilter: "blur(12px)",
               }}
             >
-              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: "var(--bluemind-app-color, #193B68)", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: "#FFFFFF", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
                 <span>Image</span>
                 <button
                   type="button"
@@ -928,7 +933,7 @@ export default function MobileChat() {
                   {isGeneratingImage || isChatSending ? (
                     <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   ) : (
-                    <ArrowUp className="h-[18px] w-[18px] -translate-y-[2px] stroke-[3.2]" />
+                    <ArrowUp className="h-[20px] w-[18px] -translate-y-[2px] stroke-[3]" />
                   )}
                 </button>
               </div>
