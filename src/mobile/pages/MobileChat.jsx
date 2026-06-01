@@ -13,6 +13,7 @@ import {
   Image,
   Menu,
   MessageSquare,
+  Mic,
   PenLine,
   Pencil,
   Plus,
@@ -26,12 +27,6 @@ import { useApp } from "@/context/AppContext";
 import { getApiErrorMessage } from "@/services/api";
 import { listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
-
-const QUICK_ACTIONS = [
-  { label: "Create Image", path: "/mobile/create-image", icon: Image },
-  { label: "Write/Edit", path: "/mobile/write-edit", icon: PenLine },
-  { label: "Search", path: "/mobile/search", icon: Search },
-];
 
 const AI_RESPONSE_MODES = ["fast", "smart", "thinking"];
 
@@ -333,6 +328,7 @@ export default function MobileChat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
+  const [isComposerFocused, setIsComposerFocused] = useState(false);
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
     return AI_RESPONSE_MODES.includes(storedMode) ? storedMode : "smart";
@@ -377,6 +373,7 @@ export default function MobileChat() {
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
   const isEmptyChat = !isImageMode && messages.length === 0 && generatedImages.length === 0;
   const showEmptyActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
+  const shouldPinComposer = !isEmptyChat || isComposerFocused || message.trim().length > 0 || attachedImages.length > 0;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
 
   useEffect(() => {
@@ -794,29 +791,21 @@ export default function MobileChat() {
     }
   };
 
-  const renderComposerArea = (centered = false) => (
-    <div className={centered ? "mx-auto w-full max-w-[430px] px-1" : "px-4 pb-3"}>
+  const renderComposerArea = (centered = false, separatePlus = centered) => (
+    <motion.div
+      layout
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      className={
+        centered
+          ? "mx-auto w-full max-w-[430px] px-1"
+          : "px-4 pb-[calc(env(safe-area-inset-bottom)+8px)]"
+      }
+    >
       {showEmptyActions && (
-        <div className={centered ? "mb-5 ml-2 flex w-full max-w-[320px] flex-col items-start gap-3" : "mb-3 flex flex-col items-start gap-2"}>
-          {QUICK_ACTIONS.map(({ label, path, icon: Icon }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => {
-                if (label === "Create Image") {
-                  enterImageMode();
-                  return;
-                }
-                navigate(path);
-              }}
-              className={`inline-flex min-h-9 items-center gap-2 rounded-full px-1 text-sm font-semibold transition-opacity active:opacity-70 ${
-                isDark ? "text-[#D7D7D7]" : "text-[#193B68]"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{label}</span>
-            </button>
-          ))}
+        <div className={centered ? "mb-4 text-center" : "hidden"}>
+          <p className={`text-[20px] font-semibold tracking-tight ${isDark ? "text-white" : "text-[#111827]"}`}>
+            Create. Search. Discover.
+          </p>
         </div>
       )}
 
@@ -971,57 +960,79 @@ export default function MobileChat() {
         )}
 
         {!isImageMode && (
-        <div className="flex items-end gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (isImageMode) {
-                setImageSourceSheetOpen(true);
-                return;
-              }
-              setAttachmentSheetOpen(true);
-            }}
-            className={isDark ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
-            aria-label="Attach"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+          <div className={separatePlus ? "flex items-center justify-center gap-3" : "flex items-center gap-0"}>
+            {separatePlus && (
+              <motion.button
+                layoutId="mobile-composer-plus"
+                type="button"
+                onClick={() => setAttachmentSheetOpen(true)}
+                className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+                aria-label="Attach"
+              >
+                <Plus className="h-5 w-5" />
+              </motion.button>
+            )}
 
-          <div
-            className={`flex min-h-[48px] flex-1 items-center rounded-[24px] border pl-4 pr-1 shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor}`}
-            style={{
-              backgroundColor: isDark ? "rgba(32,32,32,0.9)" : "rgba(255,255,255,0.88)",
-              backdropFilter: "blur(18px)",
-              WebkitBackdropFilter: "blur(18px)",
-            }}
-          >
-            <textarea
-              ref={composerInputRef}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              rows={1}
-              placeholder={isImageMode ? "Describe an image..." : "Ask anything..."}
-              className={`max-h-[128px] min-h-[46px] flex-1 resize-none bg-transparent py-[13px] text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-            />
-
-            <button
-              type="submit"
-              className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] disabled:opacity-45"
-              style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
-              disabled={!hasComposerContent || isGeneratingImage || isChatSending}
-              aria-label="Send"
+            <motion.div
+              layout
+              className={`flex h-14 items-center rounded-[28px] border shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor} ${
+                separatePlus ? "w-[78%] pl-4 pr-2" : "w-full pl-2 pr-2"
+              }`}
+              style={{
+                backgroundColor: isDark ? "rgba(32,32,32,0.92)" : "rgba(255,255,255,0.92)",
+                backdropFilter: "blur(18px)",
+                WebkitBackdropFilter: "blur(18px)",
+              }}
             >
-              {isGeneratingImage || isChatSending ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              ) : (
-                <ArrowUp className="h-5 w-5 -translate-y-px stroke-[3]" />
+              {!separatePlus && (
+                <motion.button
+                  layoutId="mobile-composer-plus"
+                  type="button"
+                  onClick={() => setAttachmentSheetOpen(true)}
+                  className={isDark ? "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.10]" : "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#193B68] active:bg-[#EEF2F7]"}
+                  aria-label="Attach"
+                >
+                  <Plus className="h-[18px] w-[18px]" />
+                </motion.button>
               )}
-            </button>
+
+              <textarea
+                ref={composerInputRef}
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                onFocus={() => setIsComposerFocused(true)}
+                onBlur={() => window.setTimeout(() => setIsComposerFocused(false), 120)}
+                rows={1}
+                placeholder="Ask anything..."
+                className={`max-h-[128px] min-h-[54px] flex-1 resize-none bg-transparent py-[16px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+              />
+
+              <button
+                type="button"
+                className={isDark ? "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                aria-label="Voice"
+              >
+                <Mic className="h-5 w-5" />
+              </button>
+
+              <button
+                type="submit"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] disabled:opacity-45"
+                style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+                disabled={!hasComposerContent || isGeneratingImage || isChatSending}
+                aria-label="Send"
+              >
+                {isGeneratingImage || isChatSending ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <ArrowUp className="h-5 w-5 -translate-y-[2px] stroke-[3.2]" />
+                )}
+              </button>
+            </motion.div>
           </div>
-        </div>
         )}
       </form>
-    </div>
+    </motion.div>
   );
 
   return (
@@ -1098,7 +1109,7 @@ export default function MobileChat() {
       </header>
 
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className={isEmptyChat ? "flex min-h-0 flex-1 items-center overflow-y-auto px-4 py-4" : "min-h-0 flex-1 overflow-y-auto px-4 pb-28 pt-4"}>
+        <div className={isEmptyChat ? "flex min-h-0 flex-1 items-center overflow-y-auto px-4 py-4" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[104px] pt-4"}>
           {generatedImages.length > 0 && (
             <div className="mb-5 space-y-3">
               <div className="flex items-center justify-between">
@@ -1181,7 +1192,7 @@ export default function MobileChat() {
           )}
 
           {messages.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-3 pb-4">
               {messages.map((item) => (
                 <div
                   key={item.id}
@@ -1200,10 +1211,23 @@ export default function MobileChat() {
             </div>
           )}
 
-          {isEmptyChat && renderComposerArea(true)}
+          {isEmptyChat && !shouldPinComposer && renderComposerArea(true)}
         </div>
 
-        {!isEmptyChat && renderComposerArea(false)}
+        {shouldPinComposer && (
+          <div className="fixed inset-x-0 bottom-0 z-20">
+            <div
+              className="mx-auto w-full max-w-[430px] pt-3"
+              style={{
+                backgroundColor: isDark ? "rgba(26,26,26,0.94)" : "rgba(250,251,252,0.94)",
+                backdropFilter: "blur(18px)",
+                WebkitBackdropFilter: "blur(18px)",
+              }}
+            >
+              {renderComposerArea(false, isEmptyChat)}
+            </div>
+          </div>
+        )}
           <input
             ref={cameraInputRef}
             type="file"
