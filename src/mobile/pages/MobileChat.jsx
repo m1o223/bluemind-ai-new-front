@@ -328,7 +328,6 @@ export default function MobileChat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
-  const [isComposerFocused, setIsComposerFocused] = useState(false);
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
     return AI_RESPONSE_MODES.includes(storedMode) ? storedMode : "smart";
@@ -373,7 +372,7 @@ export default function MobileChat() {
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
   const isEmptyChat = !isImageMode && messages.length === 0 && generatedImages.length === 0;
   const showEmptyActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
-  const shouldPinComposer = !isEmptyChat || isComposerFocused || message.trim().length > 0 || attachedImages.length > 0;
+  const shouldPinComposer = !isEmptyChat;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
 
   useEffect(() => {
@@ -905,8 +904,6 @@ export default function MobileChat() {
                 ref={composerInputRef}
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                onFocus={() => setIsComposerFocused(true)}
-                onBlur={() => window.setTimeout(() => setIsComposerFocused(false), 120)}
                 rows={3}
                 placeholder="Describe an image..."
                 className={`max-h-[180px] min-h-[86px] w-full resize-none bg-transparent text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
@@ -1008,8 +1005,6 @@ export default function MobileChat() {
                 ref={composerInputRef}
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                onFocus={() => setIsComposerFocused(true)}
-                onBlur={() => window.setTimeout(() => setIsComposerFocused(false), 120)}
                 rows={1}
                 placeholder="Ask anything..."
                 className={`max-h-[128px] min-h-[54px] flex-1 resize-none bg-transparent py-[16px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
