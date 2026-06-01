@@ -47,7 +47,7 @@ const accentColors = [
   { id: "#E11D48", label: "Rose" },
 ];
 
-export default function ProfilePage() {
+export default function ProfilePage({ mobile = false }) {
   const navigate = useNavigate();
 
   const { prefs, setPrefs, updatePref, t, resolvedTheme } = useApp();
@@ -174,7 +174,7 @@ export default function ProfilePage() {
 
     await logoutUser();
 
-    setTimeout(() => navigate("/"), 500);
+    setTimeout(() => navigate(mobile ? "/mobile" : "/"), 500);
   };
 
   const toggleSecuritySection = (section) => {
@@ -236,13 +236,32 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className={cn("min-h-screen flex flex-col", isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]")} data-testid="profile-page">
+    <div
+      className={cn(
+        "flex flex-col",
+        mobile ? "min-h-[100dvh]" : "min-h-screen",
+        isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]",
+      )}
+      data-testid={mobile ? "mobile-profile-page" : "profile-page"}
+    >
       {/* Header */}
-      <header className={cn("border-b px-4 sm:px-6 py-4", isDark ? "bg-[#222] border-[#333]" : "bg-white border-[#E5E7EB]")}>
-        <div className="max-w-2xl mx-auto flex min-w-0 items-center gap-2 sm:gap-3">
+      <header
+        className={cn(
+          "border-b px-4 sm:px-6",
+          mobile ? "sticky top-0 z-20 pb-3 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-xl" : "py-4",
+          isDark
+            ? mobile ? "bg-[#1a1a1a]/92 border-[#333]" : "bg-[#222] border-[#333]"
+            : mobile ? "bg-[#FAFBFC]/92 border-[#E5E7EB]" : "bg-white border-[#E5E7EB]",
+        )}
+      >
+        <div className={cn("mx-auto flex min-w-0 items-center gap-2 sm:gap-3", mobile ? "max-w-[430px]" : "max-w-2xl")}>
           <button
             onClick={() => navigate(-1)}
-            className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[#999] hover:text-white hover:bg-[#333]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]")}
+            className={cn(
+              "flex items-center justify-center transition-colors cursor-pointer",
+              mobile ? "h-10 w-10 rounded-full" : "w-9 h-9 rounded-lg",
+              isDark ? "text-[#999] hover:text-white hover:bg-[#333]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]",
+            )}
             data-testid="back-button"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -259,15 +278,24 @@ export default function ProfilePage() {
       </header>
 
       {/* Content */}
-      <div className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
+      <div
+        className={cn(
+          "flex-1 mx-auto w-full px-4 sm:px-6",
+          mobile ? "max-w-[430px] py-4 pb-[max(24px,env(safe-area-inset-bottom))]" : "max-w-2xl py-6 sm:py-8",
+        )}
+      >
         {/* User Info */}
         <section className={cn("rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
           <div className="flex items-center gap-3">
-            <div className={cn("w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0", isDark ? "bg-[#333]" : "bg-[#EEF2FF] border border-[#E0E7FF]")}>
-              <Mail className="w-5 h-5" style={{ color: prefs.appColor }} />
+            <div className={cn("w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden", isDark ? "bg-[#333]" : "bg-[#EEF2FF] border border-[#E0E7FF]")}>
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Mail className="w-5 h-5" style={{ color: prefs.appColor }} />
+              )}
             </div>
             <div className="min-w-0">
-              <p className={cn("text-xs mb-0.5", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("email")}</p>
+              <p className={cn("text-xs mb-0.5", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{user?.name || t("email")}</p>
               <p className={cn("text-sm font-medium truncate", isDark ? "text-white" : "text-[#111827]")}>{user?.email}</p>
             </div>
           </div>
