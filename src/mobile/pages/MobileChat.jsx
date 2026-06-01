@@ -988,6 +988,7 @@ export default function MobileChat() {
                 rows={3}
                 placeholder="Describe an image..."
                 className={`max-h-[180px] min-h-[86px] w-full resize-none bg-transparent text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+                style={{ caretColor: "var(--bluemind-app-color, #193B68)" }}
               />
 
               <div className="mt-1 flex items-center justify-end gap-1.5">
@@ -1001,8 +1002,12 @@ export default function MobileChat() {
 
                 <button
                 type="submit"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-[0_8px_18px_rgba(25,59,104,0.18)] disabled:opacity-45"
-                style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-[0_8px_18px_rgba(25,59,104,0.18)] transition-colors duration-200 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: hasComposerContent || isGeneratingImage || isChatSending
+                    ? "var(--bluemind-app-color, #193B68)"
+                    : isDark ? "#4B5563" : "#9CA3AF",
+                }}
                 disabled={!hasComposerContent || isGeneratingImage || isChatSending}
                 aria-label="Send"
                 >
@@ -1089,6 +1094,7 @@ export default function MobileChat() {
                 rows={1}
                 placeholder="Ask anything..."
                 className={`max-h-[128px] min-h-[50px] flex-1 resize-none bg-transparent py-[13px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+                style={{ caretColor: "var(--bluemind-app-color, #193B68)" }}
               />
 
               <button
@@ -1102,8 +1108,12 @@ export default function MobileChat() {
               <button
                 type={isChatSending ? "button" : "submit"}
                 onClick={isChatSending ? stopChatGeneration : undefined}
-                className="ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] disabled:opacity-45"
-                style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+                className="ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] transition-colors duration-200 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: hasComposerContent || isChatSending
+                    ? "var(--bluemind-app-color, #193B68)"
+                    : isDark ? "#4B5563" : "#9CA3AF",
+                }}
                 disabled={(!hasComposerContent && !isChatSending) || isGeneratingImage}
                 aria-label={isChatSending ? "Stop generating" : "Send"}
               >

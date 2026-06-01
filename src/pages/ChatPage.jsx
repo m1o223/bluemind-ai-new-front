@@ -3530,7 +3530,7 @@ export default function ChatPage() {
               ? "text-white placeholder:text-[#A7A7A7]/80"
               : "text-[#111827] placeholder:text-[#64748B]/85",
           )}
-          style={{ ...inputDirectionStyle, letterSpacing: "-0.01em", caretColor: input ? appColor : "transparent" }}
+          style={{ ...inputDirectionStyle, letterSpacing: "-0.01em", caretColor: appColor }}
           data-testid={testSuffix ? `chat-input-${testSuffix}` : "chat-input"}
           />
         </div>
@@ -3567,8 +3567,8 @@ export default function ChatPage() {
             : (input.trim() || attachments.length > 0)
               ? "text-white hover:opacity-95"
               : isDark
-                ? "border-[#333] bg-[#2a2a2a] text-[#777] cursor-not-allowed"
-                : "border-[#E5E7EB] bg-[#F9FAFB] text-[#9CA3AF] cursor-not-allowed",
+                ? "border-transparent bg-[#4B5563] text-white cursor-not-allowed"
+                : "border-transparent bg-[#9CA3AF] text-white cursor-not-allowed",
           )}
           style={
             isAiTyping || isListening || input.trim() || attachments.length > 0
