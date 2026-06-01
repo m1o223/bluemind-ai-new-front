@@ -1,6 +1,11 @@
 import enCommon from "@/locales/en/common.json";
 import arCommon from "@/locales/ar/common.json";
 import afCommon from "@/locales/af/common.json";
+import deCommon from "@/locales/de/common.json";
+import esCommon from "@/locales/es/common.json";
+import frCommon from "@/locales/fr/common.json";
+import hiCommon from "@/locales/hi/common.json";
+import jaCommon from "@/locales/ja/common.json";
 
 export const fallbackLanguage = "en";
 export const defaultNamespace = "common";
@@ -10,6 +15,11 @@ const localTranslations = {
   en: enCommon,
   ar: arCommon,
   af: afCommon,
+  de: deCommon,
+  es: esCommon,
+  fr: frCommon,
+  hi: hiCommon,
+  ja: jaCommon,
 };
 
 function withEnglishFallback(translations = {}) {

@@ -1,0 +1,14 @@
+{
+  "mobileChatSuggestionUnderstandLesson": "📚 Veux-tu de l’aide pour comprendre une leçon plus facilement ?",
+  "mobileChatSuggestionExplainTopic": "🧠 Veux-tu que je t’explique un sujet difficile étape par étape ?",
+  "mobileChatSuggestionSummarizeDocument": "📝 Veux-tu résumer une leçon ou un document en quelques minutes ?",
+  "mobileChatSuggestionStudyPlan": "🎓 Veux-tu un plan de révision intelligent pour ton prochain examen ?",
+  "mobileChatSuggestionStructuredNotes": "📖 Veux-tu transformer tes notes en résumé structuré ?",
+  "mobileChatSuggestionStudyReminder": "🔔 Veux-tu créer un rappel d’étude ou de devoir ?",
+  "mobileChatSuggestionWeeklySchedule": "📅 Veux-tu un planning d’étude hebdomadaire ?",
+  "mobileChatSuggestionResearchTopic": "🔎 Veux-tu que je fasse une recherche sur un sujet pour toi ?",
+  "mobileChatSuggestionGenerateImage": "🎨 Veux-tu générer une image à partir d’une idée ou d’une description ?",
+  "mobileChatSuggestionWriteReport": "✍️ Veux-tu de l’aide pour écrire un rapport ou une dissertation ?",
+  "mobileChatSuggestionLearnSkill": "💡 Veux-tu apprendre une nouvelle compétence plus rapidement ?",
+  "mobileChatSuggestionPersonalizedPlan": "🎯 Veux-tu un plan d’apprentissage personnalisé ?"
+}
