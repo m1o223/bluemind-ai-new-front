@@ -1018,8 +1018,8 @@ export default function MobileChat() {
 
             <motion.div
               layout
-              className={`flex h-14 items-center rounded-[28px] border shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor} ${
-                separatePlus ? "w-[78%] pl-4 pr-2" : "w-full pl-2 pr-2"
+              className={`flex h-[52px] items-center rounded-[26px] border shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor} ${
+                separatePlus ? "w-[81%] pl-4 pr-2" : "w-full pl-2 pr-2"
               }`}
               style={{
                 backgroundColor: isDark ? "rgba(32,32,32,0.92)" : "rgba(255,255,255,0.92)",
@@ -1045,7 +1045,7 @@ export default function MobileChat() {
                 onChange={(event) => setMessage(event.target.value)}
                 rows={1}
                 placeholder="Ask anything..."
-                className={`max-h-[128px] min-h-[54px] flex-1 resize-none bg-transparent py-[16px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+                className={`max-h-[128px] min-h-[50px] flex-1 resize-none bg-transparent py-[13px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
               />
 
               <button
@@ -1058,7 +1058,7 @@ export default function MobileChat() {
 
               <button
                 type="submit"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] disabled:opacity-45"
+                className="ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] disabled:opacity-45"
                 style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
                 disabled={!hasComposerContent || isGeneratingImage || isChatSending}
                 aria-label="Send"
