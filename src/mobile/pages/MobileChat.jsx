@@ -836,9 +836,9 @@ export default function MobileChat() {
             <div
               className={`min-w-0 flex-1 rounded-[28px] border px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.12)] ${borderColor}`}
               style={{
-                backgroundColor: isDark ? "rgba(32,32,32,0.74)" : "rgba(255,255,255,0.68)",
-                backdropFilter: "blur(18px)",
-                WebkitBackdropFilter: "blur(18px)",
+                backgroundColor: isDark ? "rgba(32,32,32,0.82)" : "rgba(255,255,255,0.85)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
               }}
             >
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: "var(--bluemind-app-color, #193B68)", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
@@ -1223,14 +1223,7 @@ export default function MobileChat() {
 
         {shouldPinComposer && (
           <div className="fixed inset-x-0 bottom-0 z-20">
-            <div
-              className="mx-auto w-full max-w-[430px] pt-3"
-              style={{
-                backgroundColor: isDark ? "rgba(26,26,26,0.94)" : "rgba(250,251,252,0.94)",
-                backdropFilter: "blur(18px)",
-                WebkitBackdropFilter: "blur(18px)",
-              }}
-            >
+            <div className="mx-auto w-full max-w-[430px] pt-3">
               {renderComposerArea(false, isEmptyChat)}
             </div>
           </div>
