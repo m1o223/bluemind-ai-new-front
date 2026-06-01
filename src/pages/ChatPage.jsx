@@ -3774,6 +3774,7 @@ export default function ChatPage() {
               {activeMode === "default" ? (
                 <div className="mb-5 h-[88px] overflow-hidden text-center sm:mb-8 sm:h-[104px]">
                   <RotatingChatSuggestion
+                    iconClassName="h-6 w-6 sm:h-8 sm:w-8"
                     textClassName={cn(
                       "mx-auto max-w-2xl text-[21px] font-semibold leading-tight tracking-tight sm:text-3xl",
                       isDark ? "text-white" : "text-[#111827]",

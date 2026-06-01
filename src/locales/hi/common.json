@@ -1,14 +1,14 @@
 {
-  "mobileChatSuggestionUnderstandLesson": "📚 क्या आप किसी पाठ को आसानी से समझने में मदद चाहते हैं?",
-  "mobileChatSuggestionExplainTopic": "🧠 क्या आप चाहते हैं कि मैं किसी कठिन विषय को चरण दर चरण समझाऊँ?",
-  "mobileChatSuggestionSummarizeDocument": "📝 क्या आप किसी पाठ या दस्तावेज़ का सारांश मिनटों में चाहते हैं?",
-  "mobileChatSuggestionStudyPlan": "🎓 क्या आप अपनी अगली परीक्षा के लिए स्मार्ट अध्ययन योजना चाहते हैं?",
-  "mobileChatSuggestionStructuredNotes": "📖 क्या आप अपने नोट्स को व्यवस्थित सारांश में बदलना चाहते हैं?",
-  "mobileChatSuggestionStudyReminder": "🔔 क्या आप अध्ययन या होमवर्क रिमाइंडर बनाना चाहते हैं?",
-  "mobileChatSuggestionWeeklySchedule": "📅 क्या आप साप्ताहिक अध्ययन कार्यक्रम चाहते हैं?",
-  "mobileChatSuggestionResearchTopic": "🔎 क्या आप चाहते हैं कि मैं आपके लिए किसी विषय पर शोध करूँ?",
-  "mobileChatSuggestionGenerateImage": "🎨 क्या आप किसी विचार या विवरण से चित्र बनाना चाहते हैं?",
-  "mobileChatSuggestionWriteReport": "✍️ क्या आप रिपोर्ट या निबंध लिखने में मदद चाहते हैं?",
-  "mobileChatSuggestionLearnSkill": "💡 क्या आप कोई नया कौशल तेज़ी से सीखना चाहते हैं?",
-  "mobileChatSuggestionPersonalizedPlan": "🎯 क्या आप व्यक्तिगत सीखने की योजना चाहते हैं?"
+  "mobileChatSuggestionUnderstandLesson": "क्या आप किसी पाठ को आसानी से समझने में मदद चाहते हैं?",
+  "mobileChatSuggestionExplainTopic": "क्या आप चाहते हैं कि मैं किसी कठिन विषय को चरण दर चरण समझाऊँ?",
+  "mobileChatSuggestionSummarizeDocument": "क्या आप किसी पाठ या दस्तावेज़ का सारांश मिनटों में चाहते हैं?",
+  "mobileChatSuggestionStudyPlan": "क्या आप अपनी अगली परीक्षा के लिए स्मार्ट अध्ययन योजना चाहते हैं?",
+  "mobileChatSuggestionStructuredNotes": "क्या आप अपने नोट्स को व्यवस्थित सारांश में बदलना चाहते हैं?",
+  "mobileChatSuggestionStudyReminder": "क्या आप अध्ययन या होमवर्क रिमाइंडर बनाना चाहते हैं?",
+  "mobileChatSuggestionWeeklySchedule": "क्या आप साप्ताहिक अध्ययन कार्यक्रम चाहते हैं?",
+  "mobileChatSuggestionResearchTopic": "क्या आप चाहते हैं कि मैं आपके लिए किसी विषय पर शोध करूँ?",
+  "mobileChatSuggestionGenerateImage": "क्या आप किसी विचार या विवरण से चित्र बनाना चाहते हैं?",
+  "mobileChatSuggestionWriteReport": "क्या आप रिपोर्ट या निबंध लिखने में मदद चाहते हैं?",
+  "mobileChatSuggestionLearnSkill": "क्या आप कोई नया कौशल तेज़ी से सीखना चाहते हैं?",
+  "mobileChatSuggestionPersonalizedPlan": "क्या आप व्यक्तिगत सीखने की योजना चाहते हैं?"
 }
