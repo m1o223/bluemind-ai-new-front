@@ -820,113 +820,121 @@ export default function MobileChat() {
       )}
 
       <form
-        className={
-          isImageMode
-            ? `space-y-3 rounded-[28px] border p-3 shadow-[0_18px_45px_rgba(15,23,42,0.10)] ${borderColor}`
-            : "space-y-2"
-        }
-        style={isImageMode ? {
-          backgroundColor: isDark ? "rgba(32,32,32,0.92)" : "rgba(255,255,255,0.9)",
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-        } : undefined}
+        className="space-y-2"
         onSubmit={handleComposerSubmit}
       >
         {isImageMode && (
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              {selectedImageTemplate?.thumbnail && (
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px]">
-                  <img
-                    src={selectedImageTemplate.thumbnail}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    draggable="false"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeSelectedImageTemplate}
-                    className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
-                    aria-label="Remove template"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+          <div className="flex items-end gap-3">
+            <button
+              type="button"
+              onClick={() => setImageSourceSheetOpen(true)}
+              className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+              aria-label="Attach image"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+
+            <div
+              className={`min-w-0 flex-1 rounded-[28px] border px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.12)] ${borderColor}`}
+              style={{
+                backgroundColor: isDark ? "rgba(32,32,32,0.74)" : "rgba(255,255,255,0.68)",
+                backdropFilter: "blur(18px)",
+                WebkitBackdropFilter: "blur(18px)",
+              }}
+            >
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: "var(--bluemind-app-color, #193B68)", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
+                <span>Image</span>
+                <button
+                  type="button"
+                  onClick={exitImageMode}
+                  className="flex h-5 w-5 items-center justify-center rounded-full active:bg-current/10"
+                  aria-label="Exit image mode"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {(selectedImageTemplate?.thumbnail || attachedImages.length > 0) && (
+                <div
+                  className="mb-2 flex gap-2 overflow-x-auto overscroll-x-contain pb-1"
+                  data-testid="mobile-image-preview-strip"
+                >
+                  {selectedImageTemplate?.thumbnail && (
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[16px]">
+                      <img
+                        src={selectedImageTemplate.thumbnail}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        draggable="false"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeSelectedImageTemplate}
+                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
+                        aria-label="Remove template"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {attachedImages.map((image, index) => (
+                    <div
+                      key={image.id}
+                      className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[16px]"
+                    >
+                      <img
+                        src={image.previewUrl}
+                        alt={`Attachment ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeAttachedImage(image.id)}
+                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
+                        aria-label="Remove image"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              <div className="min-w-0 flex-1 pt-1">
-                <div className="flex items-center gap-2">
-                  <Image className={isDark ? "h-4 w-4 text-[#D7D7D7]" : "h-4 w-4 text-[#193B68]"} />
-                  <span className={`truncate text-sm font-bold ${textColor}`}>
-                    {selectedImageTemplate?.title || "Image"}
-                  </span>
-                </div>
-                <p className={`mt-1 text-xs font-medium leading-4 ${mutedText}`}>
-                  Write your prompt below.
-                </p>
-              </div>
-            </div>
+              <textarea
+                ref={composerInputRef}
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                onFocus={() => setIsComposerFocused(true)}
+                onBlur={() => window.setTimeout(() => setIsComposerFocused(false), 120)}
+                rows={3}
+                placeholder="Describe an image..."
+                className={`max-h-[180px] min-h-[86px] w-full resize-none bg-transparent text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+              />
 
-            {attachedImages.length > 0 && (
-              <div
-                className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1"
-                data-testid="mobile-image-preview-strip"
-              >
-                {attachedImages.map((image, index) => (
-                  <div
-                    key={image.id}
-                    className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[18px]"
-                  >
-                    <img
-                      src={image.previewUrl}
-                      alt={`Attachment ${index + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeAttachedImage(image.id)}
-                      className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
-                      aria-label="Remove image"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+              <div className="mt-1 flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  className={isDark ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                  aria-label="Voice"
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
 
-            <textarea
-              ref={composerInputRef}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              rows={3}
-              placeholder="Describe an image..."
-              className={`max-h-[180px] min-h-[108px] w-full resize-none bg-transparent text-[16px] leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-            />
-
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setImageSourceSheetOpen(true)}
-                className={isDark ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white active:bg-white/[0.12]" : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-sm ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
-                aria-label="Attach"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-
-              <button
+                <button
                 type="submit"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-[0_8px_18px_rgba(25,59,104,0.18)] disabled:opacity-45"
                 style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
                 disabled={!hasComposerContent || isGeneratingImage || isChatSending}
                 aria-label="Send"
-              >
-                {isGeneratingImage || isChatSending ? (
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                ) : (
-                  <ArrowUp className="h-[18px] w-[18px] -translate-y-px stroke-[3]" />
-                )}
-              </button>
+                >
+                  {isGeneratingImage || isChatSending ? (
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <ArrowUp className="h-[18px] w-[18px] -translate-y-[2px] stroke-[3.2]" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1136,18 +1144,22 @@ export default function MobileChat() {
             </div>
           )}
 
+          {isImageMode && (
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>Create an image</h2>
+              <button
+                type="button"
+                onClick={exitImageMode}
+                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                aria-label="Exit create image mode"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+
           {shouldShowImageTemplates && (
             <div className="pt-2">
-              <div className="mb-4 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}>
-                  <Image className="h-4 w-4 text-white" />
-                </span>
-                <div>
-                  <p className="text-sm font-bold">Image ideas</p>
-                  <p className={`text-xs font-medium ${mutedText}`}>Start with a visual direction.</p>
-                </div>
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 {DESKTOP_IMAGE_IDEAS.map((item, index) => (
                   <motion.button
