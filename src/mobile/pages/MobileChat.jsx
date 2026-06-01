@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import BrandLogo from "@/components/BrandLogo";
+import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import { useApp } from "@/context/AppContext";
 import { getApiErrorMessage } from "@/services/api";
 import { listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
@@ -31,21 +32,6 @@ import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/ser
 const AI_RESPONSE_MODES = ["fast", "smart", "thinking"];
 
 const MAX_IMAGE_ATTACHMENTS = 6;
-
-const MOBILE_CHAT_SUGGESTION_KEYS = [
-  "mobileChatSuggestionUnderstandLesson",
-  "mobileChatSuggestionExplainTopic",
-  "mobileChatSuggestionSummarizeDocument",
-  "mobileChatSuggestionStudyPlan",
-  "mobileChatSuggestionStructuredNotes",
-  "mobileChatSuggestionStudyReminder",
-  "mobileChatSuggestionWeeklySchedule",
-  "mobileChatSuggestionResearchTopic",
-  "mobileChatSuggestionGenerateImage",
-  "mobileChatSuggestionWriteReport",
-  "mobileChatSuggestionLearnSkill",
-  "mobileChatSuggestionPersonalizedPlan",
-];
 
 const IMAGE_TEMPLATES = [
   {
@@ -343,7 +329,6 @@ export default function MobileChat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
-  const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
     return AI_RESPONSE_MODES.includes(storedMode) ? storedMode : "smart";
@@ -385,28 +370,11 @@ export default function MobileChat() {
     return query ? searchResults : conversations;
   }, [conversations, menuSearchQuery, searchResults]);
 
-  const rotatingSuggestions = MOBILE_CHAT_SUGGESTION_KEYS.map((key) => t(key));
-  const activeSuggestion = rotatingSuggestions[suggestionIndex % rotatingSuggestions.length] || t("askAnything");
-
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
   const isEmptyChat = !isImageMode && messages.length === 0 && generatedImages.length === 0;
   const showEmptyActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
   const shouldPinComposer = !isEmptyChat;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
-
-  useEffect(() => {
-    setSuggestionIndex(0);
-  }, [uiLanguage]);
-
-  useEffect(() => {
-    if (!showEmptyActions) return undefined;
-
-    const timer = window.setInterval(() => {
-      setSuggestionIndex((current) => (current + 1) % MOBILE_CHAT_SUGGESTION_KEYS.length);
-    }, 3600);
-
-    return () => window.clearInterval(timer);
-  }, [showEmptyActions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -834,10 +802,10 @@ export default function MobileChat() {
       }
     >
       {showEmptyActions && (
-        <div className={centered ? "mb-4 text-center" : "hidden"}>
-          <p className={`text-[20px] font-semibold tracking-tight ${isDark ? "text-white" : "text-[#111827]"}`}>
-            {activeSuggestion}
-          </p>
+        <div className={centered ? "mb-4 h-[60px] overflow-hidden text-center" : "hidden"}>
+          <RotatingChatSuggestion
+            textClassName={`mx-auto max-w-[330px] text-[17px] font-semibold leading-6 tracking-tight ${isDark ? "text-white" : "text-[#111827]"}`}
+          />
         </div>
       )}
 

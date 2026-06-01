@@ -53,6 +53,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
+import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import {
   WEBSITE_CATEGORIES,
   WEBSITE_DIRECTORY,
@@ -113,29 +114,6 @@ const RESPONSE_MODE_STORAGE_KEY = "bluemind_response_mode";
 const WEBSITE_FAVORITES_STORAGE_KEY = "bluemind_website_favorites";
 const WEBSITE_RECENTS_STORAGE_KEY = "bluemind_website_recents";
 const WEBSITE_PAGE_SIZE = 10;
-const WELCOME_MESSAGES = [
-  {
-    titleKey: "chatWelcomeTitleWorkspaceReady",
-    subtitleKey: "chatWelcomeSubtitleWorkspaceReady",
-  },
-  {
-    titleKey: "chatWelcomeTitleCreateSearchDiscover",
-    subtitleKey: "chatWelcomeSubtitleCreateSearchDiscover",
-  },
-  {
-    titleKey: "chatWelcomeTitleBuildSomething",
-    subtitleKey: "chatWelcomeSubtitleBuildSomething",
-  },
-  {
-    titleKey: "chatWelcomeTitlePoweredByIntelligence",
-    subtitleKey: "chatWelcomeSubtitlePoweredByIntelligence",
-  },
-  {
-    titleKey: "chatWelcomeTitleStartWithIdea",
-    subtitleKey: "chatWelcomeSubtitleStartWithIdea",
-  },
-];
-
 const WRITE_EDIT_SECTIONS = [
   {
     title: "Writing",
@@ -1786,7 +1764,6 @@ export default function ChatPage() {
   const [messageFeedback, setMessageFeedback] = useState({});
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [welcomeMessageIndex, setWelcomeMessageIndex] = useState(0);
   const messagesEndRef = useRef(null);
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
@@ -1826,14 +1803,6 @@ export default function ChatPage() {
   useEffect(() => {
     localStorage.setItem(RESPONSE_MODE_STORAGE_KEY, responseMode);
   }, [responseMode]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setWelcomeMessageIndex((index) => (index + 1) % WELCOME_MESSAGES.length);
-    }, 4200);
-
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     localStorage.setItem(WEBSITE_FAVORITES_STORAGE_KEY, JSON.stringify(websiteFavorites));
@@ -3803,23 +3772,13 @@ export default function ChatPage() {
               )}
             >
               {activeMode === "default" ? (
-                <div className="mb-5 h-[72px] overflow-hidden text-center sm:mb-8 sm:h-[92px]">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={welcomeMessageIndex}
-                      initial={{ opacity: 0, y: 24 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -24 }}
-                      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                    >
-                      <h2 className={cn("mb-1.5 text-[21px] font-semibold tracking-tight sm:mb-2 sm:text-3xl", isDark ? "text-white" : "text-[#111827]")}>
-                        {t(WELCOME_MESSAGES[welcomeMessageIndex].titleKey)}
-                      </h2>
-                      <p className={cn("text-sm", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>
-                        {t(WELCOME_MESSAGES[welcomeMessageIndex].subtitleKey)}
-                      </p>
-                    </motion.div>
-                  </AnimatePresence>
+                <div className="mb-5 h-[88px] overflow-hidden text-center sm:mb-8 sm:h-[104px]">
+                  <RotatingChatSuggestion
+                    textClassName={cn(
+                      "mx-auto max-w-2xl text-[21px] font-semibold leading-tight tracking-tight sm:text-3xl",
+                      isDark ? "text-white" : "text-[#111827]",
+                    )}
+                  />
                 </div>
               ) : (
                 <motion.div
