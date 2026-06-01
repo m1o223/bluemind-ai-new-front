@@ -62,7 +62,7 @@ export default function RotatingChatSuggestion({ className = "", iconClassName =
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -24 }}
         transition={SUGGESTION_TRANSITION}
-        className={`flex items-center justify-center gap-2.5 ${className}`}
+        className={`flex items-center justify-center gap-1 ${className}`}
       >
         <Icon
           aria-hidden="true"
