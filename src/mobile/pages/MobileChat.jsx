@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   ArrowUp,
   Bell,
@@ -8,20 +9,22 @@ import {
   Brain,
   Camera,
   ChevronDown,
+  Check,
   Clock3,
+  Clipboard,
   FileText,
   Image,
   Menu,
-  MoreHorizontal,
+  MoreVertical,
   MessageSquare,
   Mic,
   PenLine,
   Pencil,
   Plus,
-  Copy,
   Edit3,
   RotateCcw,
   Search,
+  Share2,
   Square,
   ThumbsDown,
   ThumbsUp,
@@ -29,7 +32,7 @@ import {
   X,
 } from "lucide-react";
 
-import BrandLogo from "@/components/BrandLogo";
+import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import { useApp } from "@/context/AppContext";
 import { getApiErrorMessage } from "@/services/api";
@@ -39,6 +42,14 @@ import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/ser
 const AI_RESPONSE_MODES = ["fast", "smart", "thinking"];
 
 const MAX_IMAGE_ATTACHMENTS = 6;
+
+const DISLIKE_REASONS = [
+  "feedbackInaccurate",
+  "feedbackBadFormatting",
+  "feedbackSlow",
+  "feedbackDidNotUnderstand",
+  "feedbackOther",
+];
 
 const IMAGE_TEMPLATES = [
   {
@@ -337,6 +348,7 @@ export default function MobileChat() {
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
   const [messageFeedback, setMessageFeedback] = useState({});
+  const [dislikeTarget, setDislikeTarget] = useState(null);
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
     return AI_RESPONSE_MODES.includes(storedMode) ? storedMode : "smart";
@@ -359,6 +371,8 @@ export default function MobileChat() {
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const streamAbortRef = useRef(null);
+  const stopRequestedRef = useRef(false);
+  const activeAiMessageRef = useRef(null);
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
@@ -661,51 +675,225 @@ export default function MobileChat() {
   };
 
   const stopChatGeneration = () => {
+    stopRequestedRef.current = true;
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
+    activeAiMessageRef.current = null;
     setIsChatSending(false);
     setMessages((current) =>
       current.map((item) =>
         item.isStreaming
-          ? { ...item, content: item.content || "Stopped.", isStreaming: false }
+          ? { ...item, isStreaming: false }
           : item,
       ),
     );
   };
 
-  const getPreviousUserMessage = (messageId) => {
-    const index = messages.findIndex((item) => item.id === messageId);
-    if (index <= 0) return "";
+  const sendChatPrompt = useCallback(async ({
+    prompt,
+    keepComposer = false,
+    mode = responseMode,
+    metadata = {},
+  }) => {
+    const currentMessage = String(prompt || "").trim();
+    if (!currentMessage || isGeneratingImage || isChatSending) return;
 
-    for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
-      if (messages[cursor]?.role === "user") {
-        return messages[cursor].content || "";
-      }
+    const selectedMode = AI_RESPONSE_MODES.includes(mode) ? mode : responseMode;
+    const userMessageId = crypto.randomUUID();
+    const aiMessageId = crypto.randomUUID();
+    const userMetadata = {
+      source: "mobile_chat",
+      chatMode: "chat",
+      mode: selectedMode,
+      responseMode: selectedMode,
+      ...metadata,
+    };
+
+    setMessages((current) => [
+      ...current,
+      { id: userMessageId, role: "user", content: currentMessage, attachments: [], metadata: userMetadata },
+      { id: aiMessageId, role: "ai", content: "", isStreaming: true },
+    ]);
+
+    if (!keepComposer) {
+      setMessage("");
     }
 
-    return "";
-  };
+    setIsChatSending(true);
+    setImageModeError("");
+    stopRequestedRef.current = false;
+    activeAiMessageRef.current = aiMessageId;
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
 
-  const copyMessage = async (content) => {
     try {
-      await navigator.clipboard?.writeText(content || "");
+      await streamChatMessage({
+        message: currentMessage,
+        conversationId: activeConversationId,
+        mode: selectedMode,
+        metadata: userMetadata,
+        signal: controller.signal,
+        onReady: (payload) => {
+          if (payload?.conversation?.conversationId) {
+            setSearchParams({ conversation: payload.conversation.conversationId });
+          }
+        },
+        onDelta: (payload) => {
+          if (!payload?.token) return;
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === aiMessageId
+                ? { ...item, content: `${item.content || ""}${payload.token}` }
+                : item,
+            ),
+          );
+        },
+        onComplete: (payload) => {
+          if (payload?.conversation?.conversationId) {
+            setSearchParams({ conversation: payload.conversation.conversationId });
+          }
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === aiMessageId
+                ? { ...item, content: item.content || payload?.message?.content || "", isStreaming: false }
+                : item,
+            ),
+          );
+        },
+      });
+    } catch (error) {
+      if (stopRequestedRef.current || error?.name === "AbortError" || controller.signal.aborted) {
+        setMessages((current) =>
+          current.map((item) =>
+            item.id === aiMessageId
+              ? { ...item, isStreaming: false }
+              : item,
+          ),
+        );
+        return;
+      }
+
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === aiMessageId
+            ? { ...item, content: getApiErrorMessage(error, "Chat request failed"), isStreaming: false }
+            : item,
+        ),
+      );
+    } finally {
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+      }
+      if (activeAiMessageRef.current === aiMessageId) {
+        activeAiMessageRef.current = null;
+      }
+      stopRequestedRef.current = false;
+      setIsChatSending(false);
+    }
+  }, [activeConversationId, isChatSending, isGeneratingImage, responseMode, setSearchParams]);
+
+  const persistMessageFeedback = useCallback((messageId, feedback) => {
+    setMessageFeedback((current) => ({
+      ...current,
+      [messageId]: {
+        ...(current[messageId] || {}),
+        ...feedback,
+      },
+    }));
+
+    try {
+      const stored = JSON.parse(localStorage.getItem("bluemind_chat_feedback") || "[]");
+      stored.push({
+        messageId,
+        conversationId: activeConversationId,
+        ...feedback,
+        createdAt: new Date().toISOString(),
+      });
+      localStorage.setItem("bluemind_chat_feedback", JSON.stringify(stored.slice(-200)));
     } catch {
-      // Clipboard access can be unavailable in some mobile browser contexts.
+      // Feedback storage is best effort until the feedback API is connected.
     }
-  };
+  }, [activeConversationId]);
 
-  const regenerateMessage = (messageId) => {
-    const previousUserMessage = getPreviousUserMessage(messageId);
-    if (previousUserMessage) {
-      setMessage(previousUserMessage);
-      window.setTimeout(() => composerInputRef.current?.focus(), 0);
+  const handleCopyMessage = useCallback(async (item) => {
+    try {
+      await navigator.clipboard.writeText(item.content || "");
+      persistMessageFeedback(item.id, { copied: true });
+      window.setTimeout(() => {
+        setMessageFeedback((current) => ({
+          ...current,
+          [item.id]: {
+            ...(current[item.id] || {}),
+            copied: false,
+          },
+        }));
+      }, 1600);
+    } catch {
+      toast.error(t("copyFailed"));
     }
-  };
+  }, [persistMessageFeedback, t]);
 
-  const editMessage = (content) => {
-    setMessage(content || "");
+  const handleLikeMessage = useCallback((item) => {
+    persistMessageFeedback(item.id, { rating: "like" });
+    toast.success(t("feedbackSaved"));
+  }, [persistMessageFeedback, t]);
+
+  const handleDislikeMessage = useCallback((item) => {
+    persistMessageFeedback(item.id, { rating: "dislike" });
+    setDislikeTarget(item);
+  }, [persistMessageFeedback]);
+
+  const handleDislikeReason = useCallback((reason) => {
+    if (!dislikeTarget) return;
+    persistMessageFeedback(dislikeTarget.id, { rating: "dislike", reason });
+    setDislikeTarget(null);
+    toast.success(t("feedbackSaved"));
+  }, [dislikeTarget, persistMessageFeedback, t]);
+
+  const handleEditMessage = useCallback((item) => {
+    setMessage(item.content || "");
     window.setTimeout(() => composerInputRef.current?.focus(), 0);
-  };
+    toast.info(t("editInComposer"));
+  }, [t]);
+
+  const handleRegenerateMessage = useCallback((item) => {
+    if (isChatSending) return;
+
+    const index = messages.findIndex((messageItem) => messageItem.id === item.id);
+    const previousUser = [...messages.slice(0, index)].reverse().find((messageItem) => messageItem.role === "user");
+
+    if (!previousUser) {
+      toast.error(t("regenerateFailed"));
+      return;
+    }
+
+    setMessages((current) => current.slice(0, Math.max(0, index)));
+    void sendChatPrompt({
+      prompt: previousUser.content,
+      keepComposer: true,
+      mode: previousUser.metadata?.mode || previousUser.metadata?.responseMode || responseMode,
+      metadata: previousUser.metadata || {},
+    });
+  }, [isChatSending, messages, responseMode, sendChatPrompt, t]);
+
+  const handleShareMessage = useCallback(async (item) => {
+    const text = item.content || "";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: APP_NAME, text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast.success(t("copiedToClipboard"));
+      }
+    } catch {
+      // User cancelled native share or clipboard was unavailable.
+    }
+  }, [t]);
+
+  const handleMoreMessage = useCallback(() => {
+    toast.info(t("moreActionsSoon"));
+  }, [t]);
 
   const handleComposerSubmit = async (event) => {
     event.preventDefault();
@@ -714,85 +902,7 @@ export default function MobileChat() {
     if (!isImageMode) {
       const currentMessage = message.trim();
       if (!currentMessage) return;
-
-      const userMessageId = crypto.randomUUID();
-      const aiMessageId = crypto.randomUUID();
-      setMessages((current) => [
-        ...current,
-        { id: userMessageId, role: "user", content: currentMessage },
-        { id: aiMessageId, role: "ai", content: "", isStreaming: true },
-      ]);
-      setMessage("");
-      setIsChatSending(true);
-      setImageModeError("");
-      const controller = new AbortController();
-      streamAbortRef.current = controller;
-
-      try {
-        await streamChatMessage({
-          message: currentMessage,
-          conversationId: activeConversationId,
-          mode: responseMode,
-          metadata: {
-            source: "mobile_chat",
-            chatMode: "chat",
-            mode: responseMode,
-            responseMode,
-          },
-          signal: controller.signal,
-          onReady: (payload) => {
-            if (payload?.conversation?.conversationId) {
-              setSearchParams({ conversation: payload.conversation.conversationId });
-            }
-          },
-          onDelta: (payload) => {
-            if (!payload?.token) return;
-            setMessages((current) =>
-              current.map((item) =>
-                item.id === aiMessageId
-                  ? { ...item, content: `${item.content || ""}${payload.token}` }
-                  : item,
-              ),
-            );
-          },
-          onComplete: (payload) => {
-            if (payload?.conversation?.conversationId) {
-              setSearchParams({ conversation: payload.conversation.conversationId });
-            }
-            setMessages((current) =>
-              current.map((item) =>
-                item.id === aiMessageId
-                  ? { ...item, content: item.content || payload?.message?.content || "", isStreaming: false }
-                  : item,
-              ),
-            );
-          },
-        });
-      } catch (error) {
-        if (error?.name === "AbortError" || controller.signal.aborted) {
-          setMessages((current) =>
-            current.map((item) =>
-              item.id === aiMessageId
-                ? { ...item, content: item.content || "Stopped.", isStreaming: false }
-                : item,
-            ),
-          );
-          return;
-        }
-
-        setMessages((current) =>
-          current.map((item) =>
-            item.id === aiMessageId
-              ? { ...item, content: getApiErrorMessage(error, "Chat request failed"), isStreaming: false }
-              : item,
-          ),
-        );
-      } finally {
-        if (streamAbortRef.current === controller) {
-          streamAbortRef.current = null;
-        }
-        setIsChatSending(false);
-      }
+      await sendChatPrompt({ prompt: currentMessage });
       return;
     }
 
@@ -1310,55 +1420,37 @@ export default function MobileChat() {
                   </div>
 
                   {item.role !== "user" && !item.isStreaming && (
-                    <div className={`mt-1.5 flex items-center gap-1 px-1 ${isDark ? "text-[#D7D7D7]" : "text-[#64748B]"}`}>
-                      <button
-                        type="button"
-                        onClick={() => copyMessage(item.content)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10"
-                        aria-label="Copy"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMessageFeedback((current) => ({ ...current, [item.id]: current[item.id] === "like" ? null : "like" }))}
-                        className={`flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10 ${messageFeedback[item.id] === "like" ? "text-[var(--bluemind-app-color,#193B68)]" : ""}`}
-                        aria-label="Like"
-                      >
-                        <ThumbsUp className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMessageFeedback((current) => ({ ...current, [item.id]: current[item.id] === "dislike" ? null : "dislike" }))}
-                        className={`flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10 ${messageFeedback[item.id] === "dislike" ? "text-[var(--bluemind-app-color,#193B68)]" : ""}`}
-                        aria-label="Dislike"
-                      >
-                        <ThumbsDown className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => regenerateMessage(item.id)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10"
-                        aria-label="Regenerate"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => editMessage(item.content)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10"
-                        aria-label="Edit"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10"
-                        aria-label="More"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                    </div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`mt-2 flex flex-wrap items-center gap-1 px-1 transition-opacity duration-200 ${isDark ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                      data-testid={`message-actions-${item.id}`}
+                    >
+                      {[
+                        { id: "copy", icon: messageFeedback[item.id]?.copied ? Check : Clipboard, label: t("copy"), onClick: () => handleCopyMessage(item) },
+                        { id: "like", icon: ThumbsUp, label: t("like"), onClick: () => handleLikeMessage(item), active: messageFeedback[item.id]?.rating === "like" },
+                        { id: "dislike", icon: ThumbsDown, label: t("dislike"), onClick: () => handleDislikeMessage(item), active: messageFeedback[item.id]?.rating === "dislike" },
+                        { id: "edit", icon: Edit3, label: t("edit"), onClick: () => handleEditMessage(item) },
+                        { id: "regenerate", icon: RotateCcw, label: t("regenerate"), onClick: () => handleRegenerateMessage(item) },
+                        { id: "share", icon: Share2, label: t("share"), onClick: () => handleShareMessage(item) },
+                        { id: "more", icon: MoreVertical, label: t("more"), onClick: handleMoreMessage },
+                      ].map((action) => (
+                        <button
+                          key={action.id}
+                          type="button"
+                          onClick={action.onClick}
+                          className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-all duration-200 active:scale-[0.97] ${
+                            action.active
+                              ? isDark ? "bg-white/10 text-white" : "bg-[#EEF2FF] text-[#193B68]"
+                              : isDark ? "active:bg-white/10 active:text-white" : "active:bg-[#F3F4F6] active:text-[#111827]"
+                          }`}
+                          title={action.label}
+                          aria-label={action.label}
+                        >
+                          <action.icon className="h-4 w-4" />
+                        </button>
+                      ))}
+                    </motion.div>
                   )}
                 </div>
               ))}
@@ -1579,6 +1671,43 @@ export default function MobileChat() {
                 </button>
               </div>
             </motion.section>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {dislikeTarget && (
+          <div className="fixed inset-0 z-[80]" onClick={() => setDislikeTarget(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className={`absolute left-1/2 top-1/2 w-[min(92vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border p-3 shadow-2xl backdrop-blur-xl ${
+                isDark ? "border-white/10 bg-[#202020]/95 text-white" : "border-[#E5E7EB] bg-white/95 text-[#111827]"
+              }`}
+              onClick={(event) => event.stopPropagation()}
+              data-testid={`dislike-feedback-${dislikeTarget.id}`}
+            >
+              <div className="px-2 pb-2 pt-1">
+                <p className="text-sm font-semibold">{t("tellUsMore")}</p>
+                <p className={`mt-1 text-xs ${isDark ? "text-[#aaa]" : "text-[#6B7280]"}`}>{t("feedbackHelps")}</p>
+              </div>
+              <div className="space-y-1">
+                {DISLIKE_REASONS.map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => handleDislikeReason(reason)}
+                    className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition-colors ${
+                      isDark ? "active:bg-white/10" : "active:bg-[#F3F4F6]"
+                    }`}
+                  >
+                    {t(reason)}
+                    <span className={`h-1.5 w-1.5 rounded-full ${isDark ? "bg-white/30" : "bg-[#CBD5E1]"}`} />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
