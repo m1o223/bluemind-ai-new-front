@@ -3776,7 +3776,7 @@ export default function ChatPage() {
                   <RotatingChatSuggestion
                     iconClassName="h-6 w-6 sm:h-8 sm:w-8"
                     textClassName={cn(
-                      "mx-auto max-w-2xl text-[21px] font-semibold leading-tight tracking-tight sm:text-3xl",
+                      "max-w-4xl text-center text-[21px] font-semibold leading-tight tracking-tight sm:text-3xl",
                       isDark ? "text-white" : "text-[#111827]",
                     )}
                   />

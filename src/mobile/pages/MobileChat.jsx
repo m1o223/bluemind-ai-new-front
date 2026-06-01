@@ -805,7 +805,7 @@ export default function MobileChat() {
         <div className={centered ? "mb-4 h-[60px] overflow-hidden text-center" : "hidden"}>
           <RotatingChatSuggestion
             iconClassName="h-[18px] w-[18px]"
-            textClassName={`mx-auto max-w-[330px] text-[17px] font-semibold leading-6 tracking-tight ${isDark ? "text-white" : "text-[#111827]"}`}
+            textClassName={`max-w-[360px] text-center text-[17px] font-semibold leading-6 tracking-tight ${isDark ? "text-white" : "text-[#111827]"}`}
           />
         </div>
       )}

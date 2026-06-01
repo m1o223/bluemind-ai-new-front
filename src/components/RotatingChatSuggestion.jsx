@@ -62,13 +62,13 @@ export default function RotatingChatSuggestion({ className = "", iconClassName =
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -24 }}
         transition={SUGGESTION_TRANSITION}
-        className={`flex items-center justify-center gap-1 ${className}`}
+        className={`flex w-full items-center justify-center gap-1 ${className}`}
       >
         <Icon
           aria-hidden="true"
           className={`shrink-0 ${isDark ? "text-white" : "text-[#111827]"} ${iconClassName}`}
         />
-        <p className={textClassName}>{t(suggestion.key)}</p>
+        <p className={`min-w-0 ${textClassName}`}>{t(suggestion.key)}</p>
       </motion.div>
     </AnimatePresence>
   );
