@@ -12,12 +12,19 @@ import {
   FileText,
   Image,
   Menu,
+  MoreHorizontal,
   MessageSquare,
   Mic,
   PenLine,
   Pencil,
   Plus,
+  Copy,
+  Edit3,
+  RotateCcw,
   Search,
+  Square,
+  ThumbsDown,
+  ThumbsUp,
   UserCircle,
   X,
 } from "lucide-react";
@@ -329,6 +336,7 @@ export default function MobileChat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
+  const [messageFeedback, setMessageFeedback] = useState({});
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
     return AI_RESPONSE_MODES.includes(storedMode) ? storedMode : "smart";
@@ -350,6 +358,7 @@ export default function MobileChat() {
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const streamAbortRef = useRef(null);
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
@@ -464,6 +473,7 @@ export default function MobileChat() {
   }, [message, searchParams]);
 
   useEffect(() => () => {
+    streamAbortRef.current?.abort();
     attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
   }, []);
 
@@ -650,6 +660,53 @@ export default function MobileChat() {
     ].filter(Boolean).join("\n\n");
   };
 
+  const stopChatGeneration = () => {
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = null;
+    setIsChatSending(false);
+    setMessages((current) =>
+      current.map((item) =>
+        item.isStreaming
+          ? { ...item, content: item.content || "Stopped.", isStreaming: false }
+          : item,
+      ),
+    );
+  };
+
+  const getPreviousUserMessage = (messageId) => {
+    const index = messages.findIndex((item) => item.id === messageId);
+    if (index <= 0) return "";
+
+    for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+      if (messages[cursor]?.role === "user") {
+        return messages[cursor].content || "";
+      }
+    }
+
+    return "";
+  };
+
+  const copyMessage = async (content) => {
+    try {
+      await navigator.clipboard?.writeText(content || "");
+    } catch {
+      // Clipboard access can be unavailable in some mobile browser contexts.
+    }
+  };
+
+  const regenerateMessage = (messageId) => {
+    const previousUserMessage = getPreviousUserMessage(messageId);
+    if (previousUserMessage) {
+      setMessage(previousUserMessage);
+      window.setTimeout(() => composerInputRef.current?.focus(), 0);
+    }
+  };
+
+  const editMessage = (content) => {
+    setMessage(content || "");
+    window.setTimeout(() => composerInputRef.current?.focus(), 0);
+  };
+
   const handleComposerSubmit = async (event) => {
     event.preventDefault();
     if (!hasComposerContent || isGeneratingImage || isChatSending) return;
@@ -668,6 +725,8 @@ export default function MobileChat() {
       setMessage("");
       setIsChatSending(true);
       setImageModeError("");
+      const controller = new AbortController();
+      streamAbortRef.current = controller;
 
       try {
         await streamChatMessage({
@@ -680,6 +739,7 @@ export default function MobileChat() {
             mode: responseMode,
             responseMode,
           },
+          signal: controller.signal,
           onReady: (payload) => {
             if (payload?.conversation?.conversationId) {
               setSearchParams({ conversation: payload.conversation.conversationId });
@@ -709,6 +769,17 @@ export default function MobileChat() {
           },
         });
       } catch (error) {
+        if (error?.name === "AbortError" || controller.signal.aborted) {
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === aiMessageId
+                ? { ...item, content: item.content || "Stopped.", isStreaming: false }
+                : item,
+            ),
+          );
+          return;
+        }
+
         setMessages((current) =>
           current.map((item) =>
             item.id === aiMessageId
@@ -717,6 +788,9 @@ export default function MobileChat() {
           ),
         );
       } finally {
+        if (streamAbortRef.current === controller) {
+          streamAbortRef.current = null;
+        }
         setIsChatSending(false);
       }
       return;
@@ -972,7 +1046,7 @@ export default function MobileChat() {
         )}
 
         {!isImageMode && (
-          <div className={separatePlus ? "flex items-center justify-center gap-3" : "flex items-center gap-0"}>
+          <div className={separatePlus ? "flex items-center justify-center gap-2" : "flex items-center gap-0"}>
             {separatePlus && (
               <motion.button
                 layoutId="mobile-composer-plus"
@@ -988,7 +1062,7 @@ export default function MobileChat() {
             <motion.div
               layout
               className={`flex h-[52px] items-center rounded-[26px] border shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor} ${
-                separatePlus ? "w-[81%] pl-4 pr-2" : "w-full pl-2 pr-2"
+                separatePlus ? "w-[84%] pl-4 pr-2" : "w-full pl-2 pr-2"
               }`}
               style={{
                 backgroundColor: isDark ? "rgba(32,32,32,0.92)" : "rgba(255,255,255,0.92)",
@@ -1026,13 +1100,16 @@ export default function MobileChat() {
               </button>
 
               <button
-                type="submit"
+                type={isChatSending ? "button" : "submit"}
+                onClick={isChatSending ? stopChatGeneration : undefined}
                 className="ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] disabled:opacity-45"
                 style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
-                disabled={!hasComposerContent || isGeneratingImage || isChatSending}
-                aria-label="Send"
+                disabled={(!hasComposerContent && !isChatSending) || isGeneratingImage}
+                aria-label={isChatSending ? "Stop generating" : "Send"}
               >
-                {isGeneratingImage || isChatSending ? (
+                {isChatSending ? (
+                  <Square className="h-3.5 w-3.5 fill-current stroke-[2.5]" />
+                ) : isGeneratingImage ? (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 ) : (
                   <ArrowUp className="h-5 w-5 -translate-y-[2px] stroke-[3.2]" />
@@ -1208,18 +1285,71 @@ export default function MobileChat() {
           {messages.length > 0 && (
             <div className="space-y-3 pb-4">
               {messages.map((item) => (
-                <div
-                  key={item.id}
-                  className={`max-w-[86%] rounded-[22px] px-4 py-3 text-sm font-medium leading-6 ${
-                    item.role === "user"
-                      ? "ml-auto text-white"
-                      : isDark
-                        ? "mr-auto bg-white/[0.07] text-white"
-                        : "mr-auto bg-white text-[#111827] shadow-sm"
-                  }`}
-                  style={item.role === "user" ? { backgroundColor: "var(--bluemind-app-color, #193B68)" } : undefined}
-                >
-                  {item.content || (item.isStreaming ? "Thinking..." : "")}
+                <div key={item.id} className={item.role === "user" ? "ml-auto max-w-[86%]" : "mr-auto max-w-[86%]"}>
+                  <div
+                    className={`rounded-[22px] px-4 py-3 text-sm font-medium leading-6 ${
+                      item.role === "user"
+                        ? "text-white"
+                        : isDark
+                          ? "bg-white/[0.07] text-white"
+                          : "bg-white text-[#111827] shadow-sm"
+                    }`}
+                    style={item.role === "user" ? { backgroundColor: "var(--bluemind-app-color, #193B68)" } : undefined}
+                  >
+                    {item.content || (item.isStreaming ? "Thinking..." : "")}
+                  </div>
+
+                  {item.role !== "user" && !item.isStreaming && (
+                    <div className={`mt-1.5 flex items-center gap-1 px-1 ${isDark ? "text-[#D7D7D7]" : "text-[#64748B]"}`}>
+                      <button
+                        type="button"
+                        onClick={() => copyMessage(item.content)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10"
+                        aria-label="Copy"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMessageFeedback((current) => ({ ...current, [item.id]: current[item.id] === "like" ? null : "like" }))}
+                        className={`flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10 ${messageFeedback[item.id] === "like" ? "text-[var(--bluemind-app-color,#193B68)]" : ""}`}
+                        aria-label="Like"
+                      >
+                        <ThumbsUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMessageFeedback((current) => ({ ...current, [item.id]: current[item.id] === "dislike" ? null : "dislike" }))}
+                        className={`flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10 ${messageFeedback[item.id] === "dislike" ? "text-[var(--bluemind-app-color,#193B68)]" : ""}`}
+                        aria-label="Dislike"
+                      >
+                        <ThumbsDown className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => regenerateMessage(item.id)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10"
+                        aria-label="Regenerate"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => editMessage(item.content)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10"
+                        aria-label="Edit"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="flex h-8 w-8 items-center justify-center rounded-full active:bg-current/10"
+                        aria-label="More"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
