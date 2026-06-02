@@ -115,6 +115,124 @@ function WriteTemplateArtwork({ template, index = 0 }) {
   );
 }
 
+const SEARCH_ARTWORK_PALETTES = [
+  { from: "#193B68", via: "#3D7EC8", to: "#B9D7F6" },
+  { from: "#0E7490", via: "#67E8F9", to: "#CFFAFE" },
+  { from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF" },
+  { from: "#0F766E", via: "#34C3AA", to: "#C8F7EC" },
+  { from: "#A855F7", via: "#D18BFF", to: "#F1D9FF" },
+  { from: "#EA580C", via: "#FDBA74", to: "#FFEDD5" },
+  { from: "#BE123C", via: "#FB7185", to: "#FFE4E6" },
+  { from: "#1D4ED8", via: "#60A5FA", to: "#DBEAFE" },
+];
+
+const SEARCH_CATEGORIES = [
+  { id: "books", title: "Books", description: "Find books, school books, academic sources, and reading material." },
+  { id: "schools", title: "Schools", description: "Explore schools, education systems, programs, and nearby options." },
+  { id: "universities", title: "Universities", description: "Search universities, majors, degrees, and admission information." },
+  { id: "science", title: "Science", description: "Search physics, chemistry, biology, and scientific topics." },
+  { id: "mathematics", title: "Mathematics", description: "Find explanations, formulas, lessons, and math resources." },
+  { id: "history", title: "History", description: "Explore events, civilizations, wars, timelines, and historical topics." },
+  { id: "geography", title: "Geography", description: "Search countries, maps, cities, climate, and world facts." },
+  { id: "homework", title: "Homework", description: "Get help finding resources for homework and school questions." },
+  { id: "research-papers", title: "Research Papers", description: "Discover academic papers, studies, and reliable sources." },
+  { id: "people", title: "People", description: "Search famous people, scientists, leaders, authors, and biographies." },
+  { id: "technology-ai", title: "Technology & AI", description: "Search technology, programming, AI, devices, and digital trends." },
+  { id: "news", title: "News", description: "Find recent updates, current events, and trending topics." },
+  { id: "sports", title: "Sports", description: "Search players, teams, clubs, competitions, and sports facts." },
+  { id: "travel-places", title: "Travel & Places", description: "Explore places, destinations, landmarks, and travel information." },
+  { id: "general-web-search", title: "General Web Search", description: "Search anything else across the web." },
+].map((category, index) => ({
+  ...category,
+  artwork: SEARCH_ARTWORK_PALETTES[index % SEARCH_ARTWORK_PALETTES.length],
+  sectionTitle: "Search",
+}));
+
+const BOOK_SEARCH_RESULTS = [
+  "Atomic Habits",
+  "Deep Work",
+  "The Power of Habit",
+  "Thinking, Fast and Slow",
+  "A Brief History of Time",
+  "Campbell Biology",
+  "University Physics",
+  "Calculus Made Easy",
+  "Sapiens",
+  "1984",
+  "To Kill a Mockingbird",
+  "The Alchemist",
+  "The Lean Startup",
+  "The Art of War",
+  "The Psychology of Money",
+  "Pride and Prejudice",
+  "The Great Gatsby",
+  "Clean Code",
+  "Introduction to Algorithms",
+  "Organic Chemistry",
+  "Linear Algebra Done Right",
+  "The Hobbit",
+  "Harry Potter and the Sorcerer's Stone",
+  "The Little Prince",
+  "Educated",
+];
+
+const SEARCH_RESULT_SEEDS = {
+  schools: ["International School", "Public School System", "STEM School", "Language School", "Online School"],
+  universities: ["Computer Science Major", "Medical School", "Engineering Degree", "Scholarships", "Admissions Guide"],
+  science: ["Physics Basics", "Chemistry Lab", "Biology Cells", "Scientific Method", "Astronomy"],
+  mathematics: ["Algebra", "Geometry", "Calculus", "Statistics", "Trigonometry"],
+  history: ["World War II", "Ancient Egypt", "Roman Empire", "Industrial Revolution", "Cold War"],
+  geography: ["World Maps", "Climate Zones", "Capital Cities", "Mountain Ranges", "Population Data"],
+  homework: ["Math Homework", "Science Project", "Essay Help", "Study Resources", "Practice Questions"],
+  "research-papers": ["Google Scholar", "PubMed", "ResearchGate", "Citation Help", "Academic Databases"],
+  people: ["Albert Einstein", "Marie Curie", "Nelson Mandela", "Jane Austen", "Ada Lovelace"],
+  "technology-ai": ["Artificial Intelligence", "Programming", "Smartphones", "Cybersecurity", "Robotics"],
+  news: ["World News", "Technology News", "Science Updates", "Business News", "Education News"],
+  sports: ["Football", "Basketball", "Tennis", "Olympics", "Formula 1"],
+  "travel-places": ["Paris", "Tokyo", "New York", "Historical Landmarks", "Travel Planning"],
+  "general-web-search": ["Web Search", "How-to Guides", "Product Reviews", "Definitions", "Local Information"],
+};
+
+function getSearchResultsForCategory(category) {
+  if (!category) return [];
+  const titles = category.id === "books"
+    ? BOOK_SEARCH_RESULTS
+    : Array.from({ length: 25 }, (_, index) => {
+      const seed = SEARCH_RESULT_SEEDS[category.id]?.[index % 5] || category.title;
+      return `${seed} ${Math.floor(index / 5) + 1}`;
+    });
+
+  return titles.slice(0, 25).map((title, index) => ({
+    id: `${category.id}-${index + 1}`,
+    title,
+    description: `Placeholder details for ${title}. More reliable search data will be connected later.`,
+    category: category.title,
+    sectionTitle: category.title,
+    artwork: SEARCH_ARTWORK_PALETTES[(index + 2) % SEARCH_ARTWORK_PALETTES.length],
+  }));
+}
+
+function getSearchAiOpening({ category, item, intent }) {
+  if (intent === "learn_more_about_selected_item" && item) {
+    if (category.id === "books") {
+      return `I see you are interested in ${item.title}.\n\nWhat would you like to know about this book?\n\nI can help with a summary, key ideas, similar books, author information, or a reading plan.`;
+    }
+    return `I see you are interested in ${item.title}.\n\nWhat would you like to know about it? I can help with a summary, background, useful resources, or next steps.`;
+  }
+
+  if (category.id === "schools") {
+    return "I see you are looking for a school.\n\nTell me the country, city, program, or anything you remember, and I will help you find it.";
+  }
+  if (category.id === "people") {
+    return "I see you are looking for a person.\n\nTell me their name or describe them, and I will help identify them.";
+  }
+  if (category.id === "books") {
+    return "I see you are looking for a book.\n\nTell me the book name, or describe anything you remember about it, and I will help you find it.";
+  }
+
+  return `I see you are looking for something in ${category.title}.\n\nTell me what you remember or what you need, and I will help you find it.`;
+}
+
 const DISLIKE_REASONS = [
   "feedbackInaccurate",
   "feedbackBadFormatting",
@@ -427,6 +545,11 @@ export default function MobileChat() {
   });
   const [isImageMode, setIsImageMode] = useState(false);
   const [isWriteEditMode, setIsWriteEditMode] = useState(false);
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [selectedSearchCategory, setSelectedSearchCategory] = useState(null);
+  const [openSearchMenuItemId, setOpenSearchMenuItemId] = useState(null);
+  const [expandedSearchItemId, setExpandedSearchItemId] = useState(null);
+  const [searchConfirm, setSearchConfirm] = useState(null);
   const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
   const [pendingImageTemplate, setPendingImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
@@ -482,12 +605,18 @@ export default function MobileChat() {
     [],
   );
 
+  const searchResultsForCategory = useMemo(
+    () => getSearchResultsForCategory(selectedSearchCategory),
+    [selectedSearchCategory],
+  );
+
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
-  const isEmptyChat = !isImageMode && !isWriteEditMode && messages.length === 0 && generatedImages.length === 0;
+  const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
   const showEmptyActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
   const shouldPinComposer = !isEmptyChat;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
+  const shouldShowSearchCards = isSearchMode && messages.length === 0 && generatedImages.length === 0;
 
   const resizeChatComposer = useCallback((node = composerInputRef.current) => {
     if (!node || isImageMode || isWriteEditMode) return;
@@ -582,11 +711,19 @@ export default function MobileChat() {
     if (searchParams.get("mode") === "image") {
       setIsImageMode(true);
       setIsWriteEditMode(false);
+      setIsSearchMode(false);
     }
 
     if (searchParams.get("mode") === "write-edit") {
       setIsWriteEditMode(true);
       setIsImageMode(false);
+      setIsSearchMode(false);
+    }
+
+    if (searchParams.get("mode") === "search") {
+      setIsSearchMode(true);
+      setIsImageMode(false);
+      setIsWriteEditMode(false);
     }
 
     const requestedWriteTemplate = searchParams.get("writeTemplate");
@@ -630,6 +767,11 @@ export default function MobileChat() {
     setMessage("");
     setIsImageMode(false);
     setIsWriteEditMode(false);
+    setIsSearchMode(false);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setSearchConfirm(null);
     setSelectedImageTemplate(null);
     setGeneratedImages([]);
     setImageModeError("");
@@ -684,6 +826,7 @@ export default function MobileChat() {
   const enterImageMode = () => {
     setIsImageMode(true);
     setIsWriteEditMode(false);
+    setIsSearchMode(false);
     setImageModeError("");
     setAttachmentSheetOpen(false);
   };
@@ -699,6 +842,7 @@ export default function MobileChat() {
   const enterWriteEditMode = () => {
     setIsWriteEditMode(true);
     setIsImageMode(false);
+    setIsSearchMode(false);
     setAttachmentSheetOpen(false);
     setImageModeError("");
     setImageModeStatus("");
@@ -707,6 +851,29 @@ export default function MobileChat() {
   const exitWriteEditMode = () => {
     clearWriteTask();
     setIsWriteEditMode(false);
+  };
+
+  const enterSearchMode = () => {
+    setIsSearchMode(true);
+    setIsImageMode(false);
+    setIsWriteEditMode(false);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setSearchConfirm(null);
+    setAttachmentSheetOpen(false);
+    setImageModeError("");
+    setImageModeStatus("");
+  };
+
+  const exitSearchMode = () => {
+    clearMobileFlowParams();
+    setIsSearchMode(false);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setSearchConfirm(null);
+    setMessage("");
   };
 
   const selectImageTemplate = (template) => {
@@ -758,6 +925,7 @@ export default function MobileChat() {
     setWriteAttachmentChoiceOpen(false);
     setWriteAttachments([]);
     setIsImageMode(false);
+    setIsSearchMode(false);
     setMessage(template.prompt || "");
     window.setTimeout(() => composerInputRef.current?.focus(), 0);
   };
@@ -1001,6 +1169,11 @@ export default function MobileChat() {
       setWriteAttachmentChoiceOpen(false);
       setWriteAttachments([]);
       setIsWriteEditMode(false);
+      setIsSearchMode(false);
+      setSelectedSearchCategory(null);
+      setOpenSearchMenuItemId(null);
+      setExpandedSearchItemId(null);
+      setSearchConfirm(null);
     }
 
     setIsChatSending(true);
@@ -1180,6 +1353,46 @@ export default function MobileChat() {
     toast.info(t("moreActionsSoon"));
   }, [t]);
 
+  const openSearchAskConfirm = ({ category, item = null, intent }) => {
+    setOpenSearchMenuItemId(null);
+    setSearchConfirm({ category, item, intent });
+  };
+
+  const copySearchItemName = async (item) => {
+    try {
+      await navigator.clipboard.writeText(item.title);
+      toast.success("Copied");
+    } catch {
+      toast.error("Copy failed");
+    } finally {
+      setOpenSearchMenuItemId(null);
+    }
+  };
+
+  const continueSearchWithAi = async () => {
+    if (!searchConfirm?.category) return;
+
+    const { category, item, intent } = searchConfirm;
+    const opening = getSearchAiOpening({ category, item, intent });
+    setSearchConfirm(null);
+    setIsSearchMode(false);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setMessage("");
+
+    await sendChatPrompt({
+      prompt: opening,
+      metadata: {
+        source: "Search",
+        category: category.title,
+        categoryId: category.id,
+        selectedItem: item?.title,
+        intent,
+      },
+    });
+  };
+
   const handleComposerSubmit = async (event) => {
     event.preventDefault();
     if (!hasComposerContent || isGeneratingImage || isChatSending) return;
@@ -1265,7 +1478,9 @@ export default function MobileChat() {
       ? { label: "Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
       : (isWriteEditMode || activeWriteTask)
         ? { label: "Write/Edit", onClear: exitWriteEditMode, clearLabel: "Exit write edit mode" }
-        : null;
+        : isSearchMode
+          ? { label: "Search", onClear: exitSearchMode, clearLabel: "Exit search mode" }
+          : null;
 
     const composerAttachments = isImageMode
       ? [
@@ -1395,6 +1610,8 @@ export default function MobileChat() {
             ? "Describe an image..."
             : (isWriteEditMode || activeWriteTask)
               ? "Write, paste, or choose a productivity tool..."
+              : isSearchMode
+                ? "Ask AI to search..."
               : "Ask anything..."
         }
         modePill={composerModePill}
@@ -1407,8 +1624,8 @@ export default function MobileChat() {
         onSendAction={isChatSending ? stopChatGeneration : undefined}
         isDark={isDark}
         variant="mobile"
-        minRows={isImageMode || isWriteEditMode || activeWriteTask ? 3 : 1}
-        maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask ? 180 : 128}
+        minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
+        maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
         testId="mobile-chat-input"
       />
 
@@ -1842,6 +2059,29 @@ export default function MobileChat() {
             </div>
           )}
 
+          {isSearchMode && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>
+                  {selectedSearchCategory?.title || "Search"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={exitSearchMode}
+                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                  aria-label="Exit search mode"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {!selectedSearchCategory && (
+                <p className={`mt-1 max-w-[330px] text-xs font-semibold leading-5 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                  Find what you need. If it is not here, Ask AI can help you find it.
+                </p>
+              )}
+            </div>
+          )}
+
           {shouldShowImageTemplates && (
             <div className="pt-2">
               <AnimatePresence>
@@ -1965,6 +2205,133 @@ export default function MobileChat() {
             </div>
           )}
 
+          {shouldShowSearchCards && !selectedSearchCategory && (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {SEARCH_CATEGORIES.map((category, index) => (
+                <motion.button
+                  key={category.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSearchCategory(category);
+                    setOpenSearchMenuItemId(null);
+                    setExpandedSearchItemId(null);
+                  }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.16) }}
+                  whileHover={{ y: -5 }}
+                  whileTap={{ scale: 0.985 }}
+                  className={`group overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                    isDark
+                      ? "border-white/[0.08] bg-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.1]"
+                      : "border-white/75 bg-white/82 shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                  }`}
+                >
+                  <WriteTemplateArtwork template={category} index={index} />
+                  <div className="p-3">
+                    <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[#111827]"}`}>
+                      {category.title}
+                    </span>
+                    <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                      {category.description}
+                    </span>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          )}
+
+          {shouldShowSearchCards && selectedSearchCategory && (
+            <div className="pt-2">
+              <div className={`mb-4 rounded-[26px] border p-4 ${isDark ? "border-white/[0.08] bg-white/[0.05]" : "border-white/75 bg-white/82 shadow-sm shadow-slate-200/70"}`}>
+                <p className={`text-sm font-bold ${textColor}`}>Can&apos;t find what you are looking for?</p>
+                <button
+                  type="button"
+                  onClick={() => openSearchAskConfirm({
+                    category: selectedSearchCategory,
+                    intent: "item_not_found",
+                  })}
+                  className="mt-3 h-11 w-full rounded-2xl bg-[#193B68] text-sm font-bold text-white active:opacity-90"
+                >
+                  Ask AI
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {searchResultsForCategory.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: Math.min(index * 0.012, 0.16) }}
+                    className={`group relative overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                      isDark
+                        ? "border-white/[0.08] bg-white/[0.06]"
+                        : "border-white/75 bg-white/82 shadow-slate-200/70"
+                    }`}
+                  >
+                    <WriteTemplateArtwork template={item} index={index} />
+                    <button
+                      type="button"
+                      onClick={() => setOpenSearchMenuItemId((current) => current === item.id ? null : item.id)}
+                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur active:bg-black/50"
+                      aria-label={`Open actions for ${item.title}`}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+
+                    {openSearchMenuItemId === item.id && (
+                      <div className={`absolute right-2 top-11 z-10 w-36 overflow-hidden rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}>
+                        <button
+                          type="button"
+                          onClick={() => copySearchItemName(item)}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
+                        >
+                          Copy name
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandedSearchItemId((current) => current === item.id ? null : item.id);
+                            setOpenSearchMenuItemId(null);
+                          }}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
+                        >
+                          Learn more
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openSearchAskConfirm({
+                            category: selectedSearchCategory,
+                            item,
+                            intent: "learn_more_about_selected_item",
+                          })}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
+                        >
+                          Ask AI
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="p-3">
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[#111827]"}`}>
+                        {item.title}
+                      </span>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                        {item.description}
+                      </span>
+                      {expandedSearchItemId === item.id && (
+                        <div className={`mt-3 rounded-2xl px-3 py-2 text-[11px] font-semibold leading-4 ${isDark ? "bg-white/[0.07] text-[#D7D7D7]" : "bg-[#EEF2F7] text-[#475569]"}`}>
+                          Placeholder details for {item.title}. This larger view will connect to real search data later.
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {messages.length > 0 && (
             <div className="space-y-4 pb-4">
               {messages.map((item) => (
@@ -2063,6 +2430,53 @@ export default function MobileChat() {
       </section>
 
       <AnimatePresence>
+        {searchConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-5">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setSearchConfirm(null)}
+              aria-label="Cancel Ask AI"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.96 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className={`relative z-10 w-full max-w-[340px] rounded-[28px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-white bg-white text-[#111827]"}`}
+            >
+              <h3 className="text-base font-bold tracking-tight">Ask AI?</h3>
+              <p className={`mt-2 text-sm font-semibold leading-6 ${isDark ? "text-[#D7D7D7]" : "text-[#64748B]"}`}>
+                {searchConfirm.intent === "learn_more_about_selected_item" && searchConfirm.item
+                  ? `Would you like BlueMind AI to help you learn more about ${searchConfirm.item.title}?`
+                  : `Would you like BlueMind AI to help you find something that is not listed in ${searchConfirm.category.title}?`}
+              </p>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSearchConfirm(null)}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#111827] active:bg-[#E2E8F0]"}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void continueSearchWithAi()}
+                  className="h-11 rounded-2xl bg-[#193B68] text-sm font-bold text-white active:opacity-90"
+                >
+                  Continue
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {attachmentSheetOpen && (
           <div className="fixed inset-0 z-50">
             <motion.button
@@ -2116,7 +2530,7 @@ export default function MobileChat() {
 
                 <button
                   type="button"
-                  onClick={() => openSheetDestination("/mobile/search")}
+                  onClick={enterSearchMode}
                   className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
                   <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
