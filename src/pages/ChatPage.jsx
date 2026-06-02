@@ -37,16 +37,6 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
-  Mail,
-  BriefcaseBusiness,
-  GraduationCap,
-  Languages,
-  FileCheck2,
-  Sparkles,
-  PenLine,
-  ClipboardList,
-  FileSearch,
-  BadgeCheck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -60,6 +50,11 @@ import {
   TRENDING_WEBSITE_IDS,
   createLiveWebsiteResults,
 } from "@/data/websiteDirectory";
+import {
+  QUICK_WRITE_TEMPLATES,
+  WRITE_EDIT_SECTIONS,
+  WRITE_UPLOAD_ACTIONS,
+} from "@/data/writeEditTemplates";
 import {
   deleteConversation,
   getConversation,
@@ -114,79 +109,6 @@ const RESPONSE_MODE_STORAGE_KEY = "bluemind_response_mode";
 const WEBSITE_FAVORITES_STORAGE_KEY = "bluemind_website_favorites";
 const WEBSITE_RECENTS_STORAGE_KEY = "bluemind_website_recents";
 const WEBSITE_PAGE_SIZE = 10;
-const WRITE_EDIT_SECTIONS = [
-  {
-    title: "Writing",
-    icon: PenLine,
-    items: [
-      ["Email Writer", "Generate clear professional emails.", "Write a professional email about "],
-      ["CV Builder", "Create or improve your resume.", "Build a professional CV for "],
-      ["Cover Letter", "Draft a tailored cover letter.", "Write a cover letter for "],
-      ["Blog Post", "Create structured long-form content.", "Write a blog post about "],
-      ["Social Media Post", "Create posts for social platforms.", "Write a social media post about "],
-      ["Product Description", "Describe products clearly and persuasively.", "Write a product description for "],
-      ["Business Proposal", "Create a polished business proposal.", "Write a business proposal for "],
-    ],
-  },
-  {
-    title: "Edit & Improve",
-    icon: Sparkles,
-    items: [
-      ["Rewrite Text", "Improve clarity and flow.", "Rewrite this text and improve clarity:\n\n"],
-      ["Fix Grammar", "Correct grammar, spelling, and punctuation.", "Fix grammar and spelling in this text:\n\n"],
-      ["Make Professional", "Make text polished and business-ready.", "Make this text more professional:\n\n"],
-      ["Make Friendly", "Make text warmer and approachable.", "Make this text more friendly:\n\n"],
-      ["Shorten Text", "Condense text without losing meaning.", "Shorten this text:\n\n"],
-      ["Expand Text", "Add helpful detail and structure.", "Expand this text with more detail:\n\n"],
-      ["Translate Text", "Translate between multiple languages.", "Translate this text to "],
-      ["Summarize Text", "Extract the main points quickly.", "Summarize this text:\n\n"],
-    ],
-  },
-  {
-    title: "Study & Learning",
-    icon: GraduationCap,
-    items: [
-      ["Essay Writer", "Create academic essays and reports.", "Write an academic essay about "],
-      ["Homework Assistant", "Get step-by-step study help.", "Help me with this homework question:\n\n"],
-      ["School Report", "Build structured school reports.", "Create a school report about "],
-      ["Research Notes", "Organize findings into notes.", "Create research notes about "],
-      ["Flashcards Generator", "Turn material into study cards.", "Create flashcards from this topic:\n\n"],
-      ["Study Planner", "Plan study sessions and deadlines.", "Create a study plan for "],
-    ],
-  },
-  {
-    title: "Career",
-    icon: BriefcaseBusiness,
-    items: [
-      ["CV Builder", "Create a complete professional CV.", "Build a professional CV for "],
-      ["CV Improvement", "Improve structure, wording, and impact.", "Improve my CV for this role:\n\n"],
-      ["Cover Letter Generator", "Generate job-specific cover letters.", "Write a tailored cover letter for "],
-      ["LinkedIn Profile Writer", "Improve headline, about, and experience.", "Rewrite my LinkedIn profile for "],
-      ["Job Application Assistant", "Prepare application materials.", "Help me apply for this job:\n\n"],
-    ],
-  },
-];
-
-const QUICK_WRITE_TEMPLATES = [
-  ["Job Application Email", Mail, "Write a job application email for "],
-  ["Professional CV", FileCheck2, "Create a professional CV for "],
-  ["School Essay", GraduationCap, "Write a school essay about "],
-  ["Meeting Notes", ClipboardList, "Turn these notes into clean meeting minutes:\n\n"],
-  ["Business Proposal", BriefcaseBusiness, "Write a business proposal for "],
-  ["Complaint Letter", PenLine, "Write a polite complaint letter about "],
-  ["Recommendation Letter", BadgeCheck, "Write a recommendation letter for "],
-];
-
-const WRITE_UPLOAD_ACTIONS = [
-  ["Summarize document", FileSearch, "Summarize this document and extract the most important points."],
-  ["Rewrite document", PenLine, "Rewrite this document with clearer structure and stronger language."],
-  ["Translate document", Languages, "Translate this document into "],
-  ["Extract key points", ClipboardList, "Extract key points, action items, dates, and decisions from this document."],
-  ["Improve CV", BriefcaseBusiness, "Improve this CV with stronger wording, better structure, and measurable impact."],
-  ["Analyze contracts", FileSearch, "Analyze this contract and highlight risks, obligations, dates, and unusual clauses."],
-  ["Analyze reports", FileSearch, "Analyze this report and summarize findings, risks, metrics, and recommendations."],
-  ["OCR and image analysis", ImageIcon, "Extract text from this image and analyze what it contains."],
-];
 
 const RESPONSE_MODES = {
   fast: {
@@ -3076,15 +2998,16 @@ export default function ChatPage() {
 
   const renderWriteEditWorkspace = () => {
     const smartSuggestions = writeFiles.length
-      ? WRITE_UPLOAD_ACTIONS.filter(([title]) => {
+      ? WRITE_UPLOAD_ACTIONS.filter((template) => {
+          const { title } = template;
           const hasCv = writeFiles.some((file) => file.isCv);
           const hasPdf = writeFiles.some((file) => file.type === "pdf");
           const hasImage = writeFiles.some((file) => file.type === "image");
 
           if (hasCv && title.includes("CV")) return true;
-          if (hasPdf && ["Summarize document", "Extract key points", "Analyze reports", "Analyze contracts"].includes(title)) return true;
-          if (hasImage && title.includes("OCR")) return true;
-          return ["Summarize document", "Rewrite document", "Translate document"].includes(title);
+          if (hasPdf && ["Summarize Document", "Rewrite Document", "Translate Document"].includes(title)) return true;
+          if (hasImage && ["Summarize Document", "Rewrite Document", "Translate Document"].includes(title)) return true;
+          return ["Summarize Document", "Rewrite Document", "Translate Document"].includes(title);
         })
       : WRITE_UPLOAD_ACTIONS.slice(0, 4);
 
@@ -3155,11 +3078,11 @@ export default function ChatPage() {
           <section className="mb-7">
             <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("quickTemplates")}</h3>
             <div className="grid grid-cols-1 gap-3 sm:flex sm:overflow-x-auto sm:pb-2 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
-              {QUICK_WRITE_TEMPLATES.map(([title, Icon, prompt], index) => (
+              {QUICK_WRITE_TEMPLATES.map(({ title, icon: Icon, prompt }, index) => (
                 <motion.button
                   key={title}
                   type="button"
-                  onClick={() => handleWriteToolSelect(t(uiTextKey("quickWriteTemplate", title, "prompt")))}
+                  onClick={() => handleWriteToolSelect(prompt)}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
@@ -3181,11 +3104,11 @@ export default function ChatPage() {
           <section className="mb-7">
             <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("smartSuggestions")}</h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {smartSuggestions.map(([title, Icon, prompt], index) => (
+              {smartSuggestions.map(({ title, icon: Icon, prompt }, index) => (
                 <motion.button
                   key={title}
                   type="button"
-                  onClick={() => handleWriteUploadAction(t(uiTextKey("writeUploadAction", title, "prompt")))}
+                  onClick={() => handleWriteUploadAction(prompt)}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
@@ -3215,11 +3138,11 @@ export default function ChatPage() {
                     <h3 className={cn("text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t(uiTextKey("writeSection", section.title))}</h3>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {section.items.map(([title, description, prompt], index) => (
+                    {section.items.map(({ title, description, prompt }, index) => (
                       <motion.button
                         key={`${section.title}-${title}-${index}`}
                         type="button"
-                        onClick={() => handleWriteToolSelect(t(uiTextKey("writeTool", title, "prompt")))}
+                        onClick={() => handleWriteToolSelect(prompt)}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2, delay: Math.min(index * 0.018, 0.12) }}

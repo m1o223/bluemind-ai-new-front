@@ -1,83 +1,16 @@
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  BadgeCheck,
-  BriefcaseBusiness,
-  ClipboardList,
-  FileCheck2,
-  FileSearch,
   FileText,
-  GraduationCap,
-  Languages,
-  Mail,
-  PenLine,
-  Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { useApp } from "@/context/AppContext";
-
-const QUICK_WRITE_TEMPLATES = [
-  ["Job Application Email", Mail, "Write a job application email for "],
-  ["Professional CV", FileCheck2, "Create a professional CV for "],
-  ["School Essay", GraduationCap, "Write a school essay about "],
-  ["Meeting Notes", ClipboardList, "Turn these notes into clean meeting minutes:\n\n"],
-  ["Business Proposal", BriefcaseBusiness, "Write a business proposal for "],
-  ["Complaint Letter", PenLine, "Write a polite complaint letter about "],
-  ["Recommendation Letter", BadgeCheck, "Write a recommendation letter for "],
-];
-
-const WRITE_UPLOAD_ACTIONS = [
-  ["Summarize document", FileSearch, "Summarize this document and extract the most important points."],
-  ["Rewrite document", PenLine, "Rewrite this document with clearer structure and stronger language."],
-  ["Translate document", Languages, "Translate this document into "],
-  ["Extract key points", ClipboardList, "Extract key points, action items, dates, and decisions from this document."],
-  ["Improve CV", BriefcaseBusiness, "Improve this CV with stronger wording, better structure, and measurable impact."],
-  ["Analyze contracts", FileSearch, "Analyze this contract and highlight risks, obligations, dates, and unusual clauses."],
-  ["Analyze reports", FileSearch, "Analyze this report and summarize findings, risks, metrics, and recommendations."],
-];
-
-const WRITE_EDIT_SECTIONS = [
-  {
-    title: "Writing",
-    icon: PenLine,
-    items: [
-      ["Email Writer", "Generate clear professional emails.", "Write a professional email about "],
-      ["CV Builder", "Create or improve your resume.", "Build a professional CV for "],
-      ["Cover Letter", "Draft a tailored cover letter.", "Write a cover letter for "],
-      ["Blog Post", "Create structured long-form content.", "Write a blog post about "],
-      ["Social Media Post", "Create posts for social platforms.", "Write a social media post about "],
-      ["Product Description", "Describe products clearly and persuasively.", "Write a product description for "],
-      ["Business Proposal", "Create a polished business proposal.", "Write a business proposal for "],
-    ],
-  },
-  {
-    title: "Edit & Improve",
-    icon: Sparkles,
-    items: [
-      ["Rewrite Text", "Improve clarity and flow.", "Rewrite this text and improve clarity:\n\n"],
-      ["Fix Grammar", "Correct grammar, spelling, and punctuation.", "Fix grammar and spelling in this text:\n\n"],
-      ["Make Professional", "Make text polished and business-ready.", "Make this text more professional:\n\n"],
-      ["Make Friendly", "Make text warmer and approachable.", "Make this text more friendly:\n\n"],
-      ["Shorten Text", "Condense text without losing meaning.", "Shorten this text:\n\n"],
-      ["Expand Text", "Add helpful detail and structure.", "Expand this text with more detail:\n\n"],
-      ["Translate Text", "Translate between multiple languages.", "Translate this text to "],
-      ["Summarize Text", "Extract the main points quickly.", "Summarize this text:\n\n"],
-    ],
-  },
-  {
-    title: "Study & Learning",
-    icon: GraduationCap,
-    items: [
-      ["Essay Writer", "Create academic essays and reports.", "Write an academic essay about "],
-      ["Homework Assistant", "Get step-by-step study help.", "Help me with this homework question:\n\n"],
-      ["School Report", "Build structured school reports.", "Create a school report about "],
-      ["Research Notes", "Organize findings into notes.", "Create research notes about "],
-      ["Flashcards Generator", "Turn material into study cards.", "Create flashcards from this topic:\n\n"],
-      ["Study Planner", "Plan study sessions and deadlines.", "Create a study plan for "],
-    ],
-  },
-];
+import {
+  QUICK_WRITE_TEMPLATES,
+  WRITE_EDIT_SECTIONS,
+  WRITE_UPLOAD_ACTIONS,
+} from "@/data/writeEditTemplates";
 
 export default function MobileWriteEdit() {
   const navigate = useNavigate();
@@ -142,7 +75,7 @@ export default function MobileWriteEdit() {
           <section className="mb-7">
             <h3 className="mb-3 px-1 text-base font-semibold">Quick templates</h3>
             <div className="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {QUICK_WRITE_TEMPLATES.map(([title, Icon, prompt], index) => (
+              {QUICK_WRITE_TEMPLATES.map(({ title, icon: Icon, prompt }, index) => (
                 <motion.button
                   key={title}
                   type="button"
@@ -165,7 +98,7 @@ export default function MobileWriteEdit() {
           <section className="mb-7">
             <h3 className="mb-3 px-1 text-base font-semibold">Smart suggestions</h3>
             <div className="grid grid-cols-1 gap-3">
-              {WRITE_UPLOAD_ACTIONS.map(([title, Icon, prompt], index) => (
+              {WRITE_UPLOAD_ACTIONS.map(({ title, icon: Icon, prompt }, index) => (
                 <motion.button
                   key={title}
                   type="button"
@@ -194,7 +127,7 @@ export default function MobileWriteEdit() {
                     <h3 className="text-base font-semibold">{section.title}</h3>
                   </div>
                   <div className="grid grid-cols-1 gap-4">
-                    {section.items.map(([title, description, prompt], index) => (
+                    {section.items.map(({ title, description, prompt }, index) => (
                       <motion.button
                         key={`${section.title}-${title}-${index}`}
                         type="button"
