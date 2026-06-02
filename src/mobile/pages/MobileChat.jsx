@@ -212,27 +212,6 @@ function getSearchResultsForCategory(category) {
   }));
 }
 
-function getSearchAiOpening({ category, item, intent }) {
-  if (intent === "learn_more_about_selected_item" && item) {
-    if (category.id === "books") {
-      return `I see you are interested in ${item.title}.\n\nWhat would you like to know about this book?\n\nI can help with a summary, key ideas, similar books, author information, or a reading plan.`;
-    }
-    return `I see you are interested in ${item.title}.\n\nWhat would you like to know about it? I can help with a summary, background, useful resources, or next steps.`;
-  }
-
-  if (category.id === "schools") {
-    return "I see you are looking for a school.\n\nTell me the country, city, program, or anything you remember, and I will help you find it.";
-  }
-  if (category.id === "people") {
-    return "I see you are looking for a person.\n\nTell me their name or describe them, and I will help identify them.";
-  }
-  if (category.id === "books") {
-    return "I see you are looking for a book.\n\nTell me the book name, or describe anything you remember about it, and I will help you find it.";
-  }
-
-  return `I see you are looking for something in ${category.title}.\n\nTell me what you remember or what you need, and I will help you find it.`;
-}
-
 const DISLIKE_REASONS = [
   "feedbackInaccurate",
   "feedbackBadFormatting",
@@ -1136,12 +1115,15 @@ export default function MobileChat() {
     keepComposer = false,
     mode = responseMode,
     metadata = {},
+    hideUserMessage = false,
   }) => {
     const visibleMessage = String(prompt || "").trim();
     const currentMessage = activeWriteTask
       ? buildWriteEditMessage(visibleMessage, writeAttachments)
       : visibleMessage;
-    if (!currentMessage || isGeneratingImage || isChatSending) return;
+    const isSearchHandoff = String(metadata?.source || metadata?.searchContext?.source || "").toLowerCase() === "search";
+    const canStartFromContext = isSearchHandoff && metadata?.intent && (metadata?.category || metadata?.searchContext?.category);
+    if ((!currentMessage && !canStartFromContext) || isGeneratingImage || isChatSending) return;
 
     const selectedMode = AI_RESPONSE_MODES.includes(mode) ? mode : responseMode;
     const userMessageId = crypto.randomUUID();
@@ -1158,7 +1140,9 @@ export default function MobileChat() {
 
     setMessages((current) => [
       ...current,
-      { id: userMessageId, role: "user", content: visibleMessage, attachments: writeAttachments, metadata: userMetadata },
+      ...(!hideUserMessage && visibleMessage
+        ? [{ id: userMessageId, role: "user", content: visibleMessage, attachments: writeAttachments, metadata: userMetadata }]
+        : []),
       { id: aiMessageId, role: "ai", content: "", isStreaming: true },
     ]);
 
@@ -1373,7 +1357,14 @@ export default function MobileChat() {
     if (!searchConfirm?.category) return;
 
     const { category, item, intent } = searchConfirm;
-    const opening = getSearchAiOpening({ category, item, intent });
+    const searchContext = {
+      source: "search",
+      category: category.id,
+      categoryTitle: category.title,
+      intent,
+      ...(item?.title ? { selectedItem: item.title } : {}),
+    };
+
     setSearchConfirm(null);
     setIsSearchMode(false);
     setSelectedSearchCategory(null);
@@ -1382,14 +1373,16 @@ export default function MobileChat() {
     setMessage("");
 
     await sendChatPrompt({
-      prompt: opening,
+      prompt: "",
       metadata: {
-        source: "Search",
-        category: category.title,
-        categoryId: category.id,
+        source: "search",
+        category: category.id,
+        categoryTitle: category.title,
         selectedItem: item?.title,
         intent,
+        searchContext,
       },
+      hideUserMessage: true,
     });
   };
 
