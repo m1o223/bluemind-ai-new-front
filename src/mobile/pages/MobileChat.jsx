@@ -1031,12 +1031,12 @@ export default function MobileChat() {
             <div
               className={`min-w-0 flex-1 rounded-[28px] border px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.12)] ${borderColor}`}
               style={{
-                backgroundColor: isDark ? "rgba(32,32,32,0.82)" : "rgba(255,255,255,0.85)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
+                backgroundColor: isDark ? "rgba(32,32,32,0.82)" : "rgba(255,255,255,0.64)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
               }}
             >
-              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: "#FFFFFF", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: isDark ? "#FFFFFF" : "var(--bluemind-app-color, #193B68)", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
                 <span>Image</span>
                 <button
                   type="button"
