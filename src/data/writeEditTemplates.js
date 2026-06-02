@@ -211,13 +211,62 @@ export const WRITE_EDIT_SECTIONS = [
 ];
 
 export const QUICK_WRITE_TEMPLATES = [
-  { id: "email-writer", title: "Email Writer", description: "Draft a polished message with the right tone.", icon: Mail, prompt: "Write a professional email about " },
-  { id: "cv-builder", title: "CV Builder", description: "Shape experience into a clean professional CV.", icon: FileCheck2, prompt: "Build a professional CV for " },
-  { id: "essay-writer", title: "Essay Writer", description: "Start a structured essay with a clear direction.", icon: GraduationCap, prompt: "Write a school essay about " },
-  { id: "business-proposal", title: "Business Proposal", description: "Frame an idea as a clear business proposal.", icon: BriefcaseBusiness, prompt: "Create a business proposal for " },
-  { id: "cover-letter", title: "Cover Letter", description: "Create a focused letter for a role or opportunity.", icon: PenLine, prompt: "Write a cover letter for " },
-  { id: "social-media-post", title: "Social Media Post", description: "Turn an idea into a concise social post.", icon: BadgeCheck, prompt: "Create a social media post about " },
-  { id: "product-description", title: "Product Description", description: "Describe a product with clarity and appeal.", icon: ClipboardList, prompt: "Create a product description for " },
+  {
+    id: "email-writer",
+    title: "Email Writer",
+    description: "Draft a polished message with the right tone.",
+    icon: Mail,
+    prompt: "Write a professional email about ",
+    artwork: { category: "Writing", from: "#3767D8", via: "#75A7FF", to: "#D8E8FF", accent: "#FFFFFF" },
+  },
+  {
+    id: "cv-builder",
+    title: "CV Builder",
+    description: "Shape experience into a clean professional CV.",
+    icon: FileCheck2,
+    prompt: "Build a professional CV for ",
+    artwork: { category: "Career", from: "#193B68", via: "#3D7EC8", to: "#B9D7F6", accent: "#FFFFFF" },
+  },
+  {
+    id: "essay-writer",
+    title: "Essay Writer",
+    description: "Create structured essays and school reports.",
+    icon: GraduationCap,
+    prompt: "Write a structured essay about ",
+    artwork: { category: "Study", from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF", accent: "#FFFFFF" },
+  },
+  {
+    id: "business-proposal",
+    title: "Business Proposal",
+    description: "Build a clear proposal with strong structure.",
+    icon: BriefcaseBusiness,
+    prompt: "Create a business proposal for ",
+    artwork: { category: "Business", from: "#0F766E", via: "#34C3AA", to: "#C8F7EC", accent: "#FFFFFF" },
+  },
+  {
+    id: "cover-letter",
+    title: "Cover Letter",
+    description: "Draft a tailored cover letter for a role.",
+    icon: PenLine,
+    prompt: "Write a cover letter for ",
+    artwork: { category: "Career", from: "#A855F7", via: "#D18BFF", to: "#F1D9FF", accent: "#FFFFFF" },
+  },
+  {
+    id: "social-media-post",
+    title: "Social Media Post",
+    description: "Create posts for social platforms.",
+    icon: BadgeCheck,
+    prompt: "Create a social media post about ",
+    artwork: { category: "Social", from: "#EA580C", via: "#FDBA74", to: "#FFEDD5", accent: "#FFFFFF" },
+  },
+  {
+    id: "product-description",
+    title: "Product Description",
+    description: "Describe products clearly and persuasively.",
+    icon: ClipboardList,
+    prompt: "Write a product description for ",
+    artwork: { category: "Product", from: "#BE123C", via: "#FB7185", to: "#FFE4E6", accent: "#FFFFFF" },
+  },
 ];
 
 export const WRITE_UPLOAD_ACTIONS = [

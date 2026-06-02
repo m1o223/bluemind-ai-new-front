@@ -1,44 +1,110 @@
-import { useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
+  ArrowUp,
+  Mic,
+  Plus,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { useApp } from "@/context/AppContext";
-import {
-  QUICK_WRITE_TEMPLATES,
-  WRITE_EDIT_SECTIONS,
-  WRITE_UPLOAD_ACTIONS,
-} from "@/data/writeEditTemplates";
+import { QUICK_WRITE_TEMPLATES } from "@/data/writeEditTemplates";
+
+function WriteTemplateArtwork({ template }) {
+  const artwork = template.artwork || {};
+  const from = artwork.from || "#193B68";
+  const via = artwork.via || "#4E8EDB";
+  const to = artwork.to || "#D8E8FF";
+
+  return (
+    <div
+      className="relative aspect-[1.35] overflow-hidden"
+      style={{
+        background: `linear-gradient(135deg, ${from} 0%, ${via} 54%, ${to} 100%)`,
+      }}
+    >
+      <div className="absolute -left-8 -top-8 h-24 w-24 rounded-full bg-white/20 blur-sm" />
+      <div className="absolute right-3 top-5 h-16 w-24 rotate-[-10deg] rounded-[24px] border border-white/18 bg-white/18" />
+      <div className="absolute bottom-4 left-4 h-16 w-20 rotate-[8deg] rounded-[22px] border border-white/16 bg-white/14" />
+      <div className="absolute -bottom-12 right-[-18px] h-28 w-28 rounded-full bg-white/16" />
+      <svg
+        className="absolute inset-x-0 bottom-2 h-24 w-full text-white/75"
+        viewBox="0 0 220 110"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 76C42 32 70 101 103 56C129 20 154 35 181 69C194 85 204 88 216 78"
+          stroke="currentColor"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
+        <path
+          d="M36 35H122"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          opacity="0.48"
+        />
+        <path
+          d="M50 50H154"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          opacity="0.32"
+        />
+      </svg>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+      <span className="absolute left-3 top-3 rounded-full bg-white/18 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur">
+        {artwork.category || "Write/Edit"}
+      </span>
+    </div>
+  );
+}
 
 export default function MobileWriteEdit() {
   const navigate = useNavigate();
-  const quickTemplatesRef = useRef(null);
+  const inputRef = useRef(null);
   const { resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [message, setMessage] = useState("");
+
   const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
-  const panelClass = isDark
-    ? "border-white/[0.08] bg-white/[0.045] text-white"
-    : "border-white/80 bg-white/70 text-[#111827] shadow-slate-200/70";
-  const cardClass = isDark
-    ? "border-white/[0.08] bg-white/[0.06] text-white active:bg-white/[0.1]"
-    : "border-white/75 bg-white/82 text-[#111827] shadow-slate-200/70 active:bg-white";
+  const borderColor = isDark ? "border-white/[0.08]" : "border-[#E5E7EB]";
   const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
   const textColor = isDark ? "text-white" : "text-[#111827]";
+  const hasComposerContent = message.trim().length > 0;
 
-  const openTemplate = (template) => {
-    navigate(`/mobile/chat?writeTemplate=${encodeURIComponent(template.id)}`);
+  const cards = useMemo(() => QUICK_WRITE_TEMPLATES, []);
+
+  const closeWriteEdit = () => {
+    navigate("/mobile/chat");
   };
 
-  const scrollQuickTemplates = (direction) => {
-    const node = quickTemplatesRef.current;
-    if (!node) return;
-    const cardWidth = node.querySelector("[data-quick-template-card]")?.clientWidth || 180;
-    node.scrollBy({ left: direction * (cardWidth + 12), behavior: "smooth" });
+  const clearWriteEdit = () => {
+    setSelectedTemplate(null);
+    setMessage("");
+    navigate("/mobile/chat");
+  };
+
+  const selectTemplate = (template) => {
+    setSelectedTemplate(template);
+    setMessage(template.prompt || "");
+    window.setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (!hasComposerContent) return;
+
+    const params = new URLSearchParams({
+      prompt: message.trim(),
+      writeMode: "true",
+    });
+
+    navigate(`/mobile/chat?${params.toString()}`);
   };
 
   return (
@@ -52,158 +118,135 @@ export default function MobileWriteEdit() {
       }}
       data-testid="mobile-write-edit-page"
     >
-      <header className={`flex h-14 items-center gap-3 border-b px-4 ${isDark ? "border-white/[0.08]" : "border-[#E5E7EB]"}`}>
-        <button
-          type="button"
-          onClick={() => navigate("/mobile/chat")}
-          className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div>
-          <h1 className="text-base font-bold">Write/Edit</h1>
-          <p className={`text-xs font-semibold ${mutedText}`}>Desktop tools, tuned for mobile.</p>
+      <section className="min-h-0 flex-1 overflow-y-auto px-4 pb-[210px] pt-4">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h1 className={`text-lg font-bold tracking-tight ${textColor}`}>Write/Edit</h1>
+          <button
+            type="button"
+            onClick={closeWriteEdit}
+            className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+            aria-label="Exit write edit mode"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-      </header>
 
-      <section className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-[28px] border p-4 shadow-sm ${panelClass}`}
-        >
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">Productivity workspace</h2>
-              <p className={`mt-1 text-sm ${mutedText}`}>Draft, rewrite, summarize, translate, and polish text.</p>
-            </div>
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#193B68] text-white">
-              <FileText className="h-5 w-5" />
-            </span>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          {cards.map((template, index) => (
+            <motion.button
+              key={template.id}
+              type="button"
+              onClick={() => selectTemplate(template)}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.16) }}
+              whileHover={{ y: -5 }}
+              whileTap={{ scale: 0.985 }}
+              className={`group overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                isDark
+                  ? "border-white/[0.08] bg-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.1]"
+                  : "border-white/75 bg-white/82 shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+              }`}
+            >
+              <WriteTemplateArtwork template={template} />
+              <div className="p-3">
+                <span className={`block text-sm font-bold leading-5 ${textColor}`}>
+                  {template.title}
+                </span>
+                <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${mutedText}`}>
+                  {template.description}
+                </span>
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      </section>
 
-          <section className="mb-7">
-            <div className="mb-3 flex items-center justify-between gap-3 px-1">
-              <h3 className="text-base font-semibold">Quick templates</h3>
-              <div className="flex items-center gap-1.5">
+      <div className="fixed inset-x-0 bottom-0 z-20 px-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+        <form className="mx-auto w-full max-w-[430px] space-y-2" onSubmit={handleSubmit}>
+          <div className="flex items-end gap-3">
+            <button
+              type="button"
+              className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+              style={{
+                backgroundColor: isDark ? "rgba(32,32,32,0.82)" : "rgba(255,255,255,0.85)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+              }}
+              aria-label="Add attachment"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+
+            <div
+              className={`min-w-0 flex-1 rounded-[28px] border px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.12)] ${borderColor}`}
+              style={{
+                backgroundColor: isDark ? "rgba(32,32,32,0.82)" : "rgba(255,255,255,0.64)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+              }}
+            >
+              <div
+                className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold"
+                style={{
+                  color: isDark ? "#FFFFFF" : "var(--bluemind-app-color, #193B68)",
+                  backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)",
+                }}
+              >
+                <span>Write/Edit</span>
                 <button
                   type="button"
-                  onClick={() => scrollQuickTemplates(-1)}
-                  className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.07] text-white active:bg-white/[0.12]" : "flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#193B68] shadow-sm active:bg-[#EEF2F7]"}
-                  aria-label="Previous quick template"
+                  onClick={clearWriteEdit}
+                  className="flex h-5 w-5 items-center justify-center rounded-full active:bg-current/10"
+                  aria-label="Exit write edit mode"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
+              </div>
+
+              {selectedTemplate && (
+                <p className={`mb-2 text-xs font-semibold ${mutedText}`}>
+                  {selectedTemplate.title}
+                </p>
+              )}
+
+              <textarea
+                ref={inputRef}
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                rows={3}
+                placeholder="Write, paste, or choose a productivity tool..."
+                className={`max-h-[180px] min-h-[86px] w-full resize-none bg-transparent text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+                style={{ caretColor: "var(--bluemind-app-color, #193B68)" }}
+              />
+
+              <div className="mt-1 flex items-center justify-end gap-1.5">
                 <button
                   type="button"
-                  onClick={() => scrollQuickTemplates(1)}
-                  className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.07] text-white active:bg-white/[0.12]" : "flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#193B68] shadow-sm active:bg-[#EEF2F7]"}
-                  aria-label="Next quick template"
+                  className={isDark ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                  aria-label="Voice"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <Mic className="h-5 w-5" />
+                </button>
+
+                <button
+                  type="submit"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-[0_8px_18px_rgba(25,59,104,0.18)] transition-colors duration-200 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: hasComposerContent
+                      ? "var(--bluemind-app-color, #193B68)"
+                      : isDark ? "#4B5563" : "#9CA3AF",
+                  }}
+                  disabled={!hasComposerContent}
+                  aria-label="Send"
+                >
+                  <ArrowUp className="h-[20px] w-[18px] -translate-y-[2px] stroke-[3]" />
                 </button>
               </div>
             </div>
-            <div
-              ref={quickTemplatesRef}
-              className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
-              {QUICK_WRITE_TEMPLATES.map((template, index) => {
-                const { title, description, icon: Icon } = template;
-                return (
-                <motion.button
-                  key={title}
-                  type="button"
-                  onClick={() => openTemplate(template)}
-                  data-quick-template-card
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
-                  whileTap={{ scale: 0.985 }}
-                  className={`relative min-h-[156px] min-w-[calc(50%-0.375rem)] snap-start overflow-hidden rounded-[24px] border p-4 text-left shadow-sm transition ${
-                    isDark
-                      ? "border-white/[0.08] bg-white/[0.06] text-white active:bg-white/[0.1]"
-                      : "border-white/80 bg-white/90 text-[#111827] shadow-slate-200/70 active:bg-white"
-                  }`}
-                >
-                  <span className={isDark ? "absolute -right-5 -top-4 flex h-24 w-24 items-center justify-center rounded-[28px] bg-white/[0.06] text-white/12" : "absolute -right-5 -top-4 flex h-24 w-24 items-center justify-center rounded-[28px] bg-[#EEF2FF] text-[#193B68]/12"}>
-                    <Icon className="h-14 w-14 stroke-[1.7]" />
-                  </span>
-                  <span className={isDark ? "relative z-10 mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08] text-[#D7D7D7]" : "relative z-10 mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#193B68]"}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="relative z-10 block text-sm font-bold leading-5">{title}</span>
-                  <span className={`relative z-10 mt-2 block text-[11px] font-medium leading-4 ${mutedText}`}>{description}</span>
-                </motion.button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="mb-7">
-            <h3 className="mb-3 px-1 text-base font-semibold">Smart suggestions</h3>
-            <div className="grid grid-cols-1 gap-3">
-              {WRITE_UPLOAD_ACTIONS.map((template, index) => {
-                const { title, icon: Icon } = template;
-                return (
-                <motion.button
-                  key={title}
-                  type="button"
-                  onClick={() => openTemplate(template)}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
-                  whileTap={{ scale: 0.985 }}
-                  className={`rounded-2xl border p-4 text-left transition ${cardClass}`}
-                >
-                  <Icon className={isDark ? "mb-3 h-5 w-5 text-[#D7D7D7]" : "mb-3 h-5 w-5 text-[#193B68]"} />
-                  <span className="block text-sm font-semibold">{title}</span>
-                  <span className={`mt-1 block text-xs leading-5 ${mutedText}`}>Upload or paste content for smarter context.</span>
-                </motion.button>
-                );
-              })}
-            </div>
-          </section>
-
-          <div className="space-y-7">
-            {WRITE_EDIT_SECTIONS.map((section) => {
-              const SectionIcon = section.icon;
-              return (
-                <section key={section.title}>
-                  <div className="mb-3 flex items-center gap-2 px-1">
-                    <SectionIcon className={isDark ? "h-5 w-5 text-[#D7D7D7]" : "h-5 w-5 text-[#193B68]"} />
-                    <h3 className="text-base font-semibold">{section.title}</h3>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">
-                    {section.items.map((template, index) => {
-                      const { title, description } = template;
-                      return (
-                      <motion.button
-                        key={`${section.title}-${title}-${index}`}
-                        type="button"
-                        onClick={() => openTemplate(template)}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2, delay: Math.min(index * 0.018, 0.12) }}
-                        whileTap={{ scale: 0.985 }}
-                        className={`group min-h-[132px] rounded-[26px] border p-4 text-left shadow-sm transition ${cardClass}`}
-                      >
-                        <div className={isDark ? "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.08]" : "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF]"}>
-                          <SectionIcon className={isDark ? "h-5 w-5 text-[#D7D7D7]" : "h-5 w-5 text-[#193B68]"} />
-                        </div>
-                        <span className="block text-sm font-semibold">{title}</span>
-                        <span className={`mt-2 block text-xs leading-5 ${mutedText}`}>{description}</span>
-                      </motion.button>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
           </div>
-        </motion.div>
-      </section>
+        </form>
+      </div>
     </main>
   );
 }
