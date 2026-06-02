@@ -549,6 +549,15 @@ export default function MobileChat() {
     setGeneratedImages([]);
     setImageModeError("");
     setImageModeStatus("");
+    setActiveWriteTask(null);
+    setPendingWriteTemplate(null);
+    setWriteAttachments((current) => {
+      current.forEach((file) => {
+        if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+      });
+      return [];
+    });
+    setWriteAttachmentChoiceOpen(false);
     setAttachedImages((current) => {
       current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
       return [];
@@ -559,6 +568,11 @@ export default function MobileChat() {
   const openConversation = (conversationId) => {
     closeMenu();
     setSearchParams({ conversation: conversationId });
+  };
+
+  const clearMobileFlowParams = () => {
+    const conversation = searchParams.get("conversation");
+    setSearchParams(conversation ? { conversation } : {});
   };
 
   const handleTouchStart = (event) => {
@@ -604,6 +618,7 @@ export default function MobileChat() {
 
   const activateWriteTask = (template, files = []) => {
     if (!template) return;
+    clearMobileFlowParams();
     setActiveWriteTask(createWriteEditTask(template));
     setWriteAttachments(files);
     setMessage(template.prompt);
@@ -613,6 +628,7 @@ export default function MobileChat() {
   };
 
   const clearWriteTask = () => {
+    clearMobileFlowParams();
     writeAttachments.forEach((file) => {
       if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
     });

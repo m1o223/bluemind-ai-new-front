@@ -11,6 +11,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+// Shared source of truth for Write/Edit templates. Desktop and mobile may only
+// adapt layout; titles, prompts, upload options, and workflow metadata stay here.
 export const WRITE_EDIT_UPLOAD_OPTIONS = [
   { id: "upload_file", label: "Upload from Files", accepts: "document" },
   { id: "upload_image", label: "Upload from Gallery", accepts: "image" },
