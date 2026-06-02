@@ -51,8 +51,12 @@ import {
   createLiveWebsiteResults,
 } from "@/data/websiteDirectory";
 import {
+  buildWriteEditMessage,
+  createWriteEditTask,
+  getWriteEditAttachmentLabel,
   QUICK_WRITE_TEMPLATES,
   WRITE_EDIT_SECTIONS,
+  WRITE_EDIT_UPLOAD_OPTIONS,
   WRITE_UPLOAD_ACTIONS,
 } from "@/data/writeEditTemplates";
 import {
@@ -1683,6 +1687,9 @@ export default function ChatPage() {
   });
   const [selectedWebsite, setSelectedWebsite] = useState(null);
   const [writeFiles, setWriteFiles] = useState([]);
+  const [activeWriteTask, setActiveWriteTask] = useState(null);
+  const [pendingWriteTemplate, setPendingWriteTemplate] = useState(null);
+  const [writeAttachmentChoiceOpen, setWriteAttachmentChoiceOpen] = useState(false);
   const [messageFeedback, setMessageFeedback] = useState({});
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -1690,6 +1697,8 @@ export default function ChatPage() {
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const writeImageInputRef = useRef(null);
+  const writeCameraInputRef = useRef(null);
   const streamAbortRef = useRef(null);
   const speechRecognitionRef = useRef(null);
   const activeAiMessageRef = useRef(null);
@@ -1973,6 +1982,55 @@ export default function ChatPage() {
     toast.info(t("fileUploadComingSoon"));
   };
 
+  const activateWriteTask = useCallback((template, files = []) => {
+    if (!template) return;
+
+    setActiveMode("write_edit");
+    setActiveWriteTask(createWriteEditTask(template));
+    setWriteFiles(files);
+    setInput(template.prompt);
+    setWriteAttachmentChoiceOpen(false);
+    setPendingWriteTemplate(null);
+  }, []);
+
+  const beginWriteTemplateFlow = useCallback((template) => {
+    if (!template) return;
+    setActiveMode("write_edit");
+    setPendingWriteTemplate(template);
+    setWriteAttachmentChoiceOpen(true);
+  }, []);
+
+  const clearWriteTask = useCallback(() => {
+    writeFiles.forEach((file) => {
+      if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+    });
+    setActiveWriteTask(null);
+    setPendingWriteTemplate(null);
+    setWriteAttachmentChoiceOpen(false);
+    setWriteFiles([]);
+    setInput("");
+    setActiveMode("default");
+  }, [writeFiles]);
+
+  const continueWriteTaskWithoutAttachment = useCallback(() => {
+    if (!pendingWriteTemplate) return;
+    activateWriteTask(pendingWriteTemplate, []);
+  }, [activateWriteTask, pendingWriteTemplate]);
+
+  const openWriteAttachmentInput = useCallback((optionId) => {
+    if (optionId === "upload_image") {
+      writeImageInputRef.current?.click();
+      return;
+    }
+
+    if (optionId === "take_photo") {
+      writeCameraInputRef.current?.click();
+      return;
+    }
+
+    fileInputRef.current?.click();
+  }, []);
+
   const handleWriteFileSelect = async (event) => {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
@@ -2037,19 +2095,13 @@ export default function ChatPage() {
 
     if (!accepted.length) return;
 
+    if (pendingWriteTemplate) {
+      activateWriteTask(pendingWriteTemplate, accepted.slice(0, 8));
+      return;
+    }
+
     setWriteFiles((prev) => [...accepted, ...prev].slice(0, 8));
     setActiveMode("write_edit");
-
-    const first = accepted[0];
-    if (first.isCv) {
-      setInput(`Improve this CV and suggest a stronger structure:\n\n${first.content || `Uploaded file: ${first.name}`}`);
-    } else if (first.type === "image") {
-      setInput(`Extract text from this image and analyze it: ${first.name}`);
-    } else if (first.type === "text" && first.content) {
-      setInput(`Summarize this document and extract key points:\n\n${first.content.slice(0, 6000)}`);
-    } else {
-      setInput(`Summarize this uploaded document and extract key points: ${first.name}`);
-    }
   };
 
   const handleCreateSuggestion = async (suggestion) => {
@@ -2188,7 +2240,10 @@ export default function ChatPage() {
     const selectedResponseMode = normalizeResponseModeId(options.responseMode || responseMode);
     const sourceMessage = options.message;
     const sourceAttachments = options.attachments;
-    const currentInput = String(sourceMessage ?? input).trim();
+    const visibleInput = String(sourceMessage ?? input).trim();
+    const currentInput = mode === "write_edit"
+      ? buildWriteEditMessage(visibleInput, writeFiles)
+      : visibleInput;
     const currentAttachments = sourceAttachments ?? attachments;
 
     if ((!currentInput && currentAttachments.length === 0) || isAiTyping) return;
@@ -2198,12 +2253,13 @@ export default function ChatPage() {
     const userMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: currentInput || "Please analyze the attached image.",
+      content: visibleInput || "Please analyze the attached image.",
       attachments: currentAttachments,
       metadata: {
         chatMode: mode,
         mode: selectedResponseMode,
         responseMode: selectedResponseMode,
+        writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
       },
     };
     const aiMessageId = crypto.randomUUID();
@@ -2227,6 +2283,10 @@ export default function ChatPage() {
     if (!options.keepComposer) {
       setInput("");
       setAttachments([]);
+      setActiveWriteTask(null);
+      setPendingWriteTemplate(null);
+      setWriteAttachmentChoiceOpen(false);
+      setWriteFiles([]);
     }
     setIsAiTyping(true);
     stopRequestedRef.current = false;
@@ -2269,6 +2329,7 @@ export default function ChatPage() {
           chatMode: mode,
           mode: selectedResponseMode,
           responseMode: selectedResponseMode,
+          writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
         },
         signal: abortController.signal,
         onReady: (payload) => {
@@ -2376,6 +2437,7 @@ export default function ChatPage() {
   }, [
     activeMode,
     attachments,
+    activeWriteTask,
     conversationId,
     flushAiDelta,
     input,
@@ -2386,6 +2448,7 @@ export default function ChatPage() {
     responseMode,
     stopVoiceInput,
     t,
+    writeFiles,
   ]);
 
   const handleKeyDown = (e) => {
@@ -2509,23 +2572,13 @@ export default function ChatPage() {
     setInput(t(`imageIdea_${idea.id.replace(/-/g, "_")}_prompt`));
   }, [t]);
 
-  const handleWriteToolSelect = useCallback((prompt) => {
-    setActiveMode("write_edit");
-    setInput(prompt);
-  }, []);
+  const handleWriteToolSelect = useCallback((template) => {
+    beginWriteTemplateFlow(template);
+  }, [beginWriteTemplateFlow]);
 
-  const handleWriteUploadAction = useCallback((actionPrompt) => {
-    setActiveMode("write_edit");
-    const fileSummary = writeFiles.length
-      ? writeFiles.map((file) => `- ${file.name}`).join("\n")
-      : "- No file selected yet";
-    const textContext = writeFiles
-      .filter((file) => file.content)
-      .map((file) => `\n\nContent from ${file.name}:\n${file.content.slice(0, 6000)}`)
-      .join("");
-
-    setInput(`${actionPrompt}\n\nUploaded files:\n${fileSummary}${textContext}`);
-  }, [writeFiles]);
+  const handleWriteUploadAction = useCallback((template) => {
+    beginWriteTemplateFlow(template);
+  }, [beginWriteTemplateFlow]);
 
   const handleWebsiteSelect = useCallback((site) => {
     setActiveMode("web_search");
@@ -3078,11 +3131,13 @@ export default function ChatPage() {
           <section className="mb-7">
             <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("quickTemplates")}</h3>
             <div className="grid grid-cols-1 gap-3 sm:flex sm:overflow-x-auto sm:pb-2 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
-              {QUICK_WRITE_TEMPLATES.map(({ title, icon: Icon, prompt }, index) => (
+              {QUICK_WRITE_TEMPLATES.map((template, index) => {
+                const { title, icon: Icon } = template;
+                return (
                 <motion.button
                   key={title}
                   type="button"
-                  onClick={() => handleWriteToolSelect(prompt)}
+                  onClick={() => handleWriteToolSelect(template)}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
@@ -3097,18 +3152,21 @@ export default function ChatPage() {
                   </span>
                   <span className="text-sm font-semibold">{t(uiTextKey("quickWriteTemplate", title, "title"))}</span>
                 </motion.button>
-              ))}
+                );
+              })}
             </div>
           </section>
 
           <section className="mb-7">
             <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("smartSuggestions")}</h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {smartSuggestions.map(({ title, icon: Icon, prompt }, index) => (
+              {smartSuggestions.map((template, index) => {
+                const { title, icon: Icon } = template;
+                return (
                 <motion.button
                   key={title}
                   type="button"
-                  onClick={() => handleWriteUploadAction(prompt)}
+                  onClick={() => handleWriteUploadAction(template)}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
@@ -3124,7 +3182,8 @@ export default function ChatPage() {
                     {writeFiles.length ? t("suggestedFromUploadedFiles") : t("uploadFileForSmarterContext")}
                   </span>
                 </motion.button>
-              ))}
+                );
+              })}
             </div>
           </section>
 
@@ -3138,11 +3197,13 @@ export default function ChatPage() {
                     <h3 className={cn("text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t(uiTextKey("writeSection", section.title))}</h3>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {section.items.map(({ title, description, prompt }, index) => (
+                    {section.items.map((template, index) => {
+                      const { title, description } = template;
+                      return (
                       <motion.button
                         key={`${section.title}-${title}-${index}`}
                         type="button"
-                        onClick={() => handleWriteToolSelect(prompt)}
+                        onClick={() => handleWriteToolSelect(template)}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2, delay: Math.min(index * 0.018, 0.12) }}
@@ -3163,7 +3224,8 @@ export default function ChatPage() {
                           {t(uiTextKey("writeTool", title, "description"))}
                         </span>
                       </motion.button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               );
@@ -3377,6 +3439,51 @@ export default function ChatPage() {
           )}
         </AnimatePresence>
         <div className="min-w-0 flex-1">
+          <AnimatePresence>
+            {writeAttachmentChoiceOpen && pendingWriteTemplate && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                className={cn(
+                  "mb-3 max-w-[420px] rounded-3xl border p-3 shadow-xl backdrop-blur-2xl",
+                  isDark ? "border-white/10 bg-[#181818]/95 text-white" : "border-black/10 bg-white/90 text-[#111827]",
+                )}
+              >
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold">{pendingWriteTemplate.title}</p>
+                    <p className={cn("mt-1 text-xs font-medium", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+                      Choose an optional file or continue writing manually.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={continueWriteTaskWithoutAttachment}
+                    className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", isDark ? "hover:bg-white/10" : "hover:bg-black/5")}
+                    aria-label="Continue without attachment"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {WRITE_EDIT_UPLOAD_OPTIONS.filter((option) => option.id !== "continue").map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => openWriteAttachmentInput(option.id)}
+                      className={cn(
+                        "rounded-2xl px-3 py-3 text-left text-xs font-bold transition-colors",
+                        isDark ? "bg-white/[0.07] hover:bg-white/[0.12]" : "bg-[#EEF2F7] text-[#193B68] hover:bg-[#E2E8F0]",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {activeMode !== "default" && (
             activeMode === "web_search" ? (
               <div
@@ -3400,6 +3507,41 @@ export default function ChatPage() {
                 >
                   <X className="h-3.5 w-3.5 stroke-[2.2]" />
                 </button>
+              </div>
+            ) : activeMode === "write_edit" && activeWriteTask ? (
+              <div className="mb-2 space-y-2">
+                <button
+                  type="button"
+                  onClick={clearWriteTask}
+                  className={cn(
+                    "inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
+                    isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-[#EEF2FF] text-[#193B68] hover:bg-[#E0E7FF]",
+                  )}
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  <span className="truncate">{t("writeEdit")}</span>
+                  <X className="h-3 w-3 opacity-70" />
+                </button>
+                {writeFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {writeFiles.map((file) => (
+                      <span
+                        key={file.id}
+                        className={cn(
+                          "inline-flex max-w-full items-center gap-2 rounded-2xl border px-2.5 py-1.5 text-xs font-semibold",
+                          isDark ? "border-white/10 bg-white/[0.07] text-white" : "border-[#E5E7EB] bg-white/85 text-[#111827]",
+                        )}
+                      >
+                        {file.type === "image" && file.previewUrl ? (
+                          <img src={file.previewUrl} alt="" className="h-6 w-6 rounded-lg object-cover" />
+                        ) : (
+                          <FileText className={cn("h-4 w-4", isDark ? "text-[#D7D7D7]" : "text-[#193B68]")} />
+                        )}
+                        <span className="truncate">{getWriteEditAttachmentLabel(file)}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <button
@@ -3542,9 +3684,26 @@ export default function ChatPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".txt,.md,.doc,.docx,.csv,.json,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv,application/json"
+        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,image/png,image/jpeg,image/webp"
+        multiple
         className="hidden"
-        onChange={handleUnsupportedFileSelect}
+        onChange={handleWriteFileSelect}
+      />
+      <input
+        ref={writeImageInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        multiple
+        className="hidden"
+        onChange={handleWriteFileSelect}
+      />
+      <input
+        ref={writeCameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleWriteFileSelect}
       />
 
       <AnimatePresence>

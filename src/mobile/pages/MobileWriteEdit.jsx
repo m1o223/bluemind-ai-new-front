@@ -26,8 +26,8 @@ export default function MobileWriteEdit() {
   const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
   const textColor = isDark ? "text-white" : "text-[#111827]";
 
-  const openPrompt = (prompt) => {
-    navigate(`/mobile/chat?prompt=${encodeURIComponent(prompt)}`);
+  const openTemplate = (template) => {
+    navigate(`/mobile/chat?writeTemplate=${encodeURIComponent(template.id)}`);
   };
 
   return (
@@ -75,11 +75,13 @@ export default function MobileWriteEdit() {
           <section className="mb-7">
             <h3 className="mb-3 px-1 text-base font-semibold">Quick templates</h3>
             <div className="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {QUICK_WRITE_TEMPLATES.map(({ title, icon: Icon, prompt }, index) => (
+              {QUICK_WRITE_TEMPLATES.map((template, index) => {
+                const { title, icon: Icon } = template;
+                return (
                 <motion.button
                   key={title}
                   type="button"
-                  onClick={() => openPrompt(prompt)}
+                  onClick={() => openTemplate(template)}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
@@ -91,18 +93,21 @@ export default function MobileWriteEdit() {
                   </span>
                   <span className="text-sm font-semibold">{title}</span>
                 </motion.button>
-              ))}
+                );
+              })}
             </div>
           </section>
 
           <section className="mb-7">
             <h3 className="mb-3 px-1 text-base font-semibold">Smart suggestions</h3>
             <div className="grid grid-cols-1 gap-3">
-              {WRITE_UPLOAD_ACTIONS.map(({ title, icon: Icon, prompt }, index) => (
+              {WRITE_UPLOAD_ACTIONS.map((template, index) => {
+                const { title, icon: Icon } = template;
+                return (
                 <motion.button
                   key={title}
                   type="button"
-                  onClick={() => openPrompt(prompt)}
+                  onClick={() => openTemplate(template)}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
@@ -113,7 +118,8 @@ export default function MobileWriteEdit() {
                   <span className="block text-sm font-semibold">{title}</span>
                   <span className={`mt-1 block text-xs leading-5 ${mutedText}`}>Upload or paste content for smarter context.</span>
                 </motion.button>
-              ))}
+                );
+              })}
             </div>
           </section>
 
@@ -127,11 +133,13 @@ export default function MobileWriteEdit() {
                     <h3 className="text-base font-semibold">{section.title}</h3>
                   </div>
                   <div className="grid grid-cols-1 gap-4">
-                    {section.items.map(({ title, description, prompt }, index) => (
+                    {section.items.map((template, index) => {
+                      const { title, description } = template;
+                      return (
                       <motion.button
                         key={`${section.title}-${title}-${index}`}
                         type="button"
-                        onClick={() => openPrompt(prompt)}
+                        onClick={() => openTemplate(template)}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2, delay: Math.min(index * 0.018, 0.12) }}
@@ -144,7 +152,8 @@ export default function MobileWriteEdit() {
                         <span className="block text-sm font-semibold">{title}</span>
                         <span className={`mt-2 block text-xs leading-5 ${mutedText}`}>{description}</span>
                       </motion.button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               );

@@ -35,6 +35,13 @@ import {
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import { useApp } from "@/context/AppContext";
+import {
+  buildWriteEditMessage,
+  createWriteEditTask,
+  getWriteEditAttachmentLabel,
+  getWriteEditTemplateById,
+  WRITE_EDIT_UPLOAD_OPTIONS,
+} from "@/data/writeEditTemplates";
 import { getApiErrorMessage } from "@/services/api";
 import { listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
@@ -357,6 +364,10 @@ export default function MobileChat() {
   const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
   const [pendingImageTemplate, setPendingImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
+  const [activeWriteTask, setActiveWriteTask] = useState(null);
+  const [pendingWriteTemplate, setPendingWriteTemplate] = useState(null);
+  const [writeAttachments, setWriteAttachments] = useState([]);
+  const [writeAttachmentChoiceOpen, setWriteAttachmentChoiceOpen] = useState(false);
   const [generatedImages, setGeneratedImages] = useState([]);
   const [imageModeError, setImageModeError] = useState("");
   const [imageModeStatus, setImageModeStatus] = useState("");
@@ -494,11 +505,20 @@ export default function MobileChat() {
       setIsImageMode(true);
     }
 
+    const requestedWriteTemplate = searchParams.get("writeTemplate");
+    if (requestedWriteTemplate && !activeWriteTask && !pendingWriteTemplate) {
+      const template = getWriteEditTemplateById(requestedWriteTemplate);
+      if (template) {
+        setPendingWriteTemplate(template);
+        setWriteAttachmentChoiceOpen(true);
+      }
+    }
+
     const requestedPrompt = searchParams.get("prompt");
     if (requestedPrompt && !message.trim()) {
       setMessage(requestedPrompt);
     }
-  }, [message, searchParams]);
+  }, [activeWriteTask, message, pendingWriteTemplate, searchParams]);
 
   useEffect(() => () => {
     streamAbortRef.current?.abort();
@@ -582,6 +602,46 @@ export default function MobileChat() {
     setImageModeStatus("");
   };
 
+  const activateWriteTask = (template, files = []) => {
+    if (!template) return;
+    setActiveWriteTask(createWriteEditTask(template));
+    setWriteAttachments(files);
+    setMessage(template.prompt);
+    setPendingWriteTemplate(null);
+    setWriteAttachmentChoiceOpen(false);
+    setIsImageMode(false);
+  };
+
+  const clearWriteTask = () => {
+    writeAttachments.forEach((file) => {
+      if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+    });
+    setActiveWriteTask(null);
+    setPendingWriteTemplate(null);
+    setWriteAttachments([]);
+    setWriteAttachmentChoiceOpen(false);
+    setMessage("");
+  };
+
+  const continueWriteTaskWithoutAttachment = () => {
+    if (!pendingWriteTemplate) return;
+    activateWriteTask(pendingWriteTemplate, []);
+  };
+
+  const openWriteAttachmentInput = (optionId) => {
+    if (optionId === "upload_image") {
+      window.setTimeout(() => imageInputRef.current?.click(), 0);
+      return;
+    }
+
+    if (optionId === "take_photo") {
+      window.setTimeout(() => cameraInputRef.current?.click(), 0);
+      return;
+    }
+
+    window.setTimeout(() => fileInputRef.current?.click(), 0);
+  };
+
   const removeSelectedImageTemplate = () => {
     setSelectedImageTemplate(null);
     if (attachedImages.length === 0) {
@@ -607,7 +667,63 @@ export default function MobileChat() {
     window.setTimeout(() => inputRef.current?.click(), 0);
   };
 
+  const handleWriteAttachmentSelection = async (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!selectedFiles.length || !pendingWriteTemplate) return;
+
+    const accepted = [];
+
+    for (const file of selectedFiles) {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      const isImage = file.type.startsWith("image/");
+      const isText = file.type === "text/plain" || extension === "txt" || extension === "md";
+      const isPdf = file.type === "application/pdf" || extension === "pdf";
+      const isDoc = ["doc", "docx"].includes(extension);
+
+      if (!isImage && !isText && !isPdf && !isDoc) {
+        toast.error(`${file.name} is not supported here.`);
+        continue;
+      }
+
+      let content = "";
+      let imageId = null;
+      let previewUrl = "";
+
+      if (isText) {
+        content = await file.text().catch(() => "");
+      }
+
+      if (isImage) {
+        previewUrl = URL.createObjectURL(file);
+        try {
+          const uploaded = await uploadChatImage(file, activeConversationId);
+          imageId = uploaded.id;
+        } catch (error) {
+          toast.error(error.message || "Image upload failed");
+        }
+      }
+
+      accepted.push({
+        id: imageId || `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name: file.name,
+        type: isImage ? "image" : isText ? "text" : isPdf ? "pdf" : "document",
+        size: file.size,
+        content,
+        imageId,
+        previewUrl,
+      });
+    }
+
+    activateWriteTask(pendingWriteTemplate, accepted.slice(0, 6));
+  };
+
   const handleImageSelection = (event) => {
+    if (pendingWriteTemplate) {
+      void handleWriteAttachmentSelection(event);
+      return;
+    }
+
     const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
     if (files.length === 0) {
       event.target.value = "";
@@ -707,7 +823,10 @@ export default function MobileChat() {
     mode = responseMode,
     metadata = {},
   }) => {
-    const currentMessage = String(prompt || "").trim();
+    const visibleMessage = String(prompt || "").trim();
+    const currentMessage = activeWriteTask
+      ? buildWriteEditMessage(visibleMessage, writeAttachments)
+      : visibleMessage;
     if (!currentMessage || isGeneratingImage || isChatSending) return;
 
     const selectedMode = AI_RESPONSE_MODES.includes(mode) ? mode : responseMode;
@@ -719,16 +838,22 @@ export default function MobileChat() {
       mode: selectedMode,
       responseMode: selectedMode,
       ...metadata,
+      chatMode: activeWriteTask ? "write_edit" : metadata.chatMode || "chat",
+      writeEditTask: activeWriteTask || undefined,
     };
 
     setMessages((current) => [
       ...current,
-      { id: userMessageId, role: "user", content: currentMessage, attachments: [], metadata: userMetadata },
+      { id: userMessageId, role: "user", content: visibleMessage, attachments: writeAttachments, metadata: userMetadata },
       { id: aiMessageId, role: "ai", content: "", isStreaming: true },
     ]);
 
     if (!keepComposer) {
       setMessage("");
+      setActiveWriteTask(null);
+      setPendingWriteTemplate(null);
+      setWriteAttachmentChoiceOpen(false);
+      setWriteAttachments([]);
     }
 
     setIsChatSending(true);
@@ -741,6 +866,7 @@ export default function MobileChat() {
     try {
       await streamChatMessage({
         message: currentMessage,
+        imageIds: activeWriteTask ? writeAttachments.map((file) => file.imageId).filter(Boolean) : [],
         conversationId: activeConversationId,
         mode: selectedMode,
         metadata: userMetadata,
@@ -802,7 +928,7 @@ export default function MobileChat() {
       stopRequestedRef.current = false;
       setIsChatSending(false);
     }
-  }, [activeConversationId, isChatSending, isGeneratingImage, responseMode, setSearchParams]);
+  }, [activeConversationId, activeWriteTask, isChatSending, isGeneratingImage, responseMode, setSearchParams, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -1016,6 +1142,48 @@ export default function MobileChat() {
         </div>
       )}
 
+      <AnimatePresence>
+        {writeAttachmentChoiceOpen && pendingWriteTemplate && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            className={`mx-auto mb-3 w-full max-w-[360px] rounded-[26px] border p-3 text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-xl ${
+              isDark ? "border-white/[0.1] bg-[#202020]/[0.92] text-white" : "border-white/70 bg-white/[0.88] text-[#111827]"
+            }`}
+          >
+            <div className="mb-3 flex items-start justify-between gap-3 text-left">
+              <div>
+                <p className="text-sm font-bold">{pendingWriteTemplate.title}</p>
+                <p className={`mt-1 text-xs font-semibold leading-5 ${isDark ? "text-[#CFCFCF]" : "text-[#64748B]"}`}>
+                  Choose an optional attachment or continue manually.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={continueWriteTaskWithoutAttachment}
+                className={isDark ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                aria-label="Continue without attachment"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid gap-2">
+              {WRITE_EDIT_UPLOAD_OPTIONS.filter((option) => option.id !== "continue").map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => openWriteAttachmentInput(option.id)}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#193B68] active:bg-[#E2E8F0]"}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <form
         className="space-y-2"
         onSubmit={handleComposerSubmit}
@@ -1188,8 +1356,10 @@ export default function MobileChat() {
 
             <motion.div
               layout
-              className={`flex min-h-[52px] items-end rounded-[26px] border shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor} ${
-                separatePlus ? "w-[84%] pl-4 pr-2" : "w-full pl-2 pr-2"
+              className={`flex min-h-[52px] rounded-[26px] border shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor} ${
+                activeWriteTask ? "flex-col items-stretch px-3 py-3" : "items-end"
+              } ${
+                separatePlus ? activeWriteTask ? "w-[84%]" : "w-[84%] pl-4 pr-2" : activeWriteTask ? "w-full" : "w-full pl-2 pr-2"
               }`}
               style={{
                 backgroundColor: isDark ? "rgba(32,32,32,0.92)" : "rgba(255,255,255,0.92)",
@@ -1197,60 +1367,92 @@ export default function MobileChat() {
                 WebkitBackdropFilter: "blur(18px)",
               }}
             >
-              {!separatePlus && (
-                <motion.button
-                  layoutId="mobile-composer-plus"
-                  type="button"
-                  onClick={() => setAttachmentSheetOpen(true)}
-                  className={isDark ? "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.10]" : "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#193B68] active:bg-[#EEF2F7]"}
-                  aria-label="Attach"
-                >
-                  <Plus className="h-[18px] w-[18px]" />
-                </motion.button>
+              {activeWriteTask && (
+                <div className="mb-2 space-y-2">
+                  <button
+                    type="button"
+                    onClick={clearWriteTask}
+                    className={isDark ? "inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-xs font-bold text-white" : "inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-xs font-bold text-[#193B68]"}
+                  >
+                    <span>Write/Edit</span>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                  {writeAttachments.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {writeAttachments.map((file) => (
+                        <span
+                          key={file.id}
+                          className={isDark ? "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/[0.07] px-2.5 py-1.5 text-xs font-bold text-white" : "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/85 px-2.5 py-1.5 text-xs font-bold text-[#111827]"}
+                        >
+                          {file.type === "image" && file.previewUrl ? (
+                            <img src={file.previewUrl} alt="" className="h-7 w-7 rounded-lg object-cover" />
+                          ) : (
+                            <FileText className={isDark ? "h-4 w-4 text-[#D7D7D7]" : "h-4 w-4 text-[#193B68]"} />
+                          )}
+                          <span className="truncate">{getWriteEditAttachmentLabel(file)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
 
-              <textarea
-                ref={composerInputRef}
-                value={message}
-                onChange={(event) => {
-                  setMessage(event.target.value);
-                  resizeChatComposer(event.target);
-                }}
-                onInput={(event) => resizeChatComposer(event.currentTarget)}
-                rows={1}
-                placeholder="Ask anything..."
-                className={`max-h-[128px] min-h-[50px] flex-1 resize-none bg-transparent py-[13px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-                style={{ caretColor: "var(--bluemind-app-color, #193B68)" }}
-              />
-
-              <button
-                type="button"
-                className={isDark ? "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
-                aria-label="Voice"
-              >
-                <Mic className="h-5 w-5" />
-              </button>
-
-              <button
-                type={isChatSending ? "button" : "submit"}
-                onClick={isChatSending ? stopChatGeneration : undefined}
-                className="ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] transition-colors duration-200 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: hasComposerContent || isChatSending
-                    ? "var(--bluemind-app-color, #193B68)"
-                    : isDark ? "#4B5563" : "#9CA3AF",
-                }}
-                disabled={(!hasComposerContent && !isChatSending) || isGeneratingImage}
-                aria-label={isChatSending ? "Stop generating" : "Send"}
-              >
-                {isChatSending ? (
-                  <Square className="h-3.5 w-3.5 fill-current stroke-[2.5]" />
-                ) : isGeneratingImage ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                ) : (
-                  <ArrowUp className="h-5 w-5 -translate-y-[2px] stroke-[3.2]" />
+              <div className="flex w-full items-end">
+                {!separatePlus && (
+                  <motion.button
+                    layoutId="mobile-composer-plus"
+                    type="button"
+                    onClick={() => setAttachmentSheetOpen(true)}
+                    className={isDark ? "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.10]" : "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#193B68] active:bg-[#EEF2F7]"}
+                    aria-label="Attach"
+                  >
+                    <Plus className="h-[18px] w-[18px]" />
+                  </motion.button>
                 )}
-              </button>
+
+                <textarea
+                  ref={composerInputRef}
+                  value={message}
+                  onChange={(event) => {
+                    setMessage(event.target.value);
+                    resizeChatComposer(event.target);
+                  }}
+                  onInput={(event) => resizeChatComposer(event.currentTarget)}
+                  rows={1}
+                  placeholder={activeWriteTask ? activeWriteTask.prompt : "Ask anything..."}
+                  className={`max-h-[128px] min-h-[50px] flex-1 resize-none bg-transparent py-[13px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+                  style={{ caretColor: "var(--bluemind-app-color, #193B68)" }}
+                />
+
+                <button
+                  type="button"
+                  className={isDark ? "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                  aria-label="Voice"
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
+
+                <button
+                  type={isChatSending ? "button" : "submit"}
+                  onClick={isChatSending ? stopChatGeneration : undefined}
+                  className="ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] transition-colors duration-200 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: hasComposerContent || isChatSending
+                      ? "var(--bluemind-app-color, #193B68)"
+                      : isDark ? "#4B5563" : "#9CA3AF",
+                  }}
+                  disabled={(!hasComposerContent && !isChatSending) || isGeneratingImage}
+                  aria-label={isChatSending ? "Stop generating" : "Send"}
+                >
+                  {isChatSending ? (
+                    <Square className="h-3.5 w-3.5 fill-current stroke-[2.5]" />
+                  ) : isGeneratingImage ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <ArrowUp className="h-5 w-5 -translate-y-[2px] stroke-[3.2]" />
+                  )}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -1553,6 +1755,7 @@ export default function MobileChat() {
             ref={fileInputRef}
             type="file"
             accept=".pdf,.doc,.docx,.txt,.rtf,.md,.csv,.xls,.xlsx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            onChange={handleWriteAttachmentSelection}
             className="hidden"
             aria-hidden="true"
           />

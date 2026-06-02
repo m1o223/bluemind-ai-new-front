@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 
 export const WRITE_EDIT_UPLOAD_OPTIONS = [
-  { id: "upload_file", label: "Upload File", accepts: "document" },
-  { id: "upload_image", label: "Upload Image", accepts: "image" },
+  { id: "upload_file", label: "Upload from Files", accepts: "document" },
+  { id: "upload_image", label: "Upload from Gallery", accepts: "image" },
   { id: "take_photo", label: "Take Photo", accepts: "camera" },
   { id: "continue", label: "Continue without attachment", accepts: "none" },
 ];
@@ -34,7 +34,7 @@ export const WRITE_EDIT_SECTIONS = [
         id: "cv-builder",
         title: "CV Builder",
         description: "Create a polished CV from your details.",
-        prompt: "Create a professional CV for ",
+        prompt: "Build a professional CV for ",
       },
       {
         id: "cover-letter",
@@ -210,7 +210,7 @@ export const WRITE_EDIT_SECTIONS = [
 
 export const QUICK_WRITE_TEMPLATES = [
   { id: "email-writer", title: "Email Writer", icon: Mail, prompt: "Write a professional email about " },
-  { id: "cv-builder", title: "CV Builder", icon: FileCheck2, prompt: "Create a professional CV for " },
+  { id: "cv-builder", title: "Professional CV", icon: FileCheck2, prompt: "Build a professional CV for " },
   { id: "essay-writer", title: "Essay Writer", icon: GraduationCap, prompt: "Write a school essay about " },
   { id: "business-proposal", title: "Business Proposal", icon: BriefcaseBusiness, prompt: "Create a business proposal for " },
   { id: "cover-letter", title: "Cover Letter", icon: PenLine, prompt: "Write a cover letter for " },
@@ -255,4 +255,43 @@ export function getWriteEditTemplateById(templateId) {
   return WRITE_EDIT_SECTIONS
     .flatMap((section) => section.items)
     .find((template) => template.id === templateId) || null;
+}
+
+export function createWriteEditTask(template) {
+  if (!template) return null;
+
+  return {
+    id: template.id,
+    title: template.title,
+    prompt: template.prompt,
+  };
+}
+
+export function getWriteEditAttachmentLabel(attachment) {
+  if (!attachment) return "";
+  return attachment.name || attachment.fileName || attachment.title || "Attachment";
+}
+
+export function buildWriteEditMessage(prompt, attachments = []) {
+  const cleanPrompt = String(prompt || "").trim();
+  const usableAttachments = attachments.filter(Boolean);
+
+  if (!usableAttachments.length) {
+    return cleanPrompt;
+  }
+
+  const attachmentContext = usableAttachments.map((attachment, index) => {
+    const label = getWriteEditAttachmentLabel(attachment);
+    const heading = `Attachment ${index + 1}: ${label}`;
+
+    if (attachment.content) {
+      return `${heading}\n${attachment.content}`;
+    }
+
+    return heading;
+  }).join("\n\n");
+
+  return [cleanPrompt, attachmentContext && `Attached context:\n${attachmentContext}`]
+    .filter(Boolean)
+    .join("\n\n");
 }
