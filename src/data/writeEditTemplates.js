@@ -29,19 +29,19 @@ export const WRITE_EDIT_SECTIONS = [
       {
         id: "email-writer",
         title: "Email Writer",
-        description: "Start a clear professional email.",
+        description: "Draft a polished message with the right tone.",
         prompt: "Write a professional email about ",
       },
       {
         id: "cv-builder",
         title: "CV Builder",
-        description: "Create a polished CV from your details.",
+        description: "Shape experience into a clean professional CV.",
         prompt: "Build a professional CV for ",
       },
       {
         id: "cover-letter",
         title: "Cover Letter",
-        description: "Draft a tailored cover letter.",
+        description: "Draft a tailored cover letter for a role.",
         prompt: "Write a cover letter for ",
       },
       {
@@ -53,19 +53,19 @@ export const WRITE_EDIT_SECTIONS = [
       {
         id: "social-media-post",
         title: "Social Media Post",
-        description: "Create a post for social platforms.",
+        description: "Create posts for social platforms.",
         prompt: "Create a social media post about ",
       },
       {
         id: "product-description",
         title: "Product Description",
         description: "Describe a product clearly and persuasively.",
-        prompt: "Create a product description for ",
+        prompt: "Write a product description for ",
       },
       {
         id: "business-proposal",
         title: "Business Proposal",
-        description: "Start a polished business proposal.",
+        description: "Build a clear proposal with strong structure.",
         prompt: "Create a business proposal for ",
       },
     ],
@@ -141,8 +141,8 @@ export const WRITE_EDIT_SECTIONS = [
       {
         id: "essay-writer",
         title: "Essay Writer",
-        description: "Start a school essay.",
-        prompt: "Write a school essay about ",
+        description: "Create structured essays and school reports.",
+        prompt: "Write a structured essay about ",
       },
       {
         id: "homework-assistant",

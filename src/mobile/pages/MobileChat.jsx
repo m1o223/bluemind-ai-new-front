@@ -40,6 +40,7 @@ import {
   createWriteEditTask,
   getWriteEditAttachmentLabel,
   getWriteEditTemplateById,
+  WRITE_EDIT_SECTIONS,
   WRITE_EDIT_UPLOAD_OPTIONS,
 } from "@/data/writeEditTemplates";
 import { getApiErrorMessage } from "@/services/api";
@@ -49,6 +50,69 @@ import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/ser
 const AI_RESPONSE_MODES = ["fast", "smart", "thinking"];
 
 const MAX_IMAGE_ATTACHMENTS = 6;
+
+const WRITE_EDIT_ARTWORK_PALETTES = [
+  { from: "#3767D8", via: "#75A7FF", to: "#D8E8FF" },
+  { from: "#193B68", via: "#3D7EC8", to: "#B9D7F6" },
+  { from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF" },
+  { from: "#0F766E", via: "#34C3AA", to: "#C8F7EC" },
+  { from: "#A855F7", via: "#D18BFF", to: "#F1D9FF" },
+  { from: "#EA580C", via: "#FDBA74", to: "#FFEDD5" },
+  { from: "#BE123C", via: "#FB7185", to: "#FFE4E6" },
+  { from: "#0E7490", via: "#67E8F9", to: "#CFFAFE" },
+];
+
+function WriteTemplateArtwork({ template, index = 0 }) {
+  const artwork = template.artwork || WRITE_EDIT_ARTWORK_PALETTES[index % WRITE_EDIT_ARTWORK_PALETTES.length];
+  const from = artwork.from || "#193B68";
+  const via = artwork.via || "#4E8EDB";
+  const to = artwork.to || "#D8E8FF";
+
+  return (
+    <div
+      className="relative aspect-[1.35] overflow-hidden"
+      style={{
+        background: `linear-gradient(135deg, ${from} 0%, ${via} 54%, ${to} 100%)`,
+      }}
+    >
+      <div className="absolute -left-8 -top-8 h-24 w-24 rounded-full bg-white/20 blur-sm" />
+      <div className="absolute right-3 top-5 h-16 w-24 rotate-[-10deg] rounded-[24px] border border-white/18 bg-white/18" />
+      <div className="absolute bottom-4 left-4 h-16 w-20 rotate-[8deg] rounded-[22px] border border-white/16 bg-white/14" />
+      <div className="absolute -bottom-12 right-[-18px] h-28 w-28 rounded-full bg-white/16" />
+      <svg
+        className="absolute inset-x-0 bottom-2 h-24 w-full text-white/75"
+        viewBox="0 0 220 110"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 76C42 32 70 101 103 56C129 20 154 35 181 69C194 85 204 88 216 78"
+          stroke="currentColor"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
+        <path
+          d="M36 35H122"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          opacity="0.48"
+        />
+        <path
+          d="M50 50H154"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          opacity="0.32"
+        />
+      </svg>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+      <span className="absolute left-3 top-3 rounded-full bg-white/18 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur">
+        {template.sectionTitle || artwork.category || "Write/Edit"}
+      </span>
+    </div>
+  );
+}
 
 const DISLIKE_REASONS = [
   "feedbackInaccurate",
@@ -361,6 +425,7 @@ export default function MobileChat() {
     return AI_RESPONSE_MODES.includes(storedMode) ? storedMode : "smart";
   });
   const [isImageMode, setIsImageMode] = useState(false);
+  const [isWriteEditMode, setIsWriteEditMode] = useState(false);
   const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
   const [pendingImageTemplate, setPendingImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
@@ -405,20 +470,32 @@ export default function MobileChat() {
     return query ? searchResults : conversations;
   }, [conversations, menuSearchQuery, searchResults]);
 
+  const writeEditTemplates = useMemo(
+    () => WRITE_EDIT_SECTIONS.flatMap((section) => (
+      section.items.map((template) => ({
+        ...template,
+        sectionId: section.id,
+        sectionTitle: section.title,
+      }))
+    )),
+    [],
+  );
+
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
-  const isEmptyChat = !isImageMode && messages.length === 0 && generatedImages.length === 0;
+  const isEmptyChat = !isImageMode && !isWriteEditMode && messages.length === 0 && generatedImages.length === 0;
   const showEmptyActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
   const shouldPinComposer = !isEmptyChat;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
+  const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
 
   const resizeChatComposer = useCallback((node = composerInputRef.current) => {
-    if (!node || isImageMode) return;
+    if (!node || isImageMode || isWriteEditMode) return;
     const maxHeight = 128;
     node.style.height = "auto";
     const nextHeight = Math.min(node.scrollHeight, maxHeight);
     node.style.height = `${Math.max(nextHeight, 50)}px`;
     node.style.overflowY = node.scrollHeight > maxHeight ? "auto" : "hidden";
-  }, [isImageMode]);
+  }, [isImageMode, isWriteEditMode]);
 
   useEffect(() => {
     resizeChatComposer();
@@ -503,6 +580,12 @@ export default function MobileChat() {
   useEffect(() => {
     if (searchParams.get("mode") === "image") {
       setIsImageMode(true);
+      setIsWriteEditMode(false);
+    }
+
+    if (searchParams.get("mode") === "write-edit") {
+      setIsWriteEditMode(true);
+      setIsImageMode(false);
     }
 
     const requestedWriteTemplate = searchParams.get("writeTemplate");
@@ -545,6 +628,7 @@ export default function MobileChat() {
     closeMenu();
     setMessage("");
     setIsImageMode(false);
+    setIsWriteEditMode(false);
     setSelectedImageTemplate(null);
     setGeneratedImages([]);
     setImageModeError("");
@@ -598,6 +682,7 @@ export default function MobileChat() {
 
   const enterImageMode = () => {
     setIsImageMode(true);
+    setIsWriteEditMode(false);
     setImageModeError("");
     setAttachmentSheetOpen(false);
   };
@@ -610,6 +695,19 @@ export default function MobileChat() {
     setImageModeStatus("");
   };
 
+  const enterWriteEditMode = () => {
+    setIsWriteEditMode(true);
+    setIsImageMode(false);
+    setAttachmentSheetOpen(false);
+    setImageModeError("");
+    setImageModeStatus("");
+  };
+
+  const exitWriteEditMode = () => {
+    clearWriteTask();
+    setIsWriteEditMode(false);
+  };
+
   const selectImageTemplate = (template) => {
     setPendingImageTemplate(template);
     setImageModeError("");
@@ -619,6 +717,7 @@ export default function MobileChat() {
   const activateWriteTask = (template, files = []) => {
     if (!template) return;
     clearMobileFlowParams();
+    setIsWriteEditMode(true);
     setActiveWriteTask(createWriteEditTask(template));
     setWriteAttachments(files);
     setMessage(template.prompt);
@@ -637,6 +736,19 @@ export default function MobileChat() {
     setWriteAttachments([]);
     setWriteAttachmentChoiceOpen(false);
     setMessage("");
+  };
+
+  const selectWriteEditTemplate = (template) => {
+    if (!template) return;
+    clearMobileFlowParams();
+    setIsWriteEditMode(true);
+    setActiveWriteTask(createWriteEditTask(template));
+    setPendingWriteTemplate(null);
+    setWriteAttachmentChoiceOpen(false);
+    setWriteAttachments([]);
+    setIsImageMode(false);
+    setMessage(template.prompt || "");
+    window.setTimeout(() => composerInputRef.current?.focus(), 0);
   };
 
   const continueWriteTaskWithoutAttachment = () => {
@@ -870,6 +982,7 @@ export default function MobileChat() {
       setPendingWriteTemplate(null);
       setWriteAttachmentChoiceOpen(false);
       setWriteAttachments([]);
+      setIsWriteEditMode(false);
     }
 
     setIsChatSending(true);
@@ -1204,18 +1317,24 @@ export default function MobileChat() {
         className="space-y-2"
         onSubmit={handleComposerSubmit}
       >
-        {isImageMode && (
+        {(isImageMode || isWriteEditMode) && (
           <div className="flex items-end gap-3">
             <button
               type="button"
-              onClick={() => setImageSourceSheetOpen(true)}
+              onClick={() => {
+                if (isImageMode) {
+                  setImageSourceSheetOpen(true);
+                  return;
+                }
+                setAttachmentSheetOpen(true);
+              }}
               className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
               style={{
                 backgroundColor: isDark ? "rgba(32,32,32,0.82)" : "rgba(255,255,255,0.85)",
                 backdropFilter: "blur(12px)",
                 WebkitBackdropFilter: "blur(12px)",
               }}
-              aria-label="Attach image"
+              aria-label={isImageMode ? "Attach image" : "Add attachment"}
             >
               <Plus className="h-5 w-5" />
             </button>
@@ -1229,18 +1348,18 @@ export default function MobileChat() {
               }}
             >
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: isDark ? "#FFFFFF" : "var(--bluemind-app-color, #193B68)", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
-                <span>Image</span>
+                <span>{isImageMode ? "Image" : "Write/Edit"}</span>
                 <button
                   type="button"
-                  onClick={exitImageMode}
+                  onClick={isImageMode ? exitImageMode : exitWriteEditMode}
                   className="flex h-5 w-5 items-center justify-center rounded-full active:bg-current/10"
-                  aria-label="Exit image mode"
+                  aria-label={isImageMode ? "Exit image mode" : "Exit write edit mode"}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
 
-              {(selectedImageTemplate?.thumbnail || attachedImages.length > 0) && (
+              {isImageMode && (selectedImageTemplate?.thumbnail || attachedImages.length > 0) && (
                 <div
                   className="mb-2 flex gap-2 overflow-x-auto overscroll-x-contain pb-1"
                   data-testid="mobile-image-preview-strip"
@@ -1287,12 +1406,30 @@ export default function MobileChat() {
                 </div>
               )}
 
+              {isWriteEditMode && writeAttachments.length > 0 && (
+                <div className="mb-2 flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
+                  {writeAttachments.map((file) => (
+                    <span
+                      key={file.id}
+                      className={isDark ? "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/[0.07] px-2.5 py-1.5 text-xs font-bold text-white" : "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/85 px-2.5 py-1.5 text-xs font-bold text-[#111827]"}
+                    >
+                      {file.type === "image" && file.previewUrl ? (
+                        <img src={file.previewUrl} alt="" className="h-7 w-7 rounded-lg object-cover" />
+                      ) : (
+                        <FileText className={isDark ? "h-4 w-4 text-[#D7D7D7]" : "h-4 w-4 text-[#193B68]"} />
+                      )}
+                      <span className="truncate">{getWriteEditAttachmentLabel(file)}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <textarea
                 ref={composerInputRef}
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 rows={3}
-                placeholder="Describe an image..."
+                placeholder={isImageMode ? "Describe an image..." : "Write, paste, or choose a productivity tool..."}
                 className={`max-h-[180px] min-h-[86px] w-full resize-none bg-transparent text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
                 style={{ caretColor: "var(--bluemind-app-color, #193B68)" }}
               />
@@ -1328,7 +1465,7 @@ export default function MobileChat() {
           </div>
         )}
 
-        {!isImageMode && attachedImages.length > 0 && (
+        {!isImageMode && !isWriteEditMode && attachedImages.length > 0 && (
           <div
             className="flex gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1"
             data-testid="mobile-image-preview-strip"
@@ -1356,7 +1493,7 @@ export default function MobileChat() {
           </div>
         )}
 
-        {!isImageMode && (
+        {!isImageMode && !isWriteEditMode && (
           <div className={separatePlus ? "flex items-center justify-center gap-2" : "flex items-center gap-0"}>
             {separatePlus && (
               <motion.button
@@ -1591,6 +1728,20 @@ export default function MobileChat() {
             </div>
           )}
 
+          {isWriteEditMode && (
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>Write/Edit</h2>
+              <button
+                type="button"
+                onClick={exitWriteEditMode}
+                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                aria-label="Exit write edit mode"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+
           {shouldShowImageTemplates && (
             <div className="pt-2">
               <AnimatePresence>
@@ -1672,6 +1823,40 @@ export default function MobileChat() {
                       </span>
                       <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
                         {item.description}
+                      </span>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {shouldShowWriteEditTemplates && (
+            <div className="pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                {writeEditTemplates.map((template, index) => (
+                  <motion.button
+                    key={template.id}
+                    type="button"
+                    onClick={() => selectWriteEditTemplate(template)}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.16) }}
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.985 }}
+                    className={`group overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                      isDark
+                        ? "border-white/[0.08] bg-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.1]"
+                        : "border-white/75 bg-white/82 shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                    }`}
+                  >
+                    <WriteTemplateArtwork template={template} index={index} />
+                    <div className="p-3">
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[#111827]"}`}>
+                        {template.title}
+                      </span>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                        {template.description}
                       </span>
                     </div>
                   </motion.button>
@@ -1820,7 +2005,7 @@ export default function MobileChat() {
 
                 <button
                   type="button"
-                  onClick={() => openSheetDestination("/mobile/write-edit")}
+                  onClick={enterWriteEditMode}
                   className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
                   <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
