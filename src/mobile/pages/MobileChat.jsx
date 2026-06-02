@@ -355,6 +355,7 @@ export default function MobileChat() {
   });
   const [isImageMode, setIsImageMode] = useState(false);
   const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
+  const [pendingImageTemplate, setPendingImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
   const [generatedImages, setGeneratedImages] = useState([]);
   const [imageModeError, setImageModeError] = useState("");
@@ -570,20 +571,15 @@ export default function MobileChat() {
   const exitImageMode = () => {
     setIsImageMode(false);
     setSelectedImageTemplate(null);
+    setPendingImageTemplate(null);
     setImageModeError("");
     setImageModeStatus("");
   };
 
   const selectImageTemplate = (template) => {
-    setIsImageMode(true);
-    setSelectedImageTemplate(template);
-    setMessage(template.prompt);
+    setPendingImageTemplate(template);
     setImageModeError("");
     setImageModeStatus("");
-
-    if (template.requiresImage && attachedImages.length === 0) {
-      window.setTimeout(() => setImageSourceSheetOpen(true), 120);
-    }
   };
 
   const removeSelectedImageTemplate = () => {
@@ -605,6 +601,12 @@ export default function MobileChat() {
     window.setTimeout(() => inputRef.current?.click(), 0);
   };
 
+  const openTemplateImageInput = (inputRef) => {
+    closeAttachmentSheet();
+    closeImageSourceSheet();
+    window.setTimeout(() => inputRef.current?.click(), 0);
+  };
+
   const handleImageSelection = (event) => {
     const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
     if (files.length === 0) {
@@ -612,7 +614,13 @@ export default function MobileChat() {
       return;
     }
 
+    const templateForSelection = pendingImageTemplate;
     setIsImageMode(true);
+    if (templateForSelection) {
+      setSelectedImageTemplate(templateForSelection);
+      setMessage(templateForSelection.prompt);
+      setPendingImageTemplate(null);
+    }
     setImageModeError("");
     setAttachedImages((current) => {
       const availableSlots = Math.max(0, MAX_IMAGE_ATTACHMENTS - current.length);
@@ -1367,6 +1375,50 @@ export default function MobileChat() {
 
           {shouldShowImageTemplates && (
             <div className="pt-2">
+              <AnimatePresence>
+                {pendingImageTemplate && (
+                  <motion.div
+                    key={pendingImageTemplate.id}
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className={`mx-auto mb-4 w-full rounded-[26px] border p-4 text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-xl ${
+                      isDark
+                        ? "border-white/[0.1] bg-[#202020]/[0.88] text-white"
+                        : "border-white/70 bg-white/[0.78] text-[#111827]"
+                    }`}
+                    style={{
+                      backdropFilter: "blur(18px)",
+                      WebkitBackdropFilter: "blur(18px)",
+                    }}
+                  >
+                    <h3 className="text-base font-bold tracking-tight">{pendingImageTemplate.title}</h3>
+                    <p className={`mx-auto mt-1 max-w-[260px] text-xs font-semibold leading-5 ${isDark ? "text-[#CFCFCF]" : "text-[#64748B]"}`}>
+                      {pendingImageTemplate.description || "Create polished image artwork from your photo."}
+                    </p>
+                    <div className="mt-4 grid gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openTemplateImageInput(imageInputRef)}
+                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#193B68] active:bg-[#E2E8F0]"}
+                      >
+                        <Image className="h-[18px] w-[18px]" />
+                        <span>Upload Image</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openTemplateImageInput(cameraInputRef)}
+                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#193B68] active:bg-[#E2E8F0]"}
+                      >
+                        <Camera className="h-[18px] w-[18px]" />
+                        <span>Take Photo</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="grid grid-cols-2 gap-3">
                 {DESKTOP_IMAGE_IDEAS.map((item, index) => (
                   <motion.button
