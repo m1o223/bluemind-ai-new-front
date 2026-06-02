@@ -399,6 +399,19 @@ export default function MobileChat() {
   const shouldPinComposer = !isEmptyChat;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
 
+  const resizeChatComposer = useCallback((node = composerInputRef.current) => {
+    if (!node || isImageMode) return;
+    const maxHeight = 128;
+    node.style.height = "auto";
+    const nextHeight = Math.min(node.scrollHeight, maxHeight);
+    node.style.height = `${Math.max(nextHeight, 50)}px`;
+    node.style.overflowY = node.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, [isImageMode]);
+
+  useEffect(() => {
+    resizeChatComposer();
+  }, [message, resizeChatComposer, shouldPinComposer]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -490,15 +503,6 @@ export default function MobileChat() {
     streamAbortRef.current?.abort();
     attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
   }, []);
-
-  useEffect(() => {
-    const input = composerInputRef.current;
-    if (!input) return;
-    input.style.height = "auto";
-    const nextHeight = Math.min(input.scrollHeight, 132);
-    input.style.height = `${Math.max(nextHeight, 44)}px`;
-    input.style.overflowY = input.scrollHeight > 132 ? "auto" : "hidden";
-  }, [message]);
 
   const closeMenu = () => {
     setMenuOpen(false);
@@ -1176,7 +1180,7 @@ export default function MobileChat() {
 
             <motion.div
               layout
-              className={`flex h-[52px] items-center rounded-[26px] border shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor} ${
+              className={`flex min-h-[52px] items-end rounded-[26px] border shadow-[0_14px_36px_rgba(15,23,42,0.09)] ${borderColor} ${
                 separatePlus ? "w-[84%] pl-4 pr-2" : "w-full pl-2 pr-2"
               }`}
               style={{
@@ -1200,7 +1204,11 @@ export default function MobileChat() {
               <textarea
                 ref={composerInputRef}
                 value={message}
-                onChange={(event) => setMessage(event.target.value)}
+                onChange={(event) => {
+                  setMessage(event.target.value);
+                  resizeChatComposer(event.target);
+                }}
+                onInput={(event) => resizeChatComposer(event.currentTarget)}
                 rows={1}
                 placeholder="Ask anything..."
                 className={`max-h-[128px] min-h-[50px] flex-1 resize-none bg-transparent py-[13px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
@@ -1403,16 +1411,20 @@ export default function MobileChat() {
           )}
 
           {messages.length > 0 && (
-            <div className="space-y-3 pb-4">
+            <div className="space-y-4 pb-4">
               {messages.map((item) => (
-                <div key={item.id} className={item.role === "user" ? "ml-auto max-w-[86%]" : "mr-auto max-w-[86%]"}>
+                <div
+                  key={item.id}
+                  className={item.role === "user" ? "flex justify-end" : "w-full"}
+                >
                   <div
-                    className={`rounded-[22px] px-4 py-3 text-sm font-medium leading-6 ${
+                    dir="auto"
+                    className={`whitespace-pre-wrap break-words text-sm font-medium leading-6 ${
                       item.role === "user"
-                        ? "text-white"
+                        ? "inline-block w-fit max-w-[78%] rounded-[22px] px-4 py-3 text-white"
                         : isDark
-                          ? "bg-white/[0.07] text-white"
-                          : "bg-white text-[#111827] shadow-sm"
+                          ? "w-full px-1 py-1 text-white"
+                          : "w-full px-1 py-1 text-[#111827]"
                     }`}
                     style={item.role === "user" ? { backgroundColor: "var(--bluemind-app-color, #193B68)" } : undefined}
                   >
