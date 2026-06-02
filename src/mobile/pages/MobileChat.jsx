@@ -34,6 +34,7 @@ import {
 
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
+import UnifiedComposer from "@/components/UnifiedComposer";
 import { useApp } from "@/context/AppContext";
 import {
   buildWriteEditMessage,
@@ -738,6 +739,16 @@ export default function MobileChat() {
     setMessage("");
   };
 
+  const removeWriteAttachment = (attachmentId) => {
+    setWriteAttachments((current) => {
+      const target = current.find((file) => file.id === attachmentId);
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return current.filter((file) => file.id !== attachmentId);
+    });
+  };
+
   const selectWriteEditTemplate = (template) => {
     if (!template) return;
     clearMobileFlowParams();
@@ -798,7 +809,8 @@ export default function MobileChat() {
   const handleWriteAttachmentSelection = async (event) => {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
-    if (!selectedFiles.length || !pendingWriteTemplate) return;
+    const targetWriteTask = pendingWriteTemplate || activeWriteTask;
+    if (!selectedFiles.length || !targetWriteTask) return;
 
     const accepted = [];
 
@@ -843,7 +855,13 @@ export default function MobileChat() {
       });
     }
 
-    activateWriteTask(pendingWriteTemplate, accepted.slice(0, 6));
+    if (pendingWriteTemplate) {
+      activateWriteTask(pendingWriteTemplate, accepted.slice(0, 6));
+      return;
+    }
+
+    setIsWriteEditMode(true);
+    setWriteAttachments((current) => [...current, ...accepted].slice(0, 10));
   };
 
   const handleImageSelection = (event) => {
@@ -1242,7 +1260,51 @@ export default function MobileChat() {
     }
   };
 
-  const renderComposerArea = (centered = false, separatePlus = centered) => (
+  const renderComposerArea = (centered = false, separatePlus = centered) => {
+    const composerModePill = isImageMode
+      ? { label: "Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
+      : (isWriteEditMode || activeWriteTask)
+        ? { label: "Write/Edit", onClear: exitWriteEditMode, clearLabel: "Exit write edit mode" }
+        : null;
+
+    const composerAttachments = isImageMode
+      ? [
+          ...(selectedImageTemplate?.thumbnail ? [{
+            id: `template:${selectedImageTemplate.id}`,
+            name: selectedImageTemplate.title,
+            type: "image",
+            previewUrl: selectedImageTemplate.thumbnail,
+          }] : []),
+          ...attachedImages,
+        ]
+      : (isWriteEditMode || activeWriteTask)
+        ? writeAttachments
+        : attachedImages;
+
+    const removeComposerAttachment = (attachmentId) => {
+      if (String(attachmentId).startsWith("template:")) {
+        removeSelectedImageTemplate();
+        return;
+      }
+
+      if (isImageMode || (!isWriteEditMode && !activeWriteTask)) {
+        removeAttachedImage(attachmentId);
+        return;
+      }
+
+      removeWriteAttachment(attachmentId);
+    };
+
+    const openComposerAttachment = () => {
+      if (isImageMode) {
+        setImageSourceSheetOpen(true);
+        return;
+      }
+
+      setAttachmentSheetOpen(true);
+    };
+
+    return (
     <motion.div
       layout
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
@@ -1313,7 +1375,44 @@ export default function MobileChat() {
         )}
       </AnimatePresence>
 
-      <form
+      <UnifiedComposer
+        value={message}
+        onChange={(event) => {
+          setMessage(event.target.value);
+          if (!isImageMode && !isWriteEditMode) {
+            resizeChatComposer(event.target);
+          }
+        }}
+        onInput={(event) => {
+          if (!isImageMode && !isWriteEditMode) {
+            resizeChatComposer(event.currentTarget);
+          }
+        }}
+        onSubmit={handleComposerSubmit}
+        inputRef={composerInputRef}
+        placeholder={
+          isImageMode
+            ? "Describe an image..."
+            : (isWriteEditMode || activeWriteTask)
+              ? "Write, paste, or choose a productivity tool..."
+              : "Ask anything..."
+        }
+        modePill={composerModePill}
+        attachments={composerAttachments}
+        onRemoveAttachment={removeComposerAttachment}
+        onAdd={openComposerAttachment}
+        onVoice={() => {}}
+        isBusy={isGeneratingImage || isChatSending}
+        canSend={hasComposerContent}
+        onSendAction={isChatSending ? stopChatGeneration : undefined}
+        isDark={isDark}
+        variant="mobile"
+        minRows={isImageMode || isWriteEditMode || activeWriteTask ? 3 : 1}
+        maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask ? 180 : 128}
+        testId="mobile-chat-input"
+      />
+
+      {false && (<form
         className="space-y-2"
         onSubmit={handleComposerSubmit}
       >
@@ -1609,9 +1708,10 @@ export default function MobileChat() {
             </motion.div>
           </div>
         )}
-      </form>
+      </form>)}
     </motion.div>
-  );
+    );
+  };
 
   return (
     <main

@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
+import UnifiedComposer from "@/components/UnifiedComposer";
 import {
   WEBSITE_CATEGORIES,
   WEBSITE_DIRECTORY,
@@ -1945,6 +1946,14 @@ export default function ChatPage() {
     setAttachments((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const removeWriteFile = (id) => {
+    setWriteFiles((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
   const handleImageFileSelect = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -3373,6 +3382,211 @@ export default function ChatPage() {
 
   const renderInput = (testSuffix = "") => {
     const usesLargeComposer = ["create_image", "web_search", "write_edit"].includes(activeMode) && !testSuffix;
+    const composerAttachments = activeMode === "write_edit" ? writeFiles : attachments;
+    const removeComposerAttachment = activeMode === "write_edit" ? removeWriteFile : removeAttachment;
+    const composerMode = activeMode !== "default" ? (CHAT_MODES[activeMode] || CHAT_MODES.default) : null;
+    const modePill = composerMode ? {
+      label: t(composerMode.labelKey),
+      icon: composerMode.icon,
+      onClear: activeMode === "write_edit" ? clearWriteTask : () => {
+        setActiveMode("default");
+        if (activeMode === "create_image") {
+          setInput("");
+        }
+      },
+      clearLabel: activeMode === "web_search" ? t("removeWebSearch") : t("remove"),
+    } : null;
+
+    const actionMenu = (
+      <AnimatePresence>
+        {attachmentMenuOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-30"
+              onClick={() => setAttachmentMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              className={cn(
+                "absolute bottom-full left-0 z-40 mb-3 max-h-[min(420px,70vh)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-[28px] border p-2.5 shadow-2xl backdrop-blur-2xl",
+                isDark ? "border-white/10 bg-[#141414]/96 text-white" : "border-black/10 bg-white/96 text-[#111827]",
+              )}
+            >
+              {[
+                {
+                  label: t("createImage"),
+                  icon: Palette,
+                  mode: "create_image",
+                  action: () => setActiveMode("create_image"),
+                },
+                {
+                  label: t("writeEdit"),
+                  icon: Edit3,
+                  mode: "write_edit",
+                  action: () => setActiveMode("write_edit"),
+                },
+                {
+                  label: t("search"),
+                  icon: Search,
+                  mode: "web_search",
+                  action: () => setActiveMode("web_search"),
+                },
+                { divider: true, label: "divider" },
+                {
+                  label: t("uploadImage"),
+                  icon: ImageIcon,
+                  action: () => imageInputRef.current?.click(),
+                },
+                {
+                  label: t("uploadFile"),
+                  icon: File,
+                  action: () => fileInputRef.current?.click(),
+                },
+                {
+                  label: t("uploadPdf"),
+                  icon: FileText,
+                  action: () => pdfInputRef.current?.click(),
+                },
+              ].map((item) => item.divider ? (
+                <div key={item.label} className={cn("my-1 h-px", isDark ? "bg-white/10" : "bg-slate-200")} />
+              ) : (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    setAttachmentMenuOpen(false);
+                    item.action();
+                  }}
+                  className={cn(
+                    "flex min-h-[48px] w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm font-semibold transition-all duration-200 hover:translate-x-0.5",
+                    item.mode === activeMode
+                      ? isDark ? "bg-white/12 text-white" : "bg-[#EEF2FF] text-[#193B68]"
+                      : isDark ? "text-[#e5e5e5] hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#F8FAFC]",
+                  )}
+                >
+                  <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF2FF]")}>
+                    <item.icon className="h-5 w-5 stroke-[2.1]" />
+                  </span>
+                  {item.label}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    );
+
+    const pendingPanel = (
+      <AnimatePresence>
+        {writeAttachmentChoiceOpen && pendingWriteTemplate && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            className={cn(
+              "mb-3 max-w-[420px] rounded-3xl border p-3 shadow-xl backdrop-blur-2xl",
+              isDark ? "border-white/10 bg-[#181818]/95 text-white" : "border-black/10 bg-white/90 text-[#111827]",
+            )}
+          >
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold">{pendingWriteTemplate.title}</p>
+                <p className={cn("mt-1 text-xs font-medium", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+                  Choose an optional file or continue writing manually.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={continueWriteTaskWithoutAttachment}
+                className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", isDark ? "hover:bg-white/10" : "hover:bg-black/5")}
+                aria-label="Continue without attachment"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {WRITE_EDIT_UPLOAD_OPTIONS.filter((option) => option.id !== "continue").map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => openWriteAttachmentInput(option.id)}
+                  className={cn(
+                    "rounded-2xl px-3 py-3 text-left text-xs font-bold transition-colors",
+                    isDark ? "bg-white/[0.07] hover:bg-white/[0.12]" : "bg-[#EEF2F7] text-[#193B68] hover:bg-[#E2E8F0]",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+
+    return (
+      <div className="chat-composer-shell">
+        <div className="chat-composer-row w-full">
+          <UnifiedComposer
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onInput={(event) => {
+              event.currentTarget.style.height = "auto";
+              event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, usesLargeComposer ? 220 : 160)}px`;
+            }}
+            onKeyDown={handleKeyDown}
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (isAiTyping) {
+                handleStopStreaming();
+                return;
+              }
+              if (isListening) {
+                stopVoiceInput();
+                return;
+              }
+              handleSend();
+            }}
+            placeholder={
+              isUploading
+                ? t("uploadingImage")
+                : activeMode === "create_image"
+                  ? t("describeOrEditImage")
+                  : activeMode === "web_search"
+                    ? t("searchWebOrChooseWebsite")
+                    : activeMode === "write_edit"
+                      ? t("writePasteOrChooseTool")
+                      : t("askAnything")
+            }
+            modePill={modePill}
+            attachments={composerAttachments}
+            onRemoveAttachment={removeComposerAttachment}
+            isUploading={isUploading}
+            onAdd={() => setAttachmentMenuOpen((open) => !open)}
+            onVoice={startVoiceInput}
+            isListening={isListening}
+            isBusy={isAiTyping || isListening}
+            canSend={Boolean(input.trim() || composerAttachments.length)}
+            onSendAction={isAiTyping ? handleStopStreaming : isListening ? stopVoiceInput : undefined}
+            addLabel={t("addAttachment")}
+            voiceLabel={isListening ? t("stopVoiceInput") : t("startVoiceInput")}
+            sendLabel={t("sendMessage")}
+            stopLabel={t("stopGenerating")}
+            isDark={isDark}
+            appColor={appColor}
+            variant="desktop"
+            minRows={usesLargeComposer ? 3 : 1}
+            maxTextHeight={usesLargeComposer ? 220 : 160}
+            inputDirectionStyle={inputDirectionStyle}
+            actionMenu={actionMenu}
+            pendingPanel={pendingPanel}
+            testId={testSuffix ? `chat-input-${testSuffix}` : "chat-input"}
+          />
+        </div>
+      </div>
+    );
 
     return (
     <div className="chat-composer-shell">
