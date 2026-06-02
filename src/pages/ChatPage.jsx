@@ -1699,6 +1699,7 @@ export default function ChatPage() {
   const fileInputRef = useRef(null);
   const writeImageInputRef = useRef(null);
   const writeCameraInputRef = useRef(null);
+  const quickTemplatesRef = useRef(null);
   const streamAbortRef = useRef(null);
   const speechRecognitionRef = useRef(null);
   const activeAiMessageRef = useRef(null);
@@ -2561,6 +2562,13 @@ export default function ChatPage() {
     toast.info(t("moreActionsSoon"));
   }, [t]);
 
+  const scrollQuickTemplates = useCallback((direction) => {
+    const node = quickTemplatesRef.current;
+    if (!node) return;
+    const cardWidth = node.querySelector("[data-quick-template-card]")?.clientWidth || 240;
+    node.scrollBy({ left: direction * (cardWidth + 12), behavior: "smooth" });
+  }, []);
+
   const handleImageIdeaClick = useCallback((idea) => {
     setActiveMode("create_image");
 
@@ -3129,28 +3137,67 @@ export default function ChatPage() {
           )}
 
           <section className="mb-7">
-            <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("quickTemplates")}</h3>
-            <div className="grid grid-cols-1 gap-3 sm:flex sm:overflow-x-auto sm:pb-2 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <h3 className={cn("text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("quickTemplates")}</h3>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => scrollQuickTemplates(-1)}
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-colors",
+                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-[#E5E7EB] bg-white text-[#193B68] hover:bg-[#F8FAFC]",
+                  )}
+                  aria-label="Previous quick template"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollQuickTemplates(1)}
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-colors",
+                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-[#E5E7EB] bg-white text-[#193B68] hover:bg-[#F8FAFC]",
+                  )}
+                  aria-label="Next quick template"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div
+              ref={quickTemplatesRef}
+              className="flex snap-x gap-3 overflow-x-auto pb-2 scroll-smooth sm:pb-3 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
+            >
               {QUICK_WRITE_TEMPLATES.map((template, index) => {
-                const { title, icon: Icon } = template;
+                const { title, description, icon: Icon } = template;
                 return (
                 <motion.button
                   key={title}
                   type="button"
                   onClick={() => handleWriteToolSelect(template)}
+                  data-quick-template-card
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
                   whileHover={{ y: -4 }}
+                  whileTap={{ scale: 0.985 }}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors sm:min-w-[220px] sm:w-auto",
-                    isDark ? "border-white/[0.08] bg-white/[0.05] text-white hover:bg-white/[0.09]" : "border-white/75 bg-white/82 text-[#111827] hover:bg-white"
+                    "relative min-h-[170px] min-w-[calc(50%-0.375rem)] snap-start overflow-hidden rounded-[26px] border p-4 text-left shadow-sm transition-colors sm:min-w-[240px] md:min-w-[250px]",
+                    isDark
+                      ? "border-white/[0.08] bg-white/[0.055] text-white hover:bg-white/[0.09]"
+                      : "border-white/80 bg-white/90 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
                   )}
                 >
-                  <span className={cn("flex h-11 w-11 items-center justify-center rounded-xl", isDark ? "bg-white/[0.08]" : "bg-[#EEF2FF]")}>
-                    <Icon className={cn("h-5 w-5", isDark ? "text-[#D7D7D7]" : "text-[#193B68]")} />
+                  <span className={cn("absolute -right-6 -top-5 flex h-28 w-28 items-center justify-center rounded-[32px]", isDark ? "bg-white/[0.055] text-white/10" : "bg-[#EEF2FF] text-[#193B68]/12")}>
+                    <Icon className="h-16 w-16 stroke-[1.65]" />
                   </span>
-                  <span className="text-sm font-semibold">{t(uiTextKey("quickWriteTemplate", title, "title"))}</span>
+                  <span className={cn("relative z-10 mb-6 flex h-12 w-12 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.08] text-[#D7D7D7]" : "bg-[#EEF2FF] text-[#193B68]")}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="relative z-10 block text-[15px] font-bold leading-5">{title}</span>
+                  <span className={cn("relative z-10 mt-2 block text-xs font-medium leading-5", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+                    {description}
+                  </span>
                 </motion.button>
                 );
               })}

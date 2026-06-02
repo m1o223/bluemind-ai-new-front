@@ -1,6 +1,9 @@
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   FileText,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +17,7 @@ import {
 
 export default function MobileWriteEdit() {
   const navigate = useNavigate();
+  const quickTemplatesRef = useRef(null);
   const { resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
@@ -28,6 +32,13 @@ export default function MobileWriteEdit() {
 
   const openTemplate = (template) => {
     navigate(`/mobile/chat?writeTemplate=${encodeURIComponent(template.id)}`);
+  };
+
+  const scrollQuickTemplates = (direction) => {
+    const node = quickTemplatesRef.current;
+    if (!node) return;
+    const cardWidth = node.querySelector("[data-quick-template-card]")?.clientWidth || 180;
+    node.scrollBy({ left: direction * (cardWidth + 12), behavior: "smooth" });
   };
 
   return (
@@ -73,25 +84,57 @@ export default function MobileWriteEdit() {
           </div>
 
           <section className="mb-7">
-            <h3 className="mb-3 px-1 text-base font-semibold">Quick templates</h3>
-            <div className="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <h3 className="text-base font-semibold">Quick templates</h3>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => scrollQuickTemplates(-1)}
+                  className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.07] text-white active:bg-white/[0.12]" : "flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#193B68] shadow-sm active:bg-[#EEF2F7]"}
+                  aria-label="Previous quick template"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollQuickTemplates(1)}
+                  className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.07] text-white active:bg-white/[0.12]" : "flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#193B68] shadow-sm active:bg-[#EEF2F7]"}
+                  aria-label="Next quick template"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div
+              ref={quickTemplatesRef}
+              className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
               {QUICK_WRITE_TEMPLATES.map((template, index) => {
-                const { title, icon: Icon } = template;
+                const { title, description, icon: Icon } = template;
                 return (
                 <motion.button
                   key={title}
                   type="button"
                   onClick={() => openTemplate(template)}
+                  data-quick-template-card
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
                   whileTap={{ scale: 0.985 }}
-                  className={`flex min-w-[220px] snap-start items-center gap-3 rounded-2xl border p-3 text-left transition ${cardClass}`}
+                  className={`relative min-h-[156px] min-w-[calc(50%-0.375rem)] snap-start overflow-hidden rounded-[24px] border p-4 text-left shadow-sm transition ${
+                    isDark
+                      ? "border-white/[0.08] bg-white/[0.06] text-white active:bg-white/[0.1]"
+                      : "border-white/80 bg-white/90 text-[#111827] shadow-slate-200/70 active:bg-white"
+                  }`}
                 >
-                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF2FF]"}>
-                    <Icon className={isDark ? "h-5 w-5 text-[#D7D7D7]" : "h-5 w-5 text-[#193B68]"} />
+                  <span className={isDark ? "absolute -right-5 -top-4 flex h-24 w-24 items-center justify-center rounded-[28px] bg-white/[0.06] text-white/12" : "absolute -right-5 -top-4 flex h-24 w-24 items-center justify-center rounded-[28px] bg-[#EEF2FF] text-[#193B68]/12"}>
+                    <Icon className="h-14 w-14 stroke-[1.7]" />
                   </span>
-                  <span className="text-sm font-semibold">{title}</span>
+                  <span className={isDark ? "relative z-10 mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08] text-[#D7D7D7]" : "relative z-10 mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#193B68]"}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="relative z-10 block text-sm font-bold leading-5">{title}</span>
+                  <span className={`relative z-10 mt-2 block text-[11px] font-medium leading-4 ${mutedText}`}>{description}</span>
                 </motion.button>
                 );
               })}

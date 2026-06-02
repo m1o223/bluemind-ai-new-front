@@ -209,13 +209,13 @@ export const WRITE_EDIT_SECTIONS = [
 ];
 
 export const QUICK_WRITE_TEMPLATES = [
-  { id: "email-writer", title: "Email Writer", icon: Mail, prompt: "Write a professional email about " },
-  { id: "cv-builder", title: "Professional CV", icon: FileCheck2, prompt: "Build a professional CV for " },
-  { id: "essay-writer", title: "Essay Writer", icon: GraduationCap, prompt: "Write a school essay about " },
-  { id: "business-proposal", title: "Business Proposal", icon: BriefcaseBusiness, prompt: "Create a business proposal for " },
-  { id: "cover-letter", title: "Cover Letter", icon: PenLine, prompt: "Write a cover letter for " },
-  { id: "social-media-post", title: "Social Media Post", icon: BadgeCheck, prompt: "Create a social media post about " },
-  { id: "product-description", title: "Product Description", icon: ClipboardList, prompt: "Create a product description for " },
+  { id: "email-writer", title: "Email Writer", description: "Draft a polished message with the right tone.", icon: Mail, prompt: "Write a professional email about " },
+  { id: "cv-builder", title: "CV Builder", description: "Shape experience into a clean professional CV.", icon: FileCheck2, prompt: "Build a professional CV for " },
+  { id: "essay-writer", title: "Essay Writer", description: "Start a structured essay with a clear direction.", icon: GraduationCap, prompt: "Write a school essay about " },
+  { id: "business-proposal", title: "Business Proposal", description: "Frame an idea as a clear business proposal.", icon: BriefcaseBusiness, prompt: "Create a business proposal for " },
+  { id: "cover-letter", title: "Cover Letter", description: "Create a focused letter for a role or opportunity.", icon: PenLine, prompt: "Write a cover letter for " },
+  { id: "social-media-post", title: "Social Media Post", description: "Turn an idea into a concise social post.", icon: BadgeCheck, prompt: "Create a social media post about " },
+  { id: "product-description", title: "Product Description", description: "Describe a product with clarity and appeal.", icon: ClipboardList, prompt: "Create a product description for " },
 ];
 
 export const WRITE_UPLOAD_ACTIONS = [
