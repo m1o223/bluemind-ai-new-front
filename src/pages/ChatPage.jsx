@@ -43,7 +43,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
-import MarkdownText, { getDirectionalStyle } from "@/components/MarkdownText";
+import { getDirectionalStyle } from "@/components/MarkdownText";
+import MessageResponse from "@/components/MessageResponse";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
@@ -1196,6 +1197,7 @@ const ChatMessage = memo(function ChatMessage({
   onShare,
   onMore,
   onExpandImage,
+  previousUserContent,
 }) {
   const isUser = message.role === "user";
   const { prefs, t, resolvedTheme } = useApp();
@@ -1240,7 +1242,7 @@ const ChatMessage = memo(function ChatMessage({
             </div>
           )}
 
-          <MarkdownText text={message.content} />
+          <MessageResponse message={message} previousUserContent={previousUserContent} />
 
           {!isUser && isLatestAi && message.isStreaming && (
             <span
@@ -2257,6 +2259,11 @@ export default function ChatPage() {
   const handleMoreMessage = useCallback(() => {
     toast.info(t("moreActionsSoon"));
   }, [t]);
+
+  const getPreviousUserContent = useCallback((messageIndex) => {
+    const previousUser = [...messages.slice(0, messageIndex)].reverse().find((item) => item.role === "user");
+    return previousUser?.content || "";
+  }, [messages]);
 
   const scrollQuickTemplates = useCallback((direction) => {
     const node = quickTemplatesRef.current;
@@ -4199,6 +4206,7 @@ export default function ChatPage() {
                     onShare={handleShareMessage}
                     onMore={handleMoreMessage}
                     onExpandImage={setSelectedImage}
+                    previousUserContent={getPreviousUserContent(index)}
                   />
                 ))}
               </AnimatePresence>

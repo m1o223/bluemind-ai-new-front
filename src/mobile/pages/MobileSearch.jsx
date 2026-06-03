@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Search, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-import MarkdownText from "@/components/MarkdownText";
+import MessageResponse from "@/components/MessageResponse";
 import { useApp } from "@/context/AppContext";
 import { getApiErrorMessage } from "@/services/api";
 import { streamChatMessage } from "@/services/chatService";
@@ -127,7 +127,11 @@ export default function MobileSearch() {
             className={`rounded-[24px] border p-4 text-sm font-medium leading-6 ${borderColor}`}
             style={{ backgroundColor: panelColor }}
           >
-            <MarkdownText text={answer} className="text-[15px] leading-[1.85]" />
+            <MessageResponse
+              message={{ role: "ai", content: answer, metadata: { chatMode: "web_search", responseMode: "smart" } }}
+              previousUserContent={query}
+              className="text-[15px] leading-[1.85]"
+            />
           </motion.div>
         )}
         {error && (

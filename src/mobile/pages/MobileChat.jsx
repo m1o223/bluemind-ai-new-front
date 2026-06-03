@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
-import MarkdownText from "@/components/MarkdownText";
+import MessageResponse from "@/components/MessageResponse";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
@@ -1255,6 +1255,11 @@ export default function MobileChat() {
     toast.info(t("moreActionsSoon"));
   }, [t]);
 
+  const getPreviousUserContent = useCallback((messageIndex) => {
+    const previousUser = [...messages.slice(0, messageIndex)].reverse().find((item) => item.role === "user");
+    return previousUser?.content || "";
+  }, [messages]);
+
   const openSearchAskConfirm = ({ category, item = null, intent }) => {
     setOpenSearchMenuItemId(null);
     setSearchConfirm({ category, item, intent });
@@ -2251,7 +2256,7 @@ export default function MobileChat() {
 
           {messages.length > 0 && (
             <div className="space-y-4 pb-4">
-              {messages.map((item) => (
+              {messages.map((item, index) => (
                 <div
                   key={item.id}
                   className={item.role === "user" ? "flex justify-end" : "w-full"}
@@ -2272,7 +2277,11 @@ export default function MobileChat() {
                     ) : item.isStreaming && !item.content ? (
                       <ThinkingIndicator responseMode={item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
                     ) : (
-                      <MarkdownText text={item.content || ""} className="text-[15px] leading-[1.85]" />
+                      <MessageResponse
+                        message={item}
+                        previousUserContent={getPreviousUserContent(index)}
+                        className="text-[15px] leading-[1.85]"
+                      />
                     )}
                   </div>
 
