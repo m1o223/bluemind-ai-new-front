@@ -48,6 +48,7 @@ import MessageResponse from "@/components/MessageResponse";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
+import BlueMindMediaPicker from "@/components/BlueMindMediaPicker";
 import {
   WEBSITE_CATEGORIES,
   WEBSITE_DIRECTORY,
@@ -1377,6 +1378,7 @@ export default function ChatPage() {
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const imageInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const writeImageInputRef = useRef(null);
@@ -1650,35 +1652,37 @@ export default function ChatPage() {
   };
 
   const handleImageFileSelect = async (event) => {
-    const file = event.target.files?.[0];
+    const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
-    if (!file) return;
+    if (!selectedFiles.length) return;
 
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      toast.error(t("invalidImageType"));
-      return;
-    }
+    for (const file of selectedFiles.slice(0, 10)) {
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+        toast.error(t("invalidImageType"));
+        continue;
+      }
 
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error(t("invalidImageSize"));
-      return;
-    }
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error(t("invalidImageSize"));
+        continue;
+      }
 
-    setIsUploading(true);
-    try {
-      const image = await uploadChatImage(file, conversationId);
-      setAttachments((prev) => [
-        ...prev,
-        {
-          id: image.id,
-          name: file.name,
-          previewUrl: URL.createObjectURL(file),
-        },
-      ]);
-    } catch (error) {
-      toast.error(error.message || t("imageUploadFailed"));
-    } finally {
-      setIsUploading(false);
+      setIsUploading(true);
+      try {
+        const image = await uploadChatImage(file, conversationId);
+        setAttachments((prev) => [
+          ...prev,
+          {
+            id: image.id,
+            name: file.name,
+            previewUrl: URL.createObjectURL(file),
+          },
+        ].slice(0, 10));
+      } catch (error) {
+        toast.error(error.message || t("imageUploadFailed"));
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -3401,84 +3405,34 @@ export default function ChatPage() {
     } : null;
 
     const actionMenu = (
-      <AnimatePresence>
-        {attachmentMenuOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-30"
-              onClick={() => setAttachmentMenuOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.96 }}
-              className={cn(
-                "absolute bottom-full left-0 z-40 mb-3 max-h-[min(420px,70vh)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-[28px] border p-2.5 shadow-2xl backdrop-blur-2xl",
-                isDark ? "border-white/10 bg-[#141414]/96 text-white" : "border-black/10 bg-white/96 text-[#111827]",
-              )}
-            >
-              {[
-                {
-                  label: t("createImage"),
-                  icon: Palette,
-                  mode: "create_image",
-                  action: () => setActiveMode("create_image"),
-                },
-                {
-                  label: t("writeEdit"),
-                  icon: Edit3,
-                  mode: "write_edit",
-                  action: () => setActiveMode("write_edit"),
-                },
-                {
-                  label: t("search"),
-                  icon: Search,
-                  mode: "web_search",
-                  action: () => setActiveMode("web_search"),
-                },
-                { divider: true, label: "divider" },
-                {
-                  label: t("uploadImage"),
-                  icon: ImageIcon,
-                  action: () => imageInputRef.current?.click(),
-                },
-                {
-                  label: t("uploadFile"),
-                  icon: File,
-                  action: () => fileInputRef.current?.click(),
-                },
-                {
-                  label: t("uploadPdf"),
-                  icon: FileText,
-                  action: () => pdfInputRef.current?.click(),
-                },
-              ].map((item) => item.divider ? (
-                <div key={item.label} className={cn("my-1 h-px", isDark ? "bg-white/10" : "bg-slate-200")} />
-              ) : (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => {
-                    setAttachmentMenuOpen(false);
-                    item.action();
-                  }}
-                  className={cn(
-                    "flex min-h-[48px] w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm font-semibold transition-all duration-200 hover:translate-x-0.5",
-                    item.mode === activeMode
-                      ? isDark ? "bg-white/12 text-white" : "bg-[#EEF2FF] text-[#193B68]"
-                      : isDark ? "text-[#e5e5e5] hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#F8FAFC]",
-                  )}
-                >
-                  <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF2FF]")}>
-                    <item.icon className="h-5 w-5 stroke-[2.1]" />
-                  </span>
-                  {item.label}
-                </button>
-              ))}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <BlueMindMediaPicker
+        open={attachmentMenuOpen}
+        onClose={() => setAttachmentMenuOpen(false)}
+        isDark={isDark}
+        variant="desktop"
+        selectedImages={attachments}
+        onToggleImage={(item) => removeAttachment(item.id)}
+        onCamera={() => {
+          setAttachmentMenuOpen(false);
+          cameraInputRef.current?.click();
+        }}
+        onAllPhotos={() => {
+          setAttachmentMenuOpen(false);
+          imageInputRef.current?.click();
+        }}
+        onCreateImage={() => {
+          setAttachmentMenuOpen(false);
+          setActiveMode("create_image");
+        }}
+        onWriteEdit={() => {
+          setAttachmentMenuOpen(false);
+          setActiveMode("write_edit");
+        }}
+        onSearch={() => {
+          setAttachmentMenuOpen(false);
+          setActiveMode("web_search");
+        }}
+      />
     );
 
     const pendingPanel = (
@@ -3935,6 +3889,15 @@ export default function ChatPage() {
         ref={imageInputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp"
+        multiple
+        className="hidden"
+        onChange={handleImageFileSelect}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleImageFileSelect}
       />

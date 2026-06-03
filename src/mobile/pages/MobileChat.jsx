@@ -39,6 +39,7 @@ import MessageResponse from "@/components/MessageResponse";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
+import BlueMindMediaPicker from "@/components/BlueMindMediaPicker";
 import { useApp } from "@/context/AppContext";
 import {
   buildWriteEditMessage,
@@ -1077,7 +1078,9 @@ export default function MobileChat() {
     }
 
     const templateForSelection = pendingImageTemplate;
-    setIsImageMode(true);
+    if (isImageMode || templateForSelection) {
+      setIsImageMode(true);
+    }
     if (templateForSelection) {
       setSelectedImageTemplate(templateForSelection);
       setMessage(templateForSelection.prompt);
@@ -1233,6 +1236,8 @@ export default function MobileChat() {
     mode = responseMode,
     metadata = {},
     hideUserMessage = false,
+    imageIds = [],
+    displayAttachments = [],
   }) => {
     const visibleMessage = String(prompt || "").trim();
     const currentMessage = activeWriteTask
@@ -1258,7 +1263,7 @@ export default function MobileChat() {
     setMessages((current) => [
       ...current,
       ...(!hideUserMessage && visibleMessage
-        ? [{ id: userMessageId, role: "user", content: visibleMessage, attachments: writeAttachments, metadata: userMetadata }]
+        ? [{ id: userMessageId, role: "user", content: visibleMessage, attachments: displayAttachments.length ? displayAttachments : writeAttachments, metadata: userMetadata }]
         : []),
       { id: aiMessageId, role: "ai", content: "", isStreaming: true, metadata: { ...userMetadata, requestContent: visibleMessage } },
     ]);
@@ -1269,6 +1274,10 @@ export default function MobileChat() {
       setPendingWriteTemplate(null);
       setWriteAttachmentChoiceOpen(false);
       setWriteAttachments([]);
+      setAttachedImages((current) => {
+        current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+        return [];
+      });
       setIsWriteEditMode(false);
       setIsSearchMode(false);
       setSelectedSearchCategory(null);
@@ -1287,7 +1296,7 @@ export default function MobileChat() {
     try {
       await streamChatMessage({
         message: currentMessage,
-        imageIds: activeWriteTask ? writeAttachments.map((file) => file.imageId).filter(Boolean) : [],
+        imageIds: imageIds.length ? imageIds : activeWriteTask ? writeAttachments.map((file) => file.imageId).filter(Boolean) : [],
         conversationId: activeConversationId,
         mode: selectedMode,
         metadata: userMetadata,
@@ -1515,9 +1524,26 @@ export default function MobileChat() {
 
     if (!isImageMode) {
       const currentMessage = message.trim();
-      if (!currentMessage) return;
+      if (!currentMessage && attachedImages.length === 0) return;
+      const uploadedImages = [];
+      if (attachedImages.length > 0) {
+        setIsChatSending(true);
+        try {
+          for (const attachment of attachedImages) {
+            const image = await uploadChatImage(attachment.file, activeConversationId);
+            if (image) uploadedImages.push(image);
+          }
+        } catch (error) {
+          setIsChatSending(false);
+          toast.error(error.message || "Image upload failed");
+          return;
+        }
+        setIsChatSending(false);
+      }
       await sendChatPrompt({
-        prompt: currentMessage,
+        prompt: currentMessage || "Please analyze these images.",
+        imageIds: uploadedImages.map((image) => image.id),
+        displayAttachments: attachedImages,
         metadata: isSearchMode ? { chatMode: "web_search" } : {},
       });
       return;
@@ -2720,8 +2746,22 @@ export default function MobileChat() {
         )}
       </AnimatePresence>
 
+      <BlueMindMediaPicker
+        open={attachmentSheetOpen}
+        onClose={closeAttachmentSheet}
+        isDark={isDark}
+        variant="mobile"
+        selectedImages={attachedImages}
+        onToggleImage={(item) => removeAttachedImage(item.id)}
+        onCamera={() => openFileInput(cameraInputRef)}
+        onAllPhotos={() => openFileInput(imageInputRef)}
+        onCreateImage={enterImageMode}
+        onWriteEdit={enterWriteEditMode}
+        onSearch={enterSearchMode}
+      />
+
       <AnimatePresence>
-        {attachmentSheetOpen && (
+        {false && attachmentSheetOpen && (
           <div className="fixed inset-0 z-50">
             <motion.button
               type="button"
