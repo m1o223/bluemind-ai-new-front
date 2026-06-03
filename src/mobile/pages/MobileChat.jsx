@@ -12,8 +12,11 @@ import {
   Check,
   Clock3,
   Clipboard,
+  Code2,
   FileText,
+  FolderKanban,
   Image,
+  Library,
   Menu,
   MoreVertical,
   MessageSquare,
@@ -25,6 +28,8 @@ import {
   RotateCcw,
   Search,
   Share2,
+  Settings,
+  Shapes,
   Square,
   ThumbsDown,
   ThumbsUp,
@@ -472,9 +477,12 @@ export default function MobileChat() {
   const textColor = isDark ? "text-white" : "text-[#111827]";
 
   const navigationItems = [
-    { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
-    { label: t("reminders"), path: "/mobile/reminders", icon: Bell },
-    { label: t("learning"), path: "/mobile/learning", icon: BookOpen },
+    { label: "Library", path: "/mobile/learning", icon: Library },
+    { label: "Projects", path: "/mobile/smart-hub", icon: FolderKanban },
+    { label: "Images", action: () => enterImageMode(), icon: Image },
+    { label: "Codex", path: "/mobile/write-edit", icon: Code2 },
+    { label: "Apps", path: "/mobile/smart-hub", icon: Shapes },
+    { label: t("settings"), path: "/mobile/settings", icon: Settings },
     { label: t("profile"), path: "/mobile/profile", icon: UserCircle },
   ];
 
@@ -650,6 +658,21 @@ export default function MobileChat() {
     setMenuSearchQuery("");
   };
 
+  const openMenu = () => {
+    setMenuOpen(true);
+    setMenuSearchOpen(false);
+  };
+
+  const openMenuSearch = () => {
+    setMenuOpen(false);
+    setMenuSearchOpen(true);
+  };
+
+  const closeMenuSearch = () => {
+    setMenuSearchOpen(false);
+    setMenuOpen(true);
+  };
+
   const selectResponseMode = (mode) => {
     setResponseMode(mode);
     setResponseModeMenuOpen(false);
@@ -658,6 +681,19 @@ export default function MobileChat() {
   const goTo = (path) => {
     closeMenu();
     navigate(path);
+  };
+
+  const runMenuAction = (item) => {
+    closeMenu();
+
+    if (item.action) {
+      item.action();
+      return;
+    }
+
+    if (item.path) {
+      navigate(item.path);
+    }
   };
 
   const startNewChat = () => {
@@ -692,6 +728,7 @@ export default function MobileChat() {
 
   const openConversation = (conversationId) => {
     closeMenu();
+    setMenuSearchOpen(false);
     setSearchParams({ conversation: conversationId });
   };
 
@@ -710,6 +747,27 @@ export default function MobileChat() {
     touchStartXRef.current = null;
     if (typeof startX === "number" && typeof endX === "number" && startX - endX > 70) {
       closeMenu();
+    }
+  };
+
+  const handlePageTouchStart = (event) => {
+    touchStartXRef.current = event.touches?.[0]?.clientX ?? null;
+  };
+
+  const handlePageTouchEnd = (event) => {
+    const startX = touchStartXRef.current;
+    const endX = event.changedTouches?.[0]?.clientX;
+    touchStartXRef.current = null;
+
+    if (
+      !menuOpen &&
+      !menuSearchOpen &&
+      typeof startX === "number" &&
+      typeof endX === "number" &&
+      startX <= 24 &&
+      endX - startX > 82
+    ) {
+      openMenu();
     }
   };
 
@@ -1858,13 +1916,15 @@ export default function MobileChat() {
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
+      onTouchStart={handlePageTouchStart}
+      onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
       <header className={`flex h-14 items-center border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
         <div className="relative flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setMenuOpen(true)}
+            onClick={openMenu}
             className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
             aria-label="Open menu"
           >
@@ -2646,144 +2706,256 @@ export default function MobileChat() {
         )}
       </AnimatePresence>
 
-      {menuOpen && (
-        <div className="fixed inset-0 z-40">
-          <button type="button" className="absolute inset-0 bg-black/35" onClick={closeMenu} aria-label="Close menu" />
-          <aside
-            className={`absolute bottom-0 left-0 top-0 flex w-[84vw] max-w-[350px] flex-col border-r shadow-2xl ${borderColor}`}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.section
+            className={`fixed inset-0 z-[70] flex flex-col overflow-hidden ${textColor}`}
             style={{
-              backgroundColor: panelColor,
+              backgroundColor: surfaceColor,
               paddingTop: "env(safe-area-inset-top)",
               paddingBottom: "env(safe-area-inset-bottom)",
             }}
+            initial={{ x: "-100%", opacity: 0.94 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-100%", opacity: 0.96 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            drag="x"
+            dragConstraints={{ left: -160, right: 0 }}
+            dragElastic={0.12}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -90 || info.velocity.x < -600) {
+                closeMenu();
+              }
+            }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
+            data-testid="mobile-full-screen-menu"
           >
-            <div className={`flex h-16 shrink-0 items-center justify-between border-b px-4 ${borderColor}`}>
-              <div className="flex items-center gap-2">
-                <BrandLogo showName={false} logoClassName="h-9 w-9" />
-                <span className="text-lg font-bold tracking-tight">BlueMind AI</span>
+            <div className="flex shrink-0 items-center justify-between px-5 pb-4 pt-4">
+              <div className="flex items-center gap-3">
+                <BrandLogo showName={false} logoClassName="h-11 w-11" />
+                <div>
+                  <h2 className="text-[24px] font-extrabold leading-tight tracking-tight">BlueMind AI</h2>
+                  <p className={`mt-0.5 text-sm font-semibold ${mutedText}`}>Navigate your workspace</p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={closeMenu}
-                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                className={isDark ? "flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#111827] shadow-sm ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
                 aria-label="Close menu"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
+              <div className={`rounded-[28px] border p-2.5 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white"}`}>
+                <button
+                  type="button"
+                  onClick={startNewChat}
+                  className={isDark ? "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-white active:bg-white/[0.08]" : "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#193B68]"}>
+                    <Pencil className="h-5 w-5" />
+                  </span>
+                  <span>{t("newChat")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openMenuSearch}
+                  className={isDark ? "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-white active:bg-white/[0.08]" : "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#193B68]"}>
+                    <Search className="h-5 w-5" />
+                  </span>
+                  <span>{t("search")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("mobile-recent-chats")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  className={isDark ? "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-white active:bg-white/[0.08]" : "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-[#111827] active:bg-[#EEF2F7]"}
+                >
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#193B68]"}>
+                    <Clock3 className="h-5 w-5" />
+                  </span>
+                  <span>Recent Chats</span>
+                </button>
+              </div>
+
+              <div className={`mt-4 rounded-[28px] border p-2.5 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white"}`}>
+                {navigationItems.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => runMenuAction(item)}
+                    className={isDark ? "flex min-h-[56px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-semibold text-[#F5F5F5] active:bg-white/[0.08]" : "flex min-h-[56px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  >
+                    <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07]" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#F1F5F9] text-[#193B68]"}>
+                      <item.icon className="h-5 w-5" />
+                    </span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div id="mobile-recent-chats" className={`mt-4 rounded-[28px] border p-2.5 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white"}`}>
+                <p className={`px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-wide ${mutedText}`}>Recent Chats</p>
+
+                {isLoadingConversations && (
+                  <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>{t("loadingConversation")}</div>
+                )}
+
+                {!isLoadingConversations && historyError && (
+                  <div className="rounded-2xl px-3 py-3 text-sm font-medium text-red-500">{historyError}</div>
+                )}
+
+                {!isLoadingConversations && !historyError && conversations.length === 0 && (
+                  <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>{t("noChatsFound")}</div>
+                )}
+
+                {conversations.slice(0, 18).map((item) => {
+                  const isActive = item.conversationId === activeConversationId;
+                  return (
+                    <button
+                      key={item.conversationId}
+                      type="button"
+                      onClick={() => openConversation(item.conversationId)}
+                      className={
+                        isActive
+                          ? isDark
+                            ? "flex w-full items-start gap-3 rounded-[22px] border border-[#3F5F8C] bg-[#27384F] px-3.5 py-3 text-left text-white"
+                            : "flex w-full items-start gap-3 rounded-[22px] border border-[#B7C7FF] bg-[#EAF0FF] px-3.5 py-3 text-left text-[#102E5A]"
+                          : isDark
+                            ? "flex w-full items-start gap-3 rounded-[22px] px-3.5 py-3 text-left text-[#D7D7D7] active:bg-white/[0.08]"
+                            : "flex w-full items-start gap-3 rounded-[22px] px-3.5 py-3 text-left text-[#475569] active:bg-[#EEF2F7]"
+                      }
+                    >
+                      <MessageSquare className="mt-0.5 h-4.5 w-4.5 shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{item.title || t("newChat")}</span>
+                        <span className={`mt-1 block truncate text-xs font-medium ${isDark ? "text-[#9CA3AF]" : "text-[#64748B]"}`}>
+                          {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {menuSearchOpen && (
+          <motion.section
+            className={`fixed inset-0 z-[80] flex flex-col overflow-hidden ${textColor}`}
+            style={{
+              backgroundColor: surfaceColor,
+              paddingTop: "env(safe-area-inset-top)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+            }}
+            initial={{ x: "100%", opacity: 0.96 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0.96 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 180 }}
+            dragElastic={0.12}
+            onDragEnd={(_, info) => {
+              if (info.offset.x > 90 || info.velocity.x > 600) {
+                closeMenuSearch();
+              }
+            }}
+            data-testid="mobile-full-screen-search"
+          >
+            <div className="relative flex h-16 shrink-0 items-center justify-center px-5">
+              <button
+                type="button"
+                onClick={closeMenuSearch}
+                className={isDark ? "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                aria-label="Back to menu"
+              >
+                <ChevronDown className="h-5 w-5 rotate-90" />
+              </button>
+              <h2 className="text-[22px] font-extrabold tracking-tight">Search</h2>
+              <button
+                type="button"
+                onClick={closeMenuSearch}
+                className={isDark ? "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#111827] shadow-sm ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+                aria-label="Close search"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={startNewChat}
-                  className={isDark ? "flex h-12 w-full items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.06] px-3 text-left text-sm font-semibold text-white active:bg-white/[0.1]" : "flex h-12 w-full items-center gap-3 rounded-2xl border border-[#D6DEE9] bg-white px-3 text-left text-sm font-semibold text-[#111827] shadow-sm active:bg-[#F8FAFC]"}
-                >
-                  <Pencil className="h-5 w-5 shrink-0" />
-                  <span>{t("newChat")}</span>
-                </button>
-
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setMenuSearchOpen((open) => !open)}
-                    className={isDark ? "flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#E5E7EB] active:bg-white/[0.08]" : "flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
-                  >
-                    <Clock3 className="h-5 w-5 shrink-0" />
-                    <span>{t("search")}</span>
+            <div className="shrink-0 px-5 pb-4">
+              <label className={`flex h-14 items-center gap-3 rounded-[24px] border px-4 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.07]" : "border-[#E5E7EB] bg-white"}`}>
+                <Search className={isDark ? "h-5 w-5 shrink-0 text-white" : "h-5 w-5 shrink-0 text-[#193B68]"} />
+                <input
+                  ref={searchInputRef}
+                  value={menuSearchQuery}
+                  onChange={(event) => setMenuSearchQuery(event.target.value)}
+                  placeholder={t("searchConversations")}
+                  className={`min-w-0 flex-1 bg-transparent text-[17px] font-semibold outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+                />
+                {menuSearchQuery && (
+                  <button type="button" onClick={() => setMenuSearchQuery("")} className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}>
+                    <X className="h-4 w-4" />
                   </button>
+                )}
+              </label>
+            </div>
 
-                  {menuSearchOpen && (
-                    <label className={`mt-2 flex h-12 items-center gap-2 rounded-2xl border px-3 ${isDark ? "border-white/[0.1] bg-white/[0.06]" : "border-[#E5E7EB] bg-white"}`}>
-                      <Search className="h-4 w-4 shrink-0 text-[#9CA3AF]" />
-                      <input
-                        ref={searchInputRef}
-                        value={menuSearchQuery}
-                        onChange={(event) => setMenuSearchQuery(event.target.value)}
-                        placeholder={t("searchConversations")}
-                        className={`min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-                      />
-                      {menuSearchQuery && (
-                        <button type="button" onClick={() => setMenuSearchQuery("")} className="flex h-7 w-7 items-center justify-center rounded-full">
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </label>
-                  )}
-                </div>
-              </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
+              {[
+                { title: "Recent Chats", items: menuSearchQuery.trim() ? [] : conversations.slice(0, 6), icon: Clock3 },
+                { title: "Pinned Chats", items: menuSearchQuery.trim() ? [] : conversations.slice(0, 3), icon: MessageSquare },
+                { title: "Projects", items: [], icon: FolderKanban },
+                { title: "Folders", items: [], icon: Library },
+                { title: "Search Matches", items: menuSearchQuery.trim() ? visibleConversations : [], icon: Search },
+              ].map((section) => (
+                <div key={section.title} className={`mb-4 rounded-[28px] border p-2.5 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white"}`}>
+                  <div className="flex items-center gap-2 px-3 pb-2 pt-1">
+                    <section.icon className={isDark ? "h-4 w-4 text-white" : "h-4 w-4 text-[#193B68]"} />
+                    <p className="text-sm font-extrabold">{section.title}</p>
+                  </div>
 
-              <div className={`mt-5 border-t pt-4 ${borderColor}`}>
-                {navigationItems.map(({ label, path, icon: Icon }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => goTo(path)}
-                    className={isDark ? "mb-1 flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#E5E7EB] active:bg-white/[0.08]" : "mb-1 flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
-                  >
-                    <Icon className="h-5 w-5 shrink-0" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className={`mt-5 border-t pt-4 ${borderColor}`}>
-                <p className={`px-3 text-xs font-semibold uppercase tracking-wide ${mutedText}`}>Recent Conversations</p>
-
-                <div className="mt-2 space-y-1">
-                  {isLoadingConversations && (
-                    <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>{t("loadingConversation")}</div>
+                  {section.title === "Search Matches" && isSearching && menuSearchQuery.trim() && (
+                    <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>{t("searching")}</div>
                   )}
 
-                  {!isLoadingConversations && historyError && (
-                    <div className="rounded-2xl px-3 py-3 text-sm font-medium text-red-500">{historyError}</div>
-                  )}
-
-                  {!isLoadingConversations && !historyError && visibleConversations.length === 0 && (
+                  {section.items.length === 0 && !(section.title === "Search Matches" && isSearching && menuSearchQuery.trim()) && (
                     <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>
-                      {menuSearchQuery.trim() ? t("noChatsFound") : t("noChatsFound")}
+                      {section.title === "Search Matches" ? t("noChatsFound") : "Nothing here yet"}
                     </div>
                   )}
 
-                  {isSearching && menuSearchQuery.trim() && (
-                    <div className={`rounded-2xl px-3 py-2 text-sm font-medium ${mutedText}`}>{t("searching")}</div>
-                  )}
-
-                  {visibleConversations.map((item) => {
-                    const isActive = item.conversationId === activeConversationId;
-                    return (
-                      <button
-                        key={item.conversationId}
-                        type="button"
-                        onClick={() => openConversation(item.conversationId)}
-                        className={
-                          isActive
-                            ? isDark
-                              ? "flex w-full items-start gap-3 rounded-2xl border border-[#3F5F8C] bg-[#27384F] px-3 py-3 text-left text-white"
-                              : "flex w-full items-start gap-3 rounded-2xl border border-[#B7C7FF] bg-[#EAF0FF] px-3 py-3 text-left text-[#102E5A]"
-                            : isDark
-                              ? "flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left text-[#D7D7D7] active:bg-white/[0.08]"
-                              : "flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left text-[#475569] active:bg-[#EEF2F7]"
-                        }
-                      >
-                        <MessageSquare className="mt-0.5 h-4 w-4 shrink-0" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">{item.title || t("newChat")}</span>
-                          <span className={`mt-1 block truncate text-xs font-medium ${isDark ? "text-[#9CA3AF]" : "text-[#64748B]"}`}>
-                            {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
-                          </span>
+                  {section.items.map((item) => (
+                    <button
+                      key={`${section.title}-${item.conversationId}`}
+                      type="button"
+                      onClick={() => openConversation(item.conversationId)}
+                      className={isDark ? "flex w-full items-start gap-3 rounded-[22px] px-3.5 py-3 text-left text-[#D7D7D7] active:bg-white/[0.08]" : "flex w-full items-start gap-3 rounded-[22px] px-3.5 py-3 text-left text-[#475569] active:bg-[#EEF2F7]"}
+                    >
+                      <MessageSquare className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{item.title || t("newChat")}</span>
+                        <span className={`mt-1 block truncate text-xs font-medium ${isDark ? "text-[#9CA3AF]" : "text-[#64748B]"}`}>
+                          {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
                         </span>
-                      </button>
-                    );
-                  })}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              </div>
-            </nav>
-          </aside>
-        </div>
-      )}
+              ))}
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
