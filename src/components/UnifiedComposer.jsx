@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import { ArrowUp, FileText, Mic, Plus, Square, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -44,7 +45,20 @@ export default function UnifiedComposer({
 }) {
   const isMobile = variant === "mobile";
   const hasAttachments = attachments.length > 0 || isUploading;
-  const hasTallContent = hasAttachments || modePill || minRows > 1;
+  const hasTallContent = hasAttachments || Boolean(modePill);
+  const textareaMinHeight = isMobile ? 44 : 34;
+
+  useLayoutEffect(() => {
+    const element = inputRef?.current;
+
+    if (!element) return;
+
+    element.style.height = "auto";
+
+    if (value) {
+      element.style.height = `${Math.min(element.scrollHeight, maxTextHeight)}px`;
+    }
+  }, [inputRef, maxTextHeight, value]);
 
   return (
     <form className="space-y-2" onSubmit={onSubmit}>
@@ -53,9 +67,9 @@ export default function UnifiedComposer({
         className={cn(
           "relative flex w-full flex-col border shadow-sm transition-all duration-200 ease-out",
           isMobile
-            ? "rounded-[28px] px-3.5 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+            ? "rounded-[27px] px-3.5 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
             : hasTallContent
-              ? "rounded-[34px] px-4 py-4 sm:px-6 sm:py-5"
+              ? "rounded-[30px] px-4 py-3 sm:px-5"
               : "rounded-[31px] px-4 py-2.5 sm:px-5",
           isDark
             ? "border-white/[0.08] bg-[#202020]/[0.92] focus-within:bg-[#242424]"
@@ -145,14 +159,14 @@ export default function UnifiedComposer({
           onChange={onChange}
           onInput={onInput}
           onKeyDown={onKeyDown}
-          rows={minRows}
+          rows={1}
           placeholder={placeholder}
           className={cn(
             "block w-full resize-none bg-transparent font-medium outline-none",
             isMobile
-              ? "max-h-[180px] min-h-[72px] text-[16px] leading-6"
+              ? "max-h-[180px] min-h-[44px] text-[16px] leading-6"
               : hasTallContent
-                ? "max-h-[220px] min-h-[92px] text-[16px] leading-7"
+                ? "max-h-[220px] min-h-[42px] text-[16px] leading-6"
                 : "max-h-40 min-h-8 text-[17px] leading-8",
             isDark ? "text-white placeholder:text-[#A7A7A7]/80" : "text-[#111827] placeholder:text-[#64748B]/85",
           )}
@@ -161,6 +175,7 @@ export default function UnifiedComposer({
             letterSpacing: "0",
             caretColor: appColor,
             maxHeight: `${maxTextHeight}px`,
+            minHeight: `${textareaMinHeight}px`,
           }}
           data-testid={testId}
         />
@@ -186,12 +201,12 @@ export default function UnifiedComposer({
             onClick={onVoice}
             className={cn(
               "flex shrink-0 items-center justify-center rounded-full transition-colors duration-200",
-              isMobile ? "h-9 w-9" : "h-[38px] w-[38px] border",
+              isMobile ? "h-9 w-9" : "h-[38px] w-[38px]",
               isListening
                 ? "text-white"
                 : isDark
-                  ? "border-[#333] text-[#D4D4D4] hover:bg-white/[0.08] hover:text-white"
-                  : "border-[#E5E7EB] text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827]",
+                  ? "text-[#D4D4D4] hover:text-white"
+                  : "text-[#4B5563] hover:text-[#111827]",
             )}
             style={isListening ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : undefined}
             aria-label={voiceLabel}
@@ -216,7 +231,7 @@ export default function UnifiedComposer({
             {isBusy ? (
               <Square className={isMobile ? "h-3.5 w-3.5 fill-current" : "h-[14px] w-[14px] fill-current"} />
             ) : (
-              <ArrowUp className={isMobile ? "h-[20px] w-[18px] -translate-y-[2px] stroke-[3]" : "h-[24px] w-[24px] scale-y-[1.08] stroke-[2.2]"} />
+              <ArrowUp className={isMobile ? "h-[19px] w-[18px] -translate-y-[1px] scale-y-[1.06] stroke-[3]" : "h-[20px] w-[20px] -translate-y-[1px] scale-y-[1.08] stroke-[2.5]"} />
             )}
           </button>
         </div>
