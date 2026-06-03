@@ -14,8 +14,9 @@ const RESPONSE_BLOCK_TYPES = new Set([
   "editable_writing_block",
 ]);
 
-const COPY_TEXT_REQUEST_RE = /\b(prompt|instruction|instructions|specification|spec|copy(?:able)?|paste|one text|plain text|for codex|to codex|developer tool|ai tool)\b/i;
-const EDITABLE_WRITING_REQUEST_RE = /\b(email|message|whatsapp|apology|business message|social media|post|cover letter|cv paragraph|official letter|school note|letter to|message to|send to|reply to|draft)\b/i;
+const COPY_TEXT_REQUEST_RE = /\b(prompt|instruction|instructions|specification|spec|copy(?:able)?|paste|one text|plain text|for codex|to codex|developer tool|ai tool)\b|برومبت|تعليمات|مواصفات|نص\s+للنسخ|انسخ|كودكس/i;
+const EDITABLE_WRITING_REQUEST_RE = /\b(email|message|whatsapp|apology|business message|social media|post|cover letter|cv paragraph|official letter|school note|letter to|message to|send to|reply to|draft)\b|رسالة|ايميل|إيميل|بريد|واتساب|اعتذار|منشور|خطاب|رسمي|صديقي|صديقتي|اكتب\s+له|اكتب\s+لها|رد\s+على|مسودة/i;
+const HUMAN_FACING_CONTENT_RE = /^(dear|hi|hello|hey|subject:|to whom it may concern|عزيزي|عزيزتي|مرحباً|مرحبا|السلام عليكم|الموضوع:)/i;
 
 function copyToClipboard(text) {
   return navigator.clipboard.writeText(String(text || ""));
@@ -62,7 +63,7 @@ function inferResponseBlockType({ message, previousUserContent }) {
   }
 
   const content = String(message?.content || "");
-  const previous = String(previousUserContent || "");
+  const previous = String(previousUserContent || message?.metadata?.requestContent || message?.metadata?.userPrompt || "");
 
   if (/```[\s\S]*?```/.test(content)) {
     return "code_block";
@@ -72,7 +73,7 @@ function inferResponseBlockType({ message, previousUserContent }) {
     return "copy_text_block";
   }
 
-  if (EDITABLE_WRITING_REQUEST_RE.test(previous)) {
+  if (EDITABLE_WRITING_REQUEST_RE.test(previous) || (EDITABLE_WRITING_REQUEST_RE.test(content) && HUMAN_FACING_CONTENT_RE.test(content.trim()))) {
     return "editable_writing_block";
   }
 

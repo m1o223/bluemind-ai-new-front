@@ -1975,6 +1975,7 @@ export default function ChatPage() {
           chatMode: mode,
           mode: selectedResponseMode,
           responseMode: selectedResponseMode,
+          requestContent: visibleInput,
         },
       },
     ]);
@@ -4236,9 +4237,10 @@ export default function ChatPage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.94 }}
               className={cn(
-                "absolute bottom-28 left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl transition-colors",
+                "fixed left-1/2 z-50 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl transition-colors",
                 isDark ? "border-white/[0.12] bg-[#242424]/90 text-white hover:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[#193B68] hover:bg-white"
               )}
+              style={{ bottom: "8.5rem" }}
               aria-label="Scroll to bottom"
             >
               <ChevronDown className="h-5 w-5 stroke-[2.4]" />

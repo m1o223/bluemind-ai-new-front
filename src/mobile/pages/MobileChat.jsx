@@ -1061,7 +1061,7 @@ export default function MobileChat() {
       ...(!hideUserMessage && visibleMessage
         ? [{ id: userMessageId, role: "user", content: visibleMessage, attachments: writeAttachments, metadata: userMetadata }]
         : []),
-      { id: aiMessageId, role: "ai", content: "", isStreaming: true },
+      { id: aiMessageId, role: "ai", content: "", isStreaming: true, metadata: { ...userMetadata, requestContent: visibleMessage } },
     ]);
 
     if (!keepComposer) {
@@ -2346,7 +2346,7 @@ export default function MobileChat() {
               className={`fixed left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl ${
                 isDark ? "border-white/[0.12] bg-[#242424]/90 text-white active:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[#193B68] active:bg-white"
               }`}
-              style={{ bottom: "calc(env(safe-area-inset-bottom) + 112px)" }}
+              style={{ bottom: "calc(env(safe-area-inset-bottom) + 128px)" }}
               aria-label="Scroll to bottom"
             >
               <ChevronDown className="h-5 w-5 stroke-[2.4]" />
