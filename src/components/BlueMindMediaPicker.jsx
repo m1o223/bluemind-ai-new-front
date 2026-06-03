@@ -51,6 +51,8 @@ export default function BlueMindMediaPicker({
       action: onSearch,
     },
   ];
+  const cameraSizeClass = isMobile ? "h-[96px] w-[96px]" : "h-[104px] w-[104px]";
+  const photoSizeClass = isMobile ? "h-[86px] w-[86px]" : "h-[92px] w-[92px]";
 
   return (
     <AnimatePresence>
@@ -109,11 +111,12 @@ export default function BlueMindMediaPicker({
                 type="button"
                 onClick={onCamera}
                 className={cn(
-                  "flex h-[78px] w-[78px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[22px] border text-xs font-bold",
-                  isDark ? "border-white/[0.1] bg-white/[0.06] text-white" : "border-[#D6DEE9] bg-[#F8FAFC] text-[#193B68]",
+                  "flex shrink-0 flex-col items-center justify-center gap-2 rounded-[26px] border text-sm font-extrabold shadow-sm transition-transform active:scale-[0.98]",
+                  cameraSizeClass,
+                  isDark ? "border-white/[0.12] bg-white/[0.075] text-white" : "border-[#D6DEE9] bg-[#F8FAFC] text-[#193B68]",
                 )}
               >
-                <Camera className="h-6 w-6" />
+                <Camera className="h-7 w-7" />
                 Camera
               </button>
 
@@ -124,7 +127,7 @@ export default function BlueMindMediaPicker({
                     key={item.id || `${preview}-${index}`}
                     type="button"
                     onClick={() => onToggleImage?.(item)}
-                    className="relative h-[78px] w-[78px] shrink-0 overflow-hidden rounded-[22px] bg-[#111827]"
+                    className={cn("relative shrink-0 overflow-hidden rounded-[24px] bg-[#111827] transition-transform active:scale-[0.98]", photoSizeClass)}
                     title={item.name || `Photo ${index + 1}`}
                   >
                     {preview ? (

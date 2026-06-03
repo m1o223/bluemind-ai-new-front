@@ -1653,6 +1653,7 @@ export default function ChatPage() {
 
   const handleImageFileSelect = async (event) => {
     const selectedFiles = Array.from(event.target.files || []);
+    const isCameraCapture = event.target === cameraInputRef.current;
     event.target.value = "";
     if (!selectedFiles.length) return;
 
@@ -1670,14 +1671,16 @@ export default function ChatPage() {
       setIsUploading(true);
       try {
         const image = await uploadChatImage(file, conversationId);
-        setAttachments((prev) => [
-          ...prev,
-          {
-            id: image.id,
-            name: file.name,
-            previewUrl: URL.createObjectURL(file),
-          },
-        ].slice(0, 10));
+        const nextAttachment = {
+          id: image.id,
+          name: file.name,
+          previewUrl: URL.createObjectURL(file),
+        };
+        setAttachments((prev) => (
+          isCameraCapture
+            ? [nextAttachment, ...prev]
+            : [...prev, nextAttachment]
+        ).slice(0, 10));
       } catch (error) {
         toast.error(error.message || t("imageUploadFailed"));
       } finally {
@@ -3906,7 +3909,7 @@ export default function ChatPage() {
       <input
         ref={imageInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept="image/*"
         multiple
         className="hidden"
         onChange={handleImageFileSelect}

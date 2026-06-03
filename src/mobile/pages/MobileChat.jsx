@@ -1078,6 +1078,7 @@ export default function MobileChat() {
     }
 
     const templateForSelection = pendingImageTemplate;
+    const isCameraCapture = event.target === cameraInputRef.current;
     if (isImageMode || templateForSelection) {
       setIsImageMode(true);
     }
@@ -1094,7 +1095,9 @@ export default function MobileChat() {
         file,
         previewUrl: URL.createObjectURL(file),
       }));
-      return [...current, ...nextImages];
+      return isCameraCapture
+        ? [...nextImages, ...current].slice(0, MAX_IMAGE_ATTACHMENTS)
+        : [...current, ...nextImages].slice(0, MAX_IMAGE_ATTACHMENTS);
     });
     event.target.value = "";
   };
