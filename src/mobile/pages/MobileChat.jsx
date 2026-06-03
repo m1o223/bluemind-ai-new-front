@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
+import MarkdownText from "@/components/MarkdownText";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import UnifiedComposer from "@/components/UnifiedComposer";
 import { useApp } from "@/context/AppContext";
@@ -1036,7 +1037,6 @@ export default function MobileChat() {
     const userMessageId = crypto.randomUUID();
     const aiMessageId = crypto.randomUUID();
     const userMetadata = {
-      source: "mobile_chat",
       chatMode: "chat",
       mode: selectedMode,
       responseMode: selectedMode,
@@ -1283,6 +1283,7 @@ export default function MobileChat() {
       prompt: "",
       metadata: {
         source: "search",
+        chatMode: "web_search",
         category: category.id,
         categoryTitle: category.title,
         selectedItem: item?.title,
@@ -1300,7 +1301,10 @@ export default function MobileChat() {
     if (!isImageMode) {
       const currentMessage = message.trim();
       if (!currentMessage) return;
-      await sendChatPrompt({ prompt: currentMessage });
+      await sendChatPrompt({
+        prompt: currentMessage,
+        metadata: isSearchMode ? { chatMode: "web_search" } : {},
+      });
       return;
     }
 
@@ -1344,7 +1348,6 @@ export default function MobileChat() {
         quality: "auto",
         outputFormat: "png",
         metadata: {
-          source: "mobile_image_mode",
           templateId: selectedImageTemplate?.id,
           templateTitle: selectedImageTemplate?.title,
           uploadedImageIds: uploadedImages.map((image) => image.id),
@@ -2241,16 +2244,20 @@ export default function MobileChat() {
                 >
                   <div
                     dir="auto"
-                    className={`whitespace-pre-wrap break-words text-sm font-medium leading-6 ${
+                    className={`break-words text-sm font-medium leading-6 ${
                       item.role === "user"
-                        ? "inline-block w-fit max-w-[78%] rounded-[22px] px-4 py-3 text-white"
+                        ? "inline-block w-fit max-w-[78%] whitespace-pre-wrap rounded-[22px] px-4 py-3 text-white"
                         : isDark
                           ? "w-full px-1 py-1 text-white"
                           : "w-full px-1 py-1 text-[#111827]"
                     }`}
                     style={item.role === "user" ? { backgroundColor: "var(--bluemind-app-color, #193B68)" } : undefined}
                   >
-                    {item.content || (item.isStreaming ? "Thinking..." : "")}
+                    {item.role === "user" ? (
+                      item.content
+                    ) : (
+                      <MarkdownText text={item.content || (item.isStreaming ? "Thinking..." : "")} className="text-[15px] leading-[1.85]" />
+                    )}
                   </div>
 
                   {item.role !== "user" && !item.isStreaming && (
