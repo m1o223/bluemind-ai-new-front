@@ -68,13 +68,12 @@ import {
   WRITE_UPLOAD_ACTIONS,
 } from "@/data/writeEditTemplates";
 import {
-  deleteConversation,
   getConversation,
   listConversations,
-  renameConversation,
   searchConversations,
   streamChatMessage,
 } from "@/services/chatService";
+import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 import {
   createSuggestedReminder,
@@ -904,7 +903,7 @@ function Sidebar({
                           onOpenConversation(id);
                         }}
                         onRename={(conversation, title) => onRenameConversation(conversation, title)}
-                        onShare={(conversation) => navigator.clipboard?.writeText(`${window.location.origin}/chat?conversation=${conversation.conversationId}`).then(() => toast.success("Link copied")).catch(() => toast.info("Copy link unavailable"))}
+                        onShare={handleShareConversation}
                         onDelete={onDeleteConversation}
                         t={t}
                       />
@@ -1021,7 +1020,7 @@ function Sidebar({
                       setMenuOpenId(null);
                       onRenameConversation(conversation, title);
                     }}
-                    onShare={(conversation) => navigator.clipboard?.writeText(`${window.location.origin}/chat?conversation=${conversation.conversationId}`).then(() => toast.success("Link copied")).catch(() => toast.info("Copy link unavailable"))}
+                    onShare={handleShareConversation}
                     onDelete={(conversation) => {
                       setMenuOpenId(null);
                       onDeleteConversation(conversation);
@@ -1574,7 +1573,7 @@ export default function ChatPage() {
       )));
 
       try {
-        await renameConversation(conversation.conversationId, inlineTitle);
+        await renameChat(conversation.conversationId, inlineTitle);
         refreshHistory().catch(() => {});
       } catch (error) {
         setHistory(previousHistory);
@@ -1601,7 +1600,7 @@ export default function ChatPage() {
     )));
 
     try {
-      await renameConversation(renameTarget.conversationId, nextTitle);
+      await renameChat(renameTarget.conversationId, nextTitle);
       setRenameTarget(null);
       setRenameTitle("");
       refreshHistory().catch(() => {});
@@ -1620,10 +1619,21 @@ export default function ChatPage() {
     }
 
     try {
-      await deleteConversation(conversation.conversationId);
+      await deleteChat(conversation.conversationId);
     } catch (error) {
       setHistory(previousHistory);
       toast.error(error.message || t("saveFailed"));
+    }
+  };
+
+  const handleShareConversation = async (conversation) => {
+    try {
+      const result = await shareChat(conversation, { appName: APP_NAME });
+      if (result.method === "clipboard") {
+        toast.success("Link copied");
+      }
+    } catch {
+      toast.info("Copy link unavailable");
     }
   };
 

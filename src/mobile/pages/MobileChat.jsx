@@ -12,11 +12,8 @@ import {
   Check,
   Clock3,
   Clipboard,
-  Code2,
   FileText,
-  FolderKanban,
   Image,
-  Library,
   Menu,
   MoreVertical,
   MessageSquare,
@@ -29,10 +26,10 @@ import {
   Search,
   Share2,
   Settings,
-  Shapes,
   Square,
   ThumbsDown,
   ThumbsUp,
+  Trash2,
   UserCircle,
   X,
 } from "lucide-react";
@@ -57,6 +54,7 @@ import {
 } from "@/data/searchDiscovery";
 import { getApiErrorMessage } from "@/services/api";
 import { listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
+import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 
@@ -428,6 +426,10 @@ export default function MobileChat() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [historyError, setHistoryError] = useState("");
+  const [chatMenuTarget, setChatMenuTarget] = useState(null);
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameTitle, setRenameTitle] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
@@ -479,11 +481,7 @@ export default function MobileChat() {
   const textColor = isDark ? "text-white" : "text-[#111827]";
 
   const navigationItems = [
-    { label: "Library", path: "/mobile/learning", icon: Library },
-    { label: "Projects", path: "/mobile/smart-hub", icon: FolderKanban },
     { label: "Images", action: () => enterImageMode(), icon: Image },
-    { label: "Codex", path: "/mobile/write-edit", icon: Code2 },
-    { label: "Apps", path: "/mobile/smart-hub", icon: Shapes },
     { label: t("settings"), path: "/mobile/settings", icon: Settings },
     { label: t("profile"), path: "/mobile/profile", icon: UserCircle },
   ];
@@ -492,6 +490,11 @@ export default function MobileChat() {
     const query = menuSearchQuery.trim();
     return query ? searchResults : conversations;
   }, [conversations, menuSearchQuery, searchResults]);
+
+  const pinnedConversations = useMemo(
+    () => conversations.filter((item) => item.pinned || item.isPinned).slice(0, 8),
+    [conversations],
+  );
 
   const writeEditTemplates = useMemo(
     () => WRITE_EDIT_SECTIONS.flatMap((section) => (
@@ -732,7 +735,77 @@ export default function MobileChat() {
   const openConversation = (conversationId) => {
     closeMenu();
     setMenuSearchOpen(false);
+    setChatMenuTarget(null);
     setSearchParams({ conversation: conversationId });
+  };
+
+  const openRenameDialog = (conversation) => {
+    setChatMenuTarget(null);
+    setRenameTarget(conversation);
+    setRenameTitle(conversation.title || "");
+  };
+
+  const handleRenameSubmit = async (event) => {
+    event.preventDefault();
+    if (!renameTarget || !renameTitle.trim()) return;
+
+    const previousConversations = conversations;
+    const nextTitle = renameTitle.trim();
+    setConversations((current) => current.map((item) => (
+      item.conversationId === renameTarget.conversationId
+        ? { ...item, title: nextTitle }
+        : item
+    )));
+    setSearchResults((current) => current.map((item) => (
+      item.conversationId === renameTarget.conversationId
+        ? { ...item, title: nextTitle }
+        : item
+    )));
+
+    try {
+      await renameChat(renameTarget.conversationId, nextTitle);
+      setRenameTarget(null);
+      setRenameTitle("");
+      const data = await listConversations().catch(() => null);
+      if (Array.isArray(data?.items)) setConversations(data.items);
+    } catch (error) {
+      setConversations(previousConversations);
+      toast.error(error.message || "Could not rename conversation");
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!deleteTarget) return;
+
+    const target = deleteTarget;
+    const previousConversations = conversations;
+    setDeleteTarget(null);
+    setChatMenuTarget(null);
+    setConversations((current) => current.filter((item) => item.conversationId !== target.conversationId));
+    setSearchResults((current) => current.filter((item) => item.conversationId !== target.conversationId));
+
+    if (activeConversationId === target.conversationId) {
+      startNewChat();
+    }
+
+    try {
+      await deleteChat(target.conversationId);
+    } catch (error) {
+      setConversations(previousConversations);
+      toast.error(error.message || "Could not delete conversation");
+    }
+  };
+
+  const handleShareConversation = async (conversation) => {
+    setChatMenuTarget(null);
+    try {
+      const result = await shareChat(conversation, { appName: APP_NAME });
+      if (result.method === "clipboard") {
+        toast.success("Link copied");
+      }
+    } catch {
+      toast.info("Copy link unavailable");
+    }
   };
 
   const clearMobileFlowParams = () => {
@@ -1976,6 +2049,96 @@ export default function MobileChat() {
     );
   };
 
+  const renderMobileConversationRow = (item, context = "menu") => {
+    const menuId = `${context}:${item.conversationId}`;
+    const isActive = item.conversationId === activeConversationId;
+
+    return (
+      <div
+        key={menuId}
+        className={`relative border-b py-3 last:border-b-0 ${isDark ? "border-white/[0.06]" : "border-[#E5E7EB]"}`}
+      >
+        <button
+          type="button"
+          onClick={() => openConversation(item.conversationId)}
+          className="flex w-full min-w-0 items-start gap-3 pr-10 text-left"
+          data-testid={`mobile-chat-row-${item.conversationId}`}
+        >
+          <MessageSquare className={`mt-0.5 h-5 w-5 shrink-0 ${isActive ? isDark ? "text-white" : "text-[#193B68]" : isDark ? "text-[#D7D7D7]" : "text-[#64748B]"}`} />
+          <span className="min-w-0 flex-1">
+            <span className={`block truncate text-[15px] font-semibold ${isActive ? isDark ? "text-white" : "text-[#193B68]" : textColor}`}>
+              {item.title || t("newChat")}
+            </span>
+            <span className={`mt-1 block truncate text-xs font-medium ${isDark ? "text-[#9CA3AF]" : "text-[#64748B]"}`}>
+              {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setChatMenuTarget((current) => current === menuId ? null : menuId);
+          }}
+          className={isDark ? "absolute right-0 top-3 flex h-9 w-9 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "absolute right-0 top-3 flex h-9 w-9 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+          aria-label="Conversation actions"
+          data-testid={`mobile-chat-menu-${item.conversationId}`}
+        >
+          <MoreVertical className="h-5 w-5" />
+        </button>
+
+        <AnimatePresence>
+          {chatMenuTarget === menuId && (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-[90]"
+                onClick={() => setChatMenuTarget(null)}
+                aria-label="Close conversation actions"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                transition={{ duration: 0.16 }}
+                className={`absolute right-0 top-12 z-[95] w-40 overflow-hidden rounded-2xl border py-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[#242424] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => openRenameDialog(item)}
+                  className={isDark ? "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold active:bg-white/[0.08]" : "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold active:bg-[#EEF2F7]"}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShareConversation(item)}
+                  className={isDark ? "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold active:bg-white/[0.08]" : "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold active:bg-[#EEF2F7]"}
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChatMenuTarget(null);
+                    setDeleteTarget(item);
+                  }}
+                  className={isDark ? "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold text-red-300 active:bg-red-950/30" : "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold text-red-500 active:bg-red-50"}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
   return (
     <main
       className={`fixed inset-0 flex flex-col overflow-hidden ${textColor}`}
@@ -2800,13 +2963,10 @@ export default function MobileChat() {
             onTouchEnd={handleTouchEnd}
             data-testid="mobile-full-screen-menu"
           >
-            <div className="flex shrink-0 items-center justify-between px-5 pb-4 pt-4">
-              <div className="flex items-center gap-3">
-                <BrandLogo showName={false} logoClassName="h-11 w-11" />
-                <div>
-                  <h2 className="text-[24px] font-extrabold leading-tight tracking-tight">BlueMind AI</h2>
-                  <p className={`mt-0.5 text-sm font-semibold ${mutedText}`}>Navigate your workspace</p>
-                </div>
+            <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
+              <div className="flex items-center gap-2.5">
+                <BrandLogo showName={false} logoClassName="h-9 w-9" />
+                <h2 className="text-[21px] font-extrabold leading-tight tracking-tight">BlueMind AI</h2>
               </div>
               <button
                 type="button"
@@ -2819,99 +2979,63 @@ export default function MobileChat() {
             </div>
 
             <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
-              <div className={`rounded-[28px] border p-2.5 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white"}`}>
+              <div className="space-y-1 py-2">
                 <button
                   type="button"
                   onClick={startNewChat}
-                  className={isDark ? "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-white active:bg-white/[0.08]" : "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-white active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
-                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#193B68]"}>
-                    <Pencil className="h-5 w-5" />
-                  </span>
+                  <Pencil className="h-5 w-5 shrink-0" />
                   <span>{t("newChat")}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={openMenuSearch}
-                  className={isDark ? "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-white active:bg-white/[0.08]" : "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-white active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
-                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#193B68]"}>
-                    <Search className="h-5 w-5" />
-                  </span>
+                  <Search className="h-5 w-5 shrink-0" />
                   <span>{t("search")}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => document.getElementById("mobile-recent-chats")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  className={isDark ? "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-white active:bg-white/[0.08]" : "flex min-h-[58px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-bold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-white active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
-                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#193B68]"}>
-                    <Clock3 className="h-5 w-5" />
-                  </span>
+                  <Clock3 className="h-5 w-5 shrink-0" />
                   <span>Recent Chats</span>
                 </button>
-              </div>
 
-              <div className={`mt-4 rounded-[28px] border p-2.5 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white"}`}>
                 {navigationItems.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => runMenuAction(item)}
-                    className={isDark ? "flex min-h-[56px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-semibold text-[#F5F5F5] active:bg-white/[0.08]" : "flex min-h-[56px] w-full items-center gap-3 rounded-[22px] px-3.5 text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                    className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#F5F5F5] active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                   >
-                    <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07]" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#F1F5F9] text-[#193B68]"}>
-                      <item.icon className="h-5 w-5" />
-                    </span>
+                    <item.icon className="h-5 w-5 shrink-0" />
                     <span>{item.label}</span>
                   </button>
                 ))}
               </div>
 
-              <div id="mobile-recent-chats" className={`mt-4 rounded-[28px] border p-2.5 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white"}`}>
-                <p className={`px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-wide ${mutedText}`}>Recent Chats</p>
+              <div id="mobile-recent-chats" className="mt-5">
+                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>Recent Chats</p>
 
                 {isLoadingConversations && (
-                  <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>{t("loadingConversation")}</div>
+                  <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("loadingConversation")}</div>
                 )}
 
                 {!isLoadingConversations && historyError && (
-                  <div className="rounded-2xl px-3 py-3 text-sm font-medium text-red-500">{historyError}</div>
+                  <div className="py-3 text-sm font-medium text-red-500">{historyError}</div>
                 )}
 
                 {!isLoadingConversations && !historyError && conversations.length === 0 && (
-                  <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>{t("noChatsFound")}</div>
+                  <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("noChatsFound")}</div>
                 )}
 
-                {conversations.slice(0, 18).map((item) => {
-                  const isActive = item.conversationId === activeConversationId;
-                  return (
-                    <button
-                      key={item.conversationId}
-                      type="button"
-                      onClick={() => openConversation(item.conversationId)}
-                      className={
-                        isActive
-                          ? isDark
-                            ? "flex w-full items-start gap-3 rounded-[22px] border border-[#3F5F8C] bg-[#27384F] px-3.5 py-3 text-left text-white"
-                            : "flex w-full items-start gap-3 rounded-[22px] border border-[#B7C7FF] bg-[#EAF0FF] px-3.5 py-3 text-left text-[#102E5A]"
-                          : isDark
-                            ? "flex w-full items-start gap-3 rounded-[22px] px-3.5 py-3 text-left text-[#D7D7D7] active:bg-white/[0.08]"
-                            : "flex w-full items-start gap-3 rounded-[22px] px-3.5 py-3 text-left text-[#475569] active:bg-[#EEF2F7]"
-                      }
-                    >
-                      <MessageSquare className="mt-0.5 h-4.5 w-4.5 shrink-0" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">{item.title || t("newChat")}</span>
-                        <span className={`mt-1 block truncate text-xs font-medium ${isDark ? "text-[#9CA3AF]" : "text-[#64748B]"}`}>
-                          {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
+                {conversations.slice(0, 18).map((item) => renderMobileConversationRow(item, "menu"))}
               </div>
             </nav>
           </motion.section>
@@ -2980,49 +3104,117 @@ export default function MobileChat() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
-              {[
-                { title: "Recent Chats", items: menuSearchQuery.trim() ? [] : conversations.slice(0, 6), icon: Clock3 },
-                { title: "Pinned Chats", items: menuSearchQuery.trim() ? [] : conversations.slice(0, 3), icon: MessageSquare },
-                { title: "Projects", items: [], icon: FolderKanban },
-                { title: "Folders", items: [], icon: Library },
-                { title: "Search Matches", items: menuSearchQuery.trim() ? visibleConversations : [], icon: Search },
-              ].map((section) => (
-                <div key={section.title} className={`mb-4 rounded-[28px] border p-2.5 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white"}`}>
-                  <div className="flex items-center gap-2 px-3 pb-2 pt-1">
-                    <section.icon className={isDark ? "h-4 w-4 text-white" : "h-4 w-4 text-[#193B68]"} />
-                    <p className="text-sm font-extrabold">{section.title}</p>
-                  </div>
+              <section className="mb-6">
+                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>Recent Chats</p>
+                {isSearching && menuSearchQuery.trim() && (
+                  <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("searching")}</div>
+                )}
+                {!isSearching && visibleConversations.length === 0 && (
+                  <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("noChatsFound")}</div>
+                )}
+                {visibleConversations.slice(0, 24).map((item) => renderMobileConversationRow(item, "search-recent"))}
+              </section>
 
-                  {section.title === "Search Matches" && isSearching && menuSearchQuery.trim() && (
-                    <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>{t("searching")}</div>
-                  )}
-
-                  {section.items.length === 0 && !(section.title === "Search Matches" && isSearching && menuSearchQuery.trim()) && (
-                    <div className={`rounded-2xl px-3 py-3 text-sm font-medium ${mutedText}`}>
-                      {section.title === "Search Matches" ? t("noChatsFound") : "Nothing here yet"}
-                    </div>
-                  )}
-
-                  {section.items.map((item) => (
-                    <button
-                      key={`${section.title}-${item.conversationId}`}
-                      type="button"
-                      onClick={() => openConversation(item.conversationId)}
-                      className={isDark ? "flex w-full items-start gap-3 rounded-[22px] px-3.5 py-3 text-left text-[#D7D7D7] active:bg-white/[0.08]" : "flex w-full items-start gap-3 rounded-[22px] px-3.5 py-3 text-left text-[#475569] active:bg-[#EEF2F7]"}
-                    >
-                      <MessageSquare className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">{item.title || t("newChat")}</span>
-                        <span className={`mt-1 block truncate text-xs font-medium ${isDark ? "text-[#9CA3AF]" : "text-[#64748B]"}`}>
-                          {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ))}
+              {!menuSearchQuery.trim() && pinnedConversations.length > 0 && (
+                <section>
+                  <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>Pinned Chats</p>
+                  {pinnedConversations.map((item) => renderMobileConversationRow(item, "search-pinned"))}
+                </section>
+              )}
             </div>
           </motion.section>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {renameTarget && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center px-5">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setRenameTarget(null)}
+              aria-label="Cancel rename"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.form
+              onSubmit={handleRenameSubmit}
+              initial={{ opacity: 0, y: 14, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.96 }}
+              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}
+            >
+              <h3 className="text-base font-bold">Rename chat</h3>
+              <input
+                value={renameTitle}
+                onChange={(event) => setRenameTitle(event.target.value.slice(0, 120))}
+                className={`mt-4 h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none ${isDark ? "border-white/[0.1] bg-white/[0.06] text-white placeholder:text-[#9CA3AF]" : "border-[#E5E7EB] bg-white text-[#111827] placeholder:text-[#9CA3AF]"}`}
+                placeholder="Chat title"
+                autoFocus
+                data-testid="mobile-rename-chat-input"
+              />
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRenameTarget(null)}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#111827] active:bg-[#E2E8F0]"}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!renameTitle.trim()}
+                  className="h-11 rounded-2xl bg-[#193B68] text-sm font-bold text-white disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center px-5">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setDeleteTarget(null)}
+              aria-label="Cancel delete"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.96 }}
+              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}
+            >
+              <h3 className="text-base font-bold">Delete chat?</h3>
+              <p className={`mt-2 text-sm font-semibold leading-6 ${mutedText}`}>
+                This removes "{deleteTarget.title || t("newChat")}" from your chat history.
+              </p>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#111827] active:bg-[#E2E8F0]"}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteConversation()}
+                  className="h-11 rounded-2xl bg-red-500 text-sm font-bold text-white active:opacity-90"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </main>
