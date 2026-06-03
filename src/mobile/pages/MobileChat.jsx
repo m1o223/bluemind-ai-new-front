@@ -1108,7 +1108,11 @@ export default function MobileChat() {
       if (target) {
         URL.revokeObjectURL(target.previewUrl);
       }
-      return current.filter((image) => image.id !== imageId);
+      const nextImages = current.filter((image) => image.id !== imageId);
+      if (nextImages.length === 0 && isImageMode && !selectedImageTemplate) {
+        window.setTimeout(() => setIsImageMode(false), 0);
+      }
+      return nextImages;
     });
   };
 
