@@ -44,6 +44,10 @@ import {
   WRITE_EDIT_SECTIONS,
   WRITE_EDIT_UPLOAD_OPTIONS,
 } from "@/data/writeEditTemplates";
+import {
+  SEARCH_DISCOVERY_CATEGORIES,
+  getSearchResultsForCategory,
+} from "@/data/searchDiscovery";
 import { getApiErrorMessage } from "@/services/api";
 import { listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
@@ -113,103 +117,6 @@ function WriteTemplateArtwork({ template, index = 0 }) {
       </span>
     </div>
   );
-}
-
-const SEARCH_ARTWORK_PALETTES = [
-  { from: "#193B68", via: "#3D7EC8", to: "#B9D7F6" },
-  { from: "#0E7490", via: "#67E8F9", to: "#CFFAFE" },
-  { from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF" },
-  { from: "#0F766E", via: "#34C3AA", to: "#C8F7EC" },
-  { from: "#A855F7", via: "#D18BFF", to: "#F1D9FF" },
-  { from: "#EA580C", via: "#FDBA74", to: "#FFEDD5" },
-  { from: "#BE123C", via: "#FB7185", to: "#FFE4E6" },
-  { from: "#1D4ED8", via: "#60A5FA", to: "#DBEAFE" },
-];
-
-const SEARCH_CATEGORIES = [
-  { id: "books", title: "Books", description: "Find books, school books, academic sources, and reading material." },
-  { id: "schools", title: "Schools", description: "Explore schools, education systems, programs, and nearby options." },
-  { id: "universities", title: "Universities", description: "Search universities, majors, degrees, and admission information." },
-  { id: "science", title: "Science", description: "Search physics, chemistry, biology, and scientific topics." },
-  { id: "mathematics", title: "Mathematics", description: "Find explanations, formulas, lessons, and math resources." },
-  { id: "history", title: "History", description: "Explore events, civilizations, wars, timelines, and historical topics." },
-  { id: "geography", title: "Geography", description: "Search countries, maps, cities, climate, and world facts." },
-  { id: "homework", title: "Homework", description: "Get help finding resources for homework and school questions." },
-  { id: "research-papers", title: "Research Papers", description: "Discover academic papers, studies, and reliable sources." },
-  { id: "people", title: "People", description: "Search famous people, scientists, leaders, authors, and biographies." },
-  { id: "technology-ai", title: "Technology & AI", description: "Search technology, programming, AI, devices, and digital trends." },
-  { id: "news", title: "News", description: "Find recent updates, current events, and trending topics." },
-  { id: "sports", title: "Sports", description: "Search players, teams, clubs, competitions, and sports facts." },
-  { id: "travel-places", title: "Travel & Places", description: "Explore places, destinations, landmarks, and travel information." },
-  { id: "general-web-search", title: "General Web Search", description: "Search anything else across the web." },
-].map((category, index) => ({
-  ...category,
-  artwork: SEARCH_ARTWORK_PALETTES[index % SEARCH_ARTWORK_PALETTES.length],
-  sectionTitle: "Search",
-}));
-
-const BOOK_SEARCH_RESULTS = [
-  "Atomic Habits",
-  "Deep Work",
-  "The Power of Habit",
-  "Thinking, Fast and Slow",
-  "A Brief History of Time",
-  "Campbell Biology",
-  "University Physics",
-  "Calculus Made Easy",
-  "Sapiens",
-  "1984",
-  "To Kill a Mockingbird",
-  "The Alchemist",
-  "The Lean Startup",
-  "The Art of War",
-  "The Psychology of Money",
-  "Pride and Prejudice",
-  "The Great Gatsby",
-  "Clean Code",
-  "Introduction to Algorithms",
-  "Organic Chemistry",
-  "Linear Algebra Done Right",
-  "The Hobbit",
-  "Harry Potter and the Sorcerer's Stone",
-  "The Little Prince",
-  "Educated",
-];
-
-const SEARCH_RESULT_SEEDS = {
-  schools: ["International School", "Public School System", "STEM School", "Language School", "Online School"],
-  universities: ["Computer Science Major", "Medical School", "Engineering Degree", "Scholarships", "Admissions Guide"],
-  science: ["Physics Basics", "Chemistry Lab", "Biology Cells", "Scientific Method", "Astronomy"],
-  mathematics: ["Algebra", "Geometry", "Calculus", "Statistics", "Trigonometry"],
-  history: ["World War II", "Ancient Egypt", "Roman Empire", "Industrial Revolution", "Cold War"],
-  geography: ["World Maps", "Climate Zones", "Capital Cities", "Mountain Ranges", "Population Data"],
-  homework: ["Math Homework", "Science Project", "Essay Help", "Study Resources", "Practice Questions"],
-  "research-papers": ["Google Scholar", "PubMed", "ResearchGate", "Citation Help", "Academic Databases"],
-  people: ["Albert Einstein", "Marie Curie", "Nelson Mandela", "Jane Austen", "Ada Lovelace"],
-  "technology-ai": ["Artificial Intelligence", "Programming", "Smartphones", "Cybersecurity", "Robotics"],
-  news: ["World News", "Technology News", "Science Updates", "Business News", "Education News"],
-  sports: ["Football", "Basketball", "Tennis", "Olympics", "Formula 1"],
-  "travel-places": ["Paris", "Tokyo", "New York", "Historical Landmarks", "Travel Planning"],
-  "general-web-search": ["Web Search", "How-to Guides", "Product Reviews", "Definitions", "Local Information"],
-};
-
-function getSearchResultsForCategory(category) {
-  if (!category) return [];
-  const titles = category.id === "books"
-    ? BOOK_SEARCH_RESULTS
-    : Array.from({ length: 25 }, (_, index) => {
-      const seed = SEARCH_RESULT_SEEDS[category.id]?.[index % 5] || category.title;
-      return `${seed} ${Math.floor(index / 5) + 1}`;
-    });
-
-  return titles.slice(0, 25).map((title, index) => ({
-    id: `${category.id}-${index + 1}`,
-    title,
-    description: `Placeholder details for ${title}. More reliable search data will be connected later.`,
-    category: category.title,
-    sectionTitle: category.title,
-    artwork: SEARCH_ARTWORK_PALETTES[(index + 2) % SEARCH_ARTWORK_PALETTES.length],
-  }));
 }
 
 const DISLIKE_REASONS = [
@@ -2069,7 +1976,7 @@ export default function MobileChat() {
               </div>
               {!selectedSearchCategory && (
                 <p className={`mt-1 max-w-[330px] text-xs font-semibold leading-5 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
-                  Find what you need. If it is not here, Ask AI can help you find it.
+                  Find what you need here. If you can&apos;t find it, Ask AI can help you find it.
                 </p>
               )}
             </div>
@@ -2200,7 +2107,7 @@ export default function MobileChat() {
 
           {shouldShowSearchCards && !selectedSearchCategory && (
             <div className="grid grid-cols-2 gap-3 pt-2">
-              {SEARCH_CATEGORIES.map((category, index) => (
+              {SEARCH_DISCOVERY_CATEGORIES.map((category, index) => (
                 <motion.button
                   key={category.id}
                   type="button"
@@ -2277,20 +2184,20 @@ export default function MobileChat() {
                       <div className={`absolute right-2 top-11 z-10 w-36 overflow-hidden rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}>
                         <button
                           type="button"
-                          onClick={() => copySearchItemName(item)}
-                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
-                        >
-                          Copy name
-                        </button>
-                        <button
-                          type="button"
                           onClick={() => {
                             setExpandedSearchItemId((current) => current === item.id ? null : item.id);
                             setOpenSearchMenuItemId(null);
                           }}
                           className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
                         >
-                          Learn more
+                          Learn More
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copySearchItemName(item)}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
+                        >
+                          Copy Name
                         </button>
                         <button
                           type="button"
@@ -2315,7 +2222,7 @@ export default function MobileChat() {
                       </span>
                       {expandedSearchItemId === item.id && (
                         <div className={`mt-3 rounded-2xl px-3 py-2 text-[11px] font-semibold leading-4 ${isDark ? "bg-white/[0.07] text-[#D7D7D7]" : "bg-[#EEF2F7] text-[#475569]"}`}>
-                          Placeholder details for {item.title}. This larger view will connect to real search data later.
+                          {item.details || `More useful details about ${item.title} will appear here as search data is connected.`}
                         </div>
                       )}
                     </div>

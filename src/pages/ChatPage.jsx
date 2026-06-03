@@ -52,6 +52,10 @@ import {
   createLiveWebsiteResults,
 } from "@/data/websiteDirectory";
 import {
+  SEARCH_DISCOVERY_CATEGORIES,
+  getSearchResultsForCategory,
+} from "@/data/searchDiscovery";
+import {
   buildWriteEditMessage,
   createWriteEditTask,
   getWriteEditAttachmentLabel,
@@ -1672,6 +1676,10 @@ export default function ChatPage() {
   const [websitePage, setWebsitePage] = useState(0);
   const [liveWebsiteResults, setLiveWebsiteResults] = useState([]);
   const [isWebsiteLiveSearching, setIsWebsiteLiveSearching] = useState(false);
+  const [selectedSearchCategory, setSelectedSearchCategory] = useState(null);
+  const [openSearchMenuItemId, setOpenSearchMenuItemId] = useState(null);
+  const [expandedSearchItemId, setExpandedSearchItemId] = useState(null);
+  const [searchConfirm, setSearchConfirm] = useState(null);
   const [websiteFavorites, setWebsiteFavorites] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(WEBSITE_FAVORITES_STORAGE_KEY) || "[]");
@@ -1701,6 +1709,7 @@ export default function ChatPage() {
   const writeImageInputRef = useRef(null);
   const writeCameraInputRef = useRef(null);
   const quickTemplatesRef = useRef(null);
+  const websiteCategoryBarRef = useRef(null);
   const streamAbortRef = useRef(null);
   const speechRecognitionRef = useRef(null);
   const activeAiMessageRef = useRef(null);
@@ -2255,8 +2264,11 @@ export default function ChatPage() {
       ? buildWriteEditMessage(visibleInput, writeFiles)
       : visibleInput;
     const currentAttachments = sourceAttachments ?? attachments;
+    const requestMetadata = options.metadata || {};
+    const isSearchHandoff = String(requestMetadata?.source || requestMetadata?.searchContext?.source || "").toLowerCase() === "search";
+    const canStartFromContext = isSearchHandoff && requestMetadata?.intent && (requestMetadata?.category || requestMetadata?.searchContext?.category);
 
-    if ((!currentInput && currentAttachments.length === 0) || isAiTyping) return;
+    if ((!currentInput && currentAttachments.length === 0 && !canStartFromContext) || isAiTyping) return;
     if (isListening) stopVoiceInput();
 
     const imageIds = currentAttachments.map((item) => item.id);
@@ -2277,7 +2289,7 @@ export default function ChatPage() {
 
     setMessages((prev) => [
       ...prev,
-      userMessage,
+      ...(!options.hideUserMessage ? [userMessage] : []),
       {
         id: aiMessageId,
         role: "ai",
@@ -2340,6 +2352,7 @@ export default function ChatPage() {
           mode: selectedResponseMode,
           responseMode: selectedResponseMode,
           writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
+          ...requestMetadata,
         },
         signal: abortController.signal,
         onReady: (payload) => {
@@ -2618,6 +2631,63 @@ export default function ChatPage() {
     ));
   }, []);
 
+  const copySearchItemName = useCallback(async (item) => {
+    try {
+      await navigator.clipboard.writeText(item.title);
+      toast.success("Copied");
+    } catch {
+      toast.error(t("copyFailed"));
+    } finally {
+      setOpenSearchMenuItemId(null);
+    }
+  }, [t]);
+
+  const openSearchAskConfirm = useCallback(({ category, item = null, intent }) => {
+    setOpenSearchMenuItemId(null);
+    setSearchConfirm({ category, item, intent });
+  }, []);
+
+  const continueSearchWithAi = useCallback(async () => {
+    if (!searchConfirm?.category) return;
+
+    const { category, item, intent } = searchConfirm;
+    const searchContext = {
+      source: "search",
+      category: category.id,
+      categoryTitle: category.title,
+      intent,
+      ...(item?.title ? { selectedItem: item.title } : {}),
+    };
+
+    setSearchConfirm(null);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setActiveMode("default");
+    setInput("");
+
+    await handleSend({
+      message: "",
+      mode: "web_search",
+      metadata: {
+        source: "search",
+        category: category.id,
+        categoryTitle: category.title,
+        selectedItem: item?.title,
+        intent,
+        searchContext,
+      },
+      hideUserMessage: true,
+    });
+  }, [handleSend, searchConfirm]);
+
+  const scrollWebsiteCategories = useCallback((direction) => {
+    const node = websiteCategoryBarRef.current;
+    if (!node) return;
+
+    node.scrollBy({ left: direction * Math.max(220, node.clientWidth * 0.7), behavior: "smooth" });
+  }, []);
+
   const renderImageIdeas = () => (
     <motion.section
       initial={{ opacity: 0, y: 12 }}
@@ -2777,6 +2847,210 @@ export default function ChatPage() {
     );
   };
 
+  const renderSearchArtwork = (item, index = 0) => {
+    const artwork = item.artwork || {};
+    const from = artwork.from || "#193B68";
+    const via = artwork.via || "#4E8EDB";
+    const to = artwork.to || "#D8E8FF";
+
+    return (
+      <div
+        className="relative aspect-[1.35] overflow-hidden rounded-[22px]"
+        style={{ background: `linear-gradient(135deg, ${from}, ${via} 55%, ${to})` }}
+      >
+        <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/18" />
+        <div className="absolute bottom-4 left-4 h-16 w-20 rotate-[8deg] rounded-[22px] border border-white/16 bg-white/14" />
+        <div className="absolute -bottom-12 right-[-18px] h-28 w-28 rounded-full bg-white/16" />
+        <svg
+          className="absolute inset-x-0 bottom-2 h-24 w-full text-white/75"
+          viewBox="0 0 220 110"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 76C42 32 70 101 103 56C129 20 154 35 181 69C194 85 204 88 216 78"
+            stroke="currentColor"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+          <path d="M36 35H122" stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity="0.48" />
+          <path d="M50 50H154" stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity="0.32" />
+        </svg>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+        <span className="absolute left-3 top-3 rounded-full bg-white/18 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur">
+          {item.sectionTitle || item.category || "Search"}
+        </span>
+      </div>
+    );
+  };
+
+  const renderSearchCategoryCard = (category, index) => (
+    <motion.button
+      key={category.id}
+      type="button"
+      onClick={() => {
+        setSelectedSearchCategory(category);
+        setOpenSearchMenuItemId(null);
+        setExpandedSearchItemId(null);
+      }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.018, 0.14) }}
+      whileHover={{ y: -5 }}
+      whileTap={{ scale: 0.985 }}
+      className={cn(
+        "group overflow-hidden rounded-[28px] border p-2 text-left shadow-sm transition-colors duration-200",
+        isDark
+          ? "border-white/[0.08] bg-white/[0.06] text-white hover:border-white/[0.16] hover:bg-white/[0.1]"
+          : "border-white/75 bg-white/82 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+      )}
+    >
+      {renderSearchArtwork(category, index)}
+      <div className="px-2.5 pb-3 pt-3">
+        <span className="block text-[15px] font-semibold leading-5">{category.title}</span>
+        <span className={cn("mt-1.5 line-clamp-2 block text-sm leading-5", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+          {category.description}
+        </span>
+      </div>
+    </motion.button>
+  );
+
+  const renderSearchResultCard = (item, index) => (
+    <motion.article
+      key={item.id}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.012, 0.14) }}
+      className={cn(
+        "group relative overflow-visible rounded-[28px] border p-2 text-left shadow-sm transition-colors duration-200",
+        isDark
+          ? "border-white/[0.08] bg-white/[0.06] text-white"
+          : "border-white/75 bg-white/82 text-[#111827] shadow-slate-200/70"
+      )}
+    >
+      {renderSearchArtwork(item, index)}
+      <button
+        type="button"
+        onClick={() => setOpenSearchMenuItemId((current) => current === item.id ? null : item.id)}
+        className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur transition-colors hover:bg-black/50"
+        aria-label={`Open actions for ${item.title}`}
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+
+      {openSearchMenuItemId === item.id && (
+        <div className={cn(
+          "absolute right-4 top-14 z-20 w-40 overflow-hidden rounded-2xl border p-1 shadow-xl",
+          isDark ? "border-white/[0.08] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"
+        )}>
+          <button
+            type="button"
+            onClick={() => {
+              setExpandedSearchItemId((current) => current === item.id ? null : item.id);
+              setOpenSearchMenuItemId(null);
+            }}
+            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#EEF2F7]")}
+          >
+            Learn More
+          </button>
+          <button
+            type="button"
+            onClick={() => copySearchItemName(item)}
+            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#EEF2F7]")}
+          >
+            Copy Name
+          </button>
+          <button
+            type="button"
+            onClick={() => openSearchAskConfirm({
+              category: selectedSearchCategory,
+              item,
+              intent: "learn_more_about_selected_item",
+            })}
+            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#EEF2F7]")}
+          >
+            Ask AI
+          </button>
+        </div>
+      )}
+
+      <div className="px-2.5 pb-3 pt-3">
+        <span className="block text-[15px] font-semibold leading-5">{item.title}</span>
+        <span className={cn("mt-1.5 line-clamp-2 block text-sm leading-5", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+          {item.description}
+        </span>
+        {expandedSearchItemId === item.id && (
+          <div className={cn("mt-3 rounded-2xl px-3 py-2 text-xs font-semibold leading-5", isDark ? "bg-white/[0.07] text-[#D7D7D7]" : "bg-[#EEF2F7] text-[#475569]")}>
+            {item.details || `More useful details about ${item.title} will appear here as search data is connected.`}
+          </div>
+        )}
+      </div>
+    </motion.article>
+  );
+
+  const renderSearchDiscovery = () => {
+    const activeCategory = selectedSearchCategory;
+    const resultCards = getSearchResultsForCategory(activeCategory);
+
+    return (
+      <section className="mt-8">
+        <div className="mb-4 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 className={cn("text-lg font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>
+              {activeCategory?.title || "Search"}
+            </h3>
+            <p className={cn("mt-1 max-w-2xl text-sm leading-6", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+              {activeCategory
+                ? "Explore results in this category. If you do not see what you need, Ask AI can help you find it."
+                : "Find what you need here. If you cannot find it, Ask AI can help you find it."}
+            </p>
+          </div>
+          {activeCategory && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSearchCategory(null);
+                setOpenSearchMenuItemId(null);
+                setExpandedSearchItemId(null);
+              }}
+              className={cn(
+                "h-10 rounded-full border px-4 text-sm font-semibold transition-colors",
+                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[#193B68] hover:bg-white"
+              )}
+            >
+              All categories
+            </button>
+          )}
+        </div>
+
+        {!activeCategory ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {SEARCH_DISCOVERY_CATEGORIES.map((category, index) => renderSearchCategoryCard(category, index))}
+          </div>
+        ) : (
+          <>
+            <div className={cn("mb-5 rounded-[28px] border p-4", isDark ? "border-white/[0.08] bg-white/[0.05]" : "border-white/75 bg-white/82 shadow-sm shadow-slate-200/70")}>
+              <p className={cn("text-sm font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>Can&apos;t find what you&apos;re looking for?</p>
+              <button
+                type="button"
+                onClick={() => openSearchAskConfirm({
+                  category: activeCategory,
+                  intent: "item_not_found",
+                })}
+                className="mt-3 h-11 rounded-2xl bg-[#193B68] px-5 text-sm font-bold text-white transition-opacity hover:opacity-95"
+              >
+                Ask AI
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {resultCards.map((item, index) => renderSearchResultCard(item, index))}
+            </div>
+          </>
+        )}
+      </section>
+    );
+  };
+
   const renderWebsiteSkeletons = () => (
     <div className="grid min-w-full grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {Array.from({ length: 10 }).map((_, index) => (
@@ -2872,26 +3146,57 @@ export default function ChatPage() {
             </label>
           </div>
 
-          <div className="mb-6 flex flex-wrap gap-2 pb-1 sm:flex-nowrap sm:overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
-            {WEBSITE_CATEGORIES.map((category) => {
-              const active = activeWebsiteCategory === category;
-              return (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => setActiveWebsiteCategory(category)}
-                  className={cn(
-                    "whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
-                    active
-                      ? "border-transparent bg-[#193B68] text-white shadow-sm"
-                      : isDark ? "border-white/[0.08] bg-white/[0.05] text-[#D7D7D7] hover:bg-white/[0.09]" : "border-black/[0.05] bg-white/75 text-[#475569] hover:bg-white"
-                  )}
-                >
-                  {category}
-                </button>
-              );
-            })}
+          <div className="mb-6 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scrollWebsiteCategories(-1)}
+              className={cn(
+                "hidden h-10 shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-bold transition-colors sm:inline-flex",
+                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[#193B68] hover:bg-white"
+              )}
+              aria-label="Previous categories"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+            <div
+              ref={websiteCategoryBarRef}
+              className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {WEBSITE_CATEGORIES.map((category) => {
+                const active = activeWebsiteCategory === category;
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setActiveWebsiteCategory(category)}
+                    className={cn(
+                      "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
+                      active
+                        ? "border-transparent bg-[#193B68] text-white shadow-sm"
+                        : isDark ? "border-white/[0.08] bg-white/[0.05] text-[#D7D7D7] hover:bg-white/[0.09]" : "border-black/[0.05] bg-white/75 text-[#475569] hover:bg-white"
+                    )}
+                  >
+                    {category}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => scrollWebsiteCategories(1)}
+              className={cn(
+                "hidden h-10 shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-bold transition-colors sm:inline-flex",
+                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[#193B68] hover:bg-white"
+              )}
+              aria-label="Next categories"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
+
+          {renderSearchDiscovery()}
 
           {renderWebsiteRail(t("trendingWebsites"), trendingSites)}
           {renderWebsiteRail(t("favoriteWebsites"), favoriteSites, t("favoriteWebsitesEmpty"))}
@@ -3392,6 +3697,12 @@ export default function ChatPage() {
         setActiveMode("default");
         if (activeMode === "create_image") {
           setInput("");
+        }
+        if (activeMode === "web_search") {
+          setSelectedSearchCategory(null);
+          setOpenSearchMenuItemId(null);
+          setExpandedSearchItemId(null);
+          setSearchConfirm(null);
         }
       },
       clearLabel: activeMode === "web_search" ? t("removeWebSearch") : t("remove"),
@@ -4062,6 +4373,58 @@ export default function ChatPage() {
                 alt={selectedImage.name || "image"}
                 className="max-h-[88vh] max-w-[92vw] rounded-3xl object-contain shadow-2xl"
               />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {searchConfirm && (
+          <div className="fixed inset-0 z-[86] flex items-center justify-center p-4">
+            <motion.button
+              type="button"
+              aria-label="Cancel Ask AI"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+              onClick={() => setSearchConfirm(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              transition={{ duration: 0.18 }}
+              className={cn(
+                "relative z-10 w-full max-w-sm rounded-[28px] border p-5 shadow-2xl",
+                isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-white bg-white text-[#111827]"
+              )}
+            >
+              <h3 className="text-base font-bold tracking-tight">Ask AI?</h3>
+              <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[#CFCFCF]" : "text-[#64748B]")}>
+                {searchConfirm.item
+                  ? `Would you like AI to help you learn more about ${searchConfirm.item.title}?`
+                  : `Would you like AI to help you find something that is not listed in ${searchConfirm.category.title}?`}
+              </p>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSearchConfirm(null)}
+                  className={cn(
+                    "h-11 rounded-2xl text-sm font-bold",
+                    isDark ? "bg-white/[0.08] text-white hover:bg-white/[0.12]" : "bg-[#EEF2F7] text-[#111827] hover:bg-[#E2E8F0]"
+                  )}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void continueSearchWithAi()}
+                  className="h-11 rounded-2xl bg-[#193B68] text-sm font-bold text-white hover:opacity-95"
+                >
+                  Continue
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
