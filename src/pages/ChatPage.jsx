@@ -2000,6 +2000,11 @@ export default function ChatPage() {
       setPendingWriteTemplate(null);
       setWriteAttachmentChoiceOpen(false);
       setWriteFiles([]);
+      setActiveMode("default");
+      setSelectedSearchCategory(null);
+      setOpenSearchMenuItemId(null);
+      setExpandedSearchItemId(null);
+      setSearchConfirm(null);
     }
     setIsAiTyping(true);
     stopRequestedRef.current = false;
@@ -3385,6 +3390,16 @@ export default function ChatPage() {
     const usesLargeComposer = ["create_image", "web_search", "write_edit"].includes(activeMode) && !testSuffix;
     const composerAttachments = activeMode === "write_edit" ? writeFiles : attachments;
     const removeComposerAttachment = activeMode === "write_edit" ? removeWriteFile : removeAttachment;
+    const clearComposerAttachments = () => {
+      if (activeMode === "write_edit") {
+        writeFiles.forEach((file) => {
+          if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+        });
+        setWriteFiles([]);
+        return;
+      }
+      setAttachments([]);
+    };
     const composerMode = activeMode !== "default" ? (CHAT_MODES[activeMode] || CHAT_MODES.default) : null;
     const modePill = composerMode ? {
       label: t(composerMode.labelKey),
@@ -3515,11 +3530,14 @@ export default function ChatPage() {
                     ? t("searchWebOrChooseWebsite")
                     : activeMode === "write_edit"
                       ? t("writePasteOrChooseTool")
+                      : attachments.length
+                        ? "Ask about these images..."
                       : t("askAnything")
             }
             modePill={modePill}
             attachments={composerAttachments}
             onRemoveAttachment={removeComposerAttachment}
+            onClearAttachments={clearComposerAttachments}
             isUploading={isUploading}
             onAdd={() => setAttachmentMenuOpen((open) => !open)}
             onVoice={startVoiceInput}

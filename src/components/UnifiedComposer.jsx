@@ -22,6 +22,7 @@ export default function UnifiedComposer({
   modePill = null,
   attachments = [],
   onRemoveAttachment,
+  onClearAttachments,
   isUploading = false,
   onAdd,
   onVoice,
@@ -45,8 +46,32 @@ export default function UnifiedComposer({
 }) {
   const isMobile = variant === "mobile";
   const hasAttachments = attachments.length > 0 || isUploading;
-  const hasTallContent = hasAttachments || Boolean(modePill);
+  const isToolMode = hasAttachments || Boolean(modePill);
+  const hasTallContent = isToolMode;
   const textareaMinHeight = isMobile ? 44 : 34;
+  const addButton = (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onAdd?.();
+      }}
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+        isMobile ? "h-10 w-10" : "h-11 w-11",
+        isToolMode
+          ? isDark ? "text-[#D4D4D4] hover:bg-white/[0.08] hover:text-white" : "text-[#193B68] hover:bg-[#F3F4F6] hover:text-[#111827]"
+          : isDark ? "bg-[#202020]/[0.92] text-[#D4D4D4] shadow-sm ring-1 ring-white/[0.08] hover:text-white" : "bg-white/90 text-[#193B68] shadow-sm ring-1 ring-[#E5E7EB] hover:bg-[#F3F4F6] hover:text-[#111827]",
+      )}
+      style={{
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+      }}
+      aria-label={addLabel}
+    >
+      <Plus className={isMobile ? "h-[18px] w-[18px]" : "h-[21px] w-[21px]"} />
+    </button>
+  );
 
   useLayoutEffect(() => {
     const element = inputRef?.current;
@@ -63,69 +88,61 @@ export default function UnifiedComposer({
   return (
     <form className="space-y-2" onSubmit={onSubmit}>
       {pendingPanel}
-      <div
-        className={cn(
-          "relative flex w-full flex-col border shadow-sm transition-all duration-200 ease-out",
-          isMobile
-            ? "rounded-[27px] px-3.5 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
-            : hasTallContent
-              ? "rounded-[30px] px-4 py-3 sm:px-5"
-              : "rounded-[31px] px-4 py-2.5 sm:px-5",
-          isDark
-            ? "border-white/[0.08] bg-[#202020]/[0.92] focus-within:bg-[#242424]"
-            : "border-[#E5E7EB] bg-white/90 focus-within:border-[#D6DEE9] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
-        )}
-        style={{
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-        }}
-      >
-        {actionMenu}
+      {actionMenu}
+      <div className={cn("flex w-full items-end", isMobile ? "gap-2" : "gap-3")}>
+        {!isToolMode && addButton}
+        <div
+          className={cn(
+            "relative flex min-w-0 flex-1 flex-col border shadow-sm transition-all duration-200 ease-out",
+            isMobile
+              ? "rounded-[27px] px-3.5 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+              : hasTallContent
+                ? "rounded-[30px] px-4 py-3 sm:px-5"
+                : "rounded-[31px] px-4 py-2.5 sm:px-5",
+            isDark
+              ? "border-white/[0.08] bg-[#202020]/[0.92] focus-within:bg-[#242424]"
+              : "border-[#E5E7EB] bg-white/90 focus-within:border-[#D6DEE9] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
+          )}
+          style={{
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+          }}
+        >
 
         {hasAttachments && (
           <div
-            className="mb-2 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="mb-2 flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             data-testid="composer-attachment-strip"
           >
-            {attachments.map((attachment) => {
+            {attachments.map((attachment, index) => {
               const preview = getAttachmentPreview(attachment);
               const label = attachment.name || attachment.fileName || attachment.title || "Attachment";
 
               return (
-                <div
+                <button
+                  type="button"
                   key={attachment.id}
+                  onClick={() => onRemoveAttachment?.(attachment.id)}
                   className={cn(
-                    "group relative h-16 w-16 shrink-0 overflow-hidden rounded-[16px] border shadow-sm",
-                    isDark ? "border-white/10 bg-white/[0.06]" : "border-[#E5E7EB] bg-white/85",
+                    "relative flex h-8 min-w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border px-2 text-xs font-extrabold shadow-sm transition-transform active:scale-95",
+                    preview ? "text-white" : isDark ? "border-white/10 bg-white/[0.08] text-white" : "border-[#D6DEE9] bg-[#EEF2FF] text-[#193B68]",
                   )}
                   title={label}
+                  aria-label={`Remove ${label}`}
                 >
                   {isImageAttachment(attachment) && preview ? (
                     <img
                       src={preview}
                       alt={label}
-                      className="h-full w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover"
                       draggable="false"
                       loading="lazy"
                     />
                   ) : (
-                    <div className={cn("flex h-full w-full flex-col items-center justify-center gap-1 px-1", isDark ? "text-[#D7D7D7]" : "text-[#193B68]")}>
-                      <FileText className="h-5 w-5" />
-                      <span className="max-w-full truncate text-[9px] font-bold">{label}</span>
-                    </div>
+                    <FileText className="h-3.5 w-3.5" />
                   )}
-
-                  {onRemoveAttachment && (
-                    <button
-                      type="button"
-                      onClick={() => onRemoveAttachment(attachment.id)}
-                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow-lg transition-transform active:scale-95"
-                      aria-label={`Remove ${label}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
+                  <span className={cn("relative z-10", preview && "drop-shadow")}>{index + 1}</span>
+                </button>
               );
             })}
 
@@ -133,6 +150,25 @@ export default function UnifiedComposer({
               <div className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-[16px] border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[#E5E7EB] bg-white/85")}>
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#9CA3AF]/30 border-t-[#193B68]" />
               </div>
+            )}
+            {attachments.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onClearAttachments) {
+                    onClearAttachments();
+                    return;
+                  }
+                  attachments.forEach((attachment) => onRemoveAttachment?.(attachment.id));
+                }}
+                className={cn(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors",
+                  isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[#EEF2FF] text-[#193B68] active:bg-[#E0E7FF]",
+                )}
+                aria-label="Remove selected attachments"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
         )}
@@ -181,21 +217,7 @@ export default function UnifiedComposer({
         />
 
         <div className="mt-1 flex items-center">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onAdd?.();
-            }}
-            className={cn(
-              "flex shrink-0 items-center justify-center rounded-full transition-colors duration-200",
-              isMobile ? "h-10 w-10" : "h-11 w-11",
-              isDark ? "text-[#D4D4D4] hover:bg-white/[0.08] hover:text-white" : "text-[#193B68] hover:bg-[#F3F4F6] hover:text-[#111827]",
-            )}
-            aria-label={addLabel}
-          >
-            <Plus className={isMobile ? "h-[18px] w-[18px]" : "h-[23px] w-[23px]"} />
-          </button>
+          {isToolMode && addButton}
 
           <div className="flex-1" />
 
@@ -238,6 +260,7 @@ export default function UnifiedComposer({
             )}
           </button>
         </div>
+      </div>
       </div>
     </form>
   );

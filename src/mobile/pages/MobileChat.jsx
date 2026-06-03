@@ -1278,6 +1278,9 @@ export default function MobileChat() {
         current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
         return [];
       });
+      setIsImageMode(false);
+      setSelectedImageTemplate(null);
+      setPendingImageTemplate(null);
       setIsWriteEditMode(false);
       setIsSearchMode(false);
       setSelectedSearchCategory(null);
@@ -1654,6 +1657,23 @@ export default function MobileChat() {
       removeWriteAttachment(attachmentId);
     };
 
+    const clearComposerAttachments = () => {
+      if (isImageMode || (!isWriteEditMode && !activeWriteTask)) {
+        setAttachedImages((current) => {
+          current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+          return [];
+        });
+        setSelectedImageTemplate(null);
+        if (isImageMode) setIsImageMode(false);
+        return;
+      }
+
+      writeAttachments.forEach((file) => {
+        if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+      });
+      setWriteAttachments([]);
+    };
+
     const openComposerAttachment = () => {
       if (isImageMode) {
         setImageSourceSheetOpen(true);
@@ -1754,13 +1774,16 @@ export default function MobileChat() {
             ? "Describe an image..."
             : (isWriteEditMode || activeWriteTask)
               ? "Write, paste, or choose a productivity tool..."
-              : isSearchMode
+            : isSearchMode
                 ? "Ask AI to search..."
+                : attachedImages.length
+                  ? "Ask about these images..."
               : "Ask anything..."
         }
         modePill={composerModePill}
         attachments={composerAttachments}
         onRemoveAttachment={removeComposerAttachment}
+        onClearAttachments={clearComposerAttachments}
         onAdd={openComposerAttachment}
         onVoice={startVoiceInput}
         isListening={isListening}
