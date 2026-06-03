@@ -417,7 +417,7 @@ function formatConversationTime(value, language = "en") {
 export default function MobileChat() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { resolvedTheme, t, uiLanguage } = useApp();
+  const { prefs, resolvedTheme, t, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
   const [menuOpen, setMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
@@ -431,6 +431,7 @@ export default function MobileChat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [messageFeedback, setMessageFeedback] = useState({});
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [responseMode, setResponseMode] = useState(() => {
@@ -468,6 +469,7 @@ export default function MobileChat() {
   const streamAbortRef = useRef(null);
   const stopRequestedRef = useRef(false);
   const activeAiMessageRef = useRef(null);
+  const speechRecognitionRef = useRef(null);
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
@@ -649,6 +651,7 @@ export default function MobileChat() {
 
   useEffect(() => () => {
     streamAbortRef.current?.abort();
+    speechRecognitionRef.current?.stop?.();
     attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
   }, []);
 
@@ -1087,6 +1090,70 @@ export default function MobileChat() {
     );
   };
 
+  const stopVoiceInput = useCallback(() => {
+    speechRecognitionRef.current?.stop?.();
+    speechRecognitionRef.current = null;
+    setIsListening(false);
+  }, []);
+
+  const startVoiceInput = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast.error("Voice input is not supported in this browser.");
+      return;
+    }
+
+    if (isListening) {
+      stopVoiceInput();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = prefs?.language || uiLanguage || navigator.language || "en-US";
+
+    let committedTranscript = "";
+    const baseMessage = message;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => {
+      speechRecognitionRef.current = null;
+      setIsListening(false);
+    };
+    recognition.onerror = () => {
+      speechRecognitionRef.current = null;
+      setIsListening(false);
+      toast.error("Could not capture voice input.");
+    };
+    recognition.onresult = (event) => {
+      let interimTranscript = "";
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const transcript = event.results[index][0]?.transcript || "";
+
+        if (event.results[index].isFinal) {
+          committedTranscript = `${committedTranscript} ${transcript}`.trim();
+        } else {
+          interimTranscript = `${interimTranscript} ${transcript}`.trim();
+        }
+      }
+
+      const nextText = [baseMessage, committedTranscript, interimTranscript]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trimStart();
+
+      setMessage(nextText);
+      window.requestAnimationFrame(() => resizeChatComposer(composerInputRef.current));
+    };
+
+    speechRecognitionRef.current = recognition;
+    recognition.start();
+  }, [isListening, message, prefs?.language, resizeChatComposer, stopVoiceInput, uiLanguage]);
+
   const sendChatPrompt = useCallback(async ({
     prompt,
     keepComposer = false,
@@ -1101,6 +1168,7 @@ export default function MobileChat() {
     const isSearchHandoff = String(metadata?.source || metadata?.searchContext?.source || "").toLowerCase() === "search";
     const canStartFromContext = isSearchHandoff && metadata?.intent && (metadata?.category || metadata?.searchContext?.category);
     if ((!currentMessage && !canStartFromContext) || isGeneratingImage || isChatSending) return;
+    if (isListening) stopVoiceInput();
 
     const selectedMode = AI_RESPONSE_MODES.includes(mode) ? mode : responseMode;
     const userMessageId = crypto.randomUUID();
@@ -1208,7 +1276,7 @@ export default function MobileChat() {
       stopRequestedRef.current = false;
       setIsChatSending(false);
     }
-  }, [activeConversationId, activeWriteTask, isChatSending, isGeneratingImage, responseMode, setSearchParams, writeAttachments]);
+  }, [activeConversationId, activeWriteTask, isChatSending, isGeneratingImage, isListening, responseMode, setSearchParams, stopVoiceInput, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -1595,10 +1663,11 @@ export default function MobileChat() {
         attachments={composerAttachments}
         onRemoveAttachment={removeComposerAttachment}
         onAdd={openComposerAttachment}
-        onVoice={() => {}}
-        isBusy={isGeneratingImage || isChatSending}
+        onVoice={startVoiceInput}
+        isListening={isListening}
+        isBusy={isGeneratingImage || isChatSending || isListening}
         canSend={hasComposerContent}
-        onSendAction={isChatSending ? stopChatGeneration : undefined}
+        onSendAction={isChatSending ? stopChatGeneration : isListening ? stopVoiceInput : undefined}
         isDark={isDark}
         variant="mobile"
         minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}

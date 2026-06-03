@@ -183,7 +183,10 @@ export default function UnifiedComposer({
         <div className="mt-1 flex items-center">
           <button
             type="button"
-            onClick={onAdd}
+            onClick={(event) => {
+              event.stopPropagation();
+              onAdd?.();
+            }}
             className={cn(
               "flex shrink-0 items-center justify-center rounded-full transition-colors duration-200",
               isMobile ? "h-10 w-10" : "h-11 w-11",
