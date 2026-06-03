@@ -45,6 +45,7 @@ import { useApp } from "@/context/AppContext";
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import MarkdownText, { getDirectionalStyle } from "@/components/MarkdownText";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
+import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
 import {
   WEBSITE_CATEGORIES,
@@ -78,6 +79,7 @@ import {
   createSuggestedReminder,
   suggestReminder,
 } from "@/services/reminderService";
+import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 
 const CHAT_MODES = {
   default: {
@@ -1202,7 +1204,7 @@ const ChatMessage = memo(function ChatMessage({
   const directionStyle = getDirectionalStyle(message.content);
 
   if (!isUser && message.isStreaming && !message.content) {
-    return <TypingIndicator responseMode={message.metadata?.responseMode || message.metadata?.mode || message.responseMode} />;
+    return <ThinkingIndicator responseMode={message.metadata?.responseMode || message.metadata?.mode || message.responseMode} />;
   }
 
   return (
@@ -1324,50 +1326,6 @@ function AttachmentTray({ attachments, onRemove, isDark, isUploading }) {
   );
 }
 
-function TypingIndicator({ responseMode = "smart" }) {
-  const { resolvedTheme, t } = useApp();
-  const isDark = resolvedTheme === "dark";
-  const mode = getResponseMode(responseMode);
-  const [isLongThinking, setIsLongThinking] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsLongThinking(true), 1400);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={{ duration: 0.18 }}
-      className="mb-8 flex w-full items-start"
-    >
-      <div className={cn("flex min-h-8 items-center gap-2 text-sm font-medium", isDark ? "text-[#D1D5DB]" : "text-[#4B5563]")}>
-        <span className={cn("h-2 w-2 rounded-full", isDark ? "bg-white/55" : "bg-[#193B68]/55")} />
-        <span>{mode.statusKey ? t(mode.statusKey) : (isLongThinking ? t("blueMindThinking") : t("thinking"))}</span>
-        <motion.span
-          animate={{ opacity: [0.35, 1, 0.35], scale: [0.92, 1.08, 0.92] }}
-          transition={{ duration: 1.15, repeat: Infinity, ease: "easeInOut" }}
-          className={cn("h-1.5 w-1.5 rounded-full", isDark ? "bg-[#E5E7EB]" : "bg-[#193B68]")}
-        />
-        {isLongThinking && (
-          <span className="flex items-center gap-0.5">
-            {[0, 180, 360].map((delay) => (
-              <motion.span
-                key={delay}
-                animate={{ opacity: [0.25, 1, 0.25], y: [1, -1, 1] }}
-                transition={{ duration: 1.1, repeat: Infinity, delay: delay / 1000, ease: "easeInOut" }}
-                className="h-1 w-1 rounded-full bg-current"
-              />
-            ))}
-          </span>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -1417,7 +1375,6 @@ export default function ChatPage() {
   const [messageFeedback, setMessageFeedback] = useState({});
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
-  const messagesEndRef = useRef(null);
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -1435,13 +1392,15 @@ export default function ChatPage() {
   const appColor = prefs.appColor || prefs.accentColor;
   const inputDirectionStyle = getDirectionalStyle(input);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isAiTyping, scrollToBottom]);
+  const {
+    scrollRef: messagesScrollRef,
+    endRef: messagesEndRef,
+    showScrollToBottom,
+    scrollToBottom,
+  } = useChatAutoScroll({
+    watch: [messages, isAiTyping],
+    isStreaming: isAiTyping,
+  });
 
   useEffect(() => {
     if (!attachmentMenuOpen) return undefined;
@@ -4160,7 +4119,7 @@ export default function ChatPage() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div className="relative flex-1 flex flex-col h-full min-w-0">
         <header
           className={cn(
             "sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3.5 sm:px-6",
@@ -4184,7 +4143,7 @@ export default function ChatPage() {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div ref={messagesScrollRef} className="flex-1 overflow-y-auto">
           {!hasMessages ? (
             <div
               className={cn(
@@ -4259,6 +4218,25 @@ export default function ChatPage() {
             <div className="mx-auto max-w-5xl">{renderInput("bottom")}</div>
           </div>
         )}
+
+        <AnimatePresence>
+          {showScrollToBottom && (
+            <motion.button
+              type="button"
+              onClick={() => scrollToBottom("smooth")}
+              initial={{ opacity: 0, y: 10, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.94 }}
+              className={cn(
+                "absolute bottom-28 left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl transition-colors",
+                isDark ? "border-white/[0.12] bg-[#242424]/90 text-white hover:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[#193B68] hover:bg-white"
+              )}
+              aria-label="Scroll to bottom"
+            >
+              <ChevronDown className="h-5 w-5 stroke-[2.4]" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

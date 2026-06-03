@@ -35,6 +35,7 @@ import {
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import MarkdownText from "@/components/MarkdownText";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
+import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
 import { useApp } from "@/context/AppContext";
 import {
@@ -52,6 +53,7 @@ import {
 import { getApiErrorMessage } from "@/services/api";
 import { listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 
 const AI_RESPONSE_MODES = ["fast", "smart", "thinking"];
 
@@ -504,6 +506,15 @@ export default function MobileChat() {
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
   const shouldShowSearchCards = isSearchMode && messages.length === 0 && generatedImages.length === 0;
+  const {
+    scrollRef: messagesScrollRef,
+    endRef: messagesEndRef,
+    showScrollToBottom,
+    scrollToBottom,
+  } = useChatAutoScroll({
+    watch: [messages, isChatSending],
+    isStreaming: isChatSending,
+  });
 
   const resizeChatComposer = useCallback((node = composerInputRef.current) => {
     if (!node || isImageMode || isWriteEditMode) return;
@@ -1906,8 +1917,11 @@ export default function MobileChat() {
         </button>
       </header>
 
-      <section className="flex min-h-0 flex-1 flex-col">
-        <div className={isEmptyChat ? "flex min-h-0 flex-1 items-center overflow-y-auto px-4 py-4" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[104px] pt-4"}>
+      <section className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={messagesScrollRef}
+          className={isEmptyChat ? "flex min-h-0 flex-1 items-center overflow-y-auto px-4 py-4" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[104px] pt-4"}
+        >
           {generatedImages.length > 0 && (
             <div className="mb-5 space-y-3">
               <div className="flex items-center justify-between">
@@ -2255,8 +2269,10 @@ export default function MobileChat() {
                   >
                     {item.role === "user" ? (
                       item.content
+                    ) : item.isStreaming && !item.content ? (
+                      <ThinkingIndicator responseMode={item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
                     ) : (
-                      <MarkdownText text={item.content || (item.isStreaming ? "Thinking..." : "")} className="text-[15px] leading-[1.85]" />
+                      <MarkdownText text={item.content || ""} className="text-[15px] leading-[1.85]" />
                     )}
                   </div>
 
@@ -2295,6 +2311,7 @@ export default function MobileChat() {
                   )}
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
           )}
 
@@ -2308,6 +2325,25 @@ export default function MobileChat() {
             </div>
           </div>
         )}
+
+        <AnimatePresence>
+          {showScrollToBottom && (
+            <motion.button
+              type="button"
+              onClick={() => scrollToBottom("smooth")}
+              initial={{ opacity: 0, y: 10, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.94 }}
+              className={`fixed left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl ${
+                isDark ? "border-white/[0.12] bg-[#242424]/90 text-white active:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[#193B68] active:bg-white"
+              }`}
+              style={{ bottom: "calc(env(safe-area-inset-bottom) + 112px)" }}
+              aria-label="Scroll to bottom"
+            >
+              <ChevronDown className="h-5 w-5 stroke-[2.4]" />
+            </motion.button>
+          )}
+        </AnimatePresence>
           <input
             ref={cameraInputRef}
             type="file"
