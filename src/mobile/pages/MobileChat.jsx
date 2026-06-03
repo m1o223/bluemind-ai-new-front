@@ -1625,7 +1625,7 @@ export default function MobileChat() {
 
   const renderComposerArea = (centered = false, separatePlus = centered) => {
     const composerModePill = isImageMode
-      ? { label: "Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
+      ? { label: "Create Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
       : (isWriteEditMode || activeWriteTask)
         ? { label: "Write/Edit", onClear: exitWriteEditMode, clearLabel: "Exit write edit mode" }
         : isSearchMode

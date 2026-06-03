@@ -89,6 +89,90 @@ export default function UnifiedComposer({
     <form className="space-y-2" onSubmit={onSubmit}>
       {pendingPanel}
       {actionMenu}
+      {isToolMode && (
+        <div className="space-y-2" data-testid="composer-tool-state">
+          {modePill && (
+            <button
+              type="button"
+              onClick={modePill.onClear}
+              className={cn(
+                "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
+                isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[#EEF2FF] text-[#193B68] active:bg-[#E0E7FF]",
+              )}
+              aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
+              data-testid="composer-mode-pill"
+            >
+              {modePill.icon && <modePill.icon className="h-3.5 w-3.5" />}
+              <span className="truncate">{modePill.label}</span>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {hasAttachments && (
+            <div
+              className="flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              data-testid="composer-attachment-strip"
+            >
+              {attachments.map((attachment, index) => {
+                const preview = getAttachmentPreview(attachment);
+                const label = attachment.name || attachment.fileName || attachment.title || "Attachment";
+
+                return (
+                  <button
+                    type="button"
+                    key={attachment.id}
+                    onClick={() => onRemoveAttachment?.(attachment.id)}
+                    className={cn(
+                      "relative flex h-8 min-w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border px-2 text-xs font-extrabold shadow-sm transition-transform active:scale-95",
+                      preview ? "text-white" : isDark ? "border-white/10 bg-white/[0.08] text-white" : "border-[#D6DEE9] bg-[#EEF2FF] text-[#193B68]",
+                    )}
+                    title={label}
+                    aria-label={`Remove ${label}`}
+                  >
+                    {isImageAttachment(attachment) && preview ? (
+                      <img
+                        src={preview}
+                        alt={label}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        draggable="false"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5" />
+                    )}
+                    <span className={cn("relative z-10", preview && "drop-shadow")}>{index + 1}</span>
+                  </button>
+                );
+              })}
+
+              {isUploading && (
+                <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[#E5E7EB] bg-white/85")}>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#9CA3AF]/30 border-t-[#193B68]" />
+                </div>
+              )}
+              {attachments.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onClearAttachments) {
+                      onClearAttachments();
+                      return;
+                    }
+                    attachments.forEach((attachment) => onRemoveAttachment?.(attachment.id));
+                  }}
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors",
+                    isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[#EEF2FF] text-[#193B68] active:bg-[#E0E7FF]",
+                  )}
+                  aria-label="Remove selected attachments"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <div className={cn("flex w-full items-end", isMobile ? "gap-2" : "gap-3")}>
         {!isToolMode && addButton}
         <div
@@ -107,88 +191,9 @@ export default function UnifiedComposer({
             backdropFilter: "blur(18px)",
             WebkitBackdropFilter: "blur(18px)",
           }}
+          data-composer-mode={isToolMode ? "tool" : "normal"}
+          data-testid="unified-composer-box"
         >
-
-        {hasAttachments && (
-          <div
-            className="mb-2 flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            data-testid="composer-attachment-strip"
-          >
-            {attachments.map((attachment, index) => {
-              const preview = getAttachmentPreview(attachment);
-              const label = attachment.name || attachment.fileName || attachment.title || "Attachment";
-
-              return (
-                <button
-                  type="button"
-                  key={attachment.id}
-                  onClick={() => onRemoveAttachment?.(attachment.id)}
-                  className={cn(
-                    "relative flex h-8 min-w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border px-2 text-xs font-extrabold shadow-sm transition-transform active:scale-95",
-                    preview ? "text-white" : isDark ? "border-white/10 bg-white/[0.08] text-white" : "border-[#D6DEE9] bg-[#EEF2FF] text-[#193B68]",
-                  )}
-                  title={label}
-                  aria-label={`Remove ${label}`}
-                >
-                  {isImageAttachment(attachment) && preview ? (
-                    <img
-                      src={preview}
-                      alt={label}
-                      className="absolute inset-0 h-full w-full object-cover"
-                      draggable="false"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <FileText className="h-3.5 w-3.5" />
-                  )}
-                  <span className={cn("relative z-10", preview && "drop-shadow")}>{index + 1}</span>
-                </button>
-              );
-            })}
-
-            {isUploading && (
-              <div className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-[16px] border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[#E5E7EB] bg-white/85")}>
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#9CA3AF]/30 border-t-[#193B68]" />
-              </div>
-            )}
-            {attachments.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (onClearAttachments) {
-                    onClearAttachments();
-                    return;
-                  }
-                  attachments.forEach((attachment) => onRemoveAttachment?.(attachment.id));
-                }}
-                className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors",
-                  isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[#EEF2FF] text-[#193B68] active:bg-[#E0E7FF]",
-                )}
-                aria-label="Remove selected attachments"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        )}
-
-        {modePill && (
-          <button
-            type="button"
-            onClick={modePill.onClear}
-            className={cn(
-              "mb-2 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
-              isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[#EEF2FF] text-[#193B68] active:bg-[#E0E7FF]",
-            )}
-            aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
-          >
-            {modePill.icon && <modePill.icon className="h-3.5 w-3.5" />}
-            <span className="truncate">{modePill.label}</span>
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-
         <textarea
           ref={inputRef}
           value={value}
