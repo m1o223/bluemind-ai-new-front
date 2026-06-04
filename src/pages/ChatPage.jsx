@@ -751,14 +751,14 @@ function Sidebar({
           <button
             onClick={onNewChat}
             className={cn(
-              "flex w-full items-center gap-3 rounded-xl border px-3.5 py-3.5 transition-all duration-200 cursor-pointer",
+              "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors duration-200 cursor-pointer",
               isDark
-                ? "border-[#343434] bg-[#252525] text-white hover:border-[#4A4A4A] hover:bg-[#2D2D2D]"
-                : "border-[#D6DEE9] bg-white text-[#0F172A] hover:border-[#B8C4D6] hover:bg-[#F8FAFC]",
+                ? "text-white hover:bg-white/[0.08]"
+                : "text-[#111827] hover:bg-[#EEF2F7]",
             )}
             data-testid="new-chat-button"
           >
-            <Pencil className="w-5 h-5 flex-shrink-0 stroke-[2.35]" />
+            <Pencil className="h-5 w-5 flex-shrink-0 stroke-[2.25]" />
             <span className="min-w-0 truncate text-sm font-semibold">{t("newChat")}</span>
           </button>
         </div>
