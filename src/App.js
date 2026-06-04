@@ -161,6 +161,7 @@ function AppContent() {
             <Route path="settings/:sectionId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="settings/:sectionId/:detailId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
+            <Route path="scheman" element={<MobileAccessRoute><SchemanPage /></MobileAccessRoute>} />
           </Route>
         </Routes>
       </AnimatePresence>

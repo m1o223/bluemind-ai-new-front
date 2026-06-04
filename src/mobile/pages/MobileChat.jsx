@@ -547,8 +547,11 @@ export default function MobileChat() {
   const mutedText = isDark ? "text-[#D7D7D7]" : "text-[#64748B]";
   const textColor = isDark ? "text-white" : "text-[#111827]";
 
-  const navigationItems = [
-    { label: "Images", action: () => enterImageMode(), icon: Image },
+  const bluemindMenuItems = [
+    { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
+    { label: "Reminders", path: "/mobile/reminders", icon: Bell },
+    { label: "Learning", path: "/mobile/learning", icon: BookOpen },
+    { label: "Scheman", path: "/mobile/scheman", icon: Clipboard },
     {
       label: t("settings"),
       action: () => {
@@ -3246,7 +3249,8 @@ export default function MobileChat() {
             </div>
 
             <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
-              <div className="space-y-1 py-2">
+              <section className="space-y-1 py-2">
+                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>CHAT</p>
                 <button
                   type="button"
                   onClick={startNewChat}
@@ -3267,14 +3271,17 @@ export default function MobileChat() {
 
                 <button
                   type="button"
-                  onClick={() => document.getElementById("mobile-recent-chats")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  onClick={() => document.getElementById("mobile-history-chats")?.scrollIntoView({ behavior: "smooth", block: "start" })}
                   className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-white active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
                 >
                   <Clock3 className="h-5 w-5 shrink-0" />
                   <span>Recent Chats</span>
                 </button>
+              </section>
 
-                {navigationItems.map((item) => (
+              <section className="mt-5 space-y-1">
+                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>BLUEMIND</p>
+                {bluemindMenuItems.map((item) => (
                   <button
                     key={item.label}
                     type="button"
@@ -3285,10 +3292,10 @@ export default function MobileChat() {
                     <span>{item.label}</span>
                   </button>
                 ))}
-              </div>
+              </section>
 
-              <div id="mobile-recent-chats" className="mt-5">
-                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>Recent Chats</p>
+              <section id="mobile-history-chats" className="mt-6">
+                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>HISTORY</p>
 
                 {isLoadingConversations && (
                   <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("loadingConversation")}</div>
@@ -3303,7 +3310,7 @@ export default function MobileChat() {
                 )}
 
                 {conversations.slice(0, 18).map((item) => renderMobileConversationRow(item, "menu"))}
-              </div>
+              </section>
             </nav>
           </motion.section>
         )}
