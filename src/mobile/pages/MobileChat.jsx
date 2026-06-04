@@ -58,7 +58,12 @@ import { deleteChat, renameChat, shareChat } from "@/services/conversationAction
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 
-const AI_RESPONSE_MODES = ["fast", "smart", "thinking"];
+const AI_RESPONSE_MODES = [
+  { id: "fast", title: "Fast", description: "Fast and light" },
+  { id: "smart", title: "Smart", description: "Balanced" },
+  { id: "thinking", title: "Thinking", description: "Smarter and deeper" },
+];
+const AI_RESPONSE_MODE_IDS = AI_RESPONSE_MODES.map((mode) => mode.id);
 
 const MAX_IMAGE_ATTACHMENTS = 6;
 
@@ -483,7 +488,7 @@ export default function MobileChat() {
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
-    return AI_RESPONSE_MODES.includes(storedMode) ? storedMode : "smart";
+    return AI_RESPONSE_MODE_IDS.includes(storedMode) ? storedMode : "smart";
   });
   const [isImageMode, setIsImageMode] = useState(false);
   const [isWriteEditMode, setIsWriteEditMode] = useState(false);
@@ -1319,7 +1324,7 @@ export default function MobileChat() {
     if ((!currentMessage && !canStartFromContext) || isGeneratingImage || isChatSending) return;
     if (isListening) stopVoiceInput();
 
-    const selectedMode = AI_RESPONSE_MODES.includes(mode) ? mode : responseMode;
+    const selectedMode = AI_RESPONSE_MODE_IDS.includes(mode) ? mode : responseMode;
     const userMessageId = crypto.randomUUID();
     const aiMessageId = crypto.randomUUID();
     const userMetadata = {
@@ -2303,7 +2308,7 @@ export default function MobileChat() {
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen}
           >
-            <span>{responseMode}</span>
+            <span>{AI_RESPONSE_MODES.find((mode) => mode.id === responseMode)?.title || "Smart"}</span>
             <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
@@ -2314,22 +2319,36 @@ export default function MobileChat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                className={`absolute left-12 top-12 z-30 w-36 overflow-hidden rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[#202020]" : "border-[#E5E7EB] bg-white"}`}
+                className={`absolute left-12 top-12 z-30 w-[260px] overflow-hidden rounded-[24px] border p-2 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
+                  isDark
+                    ? "border-white/[0.10] bg-[#202020]/88"
+                    : "border-white/70 bg-white/86"
+                }`}
               >
                 {AI_RESPONSE_MODES.map((mode) => (
                   <button
-                    key={mode}
+                    key={mode.id}
                     type="button"
-                    onClick={() => selectResponseMode(mode)}
-                    className={`flex h-10 w-full items-center rounded-xl px-3 text-left text-sm font-semibold capitalize ${
-                      responseMode === mode
+                    onClick={() => selectResponseMode(mode.id)}
+                    className={`flex min-h-[68px] w-full items-center gap-3 rounded-[18px] px-3.5 py-3 text-left transition-colors ${
+                      responseMode === mode.id
                         ? "bg-[#193B68] text-white"
                         : isDark
-                          ? "text-[#D7D7D7] active:bg-white/[0.08]"
+                          ? "text-[#F3F4F6] active:bg-white/[0.08]"
                           : "text-[#111827] active:bg-[#EEF2F7]"
                     }`}
                   >
-                    {mode}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-extrabold leading-5">{mode.title}</span>
+                      <span className={`mt-1 block text-xs font-semibold leading-4 ${
+                        responseMode === mode.id
+                          ? "text-white/78"
+                          : isDark ? "text-[#A7A7A7]" : "text-[#64748B]"
+                      }`}>
+                        {mode.description}
+                      </span>
+                    </span>
+                    {responseMode === mode.id && <Check className="h-5 w-5 shrink-0 stroke-[2.4]" />}
                   </button>
                 ))}
               </motion.div>
