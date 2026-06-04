@@ -995,10 +995,32 @@ export default function MobileChat() {
     navigate(path);
   };
 
-  const openFileInput = (inputRef) => {
-    closeAttachmentSheet();
-    closeImageSourceSheet();
-    window.setTimeout(() => inputRef.current?.click(), 0);
+  const openFileInput = (inputRef, source = "file") => {
+    const input = inputRef.current;
+    console.debug("[BlueMind media picker] input requested", {
+      source,
+      hasInput: Boolean(input),
+      accept: input?.accept || "",
+      capture: input?.capture || "",
+      multiple: Boolean(input?.multiple),
+    });
+
+    if (!input) {
+      console.error("[BlueMind media picker] file input is missing", { source });
+      return;
+    }
+
+    try {
+      input.click();
+    } catch (error) {
+      console.error("[BlueMind media picker] failed to open file input", { source, error });
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      closeAttachmentSheet();
+      closeImageSourceSheet();
+    });
   };
 
   const openTemplateImageInput = (inputRef) => {
@@ -2780,9 +2802,9 @@ export default function MobileChat() {
         onClose={closeAttachmentSheet}
         isDark={isDark}
         variant="mobile"
-        onCamera={() => openFileInput(cameraInputRef)}
-        onAllPhotos={() => openFileInput(imageInputRef)}
-        onFiles={() => openFileInput(fileInputRef)}
+        onCamera={() => openFileInput(cameraInputRef, "camera")}
+        onAllPhotos={() => openFileInput(imageInputRef, "photos")}
+        onFiles={() => openFileInput(fileInputRef, "files")}
         onCreateImage={enterImageMode}
         onWriteEdit={enterWriteEditMode}
         onSearch={enterSearchMode}
