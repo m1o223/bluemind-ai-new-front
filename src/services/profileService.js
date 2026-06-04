@@ -59,3 +59,28 @@ export const updatePreferences = async (data) => {
     throw error;
   }
 };
+
+export const updateProfile = async (data) => {
+  try {
+    const response = await api.patch("/auth/profile", data);
+    const user = unwrapApiResponse(response)?.user;
+
+    if (user) {
+      storeUser(user);
+
+      if (user.preferences) {
+        storePreferences(user.preferences);
+      }
+
+      dispatchUserUpdated({
+        user,
+        preferences: user.preferences
+      });
+    }
+
+    return user;
+  } catch (error) {
+    console.error("[profile:update]", error.response?.data || error.message);
+    throw error;
+  }
+};
