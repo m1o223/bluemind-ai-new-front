@@ -569,6 +569,7 @@ function Sidebar({
   activeConversationId,
   onOpenConversation,
   onRenameConversation,
+  onShareConversation,
   onDeleteConversation,
 }) {
   const navigate = useNavigate();
@@ -904,7 +905,7 @@ function Sidebar({
                           onOpenConversation(id);
                         }}
                         onRename={(conversation, title) => onRenameConversation(conversation, title)}
-                        onShare={handleShareConversation}
+                        onShare={onShareConversation}
                         onDelete={onDeleteConversation}
                         t={t}
                       />
@@ -1021,7 +1022,7 @@ function Sidebar({
                       setMenuOpenId(null);
                       onRenameConversation(conversation, title);
                     }}
-                    onShare={handleShareConversation}
+                    onShare={onShareConversation}
                     onDelete={(conversation) => {
                       setMenuOpenId(null);
                       onDeleteConversation(conversation);
@@ -4124,6 +4125,7 @@ export default function ChatPage() {
           activeConversationId={activeConversationId}
           onOpenConversation={handleOpenConversation}
           onRenameConversation={handleRenameConversation}
+          onShareConversation={handleShareConversation}
           onDeleteConversation={handleDeleteConversation}
         />
       </div>
