@@ -413,6 +413,51 @@ function formatConversationTime(value, language = "en") {
   }).format(date);
 }
 
+function resolveMobileAttachmentPreview(attachment) {
+  if (!attachment) return "";
+  if (attachment.previewUrl) return attachment.previewUrl;
+  if (attachment.url) return attachment.url;
+  if (attachment.thumbnail) return attachment.thumbnail;
+  if (attachment.src) return attachment.src;
+  if (attachment.id || attachment.imageId) return getImageUrl(attachment.id || attachment.imageId);
+  return "";
+}
+
+function MobileMessageAttachments({ attachments = [] }) {
+  const visibleAttachments = attachments.filter((attachment) => resolveMobileAttachmentPreview(attachment));
+
+  if (!visibleAttachments.length) return null;
+
+  return (
+    <div
+      className={`mb-2 grid gap-2 ${visibleAttachments.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+      data-testid="mobile-message-attachments"
+    >
+      {visibleAttachments.map((attachment) => {
+        const src = resolveMobileAttachmentPreview(attachment);
+        const label = attachment.name || attachment.fileName || "Uploaded image";
+
+        return (
+          <button
+            key={attachment.id || attachment.imageId || src}
+            type="button"
+            className="block overflow-hidden rounded-[16px] bg-black/15"
+            aria-label={label}
+          >
+            <img
+              src={src}
+              alt={label}
+              className="max-h-[210px] w-full object-cover"
+              draggable="false"
+              loading="lazy"
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function MobileChat() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1562,7 +1607,12 @@ export default function MobileChat() {
         try {
           for (const attachment of attachedImages) {
             const image = await uploadChatImage(attachment.file, activeConversationId);
-            if (image) uploadedImages.push(image);
+            if (image) {
+              uploadedImages.push({
+                ...image,
+                localName: attachment.file?.name || attachment.name || "Uploaded image",
+              });
+            }
           }
         } catch (error) {
           setIsChatSending(false);
@@ -1574,7 +1624,15 @@ export default function MobileChat() {
       await sendChatPrompt({
         prompt: currentMessage || "Please analyze these images.",
         imageIds: uploadedImages.map((image) => image.id),
-        displayAttachments: attachedImages,
+        displayAttachments: uploadedImages.length
+          ? uploadedImages.map((image) => ({
+              id: image.id,
+              imageId: image.id,
+              name: image.originalName || image.localName || "Uploaded image",
+              type: "image",
+              previewUrl: getImageUrl(image.id),
+            }))
+          : attachedImages,
         metadata: isSearchMode ? { chatMode: "web_search" } : {},
       });
       return;
@@ -2642,7 +2700,10 @@ export default function MobileChat() {
                     style={item.role === "user" ? { backgroundColor: "var(--bluemind-app-color, #193B68)" } : undefined}
                   >
                     {item.role === "user" ? (
-                      item.content
+                      <>
+                        <MobileMessageAttachments attachments={item.attachments || []} />
+                        {item.content ? <div className="whitespace-pre-wrap">{item.content}</div> : null}
+                      </>
                     ) : item.isStreaming && !item.content ? (
                       <ThinkingIndicator responseMode={item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
                     ) : (
