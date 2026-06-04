@@ -758,7 +758,7 @@ function Sidebar({
             )}
             data-testid="new-chat-button"
           >
-            <Pencil className="h-5 w-5 flex-shrink-0 stroke-[2.25]" />
+            <Pencil className="h-5 w-5 shrink-0" />
             <span className="min-w-0 truncate text-sm font-semibold">{t("newChat")}</span>
           </button>
         </div>
@@ -4150,7 +4150,7 @@ export default function ChatPage() {
             )}
             data-testid="header-new-chat"
           >
-            <Plus className="w-5 h-5" />
+            <Pencil className="h-5 w-5 shrink-0" />
           </button>
         </header>
 
