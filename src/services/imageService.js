@@ -40,3 +40,11 @@ export const getImageUrl = (imageId) => {
   const baseUrl = api.defaults.baseURL?.replace(/\/$/, "");
   return `${baseUrl}/images/${imageId}/file`;
 };
+
+export const listImageHistory = async (options = {}) => {
+  const response = await api.get("/images", {
+    params: options,
+  });
+
+  return unwrapApiResponse(response)?.images || [];
+};

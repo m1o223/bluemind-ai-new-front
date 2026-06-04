@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import BrandLogo from "@/components/BrandLogo";
+import AccountSettingsSection from "@/components/settings/AccountSettingsSection";
 import ProfileSettingsSection from "@/components/settings/ProfileSettingsSection";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
@@ -147,6 +148,8 @@ export default function SettingsPage({ mobile = false }) {
 
         {isSectionPage && activeSection.id === "profile" ? (
           <ProfileSettingsSection mobile={mobile} isDark={isDark} />
+        ) : isSectionPage && activeSection.id === "account" ? (
+          <AccountSettingsSection mobile={mobile} isDark={isDark} />
         ) : isSectionPage ? (
           <section className={cn("rounded-[24px] border p-5 shadow-sm", panelClass)} data-testid={`settings-section-${activeSection.id}`}>
             <div className="mb-5 flex items-center gap-3">
