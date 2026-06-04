@@ -16,7 +16,7 @@ import ChatPage from "@/pages/ChatPage";
 import DashboardPage from "@/pages/DashboardPage";
 import RemindersPage from "@/pages/RemindersPage";
 import FeedbackPage from "@/pages/FeedbackPage";
-import ProfilePage from "@/pages/ProfilePage";
+import SettingsPage from "@/pages/SettingsPage";
 import LearningPage from "@/pages/LearningPage";
 import SchemanPage from "@/pages/SchemanPage";
 import GoogleCallbackPage from "@/pages/GoogleCallbackPage";
@@ -27,7 +27,6 @@ import MobileCreateImage from "@/mobile/pages/MobileCreateImage";
 import MobileWriteEdit from "@/mobile/pages/MobileWriteEdit";
 import MobileReminders from "@/mobile/pages/MobileReminders";
 import MobileLearning from "@/mobile/pages/MobileLearning";
-import MobileProfile from "@/mobile/pages/MobileProfile";
 import MobileSettings from "@/mobile/pages/MobileSettings";
 import MobileSmartHub from "@/mobile/pages/MobileSmartHub";
 import MobileWelcome from "@/mobile/pages/MobileWelcome";
@@ -140,8 +139,9 @@ function AppContent() {
           <Route path="/reminders" element={<ProtectedRoute><RemindersPage /></ProtectedRoute>} />
           <Route path="/reminders/:reminderId" element={<ProtectedRoute><RemindersPage /></ProtectedRoute>} />
           <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><ProfilePage settingsMode /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><ProfilePage settingsMode /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Navigate to="/settings/profile" replace /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/settings/:sectionId" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
           <Route path="/scheman" element={<ProtectedRoute><SchemanPage /></ProtectedRoute>} />
           <Route path="/mobile" element={<MobileLayout />}>
@@ -155,8 +155,9 @@ function AppContent() {
             <Route path="reminders" element={<MobileAccessRoute><MobileReminders /></MobileAccessRoute>} />
             <Route path="reminders/:reminderId" element={<MobileAccessRoute><MobileReminders /></MobileAccessRoute>} />
             <Route path="learning" element={<MobileAccessRoute><MobileLearning /></MobileAccessRoute>} />
-            <Route path="profile" element={<MobileAccessRoute><MobileProfile /></MobileAccessRoute>} />
+            <Route path="profile" element={<MobileAccessRoute><Navigate to="/mobile/settings/profile" replace /></MobileAccessRoute>} />
             <Route path="settings" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
+            <Route path="settings/:sectionId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
           </Route>
         </Routes>

@@ -1,5 +1,5 @@
-import ProfilePage from "@/pages/ProfilePage";
+import SettingsPage from "@/pages/SettingsPage";
 
 export default function MobileSettings() {
-  return <ProfilePage mobile settingsMode />;
+  return <SettingsPage mobile />;
 }
