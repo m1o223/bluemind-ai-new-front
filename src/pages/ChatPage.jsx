@@ -644,26 +644,33 @@ function Sidebar({
     : localSearchResults;
   const searchPanelTitle = normalizedSearchQuery ? "Matching conversations" : "Recent Conversations";
 
-  const navItems = [
+  const chatItems = [
+    {
+      id: "new_chat",
+      icon: Pencil,
+      label: t("newChat"),
+      action: onNewChat,
+      testId: "new-chat-button",
+    },
+    { id: "search", icon: Search, label: "Search", action: openSearchPanel },
+    {
+      id: "recent_chats",
+      icon: Clock,
+      label: "Recent Chats",
+      action: () => {
+        setSearchOpen(false);
+        setRecentsOpen((open) => !open);
+      },
+    },
+  ];
+
+  const bluemindItems = [
     {
       id: "dashboard",
       icon: Home,
       label: "Smart Hub",
       action: () => navigate("/dashboard"),
     },
-    {
-      id: "chat",
-      icon: MessageSquare,
-      label: t("chat"),
-      action: () => {
-        if (isHistoryOpen) {
-          onNewChat();
-          return;
-        }
-        setRecentsOpen((open) => !open);
-      },
-    },
-    { id: "search", icon: Search, label: "Search", action: openSearchPanel },
     {
       id: "reminders",
       icon: Bell,
@@ -689,6 +696,71 @@ function Sidebar({
     label: t("settings"),
     action: () => navigate("/settings"),
   };
+  const renderSidebarSection = (title, items) => (
+    <div className="space-y-1">
+      {isHistoryOpen && (
+        <p className={cn("px-3.5 pb-1 pt-2 text-[11px] font-bold uppercase tracking-[0.14em]", isDark ? "text-[#8F8F8F]" : "text-[#64748B]")}>
+          {title}
+        </p>
+      )}
+      {items.map((item) => (
+        <div key={item.id} className="relative">
+          <button
+            onClick={() => {
+              item.action?.();
+            }}
+            className={cn(
+              "group flex w-full items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer",
+              isHistoryOpen ? "px-3.5 py-3" : "h-12 justify-center px-0 py-0",
+              isDark
+                ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
+                : "text-[#1F2937] hover:bg-black/[0.05] hover:text-[#0F172A]",
+            )}
+            data-testid={item.testId || `nav-${item.id}`}
+            title={!isHistoryOpen ? item.label : undefined}
+          >
+            <item.icon className={cn("flex-shrink-0 stroke-[2.35]", isHistoryOpen ? "h-[21px] w-[21px]" : "h-[23px] w-[23px]")} />
+            {isHistoryOpen && <span className="min-w-0 truncate text-sm font-medium">{item.label}</span>}
+            {!isHistoryOpen && (
+              <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100", isDark ? "bg-[#2A2A2A] text-white" : "bg-white text-[#111827]")}>
+                {item.label}
+              </span>
+            )}
+          </button>
+          {item.id === "recent_chats" && recentsOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setRecentsOpen(false)} />
+              <div className={cn("absolute left-full top-0 z-30 ml-3 w-[min(20rem,calc(100vw-6rem))] rounded-3xl border p-3 shadow-[0_24px_70px_rgba(15,23,42,0.25)] backdrop-blur-[18px]", isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/70 bg-white/95 text-[#111827]")}>
+                <p className={cn("mb-2 px-2 text-xs font-semibold uppercase tracking-[0.14em]", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{t("recents")}</p>
+                <div className="max-h-[420px] space-y-1 overflow-y-auto">
+                  {history.slice(0, 12).map((historyItem) => (
+                    <HistoryItem
+                      key={historyItem.conversationId}
+                      item={historyItem}
+                      isActive={activeConversationId === historyItem.conversationId}
+                      isDark={isDark}
+                      isSidebarOpen
+                      language={prefs.language}
+                      menuOpenId={menuOpenId}
+                      onMenuToggle={setMenuOpenId}
+                      onOpen={(id) => {
+                        setRecentsOpen(false);
+                        onOpenConversation(id);
+                      }}
+                      onRename={(conversation, title) => onRenameConversation(conversation, title)}
+                      onShare={onShareConversation}
+                      onDelete={onDeleteConversation}
+                      t={t}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <motion.aside
@@ -746,26 +818,15 @@ function Sidebar({
         )}
       </div>
 
-      {isHistoryOpen && (
-        <div className="px-3.5 pt-4">
-          <button
-            onClick={onNewChat}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors duration-200 cursor-pointer",
-              isDark
-                ? "text-white hover:bg-white/[0.08]"
-                : "text-[#111827] hover:bg-[#EEF2F7]",
-            )}
-            data-testid="new-chat-button"
+      <AnimatePresence>
+        {isHistoryOpen && searchOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="relative z-30 px-3.5 pt-3"
           >
-            <Pencil className="h-5 w-5 shrink-0" />
-            <span className="min-w-0 truncate text-sm font-semibold">{t("newChat")}</span>
-          </button>
-        </div>
-      )}
-
-      {isHistoryOpen && (
-        <div className="relative z-30 px-3.5 pt-3">
           {searchOpen && <div className="fixed inset-0 z-20" onClick={() => setSearchOpen(false)} />}
           <div className="relative z-30">
             <label
@@ -857,66 +918,13 @@ function Sidebar({
               )}
             </AnimatePresence>
           </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <nav className={cn("space-y-2 px-3.5 pt-4", !isHistoryOpen && "px-4")} data-testid="chat-sidebar-nav">
-        {navItems.map((item) => (
-          <div key={item.id} className="relative">
-            <button
-              onClick={() => {
-                item.action?.();
-              }}
-              className={cn(
-                "group flex w-full items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer",
-                isHistoryOpen ? "px-3.5 py-3" : "h-12 justify-center px-0 py-0",
-                isDark
-                  ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
-                  : "text-[#1F2937] hover:bg-black/[0.05] hover:text-[#0F172A]",
-              )}
-              data-testid={`nav-${item.id}`}
-              title={!isHistoryOpen ? item.label : undefined}
-            >
-              <item.icon className={cn("flex-shrink-0 stroke-[2.35]", isHistoryOpen ? "h-[21px] w-[21px]" : "h-[23px] w-[23px]")} />
-              {isHistoryOpen && <span className="min-w-0 truncate text-sm font-medium">{item.label}</span>}
-              {!isHistoryOpen && (
-                <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100", isDark ? "bg-[#2A2A2A] text-white" : "bg-white text-[#111827]")}>
-                  {item.label}
-                </span>
-              )}
-            </button>
-            {!isHistoryOpen && item.id === "chat" && recentsOpen && (
-              <>
-                <div className="fixed inset-0 z-20" onClick={() => setRecentsOpen(false)} />
-                <div className={cn("absolute left-full top-0 z-30 ml-3 w-[min(20rem,calc(100vw-6rem))] rounded-3xl border p-3 shadow-[0_24px_70px_rgba(15,23,42,0.25)] backdrop-blur-[18px]", isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/70 bg-white/95 text-[#111827]")}>
-                  <p className={cn("mb-2 px-2 text-xs font-semibold uppercase tracking-[0.14em]", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{t("recents")}</p>
-                  <div className="max-h-[420px] space-y-1 overflow-y-auto">
-                    {history.slice(0, 12).map((historyItem) => (
-                      <HistoryItem
-                        key={historyItem.conversationId}
-                        item={historyItem}
-                        isActive={activeConversationId === historyItem.conversationId}
-                        isDark={isDark}
-                        isSidebarOpen
-                        language={prefs.language}
-                        menuOpenId={menuOpenId}
-                        onMenuToggle={setMenuOpenId}
-                        onOpen={(id) => {
-                          setRecentsOpen(false);
-                          onOpenConversation(id);
-                        }}
-                        onRename={(conversation, title) => onRenameConversation(conversation, title)}
-                        onShare={onShareConversation}
-                        onDelete={onDeleteConversation}
-                        t={t}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+        {renderSidebarSection("CHAT", chatItems)}
+        {renderSidebarSection("BLUEMIND", bluemindItems)}
       </nav>
 
       <AnimatePresence>
