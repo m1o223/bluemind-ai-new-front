@@ -48,7 +48,7 @@ import MessageResponse from "@/components/MessageResponse";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
-import BlueMindMediaPicker from "@/components/BlueMindMediaPicker";
+import DesktopPlusMenu from "@/components/DesktopPlusMenu";
 import {
   WEBSITE_CATEGORIES,
   WEBSITE_DIRECTORY,
@@ -3425,11 +3425,10 @@ export default function ChatPage() {
     } : null;
 
     const actionMenu = (
-      <BlueMindMediaPicker
+      <DesktopPlusMenu
         open={attachmentMenuOpen}
         onClose={() => setAttachmentMenuOpen(false)}
         isDark={isDark}
-        variant="desktop"
         onCamera={() => {
           setAttachmentMenuOpen(false);
           cameraInputRef.current?.click();
