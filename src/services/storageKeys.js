@@ -16,6 +16,7 @@ export const LEGACY_STORAGE_KEYS = {
 
 export const USER_UPDATED_EVENT = "bluemind:user-updated";
 export const LEGACY_USER_UPDATED_EVENT = `${LEGACY_PREFIX}:user-updated`;
+export const AUTH_SESSION_CLEARED_EVENT = "bluemind:auth-session-cleared";
 
 export const CSS_VARIABLES = {
   appColor: "--bluemind-app-color",
@@ -93,6 +94,7 @@ export function removeStoredAuthSession() {
   localStorage.removeItem(STORAGE_KEYS.token);
   removeStoredUser();
   removeStoredRefreshSession();
+  window.dispatchEvent(new CustomEvent(AUTH_SESSION_CLEARED_EVENT));
 }
 
 export function dispatchUserUpdated(detail) {

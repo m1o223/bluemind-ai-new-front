@@ -1,5 +1,5 @@
 import api, { API_BASE_URL, getApiErrorMessage, unwrapApiResponse } from "./api";
-import { STORAGE_KEYS, storeUser } from "./storageKeys";
+import { STORAGE_KEYS, storeRefreshSession, storeUser } from "./storageKeys";
 
 function parseSseBlock(block) {
   const lines = block.split("\n");
@@ -32,6 +32,10 @@ function persistStreamSession(session) {
 
   if (session?.user) {
     storeUser(session.user);
+  }
+
+  if (session?.session) {
+    storeRefreshSession(session.session);
   }
 
   return session;

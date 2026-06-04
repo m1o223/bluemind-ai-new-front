@@ -53,9 +53,11 @@ import {
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
 import { getApiErrorMessage } from "@/services/api";
+import { restoreExistingSession } from "@/services/authService";
 import { getConversation, listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import { AUTH_SESSION_CLEARED_EVENT } from "@/services/storageKeys";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 
 const AI_RESPONSE_MODES = [
@@ -614,9 +616,33 @@ export default function MobileChat() {
     node.style.overflowY = node.scrollHeight > maxHeight ? "auto" : "hidden";
   }, [isImageMode, isWriteEditMode]);
 
+  const redirectToMobileLogin = useCallback(() => {
+    closeMenu();
+    setResponseModeMenuOpen(false);
+    navigate("/mobile", { replace: true });
+  }, [navigate]);
+
+  const ensureMobileChatAuth = useCallback(async () => {
+    try {
+      await restoreExistingSession();
+      return true;
+    } catch {
+      redirectToMobileLogin();
+      return false;
+    }
+  }, [redirectToMobileLogin]);
+
   useEffect(() => {
     resizeChatComposer();
   }, [message, resizeChatComposer, shouldPinComposer]);
+
+  useEffect(() => {
+    window.addEventListener(AUTH_SESSION_CLEARED_EVENT, redirectToMobileLogin);
+
+    return () => {
+      window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, redirectToMobileLogin);
+    };
+  }, [redirectToMobileLogin]);
 
   useEffect(() => {
     let cancelled = false;
@@ -625,6 +651,8 @@ export default function MobileChat() {
       setIsLoadingConversations(true);
       setHistoryError("");
       try {
+        const authenticated = await ensureMobileChatAuth();
+        if (!authenticated || cancelled) return;
         const data = await listConversations();
         if (!cancelled) {
           setConversations(Array.isArray(data?.items) ? data.items : []);
@@ -645,7 +673,7 @@ export default function MobileChat() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ensureMobileChatAuth]);
 
   useEffect(() => {
     if (!menuSearchOpen) return undefined;
@@ -665,6 +693,8 @@ export default function MobileChat() {
     setIsSearching(true);
     const timer = window.setTimeout(async () => {
       try {
+        const authenticated = await ensureMobileChatAuth();
+        if (!authenticated || cancelled) return;
         const data = await searchConversations(query, 20);
         if (!cancelled) {
           setSearchResults(Array.isArray(data?.items) ? data.items : []);
@@ -684,7 +714,7 @@ export default function MobileChat() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [menuSearchOpen, menuSearchQuery]);
+  }, [ensureMobileChatAuth, menuSearchOpen, menuSearchQuery]);
 
   useEffect(() => {
     attachedImagesRef.current = attachedImages;
@@ -785,6 +815,8 @@ export default function MobileChat() {
     setChatMenuTarget(null);
 
     try {
+      const authenticated = await ensureMobileChatAuth();
+      if (!authenticated) return;
       const data = await getConversation(conversationId);
       const conversation = data?.conversation;
 
@@ -829,7 +861,7 @@ export default function MobileChat() {
     } finally {
       setIsOpeningConversation(false);
     }
-  }, [isChatSending, isGeneratingImage, isOpeningConversation, setSearchParams, t]);
+  }, [ensureMobileChatAuth, isChatSending, isGeneratingImage, isOpeningConversation, setSearchParams, t]);
 
   useEffect(() => {
     if (
@@ -845,6 +877,7 @@ export default function MobileChat() {
 
   const startNewChat = () => {
     closeMenu();
+    setMessages([]);
     setMessage("");
     setIsImageMode(false);
     setIsWriteEditMode(false);
@@ -870,7 +903,9 @@ export default function MobileChat() {
       current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
       return [];
     });
+    loadedConversationRef.current = null;
     setSearchParams({});
+    navigate("/mobile/chat", { replace: false });
   };
 
   const openConversation = (conversationId) => {
@@ -1416,6 +1451,8 @@ export default function MobileChat() {
     if (isListening) stopVoiceInput();
 
     const selectedMode = AI_RESPONSE_MODE_IDS.includes(mode) ? mode : responseMode;
+    const authenticated = await ensureMobileChatAuth();
+    if (!authenticated) return;
     const userMessageId = crypto.randomUUID();
     const aiMessageId = crypto.randomUUID();
     const userMetadata = {
@@ -1528,7 +1565,7 @@ export default function MobileChat() {
       stopRequestedRef.current = false;
       setIsChatSending(false);
     }
-  }, [activeConversationId, activeWriteTask, isChatSending, isGeneratingImage, isListening, responseMode, setSearchParams, stopVoiceInput, writeAttachments]);
+  }, [activeConversationId, activeWriteTask, ensureMobileChatAuth, isChatSending, isGeneratingImage, isListening, responseMode, setSearchParams, stopVoiceInput, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -2381,7 +2418,7 @@ export default function MobileChat() {
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
-      <header className={`flex h-14 items-center border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
+      <header className={`relative z-40 flex h-14 items-center border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
         <div className="relative flex items-center gap-2">
           <button
             type="button"
@@ -2414,7 +2451,7 @@ export default function MobileChat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                className={`absolute left-12 top-12 z-30 w-[276px] overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
+                className={`absolute left-12 top-12 z-50 w-[276px] overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
                   isDark
                     ? "border-white/[0.08] bg-[#242424]/92"
                     : "border-black/[0.06] bg-white/90"
