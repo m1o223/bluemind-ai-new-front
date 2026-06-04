@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
+import DesktopSettingsPanel from "@/components/settings/DesktopSettingsPanel";
 import { getDirectionalStyle } from "@/components/MarkdownText";
 import MessageResponse from "@/components/MessageResponse";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
@@ -657,6 +658,7 @@ function Sidebar({
   isHistoryOpen,
   onToggleHistory,
   onNewChat,
+  onOpenSettings,
   history,
   activeConversationId,
   onOpenConversation,
@@ -786,7 +788,7 @@ function Sidebar({
     id: "settings",
     icon: Settings,
     label: t("settings"),
-    action: () => navigate("/settings"),
+    action: onOpenSettings,
   };
   const renderSidebarSection = (title, items) => (
     <div className="space-y-1">
@@ -1479,6 +1481,7 @@ export default function ChatPage() {
   const [messageFeedback, setMessageFeedback] = useState({});
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [desktopSettingsOpen, setDesktopSettingsOpen] = useState(false);
   const imageInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const pdfInputRef = useRef(null);
@@ -4178,11 +4181,23 @@ export default function ChatPage() {
 
       {renderWebsiteDetails()}
 
+      <AnimatePresence>
+        {desktopSettingsOpen && (
+          <DesktopSettingsPanel
+            open
+            modal
+            initialSection="home"
+            onClose={() => setDesktopSettingsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="h-full flex-shrink-0">
         <Sidebar
           isHistoryOpen={historyOpen}
           onToggleHistory={() => setHistoryOpen((value) => !value)}
           onNewChat={handleNewChat}
+          onOpenSettings={() => setDesktopSettingsOpen(true)}
           history={history}
           activeConversationId={activeConversationId}
           onOpenConversation={handleOpenConversation}

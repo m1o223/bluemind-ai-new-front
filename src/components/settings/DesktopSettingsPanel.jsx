@@ -223,7 +223,7 @@ function Row({ icon: Icon, title, description, value, trailing, onClick, isDark 
   );
 }
 
-export default function DesktopSettingsPanel({ initialSection = "home" }) {
+export default function DesktopSettingsPanel({ initialSection = "home", open = true, modal = false, onClose }) {
   const navigate = useNavigate();
   const { prefs, setPrefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
@@ -258,10 +258,10 @@ export default function DesktopSettingsPanel({ initialSection = "home" }) {
   const currentTheme = prefs.theme || "system";
   const currentAccent = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "#193B68").toLowerCase()) || COLOR_OPTIONS[0];
   const avatarColor = useMemo(() => avatarColorFor(user), [user]);
-  const pageBg = isDark ? "bg-[#151515] text-white" : "bg-[#EEF2F7] text-[#111827]";
   const panelBg = isDark ? "border-white/[0.08] bg-[#202020]" : "border-white/80 bg-[#FAFBFC]";
   const sidebarBg = isDark ? "border-white/[0.08] bg-[#181818]" : "border-[#E5E7EB] bg-white";
   const muted = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
+  const closeSettings = onClose || (() => navigate("/chat"));
 
   useEffect(() => {
     setActiveSection(validSections.has(initialSection) ? initialSection : "home");
@@ -288,7 +288,9 @@ export default function DesktopSettingsPanel({ initialSection = "home" }) {
     setActiveSection(sectionId);
     setAccountPane("");
     setAboutPane("");
-    navigate(sectionId === "home" ? "/settings" : `/settings/${sectionId}`, { replace: false });
+    if (!modal) {
+      navigate(sectionId === "home" ? "/settings" : `/settings/${sectionId}`, { replace: false });
+    }
   };
 
   const savePreference = async (patch) => {
@@ -703,8 +705,9 @@ export default function DesktopSettingsPanel({ initialSection = "home" }) {
 
   const pageTitle = navItems.find((item) => item.id === activeSection)?.title || "Settings";
 
-  return (
-    <main className={cn("flex min-h-screen items-center justify-center p-6", pageBg)}>
+  if (!open) return null;
+
+  const panel = (
       <section className={cn("grid h-[min(860px,calc(100vh-48px))] w-full max-w-6xl grid-cols-[280px_minmax(0,1fr)] overflow-hidden rounded-[34px] border shadow-2xl", panelBg)}>
         <aside className={cn("flex min-h-0 flex-col border-r p-4", sidebarBg)}>
           <button type="button" onClick={() => setSection("home")} className="mb-5 flex items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.06]">
@@ -746,7 +749,7 @@ export default function DesktopSettingsPanel({ initialSection = "home" }) {
                 {activeSection === "home" ? "Manage BlueMind from one place." : "Use the sidebar to switch settings sections."}
               </p>
             </div>
-            <button type="button" onClick={() => navigate("/chat")} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors", isDark ? "text-white hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#EEF2F7]")} aria-label="Close settings">
+            <button type="button" onClick={closeSettings} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors", isDark ? "text-white hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#EEF2F7]")} aria-label="Close settings">
               <X className="h-5 w-5" />
             </button>
           </header>
@@ -760,6 +763,37 @@ export default function DesktopSettingsPanel({ initialSection = "home" }) {
           </div>
         </div>
       </section>
+  );
+
+  if (modal) {
+    return (
+      <div className="fixed inset-0 z-[95] flex items-center justify-center p-6" data-testid="desktop-settings-modal">
+        <motion.button
+          type="button"
+          aria-label="Close settings"
+          className="absolute inset-0 bg-black/45 backdrop-blur-[5px]"
+          onClick={closeSettings}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+        />
+        <motion.div
+          className="relative z-10 w-full max-w-6xl"
+          initial={{ opacity: 0, y: 18, scale: 0.965 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.975 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {panel}
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <main className={cn("flex min-h-screen items-center justify-center p-6", isDark ? "bg-[#151515] text-white" : "bg-[#EEF2F7] text-[#111827]")}>
+      {panel}
     </main>
   );
 }
