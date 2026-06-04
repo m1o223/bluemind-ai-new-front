@@ -22,7 +22,14 @@ export default function VerifyEmailPage() {
   const [isResending, setIsResending] = useState(false);
   const [cooldown, setCooldown] = useState(60);
   const [errorMessage, setErrorMessage] = useState("");
-  const { t } = useApp();
+  const { t, resolvedTheme } = useApp();
+  const isDark = resolvedTheme === "dark";
+  const pageClass = isDark ? "bg-[#1a1a1a] text-white" : "bg-white text-[#111827]";
+  const primaryText = isDark ? "text-white" : "text-[#111827]";
+  const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#6B7280]";
+  const inputClass = isDark
+    ? "bg-[#202020] border-white/[0.10] text-white placeholder:text-[#777] focus:border-[#4C8DFF]"
+    : "bg-white border-[#E5E7EB] text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#193B68]";
 
   const isValid = useMemo(() => email.trim() && /^\d{6}$/.test(code.trim()), [email, code]);
 
@@ -75,27 +82,27 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-white flex items-center justify-center px-4 py-10" data-testid="verify-email-page">
-      <button onClick={() => navigate("/auth/login")} className="absolute top-5 left-5 flex items-center gap-1.5 text-[#6B7280] hover:text-[#111827] transition-colors cursor-pointer">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`min-h-screen flex items-center justify-center px-4 py-10 ${pageClass}`} data-testid="verify-email-page">
+      <button onClick={() => navigate("/auth/login")} className={`absolute top-5 left-5 flex items-center gap-1.5 transition-colors cursor-pointer ${isDark ? "text-[#A7A7A7] hover:text-white" : "text-[#6B7280] hover:text-[#111827]"}`}>
         <ArrowLeft className="w-4 h-4" />
         <span className="text-sm font-medium">{t("back")}</span>
       </button>
 
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <BrandLogo forceTheme="light" className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName="text-lg text-[#111827]" />
-          <h1 className="text-xl sm:text-2xl font-semibold text-[#111827]">{t("verifyEmail")}</h1>
-          <p className="text-[#6B7280] text-sm mt-1.5">{t("verifyEmailSubtitle")}</p>
+          <BrandLogo forceTheme={isDark ? "dark" : "light"} className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName={`text-lg ${primaryText}`} />
+          <h1 className={`text-xl sm:text-2xl font-semibold ${primaryText}`}>{t("verifyEmail")}</h1>
+          <p className={`${mutedText} text-sm mt-1.5`}>{t("verifyEmailSubtitle")}</p>
         </div>
 
         <form onSubmit={handleVerify} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-[#111827] mb-1.5 block">{t("email")}</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("enterEmail")} className="py-5 rounded-xl" data-testid="verify-email-input" />
+            <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("email")}</label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("enterEmail")} className={`py-5 rounded-xl ${inputClass}`} data-testid="verify-email-input" />
           </div>
           <div>
-            <label className="text-sm font-medium text-[#111827] mb-1.5 block">{t("verificationCode")}</label>
-            <Input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" placeholder="000000" className="py-5 rounded-xl text-center tracking-[0.35em] font-semibold" data-testid="verify-code-input" />
+            <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("verificationCode")}</label>
+            <Input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" placeholder="000000" className={`py-5 rounded-xl text-center tracking-[0.35em] font-semibold ${inputClass}`} data-testid="verify-code-input" />
           </div>
 
           <Button type="submit" disabled={!isValid || isSubmitting} className="w-full py-5 text-sm bg-[#193B68] hover:bg-[#142f54] text-white rounded-xl font-medium disabled:opacity-50" data-testid="verify-submit-button">

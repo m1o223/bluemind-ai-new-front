@@ -1228,7 +1228,7 @@ const ChatMessage = memo(function ChatMessage({
                 ? "text-[#F3F4F6]"
                 : "text-[#1F2937]",
           )}
-          style={isUser ? { backgroundColor: prefs.chatColor, ...directionStyle } : directionStyle}
+          style={isUser ? { backgroundColor: prefs.chatColor || "#193B68", ...directionStyle } : directionStyle}
         >
           {message.attachments?.length > 0 && (
             <div className="mb-4 grid max-w-sm grid-cols-1 gap-3">

@@ -7,20 +7,23 @@ import BrandLogo from "@/components/BrandLogo";
 
 export default function AuthSelectionPage() {
   const navigate = useNavigate();
-  const { t } = useApp();
+  const { t, resolvedTheme } = useApp();
+  const isDark = resolvedTheme === "dark";
+  const primaryText = isDark ? "text-white" : "text-[#111827]";
+  const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#6B7280]";
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-white text-[#111827] flex items-center justify-center p-6"
+      className={`min-h-screen flex items-center justify-center p-6 ${isDark ? "bg-[#1a1a1a] text-white" : "bg-white text-[#111827]"}`}
       data-testid="auth-selection-page"
     >
       <Button
         onClick={() => navigate("/")}
         variant="ghost"
-        className="fixed top-6 left-6 text-[#6B7280] hover:text-[#111827] hover:bg-[#F5F7FA]"
+        className={`fixed top-6 left-6 ${isDark ? "text-[#A7A7A7] hover:text-white hover:bg-white/[0.08]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F5F7FA]"}`}
         data-testid="back-button"
       >
         <ArrowLeft className="w-5 h-5 mr-2" />
@@ -33,9 +36,9 @@ export default function AuthSelectionPage() {
         className="w-full max-w-sm"
       >
         <div className="text-center mb-8">
-          <BrandLogo forceTheme="light" className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName="text-lg text-[#111827]" />
-          <h1 className="text-xl font-semibold text-[#111827]">{t("welcomeToBlueMind")}</h1>
-          <p className="text-[#6B7280] text-sm mt-1">{t("authSelectionSubtitle")}</p>
+          <BrandLogo forceTheme={isDark ? "dark" : "light"} className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName={`text-lg ${primaryText}`} />
+          <h1 className={`text-xl font-semibold ${primaryText}`}>{t("welcomeToBlueMind")}</h1>
+          <p className={`${mutedText} text-sm mt-1`}>{t("authSelectionSubtitle")}</p>
         </div>
 
         <Button
@@ -50,7 +53,7 @@ export default function AuthSelectionPage() {
         <Button
           onClick={() => navigate("/auth/login")}
           variant="ghost"
-          className="w-full mt-3 text-[#6B7280] hover:text-[#111827] hover:bg-[#F5F7FA]"
+          className={`w-full mt-3 ${isDark ? "text-[#A7A7A7] hover:text-white hover:bg-white/[0.08]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F5F7FA]"}`}
           data-testid="signin-option-button"
         >
           {t("signInInstead")}

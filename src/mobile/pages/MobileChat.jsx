@@ -2808,7 +2808,7 @@ export default function MobileChat() {
                           ? "w-full px-1 py-1 text-white"
                           : "w-full px-1 py-1 text-[#111827]"
                     }`}
-                    style={item.role === "user" ? { backgroundColor: "var(--bluemind-app-color, #193B68)" } : undefined}
+                    style={item.role === "user" ? { backgroundColor: "var(--bluemind-chat-color, #193B68)" } : undefined}
                   >
                     {item.role === "user" ? (
                       <>

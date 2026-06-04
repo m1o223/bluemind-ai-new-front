@@ -20,7 +20,18 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const { t } = useApp();
+  const { t, resolvedTheme } = useApp();
+  const isDark = resolvedTheme === "dark";
+  const pageClass = isDark ? "bg-[#1a1a1a] text-white" : "bg-white text-[#111827]";
+  const primaryText = isDark ? "text-white" : "text-[#111827]";
+  const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#6B7280]";
+  const dividerClass = isDark ? "bg-white/[0.10]" : "bg-[#E5E7EB]";
+  const inputClass = isDark
+    ? "bg-[#202020] border-white/[0.10] text-white placeholder:text-[#777] focus:border-[#4C8DFF] focus:ring-1 focus:ring-[#4C8DFF]"
+    : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF] focus:border-[#193B68] focus:ring-1 focus:ring-[#193B68]";
+  const socialButtonClass = isDark
+    ? "border-white/[0.10] bg-white/[0.06] hover:bg-white/[0.10] hover:border-white/[0.16]"
+    : "border-[#E5E7EB] hover:bg-[#F9FAFB] hover:border-[#D1D5DB]";
 
   const isFormValid = formData.email.trim() && formData.password.trim();
 
@@ -55,13 +66,13 @@ export default function LoginPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-white flex items-center justify-center px-4 sm:px-5 py-10"
+      className={`min-h-screen flex items-center justify-center px-4 sm:px-5 py-10 ${pageClass}`}
       data-testid="login-page"
     >
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className="absolute top-5 left-5 flex items-center gap-1.5 text-[#6B7280] hover:text-[#111827] transition-colors duration-200 cursor-pointer"
+        className={`absolute top-5 left-5 flex items-center gap-1.5 transition-colors duration-200 cursor-pointer ${isDark ? "text-[#A7A7A7] hover:text-white" : "text-[#6B7280] hover:text-[#111827]"}`}
         data-testid="back-button"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -71,15 +82,15 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
-          <BrandLogo forceTheme="light" className="mx-auto mb-4" logoClassName="w-11 h-11" textClassName="text-lg text-[#111827]" />
-          <h1 className="text-xl sm:text-2xl font-semibold text-[#111827]">{t("welcomeBack")}</h1>
-          <p className="text-[#6B7280] text-sm mt-1.5">{t("signInSubtitle")}</p>
+          <BrandLogo forceTheme={isDark ? "dark" : "light"} className="mx-auto mb-4" logoClassName="w-11 h-11" textClassName={`text-lg ${primaryText}`} />
+          <h1 className={`text-xl sm:text-2xl font-semibold ${primaryText}`}>{t("welcomeBack")}</h1>
+          <p className={`${mutedText} text-sm mt-1.5`}>{t("signInSubtitle")}</p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-[#111827] mb-1.5 block">{t("email")}</label>
+            <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("email")}</label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#9CA3AF]" />
               <Input
@@ -87,14 +98,14 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder={t("enterEmail")}
-                className="pl-10 py-5 bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF] rounded-xl text-sm focus:border-[#193B68] focus:ring-1 focus:ring-[#193B68] w-full"
+                className={`pl-10 py-5 rounded-xl text-sm w-full ${inputClass}`}
                 data-testid="email-input"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[#111827] mb-1.5 block">{t("password")}</label>
+            <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("password")}</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#9CA3AF]" />
               <Input
@@ -102,7 +113,7 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder={t("enterPassword")}
-                className="pl-10 pr-10 py-5 bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF] rounded-xl text-sm focus:border-[#193B68] focus:ring-1 focus:ring-[#193B68] w-full"
+                className={`pl-10 pr-10 py-5 rounded-xl text-sm w-full ${inputClass}`}
                 data-testid="password-input"
               />
               <button
@@ -124,7 +135,7 @@ export default function LoginPage() {
                 className="border-[#E5E7EB] data-[state=checked]:bg-[#193B68] data-[state=checked]:border-[#193B68] cursor-pointer"
                 data-testid="remember-checkbox"
               />
-              <label htmlFor="remember" className="text-sm text-[#6B7280] cursor-pointer">{t("rememberMe")}</label>
+              <label htmlFor="remember" className={`text-sm cursor-pointer ${mutedText}`}>{t("rememberMe")}</label>
             </div>
             <button type="button" onClick={() => navigate("/auth/forgot-password")} className="text-sm text-[#193B68] hover:underline cursor-pointer transition-all duration-200" data-testid="forgot-password-link">
               {t("forgotPassword")}
@@ -153,9 +164,9 @@ export default function LoginPage() {
 
         {/* Divider */}
         <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-[#E5E7EB]" />
+          <div className={`flex-1 h-px ${dividerClass}`} />
           <span className="text-[#9CA3AF] text-xs">{t("orContinueWith")}</span>
-          <div className="flex-1 h-px bg-[#E5E7EB]" />
+          <div className={`flex-1 h-px ${dividerClass}`} />
         </div>
 
         {/* Social Login */}
@@ -163,7 +174,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={startGoogleLogin}
-            className="flex items-center justify-center gap-2 py-3 border border-[#E5E7EB] rounded-xl hover:bg-[#F9FAFB] hover:border-[#D1D5DB] transition-all duration-200 cursor-pointer"
+            className={`flex items-center justify-center gap-2 py-3 border rounded-xl transition-all duration-200 cursor-pointer ${socialButtonClass}`}
             data-testid="google-login"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -172,23 +183,23 @@ export default function LoginPage() {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            <span className="text-sm font-medium text-[#111827]">{t("google")}</span>
+            <span className={`text-sm font-medium ${primaryText}`}>{t("google")}</span>
           </button>
           <button
             type="button"
-            className="flex items-center justify-center gap-2 py-3 border border-[#E5E7EB] rounded-xl hover:bg-[#F9FAFB] hover:border-[#D1D5DB] transition-all duration-200 cursor-pointer"
+            className={`flex items-center justify-center gap-2 py-3 border rounded-xl transition-all duration-200 cursor-pointer ${socialButtonClass}`}
             data-testid="apple-login"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#111827">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill={isDark ? "#FFFFFF" : "#111827"}>
               <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
             </svg>
-            <span className="text-sm font-medium text-[#111827]">{t("apple")}</span>
+            <span className={`text-sm font-medium ${primaryText}`}>{t("apple")}</span>
           </button>
         </div>
         <p className="text-center text-[#9CA3AF] text-xs mt-2">{t("googleSignInHint")}</p>
 
         {/* Bottom text */}
-        <p className="text-center text-[#6B7280] text-sm mt-6">
+        <p className={`text-center text-sm mt-6 ${mutedText}`}>
           {t("noAccount")}{" "}
           <button
             onClick={() => navigate("/auth/register")}

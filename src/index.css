@@ -65,6 +65,28 @@ body {
   touch-action: manipulation;
 }
 
+html[data-theme="light"] body {
+  --bg-main: #fafbfc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --border-color: #e5e7eb;
+  --text-main: #111827;
+  --text-secondary: #64748b;
+  background-color: #fafbfc;
+  color: #111827;
+}
+
+html[data-theme="dark"] body {
+  --bg-main: #1a1a1a;
+  --bg-secondary: #202020;
+  --bg-card: #262626;
+  --border-color: #333333;
+  --text-main: #ffffff;
+  --text-secondary: #a7a7a7;
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
 img,
 video,
 canvas,

@@ -45,6 +45,32 @@ const ACCENT_COLORS = [
   { label: "Indigo", value: "#4F46E5" },
   { label: "Rose", value: "#E11D48" },
 ];
+const MESSAGE_COLORS = [
+  { label: "Blue", value: "#193B68" },
+  { label: "Sky", value: "#0284C7" },
+  { label: "Cyan", value: "#0891B2" },
+  { label: "Teal", value: "#0F766E" },
+  { label: "Emerald", value: "#059669" },
+  { label: "Green", value: "#16A34A" },
+  { label: "Lime", value: "#65A30D" },
+  { label: "Yellow", value: "#CA8A04" },
+  { label: "Amber", value: "#D97706" },
+  { label: "Orange", value: "#EA580C" },
+  { label: "Red", value: "#DC2626" },
+  { label: "Rose", value: "#E11D48" },
+  { label: "Pink", value: "#DB2777" },
+  { label: "Fuchsia", value: "#C026D3" },
+  { label: "Purple", value: "#9333EA" },
+  { label: "Violet", value: "#7C3AED" },
+  { label: "Indigo", value: "#4F46E5" },
+  { label: "Slate", value: "#475569" },
+  { label: "Stone", value: "#57534E" },
+  { label: "Zinc", value: "#52525B" },
+  { label: "Mint", value: "#10B981" },
+  { label: "Ocean", value: "#2563EB" },
+  { label: "Berry", value: "#BE123C" },
+  { label: "Copper", value: "#B45309" },
+];
 
 function initialsFor(user) {
   const name = String(user?.name || user?.email || "BlueMind").trim();
@@ -96,62 +122,66 @@ async function createAvatarDataUrl(file) {
   }
 }
 
-function SettingRow({ icon: Icon, title, value, accent, danger, disabled, onClick, children }) {
+function SettingRow({ icon: Icon, title, value, accent, danger, disabled, onClick, children, isDark = true }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || !onClick}
       className={cn(
-        "flex min-h-[68px] w-full items-center gap-3 border-b border-white/[0.07] px-4 text-left last:border-b-0",
-        onClick && "active:bg-white/[0.06]",
+        "flex min-h-[68px] w-full items-center gap-3 border-b px-4 text-left last:border-b-0",
+        isDark ? "border-white/[0.07]" : "border-[#E5E7EB]",
+        onClick && (isDark ? "active:bg-white/[0.06]" : "active:bg-[#EEF2F7]"),
         disabled && "opacity-55",
       )}
     >
-      <Icon className={cn("h-5 w-5 shrink-0", danger ? "text-red-400" : accent ? "text-[#4C8DFF]" : "text-[#D8D8D8]")} />
+      <Icon className={cn("h-5 w-5 shrink-0", danger ? "text-red-500" : accent ? "text-[#4C8DFF]" : isDark ? "text-[#D8D8D8]" : "text-[#475569]")} />
       <span className="min-w-0 flex-1">
-        <span className={cn("block text-[15px] font-semibold", danger ? "text-red-400" : accent ? "text-[#7FB2FF]" : "text-white")}>
+        <span className={cn("block text-[15px] font-semibold", danger ? "text-red-500" : accent ? "text-[#2563EB]" : isDark ? "text-white" : "text-[#111827]")}>
           {title}
         </span>
         {children}
       </span>
-      {value && <span className="max-w-[42%] truncate text-sm font-medium text-[#9CA3AF]">{value}</span>}
-      {onClick && !disabled && <ChevronRight className="h-4 w-4 shrink-0 text-[#8C8C8C]" />}
+      {value && <span className={cn("max-w-[42%] truncate text-sm font-medium", isDark ? "text-[#9CA3AF]" : "text-[#64748B]")}>{value}</span>}
+      {onClick && !disabled && <ChevronRight className={cn("h-4 w-4 shrink-0", isDark ? "text-[#8C8C8C]" : "text-[#94A3B8]")} />}
     </button>
   );
 }
 
-function SettingsCard({ children }) {
+function SettingsCard({ children, isDark = true }) {
   return (
-    <div className="overflow-hidden rounded-[26px] bg-[#262626] shadow-sm ring-1 ring-white/[0.06]">
+    <div className={cn("overflow-hidden rounded-[26px] shadow-sm ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
       {children}
     </div>
   );
 }
 
-function SectionTitle({ children }) {
-  return <h3 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-[0.08em] text-[#A6A6A6]">{children}</h3>;
+function SectionTitle({ children, isDark = true }) {
+  return <h3 className={cn("mb-2 px-1 text-[13px] font-bold uppercase tracking-[0.08em]", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>{children}</h3>;
 }
 
-function ComingSoonPanel({ title }) {
+function ComingSoonPanel({ title, isDark = true }) {
   return (
-    <div className="rounded-[26px] bg-[#262626] p-5 text-center ring-1 ring-white/[0.06]">
-      <p className="text-base font-bold text-white">{title}</p>
-      <p className="mt-2 text-sm font-medium leading-6 text-[#A6A6A6]">Coming Soon</p>
+    <div className={cn("rounded-[26px] p-5 text-center ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+      <p className={cn("text-base font-bold", isDark ? "text-white" : "text-[#111827]")}>{title}</p>
+      <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>Coming Soon</p>
     </div>
   );
 }
 
-function SettingsInput({ label, readOnly, ...props }) {
+function SettingsInput({ label, readOnly, isDark = true, ...props }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.08em] text-[#A6A6A6]">{label}</span>
+      <span className={cn("mb-2 block text-xs font-bold uppercase tracking-[0.08em]", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>{label}</span>
       <input
         {...props}
         readOnly={readOnly}
         className={cn(
-          "min-h-12 w-full rounded-2xl border border-white/[0.08] bg-[#151515] px-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-[#6F6F6F] focus:border-[#4C8DFF]",
-          readOnly && "cursor-default bg-white/[0.05] text-[#CFCFCF] focus:border-white/[0.08]",
+          "min-h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none transition-colors focus:border-[#4C8DFF]",
+          isDark
+            ? "border-white/[0.08] bg-[#151515] text-white placeholder:text-[#6F6F6F]"
+            : "border-[#CBD5E1] bg-[#F8FAFC] text-[#111827] placeholder:text-[#94A3B8]",
+          readOnly && (isDark ? "cursor-default bg-white/[0.05] text-[#CFCFCF] focus:border-white/[0.08]" : "cursor-default bg-[#EEF2F7] text-[#475569] focus:border-[#CBD5E1]"),
         )}
       />
     </label>
@@ -183,7 +213,8 @@ export default function SettingsSheet({
   overlay = true,
 }) {
   const navigate = useNavigate();
-  const { prefs, setPrefs } = useApp();
+  const { prefs, resolvedTheme, setPrefs } = useApp();
+  const isDark = resolvedTheme === "dark";
   const fileInputRef = useRef(null);
   const [pane, setPane] = useState(initialPane === "settings" ? "main" : initialPane);
   const [user, setUser] = useState(() => readStoredUser());
@@ -367,6 +398,10 @@ export default function SettingsSheet({
 
   const openChild = (nextPane) => setPane(nextPane);
   const backToMain = () => setPane("main");
+  const Row = (props) => <SettingRow isDark={isDark} {...props} />;
+  const Card = (props) => <SettingsCard isDark={isDark} {...props} />;
+  const Title = (props) => <SectionTitle isDark={isDark} {...props} />;
+  const Input = (props) => <SettingsInput isDark={isDark} {...props} />;
 
   const renderProfileHeader = () => (
     <div className="flex flex-col items-center pb-6 pt-2 text-center">
@@ -387,7 +422,7 @@ export default function SettingsSheet({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-[#193B68] text-white shadow-lg ring-4 ring-[#1c1c1c]"
+          className={cn("absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-[#193B68] text-white shadow-lg ring-4", isDark ? "ring-[#1c1c1c]" : "ring-[#FAFBFC]")}
           aria-label="Edit profile picture"
         >
           {saving === "avatar" ? (
@@ -397,8 +432,8 @@ export default function SettingsSheet({
           )}
         </button>
       </div>
-      <p className="mt-4 max-w-full truncate text-xl font-extrabold text-white">{user?.name || "BlueMind User"}</p>
-      <p className="mt-1 max-w-full truncate text-sm font-medium text-[#A6A6A6]">{user?.email || ""}</p>
+      <p className={cn("mt-4 max-w-full truncate text-xl font-extrabold", isDark ? "text-white" : "text-[#111827]")}>{user?.name || "BlueMind User"}</p>
+      <p className={cn("mt-1 max-w-full truncate text-sm font-medium", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>{user?.email || ""}</p>
     </div>
   );
 
@@ -408,53 +443,54 @@ export default function SettingsSheet({
 
       <div className="space-y-6">
         <section>
-          <SectionTitle>Account</SectionTitle>
-          <SettingsCard>
-            <SettingRow icon={Mail} title="Email" value={user?.email || "Unavailable"} />
-            <SettingRow icon={Mail} title="Change Email" onClick={() => openChild("change-email")} />
-            <SettingRow icon={KeyRound} title="Change Password" onClick={() => openChild("change-password")} />
-            <SettingRow icon={CreditCard} title="Subscription" value={plan} onClick={() => openChild("subscription")} />
-          </SettingsCard>
+          <Title>Account</Title>
+          <Card>
+            <Row icon={Mail} title="Email" value={user?.email || "Unavailable"} />
+            <Row icon={Mail} title="Change Email" onClick={() => openChild("change-email")} />
+            <Row icon={KeyRound} title="Change Password" onClick={() => openChild("change-password")} />
+            <Row icon={CreditCard} title="Subscription" value={plan} onClick={() => openChild("subscription")} />
+          </Card>
         </section>
 
         <section>
-          <SectionTitle>Theme</SectionTitle>
-          <SettingsCard>
-            <SettingRow icon={Moon} title="Appearance" value={appearanceText} onClick={() => openChild("appearance")} />
-            <SettingRow icon={Palette} title="Accent color" value={accent.label} onClick={() => openChild("accent-color")}>
-              <span className="mt-1 inline-flex items-center gap-2 text-xs font-medium text-[#A6A6A6]">
+          <Title>Theme</Title>
+          <Card>
+            <Row icon={Moon} title="Appearance" value={appearanceText} onClick={() => openChild("appearance")} />
+            <Row icon={Palette} title="Accent color" value={accent.label} onClick={() => openChild("accent-color")}>
+              <span className={cn("mt-1 inline-flex items-center gap-2 text-xs font-medium", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent.value }} />
                 BlueMind accent
               </span>
-            </SettingRow>
-          </SettingsCard>
+            </Row>
+            <Row icon={Palette} title="Message Color" value={(MESSAGE_COLORS.find((color) => color.value.toLowerCase() === String(prefs.chatColor || "#193B68").toLowerCase()) || MESSAGE_COLORS[0]).label} onClick={() => openChild("message-color")} />
+          </Card>
         </section>
 
         <section>
-          <SectionTitle>App settings</SectionTitle>
-          <SettingsCard>
-            <SettingRow icon={Settings} title="General" onClick={() => openChild("general")} />
-            <SettingRow icon={Bell} title="Notifications" onClick={() => openChild("notifications")} />
-            <SettingRow icon={Volume2} title="Voice" onClick={() => openChild("voice")} />
-            <SettingRow icon={Lock} title="Safety and security" onClick={() => openChild("safety-security")} />
-            <SettingRow icon={ShieldCheck} title="Data controls" onClick={() => openChild("data-controls")} />
-            <SettingRow icon={HardDrive} title="Storage" onClick={() => openChild("storage")} />
-          </SettingsCard>
+          <Title>App settings</Title>
+          <Card>
+            <Row icon={Settings} title="General" onClick={() => openChild("general")} />
+            <Row icon={Bell} title="Notifications" onClick={() => openChild("notifications")} />
+            <Row icon={Volume2} title="Voice" onClick={() => openChild("voice")} />
+            <Row icon={Lock} title="Safety and security" onClick={() => openChild("safety-security")} />
+            <Row icon={ShieldCheck} title="Data controls" onClick={() => openChild("data-controls")} />
+            <Row icon={HardDrive} title="Storage" onClick={() => openChild("storage")} />
+          </Card>
         </section>
 
         <section>
-          <SectionTitle>Get help</SectionTitle>
-          <SettingsCard>
-            <SettingRow icon={Flag} title="Report app issue" onClick={() => openChild("report-issue")} />
-            <SettingRow icon={HelpCircle} title="Help Center" onClick={() => openChild("help-center")} />
-            <SettingRow icon={Info} title="About" onClick={() => openChild("about")} />
-          </SettingsCard>
+          <Title>Get help</Title>
+          <Card>
+            <Row icon={Flag} title="Report app issue" onClick={() => openChild("report-issue")} />
+            <Row icon={HelpCircle} title="Help Center" onClick={() => openChild("help-center")} />
+            <Row icon={Info} title="About" onClick={() => openChild("about")} />
+          </Card>
         </section>
 
         <button
           type="button"
           onClick={() => setLogoutConfirmOpen(true)}
-          className="flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] bg-[#262626] text-[15px] font-bold text-red-400 ring-1 ring-white/[0.06] active:bg-red-500/10"
+          className={cn("flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] text-[15px] font-bold text-red-500 ring-1 active:bg-red-500/10", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}
         >
           <LogOut className="h-5 w-5" />
           Log out
@@ -466,14 +502,14 @@ export default function SettingsSheet({
   const renderChangeEmail = () => (
     <div className="space-y-5">
       <form onSubmit={handleRequestEmailChange} className="space-y-4">
-        <SettingsInput
+        <Input
           label="Current Email"
           type="email"
           value={user?.email || ""}
           readOnly
           data-testid="settings-current-email"
         />
-        <SettingsInput
+        <Input
           label="New Email"
           type="email"
           value={emailChange.newEmail}
@@ -482,7 +518,7 @@ export default function SettingsSheet({
           autoComplete="email"
           data-testid="settings-new-email"
         />
-        <SettingsInput
+        <Input
           label="Current Password"
           type="password"
           value={emailChange.currentPassword}
@@ -501,11 +537,11 @@ export default function SettingsSheet({
       </form>
 
       {emailChange.pendingEmail && (
-        <form onSubmit={handleConfirmEmailChange} className="space-y-4 rounded-[24px] bg-[#262626] p-4 ring-1 ring-white/[0.06]">
-          <p className="text-sm font-semibold leading-6 text-[#CFCFCF]">
+        <form onSubmit={handleConfirmEmailChange} className={cn("space-y-4 rounded-[24px] p-4 ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+          <p className={cn("text-sm font-semibold leading-6", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>
             Enter the 6-digit code sent to {emailChange.pendingEmail}.
           </p>
-          <SettingsInput
+          <Input
             label="Verification Code"
             inputMode="numeric"
             value={emailChange.code}
@@ -538,9 +574,9 @@ export default function SettingsSheet({
   );
 
   const renderEmailRecovery = () => (
-    <div className="rounded-[26px] bg-[#262626] p-5 ring-1 ring-white/[0.06]">
-      <p className="text-base font-extrabold text-white">Email recovery</p>
-      <p className="mt-2 text-sm font-medium leading-6 text-[#A6A6A6]">
+    <div className={cn("rounded-[26px] p-5 ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+      <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[#111827]")}>Email recovery</p>
+      <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
         BlueMind does not currently expose an automated backend email-access recovery endpoint. If you are signed in and know your password, use Change Email. Otherwise, use the password recovery flow below to recover account access through your registered email.
       </p>
       <button
@@ -556,7 +592,7 @@ export default function SettingsSheet({
   const renderChangePassword = () => (
     <div className="space-y-5">
       <form onSubmit={handleChangePassword} className="space-y-4">
-        <SettingsInput
+        <Input
           label="Current Password"
           type="password"
           value={passwordChange.currentPassword}
@@ -565,7 +601,7 @@ export default function SettingsSheet({
           autoComplete="current-password"
           data-testid="settings-current-password"
         />
-        <SettingsInput
+        <Input
           label="New Password"
           type="password"
           value={passwordChange.newPassword}
@@ -574,7 +610,7 @@ export default function SettingsSheet({
           autoComplete="new-password"
           data-testid="settings-new-password"
         />
-        <SettingsInput
+        <Input
           label="Confirm Password"
           type="password"
           value={passwordChange.confirmPassword}
@@ -611,7 +647,7 @@ export default function SettingsSheet({
   const renderForgotPassword = () => (
     <div className="space-y-5">
       <form onSubmit={handleRequestPasswordReset} className="space-y-4">
-        <SettingsInput
+        <Input
           label="Email"
           type="email"
           value={passwordRecovery.email}
@@ -629,7 +665,7 @@ export default function SettingsSheet({
         </PrimarySettingsButton>
       </form>
       {passwordRecovery.sent && (
-        <div className="rounded-[24px] bg-[#262626] p-4 text-sm font-semibold leading-6 text-[#CFCFCF] ring-1 ring-white/[0.06]">
+        <div className={cn("rounded-[24px] p-4 text-sm font-semibold leading-6 ring-1", isDark ? "bg-[#262626] text-[#CFCFCF] ring-white/[0.06]" : "bg-white text-[#475569] ring-black/[0.06]")}>
           If this email belongs to a BlueMind account, a recovery email has been sent.
         </div>
       )}
@@ -637,10 +673,10 @@ export default function SettingsSheet({
   );
 
   const renderSubscription = () => (
-    <div className="rounded-[26px] bg-[#262626] p-5 ring-1 ring-white/[0.06]">
-      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#A6A6A6]">Current Plan</p>
-      <p className="mt-2 text-2xl font-extrabold text-white">{plan}</p>
-      <p className="mt-3 text-sm font-medium leading-6 text-[#A6A6A6]">
+    <div className={cn("rounded-[26px] p-5 ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+      <p className={cn("text-sm font-bold uppercase tracking-[0.08em]", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>Current Plan</p>
+      <p className={cn("mt-2 text-2xl font-extrabold", isDark ? "text-white" : "text-[#111827]")}>{plan}</p>
+      <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
         Subscription data is read from your authenticated BlueMind account.
       </p>
     </div>
@@ -653,9 +689,9 @@ export default function SettingsSheet({
           key={theme}
           type="button"
           onClick={() => savePreference({ theme })}
-          className="flex min-h-[60px] w-full items-center gap-3 rounded-[22px] bg-[#262626] px-4 text-left text-white ring-1 ring-white/[0.06]"
+          className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left ring-1", isDark ? "bg-[#262626] text-white ring-white/[0.06]" : "bg-white text-[#111827] ring-black/[0.06]")}
         >
-          <Moon className="h-5 w-5 text-[#D8D8D8]" />
+          <Moon className={cn("h-5 w-5", isDark ? "text-[#D8D8D8]" : "text-[#475569]")} />
           <span className="flex-1 text-[15px] font-semibold capitalize">{theme}</span>
           {prefs.theme === theme && <Check className="h-5 w-5 text-[#7FB2FF]" />}
         </button>
@@ -670,15 +706,37 @@ export default function SettingsSheet({
           key={color.value}
           type="button"
           onClick={() => savePreference({ appColor: color.value, accentColor: color.value })}
-          className="flex min-h-[76px] items-center gap-3 rounded-[24px] bg-[#262626] px-4 text-left ring-1 ring-white/[0.06]"
+          className={cn("flex min-h-[76px] items-center gap-3 rounded-[24px] px-4 text-left ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}
         >
           <span className="h-7 w-7 rounded-full" style={{ backgroundColor: color.value }} />
-          <span className="flex-1 text-sm font-bold text-white">{color.label}</span>
+          <span className={cn("flex-1 text-sm font-bold", isDark ? "text-white" : "text-[#111827]")}>{color.label}</span>
           {accent.value === color.value && <Check className="h-5 w-5 text-[#7FB2FF]" />}
         </button>
       ))}
     </div>
   );
+
+  const renderMessageColor = () => {
+    const activeMessageColor = prefs.chatColor || "#193B68";
+
+    return (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {MESSAGE_COLORS.map((color) => (
+          <button
+            key={color.value}
+            type="button"
+            onClick={() => savePreference({ chatColor: color.value })}
+            className={cn("flex min-h-[74px] items-center gap-3 rounded-[24px] px-4 text-left ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}
+            data-testid={`message-color-${color.label.toLowerCase()}`}
+          >
+            <span className="h-7 w-7 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />
+            <span className={cn("min-w-0 flex-1 truncate text-sm font-bold", isDark ? "text-white" : "text-[#111827]")}>{color.label}</span>
+            {activeMessageColor.toLowerCase() === color.value.toLowerCase() && <Check className="h-5 w-5 shrink-0 text-[#7FB2FF]" />}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   const childTitles = {
     "change-email": "Change Email",
@@ -688,6 +746,7 @@ export default function SettingsSheet({
     subscription: "Subscription",
     appearance: "Appearance",
     "accent-color": "Accent color",
+    "message-color": "Message Color",
     general: "General",
     notifications: "Notifications",
     voice: "Voice",
@@ -709,26 +768,27 @@ export default function SettingsSheet({
     if (pane === "subscription") return renderSubscription();
     if (pane === "appearance") return renderAppearance();
     if (pane === "accent-color") return renderAccentColor();
+    if (pane === "message-color") return renderMessageColor();
     if (pane === "notifications") {
       return (
         <div className="space-y-3">
           <button
             type="button"
             onClick={() => navigate(mobile ? "/mobile/settings/notifications" : "/settings/notifications")}
-            className="flex min-h-[64px] w-full items-center gap-3 rounded-[24px] bg-[#262626] px-4 text-left text-white ring-1 ring-white/[0.06]"
+            className={cn("flex min-h-[64px] w-full items-center gap-3 rounded-[24px] px-4 text-left ring-1", isDark ? "bg-[#262626] text-white ring-white/[0.06]" : "bg-white text-[#111827] ring-black/[0.06]")}
           >
-            <Bell className="h-5 w-5 text-[#D8D8D8]" />
+            <Bell className={cn("h-5 w-5", isDark ? "text-[#D8D8D8]" : "text-[#475569]")} />
             <span className="flex-1">
               <span className="block text-[15px] font-bold">Open notification controls</span>
-              <span className="mt-1 block text-xs font-medium text-[#A6A6A6]">Uses the connected notification preferences.</span>
+              <span className={cn("mt-1 block text-xs font-medium", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>Uses the connected notification preferences.</span>
             </span>
-            <ChevronRight className="h-4 w-4 text-[#8C8C8C]" />
+            <ChevronRight className={cn("h-4 w-4", isDark ? "text-[#8C8C8C]" : "text-[#94A3B8]")} />
           </button>
         </div>
       );
     }
 
-    return <ComingSoonPanel title={childTitles[pane] || "Settings"} />;
+    return <ComingSoonPanel title={childTitles[pane] || "Settings"} isDark={isDark} />;
   };
 
   const sheetContent = (
@@ -738,7 +798,8 @@ export default function SettingsSheet({
       exit={{ y: "100%", opacity: 0.96 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "relative flex w-full flex-col overflow-hidden bg-[#1c1c1c] text-white shadow-[0_-28px_90px_rgba(0,0,0,0.45)]",
+        "relative flex w-full flex-col overflow-hidden shadow-[0_-28px_90px_rgba(0,0,0,0.18)]",
+        isDark ? "bg-[#1c1c1c] text-white" : "bg-[#FAFBFC] text-[#111827]",
         mobile ? "h-[88dvh] rounded-t-[34px]" : "mx-auto h-[86dvh] max-w-[560px] rounded-[34px]",
       )}
       role="dialog"
@@ -749,12 +810,12 @@ export default function SettingsSheet({
         {pane === "main" ? (
           <span className="w-10" />
         ) : (
-          <button type="button" onClick={backToMain} className="flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" aria-label="Back">
+          <button type="button" onClick={backToMain} className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDark ? "text-white active:bg-white/[0.08]" : "text-[#111827] active:bg-[#EEF2F7]")} aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
         <h2 className="text-base font-extrabold">{pane === "main" ? "Settings" : childTitles[pane] || "Settings"}</h2>
-        <button type="button" onClick={close} className="flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" aria-label="Close settings">
+        <button type="button" onClick={close} className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDark ? "text-white active:bg-white/[0.08]" : "text-[#111827] active:bg-[#EEF2F7]")} aria-label="Close settings">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -783,12 +844,12 @@ export default function SettingsSheet({
               initial={{ y: 18, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 18, opacity: 0 }}
-              className="w-full rounded-[28px] bg-[#262626] p-5 ring-1 ring-white/[0.08]"
+              className={cn("w-full rounded-[28px] p-5 ring-1", isDark ? "bg-[#262626] ring-white/[0.08]" : "bg-white ring-black/[0.08]")}
             >
-              <p className="text-lg font-extrabold text-white">Log out?</p>
-              <p className="mt-2 text-sm font-medium leading-6 text-[#A6A6A6]">You will need to sign in again to use BlueMind AI.</p>
+              <p className={cn("text-lg font-extrabold", isDark ? "text-white" : "text-[#111827]")}>Log out?</p>
+              <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>You will need to sign in again to use BlueMind AI.</p>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <button type="button" onClick={() => setLogoutConfirmOpen(false)} className="min-h-12 rounded-2xl bg-white/[0.08] text-sm font-bold text-white">
+                <button type="button" onClick={() => setLogoutConfirmOpen(false)} className={cn("min-h-12 rounded-2xl text-sm font-bold", isDark ? "bg-white/[0.08] text-white" : "bg-[#EEF2F7] text-[#111827]")}>
                   Cancel
                 </button>
                 <button type="button" onClick={handleLogout} className="min-h-12 rounded-2xl bg-red-600 text-sm font-bold text-white">
@@ -805,7 +866,7 @@ export default function SettingsSheet({
   if (!open) return null;
 
   if (!overlay) {
-    return <div className="flex min-h-[100dvh] items-end justify-center bg-[#101010] p-0 md:items-center md:p-6">{sheetContent}</div>;
+    return <div className={cn("flex min-h-[100dvh] items-end justify-center p-0 md:items-center md:p-6", isDark ? "bg-[#101010]" : "bg-[#FAFBFC]")}>{sheetContent}</div>;
   }
 
   return (

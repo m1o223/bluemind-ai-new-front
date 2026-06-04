@@ -121,7 +121,7 @@ function AppContent() {
 
   return (
     <div
-      className={isDark ? "min-h-screen bg-[#1a1a1a] text-white" : "min-h-screen"}
+      className={isDark ? "min-h-screen bg-[#1a1a1a] text-white" : "min-h-screen bg-[#FAFBFC] text-[#111827]"}
       dir={isRTL ? "rtl" : "ltr"}
     >
       <AnimatePresence mode="wait">
