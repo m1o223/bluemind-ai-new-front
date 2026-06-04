@@ -14,7 +14,6 @@ import {
   Clipboard,
   FileText,
   Image,
-  Menu,
   MoreVertical,
   MessageSquare,
   Mic,
@@ -2298,7 +2297,11 @@ export default function MobileChat() {
             className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
             aria-label="Open menu"
           >
-            <Menu className="h-5 w-5" />
+            <span className="flex h-5 w-6 flex-col items-center justify-center gap-[4px]" aria-hidden="true">
+              <span className="block h-[2px] w-6 rounded-full bg-current" />
+              <span className="block h-[2px] w-[18px] rounded-full bg-current" />
+              <span className="block h-[2px] w-3 rounded-full bg-current" />
+            </span>
           </button>
 
           <button
@@ -2319,10 +2322,10 @@ export default function MobileChat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                className={`absolute left-12 top-12 z-30 w-[260px] overflow-hidden rounded-[24px] border p-2 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
+                className={`absolute left-12 top-12 z-30 w-[276px] overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
                   isDark
-                    ? "border-white/[0.10] bg-[#202020]/88"
-                    : "border-white/70 bg-white/86"
+                    ? "border-white/[0.08] bg-[#242424]/92"
+                    : "border-black/[0.06] bg-white/90"
                 }`}
               >
                 {AI_RESPONSE_MODES.map((mode) => (
@@ -2330,25 +2333,27 @@ export default function MobileChat() {
                     key={mode.id}
                     type="button"
                     onClick={() => selectResponseMode(mode.id)}
-                    className={`flex min-h-[68px] w-full items-center gap-3 rounded-[18px] px-3.5 py-3 text-left transition-colors ${
+                    className={`flex min-h-[70px] w-full items-center justify-between gap-3 rounded-2xl px-3.5 py-3.5 text-left transition-colors duration-200 ${
                       responseMode === mode.id
-                        ? "bg-[#193B68] text-white"
+                        ? isDark
+                          ? "bg-white/[0.08] text-white"
+                          : "bg-[#F8FAFC] text-[#111827]"
                         : isDark
-                          ? "text-[#F3F4F6] active:bg-white/[0.08]"
-                          : "text-[#111827] active:bg-[#EEF2F7]"
+                          ? "text-[#DADADA] active:bg-white/[0.055]"
+                          : "text-[#334155] active:bg-[#F8FAFC]"
                     }`}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-extrabold leading-5">{mode.title}</span>
+                      <span className="block text-[15px] font-semibold leading-5">{mode.title}</span>
                       <span className={`mt-1 block text-xs font-semibold leading-4 ${
                         responseMode === mode.id
-                          ? "text-white/78"
+                          ? isDark ? "text-[#A7A7A7]" : "text-[#64748B]"
                           : isDark ? "text-[#A7A7A7]" : "text-[#64748B]"
                       }`}>
                         {mode.description}
                       </span>
                     </span>
-                    {responseMode === mode.id && <Check className="h-5 w-5 shrink-0 stroke-[2.4]" />}
+                    {responseMode === mode.id && <Check className="h-[18px] w-[18px] shrink-0 stroke-[2.1]" />}
                   </button>
                 ))}
               </motion.div>
