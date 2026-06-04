@@ -1010,17 +1010,16 @@ export default function MobileChat() {
   const handleWriteAttachmentSelection = async (event) => {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
-    const targetWriteTask = pendingWriteTemplate || activeWriteTask;
-    if (!selectedFiles.length || !targetWriteTask) return;
+    if (!selectedFiles.length) return;
 
     const accepted = [];
 
     for (const file of selectedFiles) {
       const extension = file.name.split(".").pop()?.toLowerCase() || "";
       const isImage = file.type.startsWith("image/");
-      const isText = file.type === "text/plain" || extension === "txt" || extension === "md";
+      const isText = file.type === "text/plain" || ["txt", "md", "csv", "rtf"].includes(extension);
       const isPdf = file.type === "application/pdf" || extension === "pdf";
-      const isDoc = ["doc", "docx"].includes(extension);
+      const isDoc = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(extension);
 
       if (!isImage && !isText && !isPdf && !isDoc) {
         toast.error(`${file.name} is not supported here.`);
@@ -2781,10 +2780,9 @@ export default function MobileChat() {
         onClose={closeAttachmentSheet}
         isDark={isDark}
         variant="mobile"
-        selectedImages={attachedImages}
-        onToggleImage={(item) => removeAttachedImage(item.id)}
         onCamera={() => openFileInput(cameraInputRef)}
         onAllPhotos={() => openFileInput(imageInputRef)}
+        onFiles={() => openFileInput(fileInputRef)}
         onCreateImage={enterImageMode}
         onWriteEdit={enterWriteEditMode}
         onSearch={enterSearchMode}

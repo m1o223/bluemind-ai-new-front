@@ -1753,9 +1753,9 @@ export default function ChatPage() {
     for (const file of selectedFiles) {
       const extension = file.name.split(".").pop()?.toLowerCase() || "";
       const isImage = ["image/png", "image/jpeg", "image/webp"].includes(file.type);
-      const isText = file.type === "text/plain" || extension === "txt";
+      const isText = file.type === "text/plain" || ["txt", "md", "csv", "rtf"].includes(extension);
       const isPdf = file.type === "application/pdf" || extension === "pdf";
-      const isDocx = extension === "docx" || extension === "doc";
+      const isDocx = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(extension);
       const looksLikeCv = /cv|resume|curriculum/i.test(file.name);
 
       if (!isImage && !isText && !isPdf && !isDocx) {
@@ -3113,7 +3113,7 @@ export default function ChatPage() {
               <input
                 type="file"
                 multiple
-                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,image/png,image/jpeg,image/webp"
+                accept=".pdf,.doc,.docx,.txt,.md,.rtf,.csv,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,text/csv,image/png,image/jpeg,image/webp"
                 className="hidden"
                 onChange={handleWriteFileSelect}
               />
@@ -3428,8 +3428,6 @@ export default function ChatPage() {
         onClose={() => setAttachmentMenuOpen(false)}
         isDark={isDark}
         variant="desktop"
-        selectedImages={attachments}
-        onToggleImage={(item) => removeAttachment(item.id)}
         onCamera={() => {
           setAttachmentMenuOpen(false);
           cameraInputRef.current?.click();
@@ -3437,6 +3435,10 @@ export default function ChatPage() {
         onAllPhotos={() => {
           setAttachmentMenuOpen(false);
           imageInputRef.current?.click();
+        }}
+        onFiles={() => {
+          setAttachmentMenuOpen(false);
+          fileInputRef.current?.click();
         }}
         onCreateImage={() => {
           setAttachmentMenuOpen(false);
@@ -3932,7 +3934,7 @@ export default function ChatPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,image/png,image/jpeg,image/webp"
+        accept=".pdf,.doc,.docx,.txt,.md,.rtf,.csv,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,application/pdf,text/plain,text/csv,image/png,image/jpeg,image/webp"
         multiple
         className="hidden"
         onChange={handleWriteFileSelect}
