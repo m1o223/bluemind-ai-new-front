@@ -142,6 +142,7 @@ function AppContent() {
           <Route path="/profile" element={<ProtectedRoute><Navigate to="/settings/profile" replace /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/settings/:sectionId" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/settings/:sectionId/:detailId" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
           <Route path="/scheman" element={<ProtectedRoute><SchemanPage /></ProtectedRoute>} />
           <Route path="/mobile" element={<MobileLayout />}>
@@ -158,6 +159,7 @@ function AppContent() {
             <Route path="profile" element={<MobileAccessRoute><Navigate to="/mobile/settings/profile" replace /></MobileAccessRoute>} />
             <Route path="settings" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="settings/:sectionId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
+            <Route path="settings/:sectionId/:detailId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
           </Route>
         </Routes>

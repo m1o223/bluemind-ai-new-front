@@ -16,6 +16,7 @@ import {
 
 import BrandLogo from "@/components/BrandLogo";
 import AccountSettingsSection from "@/components/settings/AccountSettingsSection";
+import NotificationsSettingsSection from "@/components/settings/NotificationsSettingsSection";
 import ProfileSettingsSection from "@/components/settings/ProfileSettingsSection";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
@@ -75,7 +76,7 @@ export { SETTINGS_SECTIONS };
 
 export default function SettingsPage({ mobile = false }) {
   const navigate = useNavigate();
-  const { sectionId } = useParams();
+  const { sectionId, detailId } = useParams();
   const { resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const basePath = mobile ? "/mobile/settings" : "/settings";
@@ -150,6 +151,8 @@ export default function SettingsPage({ mobile = false }) {
           <ProfileSettingsSection mobile={mobile} isDark={isDark} />
         ) : isSectionPage && activeSection.id === "account" ? (
           <AccountSettingsSection mobile={mobile} isDark={isDark} />
+        ) : isSectionPage && activeSection.id === "notifications" ? (
+          <NotificationsSettingsSection mobile={mobile} isDark={isDark} categoryId={detailId} />
         ) : isSectionPage ? (
           <section className={cn("rounded-[24px] border p-5 shadow-sm", panelClass)} data-testid={`settings-section-${activeSection.id}`}>
             <div className="mb-5 flex items-center gap-3">

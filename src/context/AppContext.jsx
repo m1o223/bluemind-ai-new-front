@@ -22,6 +22,7 @@ const defaultPrefs = {
   appLanguage: "en",
   language: "en",
   aiLanguageMode: "auto",
+  notificationPreferences: undefined,
   openAppDirectlyToChat: false,
 };
 
