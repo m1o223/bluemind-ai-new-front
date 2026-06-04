@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Bell,
-  Briefcase,
   Check,
   ChevronRight,
   CreditCard,
@@ -13,16 +12,15 @@ import {
   HardDrive,
   HelpCircle,
   Info,
+  KeyRound,
   Lock,
   LogOut,
   Mail,
   Moon,
   Palette,
   Pencil,
-  RefreshCcw,
   Settings,
   ShieldCheck,
-  Sparkles,
   Volume2,
   X,
 } from "lucide-react";
@@ -30,7 +28,13 @@ import {
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/services/api";
-import { logoutUser } from "@/services/authService";
+import {
+  changePassword,
+  confirmEmailChange,
+  logoutUser,
+  requestEmailChange,
+  requestPasswordReset,
+} from "@/services/authService";
 import { getProfile, updatePreferences, updateProfile } from "@/services/profileService";
 import { readStoredUser } from "@/services/storageKeys";
 
@@ -138,6 +142,39 @@ function ComingSoonPanel({ title }) {
   );
 }
 
+function SettingsInput({ label, readOnly, ...props }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.08em] text-[#A6A6A6]">{label}</span>
+      <input
+        {...props}
+        readOnly={readOnly}
+        className={cn(
+          "min-h-12 w-full rounded-2xl border border-white/[0.08] bg-[#151515] px-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-[#6F6F6F] focus:border-[#4C8DFF]",
+          readOnly && "cursor-default bg-white/[0.05] text-[#CFCFCF] focus:border-white/[0.08]",
+        )}
+      />
+    </label>
+  );
+}
+
+function PrimarySettingsButton({ children, loading, ...props }) {
+  return (
+    <button
+      type="submit"
+      {...props}
+      className={cn(
+        "flex min-h-12 w-full items-center justify-center rounded-2xl bg-[#193B68] px-4 text-sm font-extrabold text-white transition-colors active:bg-[#142f54] disabled:cursor-not-allowed disabled:opacity-55",
+        props.className,
+      )}
+    >
+      {loading ? (
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      ) : children}
+    </button>
+  );
+}
+
 export default function SettingsSheet({
   open = true,
   onClose,
@@ -152,6 +189,21 @@ export default function SettingsSheet({
   const [user, setUser] = useState(() => readStoredUser());
   const [saving, setSaving] = useState("");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [emailChange, setEmailChange] = useState({
+    currentPassword: "",
+    newEmail: "",
+    code: "",
+    pendingEmail: "",
+  });
+  const [passwordChange, setPasswordChange] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordRecovery, setPasswordRecovery] = useState({
+    email: "",
+    sent: false,
+  });
 
   useEffect(() => {
     if (open) {
@@ -179,7 +231,7 @@ export default function SettingsSheet({
     return theme.charAt(0).toUpperCase() + theme.slice(1);
   }, [prefs.theme]);
   const accent = ACCENT_COLORS.find((color) => color.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "#193B68").toLowerCase()) || ACCENT_COLORS[0];
-  const plan = user?.authProvider === "guest" ? "Guest" : "Free";
+  const plan = user?.subscription?.plan || user?.plan || user?.accountPlan || (user?.authProvider === "guest" ? "Guest" : "Free");
 
   const close = () => {
     setLogoutConfirmOpen(false);
@@ -232,6 +284,87 @@ export default function SettingsSheet({
     }
   };
 
+  const handleRequestEmailChange = async (event) => {
+    event.preventDefault();
+    if (!emailChange.currentPassword || !emailChange.newEmail) return;
+
+    setSaving("change-email");
+    try {
+      const result = await requestEmailChange(emailChange.currentPassword, emailChange.newEmail);
+      setEmailChange((current) => ({
+        ...current,
+        code: "",
+        pendingEmail: result?.pendingEmail || current.newEmail,
+      }));
+      toast.success("Verification code sent");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not start email change."));
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const handleConfirmEmailChange = async (event) => {
+    event.preventDefault();
+    if (!/^\d{6}$/.test(emailChange.code)) return;
+
+    setSaving("confirm-email");
+    try {
+      const result = await confirmEmailChange(emailChange.code);
+      if (result?.user) setUser(result.user);
+      setEmailChange({ currentPassword: "", newEmail: "", code: "", pendingEmail: "" });
+      toast.success("Email updated");
+      backToMain();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not confirm email change."));
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const handleChangePassword = async (event) => {
+    event.preventDefault();
+    if (
+      !passwordChange.currentPassword ||
+      !passwordChange.newPassword ||
+      passwordChange.newPassword !== passwordChange.confirmPassword
+    ) {
+      return;
+    }
+
+    setSaving("change-password");
+    try {
+      await changePassword(
+        passwordChange.currentPassword,
+        passwordChange.newPassword,
+        passwordChange.confirmPassword,
+      );
+      setPasswordChange({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      toast.success("Password updated");
+      backToMain();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not change password."));
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const handleRequestPasswordReset = async (event) => {
+    event.preventDefault();
+    if (!passwordRecovery.email.trim()) return;
+
+    setSaving("forgot-password");
+    try {
+      await requestPasswordReset(passwordRecovery.email.trim());
+      setPasswordRecovery((current) => ({ ...current, sent: true }));
+      toast.success("Recovery email sent");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not send recovery email."));
+    } finally {
+      setSaving("");
+    }
+  };
+
   const openChild = (nextPane) => setPane(nextPane);
   const backToMain = () => setPane("main");
 
@@ -278,10 +411,9 @@ export default function SettingsSheet({
           <SectionTitle>Account</SectionTitle>
           <SettingsCard>
             <SettingRow icon={Mail} title="Email" value={user?.email || "Unavailable"} />
-            <SettingRow icon={Briefcase} title="Workspace" value="Personal account" onClick={() => openChild("workspace")} />
+            <SettingRow icon={Mail} title="Change Email" onClick={() => openChild("change-email")} />
+            <SettingRow icon={KeyRound} title="Change Password" onClick={() => openChild("change-password")} />
             <SettingRow icon={CreditCard} title="Subscription" value={plan} onClick={() => openChild("subscription")} />
-            <SettingRow icon={RefreshCcw} title="Restore purchases" onClick={() => openChild("restore-purchases")} />
-            <SettingRow icon={Sparkles} title="Upgrade" accent onClick={() => openChild("upgrade")} />
           </SettingsCard>
         </section>
 
@@ -331,6 +463,189 @@ export default function SettingsSheet({
     </>
   );
 
+  const renderChangeEmail = () => (
+    <div className="space-y-5">
+      <form onSubmit={handleRequestEmailChange} className="space-y-4">
+        <SettingsInput
+          label="Current Email"
+          type="email"
+          value={user?.email || ""}
+          readOnly
+          data-testid="settings-current-email"
+        />
+        <SettingsInput
+          label="New Email"
+          type="email"
+          value={emailChange.newEmail}
+          onChange={(event) => setEmailChange({ ...emailChange, newEmail: event.target.value })}
+          placeholder="new@email.com"
+          autoComplete="email"
+          data-testid="settings-new-email"
+        />
+        <SettingsInput
+          label="Current Password"
+          type="password"
+          value={emailChange.currentPassword}
+          onChange={(event) => setEmailChange({ ...emailChange, currentPassword: event.target.value })}
+          placeholder="Required to protect your account"
+          autoComplete="current-password"
+          data-testid="settings-email-current-password"
+        />
+        <PrimarySettingsButton
+          disabled={!emailChange.currentPassword || !emailChange.newEmail || saving === "change-email"}
+          loading={saving === "change-email"}
+          data-testid="settings-change-email-continue"
+        >
+          Continue
+        </PrimarySettingsButton>
+      </form>
+
+      {emailChange.pendingEmail && (
+        <form onSubmit={handleConfirmEmailChange} className="space-y-4 rounded-[24px] bg-[#262626] p-4 ring-1 ring-white/[0.06]">
+          <p className="text-sm font-semibold leading-6 text-[#CFCFCF]">
+            Enter the 6-digit code sent to {emailChange.pendingEmail}.
+          </p>
+          <SettingsInput
+            label="Verification Code"
+            inputMode="numeric"
+            value={emailChange.code}
+            onChange={(event) => setEmailChange({
+              ...emailChange,
+              code: event.target.value.replace(/\D/g, "").slice(0, 6),
+            })}
+            placeholder="000000"
+            data-testid="settings-email-code"
+          />
+          <PrimarySettingsButton
+            disabled={!/^\d{6}$/.test(emailChange.code) || saving === "confirm-email"}
+            loading={saving === "confirm-email"}
+            data-testid="settings-confirm-email-change"
+          >
+            Confirm Email
+          </PrimarySettingsButton>
+        </form>
+      )}
+
+      <button
+        type="button"
+        onClick={() => openChild("email-recovery")}
+        className="text-sm font-bold text-[#7FB2FF]"
+        data-testid="settings-email-recovery-link"
+      >
+        Forgot access to email?
+      </button>
+    </div>
+  );
+
+  const renderEmailRecovery = () => (
+    <div className="rounded-[26px] bg-[#262626] p-5 ring-1 ring-white/[0.06]">
+      <p className="text-base font-extrabold text-white">Email recovery</p>
+      <p className="mt-2 text-sm font-medium leading-6 text-[#A6A6A6]">
+        BlueMind does not currently expose an automated backend email-access recovery endpoint. If you are signed in and know your password, use Change Email. Otherwise, use the password recovery flow below to recover account access through your registered email.
+      </p>
+      <button
+        type="button"
+        onClick={() => openChild("forgot-password")}
+        className="mt-4 min-h-12 w-full rounded-2xl bg-[#193B68] px-4 text-sm font-extrabold text-white active:bg-[#142f54]"
+      >
+        Open Password Recovery
+      </button>
+    </div>
+  );
+
+  const renderChangePassword = () => (
+    <div className="space-y-5">
+      <form onSubmit={handleChangePassword} className="space-y-4">
+        <SettingsInput
+          label="Current Password"
+          type="password"
+          value={passwordChange.currentPassword}
+          onChange={(event) => setPasswordChange({ ...passwordChange, currentPassword: event.target.value })}
+          placeholder="Current password"
+          autoComplete="current-password"
+          data-testid="settings-current-password"
+        />
+        <SettingsInput
+          label="New Password"
+          type="password"
+          value={passwordChange.newPassword}
+          onChange={(event) => setPasswordChange({ ...passwordChange, newPassword: event.target.value })}
+          placeholder="New password"
+          autoComplete="new-password"
+          data-testid="settings-new-password"
+        />
+        <SettingsInput
+          label="Confirm Password"
+          type="password"
+          value={passwordChange.confirmPassword}
+          onChange={(event) => setPasswordChange({ ...passwordChange, confirmPassword: event.target.value })}
+          placeholder="Confirm password"
+          autoComplete="new-password"
+          data-testid="settings-confirm-password"
+        />
+        <PrimarySettingsButton
+          disabled={
+            !passwordChange.currentPassword ||
+            !passwordChange.newPassword ||
+            passwordChange.newPassword !== passwordChange.confirmPassword ||
+            saving === "change-password"
+          }
+          loading={saving === "change-password"}
+          data-testid="settings-change-password-save"
+        >
+          Save
+        </PrimarySettingsButton>
+      </form>
+
+      <button
+        type="button"
+        onClick={() => openChild("forgot-password")}
+        className="text-sm font-bold text-[#7FB2FF]"
+        data-testid="settings-forgot-password-link"
+      >
+        Forgot Password?
+      </button>
+    </div>
+  );
+
+  const renderForgotPassword = () => (
+    <div className="space-y-5">
+      <form onSubmit={handleRequestPasswordReset} className="space-y-4">
+        <SettingsInput
+          label="Email"
+          type="email"
+          value={passwordRecovery.email}
+          onChange={(event) => setPasswordRecovery({ email: event.target.value, sent: false })}
+          placeholder={user?.email || "account@email.com"}
+          autoComplete="email"
+          data-testid="settings-recovery-email"
+        />
+        <PrimarySettingsButton
+          disabled={!passwordRecovery.email.trim() || saving === "forgot-password"}
+          loading={saving === "forgot-password"}
+          data-testid="settings-send-recovery-email"
+        >
+          Send Recovery Email
+        </PrimarySettingsButton>
+      </form>
+      {passwordRecovery.sent && (
+        <div className="rounded-[24px] bg-[#262626] p-4 text-sm font-semibold leading-6 text-[#CFCFCF] ring-1 ring-white/[0.06]">
+          If this email belongs to a BlueMind account, a recovery email has been sent.
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSubscription = () => (
+    <div className="rounded-[26px] bg-[#262626] p-5 ring-1 ring-white/[0.06]">
+      <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#A6A6A6]">Current Plan</p>
+      <p className="mt-2 text-2xl font-extrabold text-white">{plan}</p>
+      <p className="mt-3 text-sm font-medium leading-6 text-[#A6A6A6]">
+        Subscription data is read from your authenticated BlueMind account.
+      </p>
+    </div>
+  );
+
   const renderAppearance = () => (
     <div className="space-y-3">
       {["system", "dark", "light"].map((theme) => (
@@ -366,10 +681,11 @@ export default function SettingsSheet({
   );
 
   const childTitles = {
-    workspace: "Workspace",
+    "change-email": "Change Email",
+    "email-recovery": "Email Recovery",
+    "change-password": "Change Password",
+    "forgot-password": "Forgot Password",
     subscription: "Subscription",
-    "restore-purchases": "Restore purchases",
-    upgrade: "Upgrade",
     appearance: "Appearance",
     "accent-color": "Accent color",
     general: "General",
@@ -386,6 +702,11 @@ export default function SettingsSheet({
   };
 
   const renderChild = () => {
+    if (pane === "change-email") return renderChangeEmail();
+    if (pane === "email-recovery") return renderEmailRecovery();
+    if (pane === "change-password") return renderChangePassword();
+    if (pane === "forgot-password") return renderForgotPassword();
+    if (pane === "subscription") return renderSubscription();
     if (pane === "appearance") return renderAppearance();
     if (pane === "accent-color") return renderAccentColor();
     if (pane === "notifications") {
