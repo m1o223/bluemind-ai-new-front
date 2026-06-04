@@ -5,10 +5,13 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Bell,
+  BookOpen,
   Cake,
+  Camera,
   Check,
   ChevronRight,
   CreditCard,
+  FileUp,
   Flag,
   Globe2,
   HelpCircle,
@@ -19,6 +22,7 @@ import {
   Moon,
   Palette,
   Pencil,
+  Shield,
   Settings,
   Sparkles,
   X,
@@ -36,6 +40,7 @@ import {
 } from "@/services/authService";
 import { getProfile, updatePreferences, updateProfile } from "@/services/profileService";
 import { readStoredUser } from "@/services/storageKeys";
+import { reportIssue } from "@/services/supportService";
 
 const AVATAR_COLORS = ["#193B68", "#2563EB", "#059669", "#EA580C", "#DC2626", "#7C3AED", "#0891B2", "#BE123C"];
 const COLOR_OPTIONS = [
@@ -122,6 +127,38 @@ const NOTIFICATION_ROWS = [
     keys: ["greetings"],
   },
 ];
+const APP_VERSION = "0.1.0";
+const SUPPORT_EMAIL = "supportbluemindai@gmail.com";
+const HELP_TOPICS = [
+  {
+    question: "How do I use BlueMind?",
+    answer: "Use BlueMind to chat with AI, upload images and PDFs, create study plans, organize learning, and manage reminders. Start from chat, choose a tool when needed, then send your question or file.",
+  },
+  {
+    question: "How do I upload images?",
+    answer: "Press +, select Camera or Photos, choose an image, then send it with your message.",
+  },
+  {
+    question: "How do I upload PDF files?",
+    answer: "Press +, select Files, choose your PDF, then send it. BlueMind will use the file as context for your request.",
+  },
+  {
+    question: "How do I change my password?",
+    answer: "Open Settings, choose Account, then Change Password. Enter your current password, new password, and confirmation, then save.",
+  },
+  {
+    question: "How do notifications work?",
+    answer: "Open Settings, choose Notifications, then turn each category on or off. Reminder notifications use your reminder schedule, while AI, security, app update, study, email, and birthday notifications follow your saved preferences.",
+  },
+  {
+    question: "How do I change language?",
+    answer: "Open Settings, choose General, then Language. Select English, العربية, or Svenska. The selection is saved and shared across desktop and mobile.",
+  },
+  {
+    question: "How do I contact support?",
+    answer: `Email ${SUPPORT_EMAIL}, or use Report an Issue from Settings to send a detailed report with your account email and optional screenshot.`,
+  },
+];
 
 function initialsFor(user) {
   const name = String(user?.name || user?.email || "BlueMind").trim();
@@ -171,6 +208,26 @@ async function createAvatarDataUrl(file) {
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function createSupportAttachment(file) {
+  const dataUrl = await fileToDataUrl(file);
+
+  return {
+    name: file.name || "attachment",
+    type: file.type || "application/octet-stream",
+    size: file.size || 0,
+    dataUrl,
+  };
 }
 
 function SettingRow({ icon: Icon, title, value, trailing, accent, danger, disabled, onClick, children, isDark = true }) {
@@ -282,10 +339,19 @@ export default function SettingsSheet({
   const { prefs, resolvedTheme, setPrefs } = useApp();
   const isDark = resolvedTheme === "dark";
   const fileInputRef = useRef(null);
+  const issueCameraInputRef = useRef(null);
+  const issuePhotosInputRef = useRef(null);
+  const issueFilesInputRef = useRef(null);
   const [pane, setPane] = useState(initialPane === "settings" ? "main" : initialPane);
   const [user, setUser] = useState(() => readStoredUser());
   const [saving, setSaving] = useState("");
+  const [openHelpTopic, setOpenHelpTopic] = useState(HELP_TOPICS[0]?.question || "");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [issueReport, setIssueReport] = useState({
+    title: "",
+    description: "",
+    attachments: [],
+  });
   const [emailChange, setEmailChange] = useState({
     currentPassword: "",
     newEmail: "",
@@ -459,6 +525,50 @@ export default function SettingsSheet({
       toast.success("Recovery email sent");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Could not send recovery email."));
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const handleIssueFiles = async (files) => {
+    const selectedFiles = Array.from(files || []).filter(Boolean).slice(0, 3 - issueReport.attachments.length);
+    if (!selectedFiles.length) return;
+
+    setSaving("issue-attachment");
+    try {
+      const attachments = await Promise.all(selectedFiles.map(createSupportAttachment));
+      setIssueReport((current) => ({
+        ...current,
+        attachments: [...current.attachments, ...attachments].slice(0, 3),
+      }));
+    } catch (error) {
+      toast.error(error?.message || "Could not attach file.");
+    } finally {
+      setSaving("");
+      [issueCameraInputRef, issuePhotosInputRef, issueFilesInputRef].forEach((ref) => {
+        if (ref.current) ref.current.value = "";
+      });
+    }
+  };
+
+  const handleSubmitIssueReport = async (event) => {
+    event.preventDefault();
+    if (!issueReport.title.trim() || !issueReport.description.trim()) return;
+
+    setSaving("issue-report");
+    try {
+      await reportIssue({
+        title: issueReport.title.trim(),
+        description: issueReport.description.trim(),
+        platform: mobile ? "mobile" : "desktop",
+        appVersion: APP_VERSION,
+        attachments: issueReport.attachments,
+      });
+      setIssueReport({ title: "", description: "", attachments: [] });
+      toast.success("Issue report sent to BlueMind support");
+      backToMain();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not send issue report."));
     } finally {
       setSaving("");
     }
@@ -844,6 +954,189 @@ export default function SettingsSheet({
     </Card>
   );
 
+  const renderReportIssue = () => (
+    <form onSubmit={handleSubmitIssueReport} className="space-y-5">
+      <Input
+        label="Issue Title"
+        value={issueReport.title}
+        onChange={(event) => setIssueReport((current) => ({ ...current, title: event.target.value }))}
+        placeholder="Cannot upload images"
+        maxLength={140}
+        data-testid="issue-title"
+      />
+
+      <label className="block">
+        <span className={cn("mb-2 block text-xs font-bold uppercase tracking-[0.08em]", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>Issue Description</span>
+        <textarea
+          value={issueReport.description}
+          onChange={(event) => setIssueReport((current) => ({ ...current, description: event.target.value }))}
+          placeholder="When I select an image on mobile the image does not appear inside chat."
+          rows={7}
+          maxLength={6000}
+          className={cn(
+            "w-full resize-none rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 outline-none transition-colors focus:border-[#4C8DFF]",
+            isDark
+              ? "border-white/[0.08] bg-[#151515] text-white placeholder:text-[#6F6F6F]"
+              : "border-[#CBD5E1] bg-[#F8FAFC] text-[#111827] placeholder:text-[#94A3B8]",
+          )}
+          data-testid="issue-description"
+        />
+      </label>
+
+      <section className={cn("rounded-[26px] p-4 ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+        <p className={cn("text-sm font-extrabold", isDark ? "text-white" : "text-[#111827]")}>Attach Screenshot</p>
+        <p className={cn("mt-1 text-xs font-medium leading-5", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
+          Add a screenshot, photo, or file that helps explain the issue.
+        </p>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => issueCameraInputRef.current?.click()}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl text-xs font-bold ring-1", isDark ? "bg-white/[0.05] text-white ring-white/[0.08]" : "bg-[#F8FAFC] text-[#111827] ring-black/[0.06]")}
+          >
+            <Camera className="h-5 w-5" />
+            Camera
+          </button>
+          <button
+            type="button"
+            onClick={() => issuePhotosInputRef.current?.click()}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl text-xs font-bold ring-1", isDark ? "bg-white/[0.05] text-white ring-white/[0.08]" : "bg-[#F8FAFC] text-[#111827] ring-black/[0.06]")}
+          >
+            <FileUp className="h-5 w-5" />
+            Photos
+          </button>
+          <button
+            type="button"
+            onClick={() => issueFilesInputRef.current?.click()}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl text-xs font-bold ring-1", isDark ? "bg-white/[0.05] text-white ring-white/[0.08]" : "bg-[#F8FAFC] text-[#111827] ring-black/[0.06]")}
+          >
+            <FileUp className="h-5 w-5" />
+            Files
+          </button>
+        </div>
+
+        {issueReport.attachments.length > 0 && (
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {issueReport.attachments.map((attachment, index) => (
+              <div key={`${attachment.name}-${index}`} className={cn("relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-1", isDark ? "bg-[#151515] ring-white/[0.08]" : "bg-[#F8FAFC] ring-black/[0.06]")}>
+                {attachment.type.startsWith("image/") ? (
+                  <img src={attachment.dataUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-bold">
+                    {attachment.name}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIssueReport((current) => ({
+                    ...current,
+                    attachments: current.attachments.filter((_, itemIndex) => itemIndex !== index),
+                  }))}
+                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white"
+                  aria-label="Remove attachment"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <PrimarySettingsButton
+        disabled={!issueReport.title.trim() || issueReport.description.trim().length < 10 || saving === "issue-report"}
+        loading={saving === "issue-report"}
+        data-testid="send-issue-report"
+      >
+        Send
+      </PrimarySettingsButton>
+    </form>
+  );
+
+  const renderHelpCenter = () => (
+    <div className="space-y-5">
+      <section>
+        <Title>Getting Started</Title>
+        <Card>
+          {HELP_TOPICS.map((topic) => {
+            const isOpen = openHelpTopic === topic.question;
+            return (
+              <button
+                key={topic.question}
+                type="button"
+                onClick={() => setOpenHelpTopic(isOpen ? "" : topic.question)}
+                className={cn("w-full border-b px-4 py-4 text-left last:border-b-0", isDark ? "border-white/[0.07]" : "border-[#E5E7EB]")}
+              >
+                <span className={cn("flex items-center gap-3 text-[15px] font-extrabold", isDark ? "text-white" : "text-[#111827]")}>
+                  <HelpCircle className={cn("h-5 w-5 shrink-0", isDark ? "text-[#D8D8D8]" : "text-[#475569]")} />
+                  <span className="flex-1">{topic.question}</span>
+                  <ChevronRight className={cn("h-4 w-4 shrink-0 transition-transform", isOpen && "rotate-90", isDark ? "text-[#8C8C8C]" : "text-[#94A3B8]")} />
+                </span>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.p
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className={cn("overflow-hidden pl-8 pt-3 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}
+                    >
+                      {topic.answer}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </button>
+            );
+          })}
+        </Card>
+      </section>
+    </div>
+  );
+
+  const renderPrivacyPolicy = () => (
+    <div className={cn("rounded-[26px] p-5 ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+      <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[#111827]")}>Privacy Policy</p>
+      <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
+        BlueMind AI uses your account data, chat content, uploaded files, reminders, profile details, and settings to provide the app experience you request. We keep profile and preference data connected to your authenticated account so desktop and mobile stay in sync.
+      </p>
+      <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
+        Support requests are sent to {SUPPORT_EMAIL} with your account email, timestamp, app version, platform, description, and any attachment you choose to include.
+      </p>
+    </div>
+  );
+
+  const renderTermsOfService = () => (
+    <div className={cn("rounded-[26px] p-5 ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+      <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[#111827]")}>Terms of Service</p>
+      <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
+        Use BlueMind AI for lawful learning, productivity, research, writing, planning, and creative work. You are responsible for reviewing AI-generated content before relying on it, submitting it, or sharing it.
+      </p>
+      <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
+        Do not upload content you do not have permission to use, and do not use BlueMind to harm others, bypass security, or violate applicable rules.
+      </p>
+    </div>
+  );
+
+  const renderAbout = () => (
+    <div className="space-y-5">
+      <div className={cn("rounded-[26px] p-5 text-center ring-1", isDark ? "bg-[#262626] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+        <p className={cn("text-xl font-extrabold", isDark ? "text-white" : "text-[#111827]")}>BlueMind AI</p>
+        <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
+          BlueMind AI is an AI-powered learning and productivity platform designed to help students organize knowledge, study smarter, manage plans, upload files, and interact with intelligent assistants.
+        </p>
+      </div>
+      <Card>
+        <Row icon={Info} title="Version" value={APP_VERSION} />
+        <Row icon={Mail} title="Support Email" value={SUPPORT_EMAIL} onClick={() => window.location.href = `mailto:${SUPPORT_EMAIL}`} />
+        <Row icon={Shield} title="Privacy Policy" onClick={() => openChild("privacy-policy")} />
+        <Row icon={BookOpen} title="Terms of Service" onClick={() => openChild("terms-of-service")} />
+        <Row icon={Globe2} title="Website" value="bluemind-frontend.vercel.app" onClick={() => window.open("https://bluemind-frontend.vercel.app", "_blank", "noopener,noreferrer")} />
+      </Card>
+      <p className={cn("text-center text-xs font-semibold", isDark ? "text-[#8C8C8C]" : "text-[#64748B]")}>
+        Copyright BlueMind AI
+      </p>
+    </div>
+  );
+
   const renderAccentColor = () => (
     <div className="grid grid-cols-2 gap-3">
       {ACCENT_COLORS.map((color) => (
@@ -896,6 +1189,8 @@ export default function SettingsSheet({
     "report-issue": "Report app issue",
     "help-center": "Help Center",
     about: "About",
+    "privacy-policy": "Privacy Policy",
+    "terms-of-service": "Terms of Service",
     account: "Account",
     profile: "Profile",
   };
@@ -912,6 +1207,11 @@ export default function SettingsSheet({
     if (pane === "accent-color") return renderAccentColor();
     if (pane === "message-color") return renderMessageColor();
     if (pane === "notifications") return renderNotifications();
+    if (pane === "report-issue") return renderReportIssue();
+    if (pane === "help-center") return renderHelpCenter();
+    if (pane === "about") return renderAbout();
+    if (pane === "privacy-policy") return renderPrivacyPolicy();
+    if (pane === "terms-of-service") return renderTermsOfService();
 
     return <ComingSoonPanel title={childTitles[pane] || "Settings"} isDark={isDark} />;
   };
@@ -955,6 +1255,30 @@ export default function SettingsSheet({
         accept="image/*"
         className="hidden"
         onChange={(event) => handleAvatarFile(event.target.files?.[0])}
+      />
+      <input
+        ref={issueCameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(event) => handleIssueFiles(event.target.files)}
+      />
+      <input
+        ref={issuePhotosInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(event) => handleIssueFiles(event.target.files)}
+      />
+      <input
+        ref={issueFilesInputRef}
+        type="file"
+        accept="image/*,.pdf,.doc,.docx,.txt,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+        multiple
+        className="hidden"
+        onChange={(event) => handleIssueFiles(event.target.files)}
       />
 
       <AnimatePresence>
