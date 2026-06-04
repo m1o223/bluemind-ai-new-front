@@ -5,23 +5,22 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Bell,
+  Cake,
   Check,
   ChevronRight,
   CreditCard,
   Flag,
-  HardDrive,
+  Globe2,
   HelpCircle,
   Info,
   KeyRound,
-  Lock,
   LogOut,
   Mail,
   Moon,
   Palette,
   Pencil,
   Settings,
-  ShieldCheck,
-  Volume2,
+  Sparkles,
   X,
 } from "lucide-react";
 
@@ -39,13 +38,7 @@ import { getProfile, updatePreferences, updateProfile } from "@/services/profile
 import { readStoredUser } from "@/services/storageKeys";
 
 const AVATAR_COLORS = ["#193B68", "#2563EB", "#059669", "#EA580C", "#DC2626", "#7C3AED", "#0891B2", "#BE123C"];
-const ACCENT_COLORS = [
-  { label: "Blue", value: "#193B68" },
-  { label: "Teal", value: "#00C4B8" },
-  { label: "Indigo", value: "#4F46E5" },
-  { label: "Rose", value: "#E11D48" },
-];
-const MESSAGE_COLORS = [
+const COLOR_OPTIONS = [
   { label: "Blue", value: "#193B68" },
   { label: "Sky", value: "#0284C7" },
   { label: "Cyan", value: "#0891B2" },
@@ -70,6 +63,64 @@ const MESSAGE_COLORS = [
   { label: "Ocean", value: "#2563EB" },
   { label: "Berry", value: "#BE123C" },
   { label: "Copper", value: "#B45309" },
+];
+const ACCENT_COLORS = COLOR_OPTIONS;
+const MESSAGE_COLORS = COLOR_OPTIONS;
+const LANGUAGE_OPTIONS = [
+  { label: "English", value: "en" },
+  { label: "العربية", value: "ar" },
+  { label: "Svenska", value: "sv" },
+];
+const NOTIFICATION_ROWS = [
+  {
+    id: "email",
+    title: "Email Notifications",
+    description: "Receive important account emails.",
+    section: "email",
+    keys: ["importantAccountEmails", "securityEmails", "notificationSummaries"],
+  },
+  {
+    id: "reminders",
+    title: "Reminder Notifications",
+    description: "Receive reminder alerts and schedules.",
+    section: "reminders",
+    keys: ["alerts", "daily", "weekly", "missed", "overdue"],
+  },
+  {
+    id: "study",
+    title: "Study Notifications",
+    description: "Receive study plan and learning reminders.",
+    section: "studyPlan",
+    keys: ["sessionReminders", "dailyGoals", "weeklyProgress", "missedSessions", "streakAlerts"],
+  },
+  {
+    id: "ai",
+    title: "AI Notifications",
+    description: "Receive AI task updates and completed results.",
+    section: "ai",
+    keys: ["taskCompleted", "researchCompleted", "imageGenerationCompleted", "longRunningTaskCompleted", "recommendations"],
+  },
+  {
+    id: "security",
+    title: "Security Notifications",
+    description: "Receive login and account security alerts.",
+    section: "security",
+    keys: ["newLoginDetected", "passwordChanged", "emailChanged", "securityAlerts", "accountActivityAlerts"],
+  },
+  {
+    id: "appUpdates",
+    title: "App Update Notifications",
+    description: "Receive feature updates and announcements.",
+    section: "system",
+    keys: ["newFeatures", "appUpdates", "maintenanceAnnouncements", "serviceAlerts"],
+  },
+  {
+    id: "birthday",
+    title: "Birthday Notifications",
+    description: "Receive birthday greetings and celebration messages.",
+    section: "birthday",
+    keys: ["greetings"],
+  },
 ];
 
 function initialsFor(user) {
@@ -122,12 +173,12 @@ async function createAvatarDataUrl(file) {
   }
 }
 
-function SettingRow({ icon: Icon, title, value, accent, danger, disabled, onClick, children, isDark = true }) {
+function SettingRow({ icon: Icon, title, value, trailing, accent, danger, disabled, onClick, children, isDark = true }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled || !onClick}
+      disabled={disabled}
       className={cn(
         "flex min-h-[68px] w-full items-center gap-3 border-b px-4 text-left last:border-b-0",
         isDark ? "border-white/[0.07]" : "border-[#E5E7EB]",
@@ -143,8 +194,23 @@ function SettingRow({ icon: Icon, title, value, accent, danger, disabled, onClic
         {children}
       </span>
       {value && <span className={cn("max-w-[42%] truncate text-sm font-medium", isDark ? "text-[#9CA3AF]" : "text-[#64748B]")}>{value}</span>}
-      {onClick && !disabled && <ChevronRight className={cn("h-4 w-4 shrink-0", isDark ? "text-[#8C8C8C]" : "text-[#94A3B8]")} />}
+      {trailing}
+      {onClick && !disabled && !trailing && <ChevronRight className={cn("h-4 w-4 shrink-0", isDark ? "text-[#8C8C8C]" : "text-[#94A3B8]")} />}
     </button>
+  );
+}
+
+function ToggleSwitch({ checked, isDark = true }) {
+  return (
+    <span
+      className={cn(
+        "relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors",
+        checked ? "bg-[var(--bluemind-app-color,#193B68)]" : isDark ? "bg-white/15" : "bg-[#CBD5E1]",
+      )}
+      aria-hidden="true"
+    >
+      <span className={cn("h-6 w-6 rounded-full bg-white shadow-sm transition-transform", checked && "translate-x-6")} />
+    </span>
   );
 }
 
@@ -262,6 +328,8 @@ export default function SettingsSheet({
     return theme.charAt(0).toUpperCase() + theme.slice(1);
   }, [prefs.theme]);
   const accent = ACCENT_COLORS.find((color) => color.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "#193B68").toLowerCase()) || ACCENT_COLORS[0];
+  const currentLanguage = LANGUAGE_OPTIONS.find((language) => language.value === String(prefs.appLanguage || prefs.language || "en").toLowerCase()) || LANGUAGE_OPTIONS[0];
+  const activeMessageColor = MESSAGE_COLORS.find((color) => color.value.toLowerCase() === String(prefs.chatColor || "#193B68").toLowerCase()) || MESSAGE_COLORS[0];
   const plan = user?.subscription?.plan || user?.plan || user?.accountPlan || (user?.authProvider === "guest" ? "Guest" : "Free");
 
   const close = () => {
@@ -402,6 +470,31 @@ export default function SettingsSheet({
   const Card = (props) => <SettingsCard isDark={isDark} {...props} />;
   const Title = (props) => <SectionTitle isDark={isDark} {...props} />;
   const Input = (props) => <SettingsInput isDark={isDark} {...props} />;
+  const descriptionClass = cn("mt-1 block text-xs font-medium leading-5", isDark ? "text-[#A6A6A6]" : "text-[#64748B]");
+
+  const isNotificationEnabled = (row) => {
+    const section = prefs.notificationPreferences?.[row.section] || {};
+    return prefs.notificationsEnabled !== false && row.keys.some((key) => section[key] === true);
+  };
+
+  const toggleNotificationRow = (row) => {
+    const enabled = !isNotificationEnabled(row);
+    const nextSection = Object.fromEntries(row.keys.map((key) => [key, enabled]));
+    const notificationPreferences = {
+      ...(prefs.notificationPreferences || {}),
+      [row.section]: {
+        ...(prefs.notificationPreferences?.[row.section] || {}),
+        ...nextSection,
+      },
+    };
+    const notificationsEnabled = enabled || NOTIFICATION_ROWS.some((candidate) => {
+      if (candidate.id === row.id) return false;
+      const section = notificationPreferences[candidate.section] || {};
+      return candidate.keys.some((key) => section[key] === true);
+    });
+
+    savePreference({ notificationsEnabled, notificationPreferences });
+  };
 
   const renderProfileHeader = () => (
     <div className="flex flex-col items-center pb-6 pt-2 text-center">
@@ -453,28 +546,10 @@ export default function SettingsSheet({
         </section>
 
         <section>
-          <Title>Theme</Title>
-          <Card>
-            <Row icon={Moon} title="Appearance" value={appearanceText} onClick={() => openChild("appearance")} />
-            <Row icon={Palette} title="Accent color" value={accent.label} onClick={() => openChild("accent-color")}>
-              <span className={cn("mt-1 inline-flex items-center gap-2 text-xs font-medium", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent.value }} />
-                BlueMind accent
-              </span>
-            </Row>
-            <Row icon={Palette} title="Message Color" value={(MESSAGE_COLORS.find((color) => color.value.toLowerCase() === String(prefs.chatColor || "#193B68").toLowerCase()) || MESSAGE_COLORS[0]).label} onClick={() => openChild("message-color")} />
-          </Card>
-        </section>
-
-        <section>
           <Title>App settings</Title>
           <Card>
             <Row icon={Settings} title="General" onClick={() => openChild("general")} />
             <Row icon={Bell} title="Notifications" onClick={() => openChild("notifications")} />
-            <Row icon={Volume2} title="Voice" onClick={() => openChild("voice")} />
-            <Row icon={Lock} title="Safety and security" onClick={() => openChild("safety-security")} />
-            <Row icon={ShieldCheck} title="Data controls" onClick={() => openChild("data-controls")} />
-            <Row icon={HardDrive} title="Storage" onClick={() => openChild("storage")} />
           </Card>
         </section>
 
@@ -699,6 +774,76 @@ export default function SettingsSheet({
     </div>
   );
 
+  const renderLanguage = () => (
+    <div className="space-y-3">
+      {LANGUAGE_OPTIONS.map((language) => (
+        <button
+          key={language.value}
+          type="button"
+          onClick={() => savePreference({ appLanguage: language.value, language: language.value })}
+          className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left ring-1", isDark ? "bg-[#262626] text-white ring-white/[0.06]" : "bg-white text-[#111827] ring-black/[0.06]")}
+        >
+          <Globe2 className={cn("h-5 w-5", isDark ? "text-[#D8D8D8]" : "text-[#475569]")} />
+          <span className="flex-1 text-[15px] font-semibold">{language.label}</span>
+          {currentLanguage.value === language.value && <Check className="h-5 w-5 text-[#7FB2FF]" />}
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderGeneral = () => (
+    <Card>
+      <Row icon={Globe2} title="Language" value={currentLanguage.label} onClick={() => openChild("language")}>
+        <span className={descriptionClass}>Choose your application language.</span>
+      </Row>
+      <Row icon={Moon} title="Appearance" value={appearanceText} onClick={() => openChild("appearance")}>
+        <span className={descriptionClass}>Choose application theme.</span>
+      </Row>
+      <Row icon={Palette} title="Accent Color" value={accent.label} onClick={() => openChild("accent-color")}>
+        <span className={descriptionClass}>Choose your BlueMind accent color.</span>
+      </Row>
+      <Row icon={Palette} title="Message Color" value={activeMessageColor.label} onClick={() => openChild("message-color")}>
+        <span className={descriptionClass}>Choose the color of your messages.</span>
+      </Row>
+      <Row
+        icon={Cake}
+        title="Birthday Greetings"
+        onClick={() => savePreference({ birthdayGreetings: prefs.birthdayGreetings === false })}
+        trailing={<ToggleSwitch checked={prefs.birthdayGreetings !== false} isDark={isDark} />}
+      >
+        <span className={descriptionClass}>Receive birthday wishes and celebration effects.</span>
+      </Row>
+      <Row
+        icon={Sparkles}
+        title="Animations"
+        onClick={() => savePreference({ animations: prefs.animations === false })}
+        trailing={<ToggleSwitch checked={prefs.animations !== false} isDark={isDark} />}
+      >
+        <span className={descriptionClass}>Enable visual effects and transitions.</span>
+      </Row>
+    </Card>
+  );
+
+  const renderNotifications = () => (
+    <Card>
+      {NOTIFICATION_ROWS.map((row) => {
+        const enabled = isNotificationEnabled(row);
+
+        return (
+          <Row
+            key={row.id}
+            icon={Bell}
+            title={row.title}
+            onClick={() => toggleNotificationRow(row)}
+            trailing={<ToggleSwitch checked={enabled} isDark={isDark} />}
+          >
+            <span className={descriptionClass}>{row.description}</span>
+          </Row>
+        );
+      })}
+    </Card>
+  );
+
   const renderAccentColor = () => (
     <div className="grid grid-cols-2 gap-3">
       {ACCENT_COLORS.map((color) => (
@@ -717,8 +862,6 @@ export default function SettingsSheet({
   );
 
   const renderMessageColor = () => {
-    const activeMessageColor = prefs.chatColor || "#193B68";
-
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {MESSAGE_COLORS.map((color) => (
@@ -731,7 +874,7 @@ export default function SettingsSheet({
           >
             <span className="h-7 w-7 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />
             <span className={cn("min-w-0 flex-1 truncate text-sm font-bold", isDark ? "text-white" : "text-[#111827]")}>{color.label}</span>
-            {activeMessageColor.toLowerCase() === color.value.toLowerCase() && <Check className="h-5 w-5 shrink-0 text-[#7FB2FF]" />}
+            {activeMessageColor.value.toLowerCase() === color.value.toLowerCase() && <Check className="h-5 w-5 shrink-0 text-[#7FB2FF]" />}
           </button>
         ))}
       </div>
@@ -744,15 +887,12 @@ export default function SettingsSheet({
     "change-password": "Change Password",
     "forgot-password": "Forgot Password",
     subscription: "Subscription",
+    language: "Language",
     appearance: "Appearance",
-    "accent-color": "Accent color",
+    "accent-color": "Accent Color",
     "message-color": "Message Color",
     general: "General",
     notifications: "Notifications",
-    voice: "Voice",
-    "safety-security": "Safety and security",
-    "data-controls": "Data controls",
-    storage: "Storage",
     "report-issue": "Report app issue",
     "help-center": "Help Center",
     about: "About",
@@ -766,27 +906,12 @@ export default function SettingsSheet({
     if (pane === "change-password") return renderChangePassword();
     if (pane === "forgot-password") return renderForgotPassword();
     if (pane === "subscription") return renderSubscription();
+    if (pane === "general") return renderGeneral();
+    if (pane === "language") return renderLanguage();
     if (pane === "appearance") return renderAppearance();
     if (pane === "accent-color") return renderAccentColor();
     if (pane === "message-color") return renderMessageColor();
-    if (pane === "notifications") {
-      return (
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={() => navigate(mobile ? "/mobile/settings/notifications" : "/settings/notifications")}
-            className={cn("flex min-h-[64px] w-full items-center gap-3 rounded-[24px] px-4 text-left ring-1", isDark ? "bg-[#262626] text-white ring-white/[0.06]" : "bg-white text-[#111827] ring-black/[0.06]")}
-          >
-            <Bell className={cn("h-5 w-5", isDark ? "text-[#D8D8D8]" : "text-[#475569]")} />
-            <span className="flex-1">
-              <span className="block text-[15px] font-bold">Open notification controls</span>
-              <span className={cn("mt-1 block text-xs font-medium", isDark ? "text-[#A6A6A6]" : "text-[#64748B]")}>Uses the connected notification preferences.</span>
-            </span>
-            <ChevronRight className={cn("h-4 w-4", isDark ? "text-[#8C8C8C]" : "text-[#94A3B8]")} />
-          </button>
-        </div>
-      );
-    }
+    if (pane === "notifications") return renderNotifications();
 
     return <ComingSoonPanel title={childTitles[pane] || "Settings"} isDark={isDark} />;
   };

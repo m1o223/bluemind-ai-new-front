@@ -23,6 +23,8 @@ const defaultPrefs = {
   language: "en",
   aiLanguageMode: "auto",
   notificationPreferences: undefined,
+  birthdayGreetings: true,
+  animations: true,
   openAppDirectlyToChat: false,
 };
 
@@ -45,6 +47,8 @@ function normalizePrefs(preferences = {}) {
     appLanguage,
     language: appLanguage,
     aiLanguageMode,
+    birthdayGreetings: preferences.birthdayGreetings !== false,
+    animations: preferences.animations !== false,
     openAppDirectlyToChat: preferences.openAppDirectlyToChat === true,
   };
 }
@@ -108,6 +112,7 @@ export function AppProvider({ children }) {
     document.documentElement.lang = uiLanguage;
     document.documentElement.dir = isRTL ? "rtl" : "ltr";
     document.documentElement.dataset.theme = resolvedTheme;
+    document.documentElement.dataset.animations = prefs.animations === false ? "off" : "on";
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
     document.documentElement.style.setProperty(CSS_VARIABLES.appColor, prefs.appColor || defaultPrefs.appColor);
     document.documentElement.style.setProperty(CSS_VARIABLES.chatColor, prefs.chatColor || defaultPrefs.chatColor);

@@ -87,6 +87,15 @@ html[data-theme="dark"] body {
   color: #ffffff;
 }
 
+html[data-animations="off"] *,
+html[data-animations="off"] *::before,
+html[data-animations="off"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+}
+
 img,
 video,
 canvas,
