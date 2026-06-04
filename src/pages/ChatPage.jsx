@@ -1415,12 +1415,6 @@ export default function ChatPage() {
     isStreaming: isAiTyping,
   });
 
-  useEffect(() => {
-    if (!attachmentMenuOpen) return undefined;
-    setAttachmentMenuOpen(false);
-    return undefined;
-  }, [input, attachmentMenuOpen]);
-
   useEffect(() => () => {
     if (streamBufferRef.current.timer) {
       window.clearTimeout(streamBufferRef.current.timer);
