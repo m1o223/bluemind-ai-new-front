@@ -3436,6 +3436,11 @@ export default function ChatPage() {
           setAttachmentMenuOpen(false);
           imageInputRef.current?.click();
         }}
+        photosInputProps={{
+          accept: "image/*",
+          multiple: true,
+          onChange: handleImageFileSelect,
+        }}
         onFiles={() => {
           setAttachmentMenuOpen(false);
           fileInputRef.current?.click();

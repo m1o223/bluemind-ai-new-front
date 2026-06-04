@@ -2804,6 +2804,11 @@ export default function MobileChat() {
         variant="mobile"
         onCamera={() => openFileInput(cameraInputRef, "camera")}
         onAllPhotos={() => openFileInput(imageInputRef, "photos")}
+        photosInputProps={{
+          accept: "image/*",
+          multiple: true,
+          onChange: handleImageSelection,
+        }}
         onFiles={() => openFileInput(fileInputRef, "files")}
         onCreateImage={enterImageMode}
         onWriteEdit={enterWriteEditMode}

@@ -11,6 +11,7 @@ export default function BlueMindMediaPicker({
   onCamera,
   onAllPhotos,
   onFiles,
+  photosInputProps,
   onCreateImage,
   onWriteEdit,
   onSearch,
@@ -39,6 +40,7 @@ export default function BlueMindMediaPicker({
       label: "Photos",
       icon: Image,
       action: onAllPhotos,
+      kind: "photos",
     },
     {
       label: "Files",
@@ -112,6 +114,43 @@ export default function BlueMindMediaPicker({
 
             <div className="grid grid-cols-3 gap-2 pb-4">
               {topActions.map((item) => (
+                item.kind === "photos" && photosInputProps ? (
+                  <label
+                    key={item.label}
+                    className={cn(
+                      "relative flex aspect-square min-h-[92px] cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-[24px] border text-sm font-extrabold shadow-sm transition-transform active:scale-[0.98]",
+                      actionCardClass,
+                    )}
+                  >
+                    <item.icon className="h-7 w-7" />
+                    <span>{item.label}</span>
+                    <input
+                      {...photosInputProps}
+                      type="file"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      aria-label="Photos"
+                      onClick={(event) => {
+                        console.debug("[BlueMind media picker] photos native input tapped", {
+                          accept: event.currentTarget.accept,
+                          multiple: event.currentTarget.multiple,
+                        });
+                        photosInputProps.onClick?.(event);
+                      }}
+                      onChange={(event) => {
+                        const fileCount = event.currentTarget.files?.length || 0;
+                        console.debug("[BlueMind media picker] photos selected", {
+                          count: fileCount,
+                          accept: event.currentTarget.accept,
+                          multiple: event.currentTarget.multiple,
+                        });
+                        photosInputProps.onChange?.(event);
+                        if (fileCount) {
+                          onClose?.();
+                        }
+                      }}
+                    />
+                  </label>
+                ) : (
                 <button
                   key={item.label}
                   type="button"
@@ -124,6 +163,7 @@ export default function BlueMindMediaPicker({
                   <item.icon className="h-7 w-7" />
                   <span>{item.label}</span>
                 </button>
+                )
               ))}
             </div>
 
