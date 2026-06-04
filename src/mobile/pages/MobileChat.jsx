@@ -53,7 +53,7 @@ import {
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
 import { getApiErrorMessage } from "@/services/api";
-import { listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
+import { getConversation, listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
@@ -462,6 +462,20 @@ function MobileMessageAttachments({ attachments = [] }) {
   );
 }
 
+function mapMobileConversationMessages(conversation) {
+  return (conversation?.messages || []).map((item) => ({
+    id: item.id,
+    role: item.role === "assistant" ? "ai" : item.role,
+    content: item.content || "",
+    metadata: item.metadata || {},
+    createdAt: item.createdAt,
+    attachments: (item.metadata?.attachments || item.attachments || []).map((attachment) => ({
+      ...attachment,
+      previewUrl: resolveMobileAttachmentPreview(attachment),
+    })),
+  }));
+}
+
 export default function MobileChat() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -474,6 +488,7 @@ export default function MobileChat() {
   const [conversations, setConversations] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [isOpeningConversation, setIsOpeningConversation] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [chatMenuTarget, setChatMenuTarget] = useState(null);
@@ -523,6 +538,7 @@ export default function MobileChat() {
   const stopRequestedRef = useRef(false);
   const activeAiMessageRef = useRef(null);
   const speechRecognitionRef = useRef(null);
+  const loadedConversationRef = useRef(null);
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
@@ -759,6 +775,71 @@ export default function MobileChat() {
     }
   };
 
+  const loadConversationById = useCallback(async (conversationId, { updateUrl = true } = {}) => {
+    if (!conversationId || isChatSending || isGeneratingImage || isOpeningConversation) return;
+
+    setIsOpeningConversation(true);
+    setChatMenuTarget(null);
+
+    try {
+      const data = await getConversation(conversationId);
+      const conversation = data?.conversation;
+
+      if (!conversation?.conversationId) {
+        throw new Error(t("couldNotOpenChat"));
+      }
+
+      setMessage("");
+      setIsImageMode(false);
+      setIsWriteEditMode(false);
+      setIsSearchMode(false);
+      setSelectedSearchCategory(null);
+      setOpenSearchMenuItemId(null);
+      setExpandedSearchItemId(null);
+      setSearchConfirm(null);
+      setSelectedImageTemplate(null);
+      setPendingImageTemplate(null);
+      setGeneratedImages([]);
+      setImageModeError("");
+      setImageModeStatus("");
+      setActiveWriteTask(null);
+      setPendingWriteTemplate(null);
+      setWriteAttachmentChoiceOpen(false);
+      setWriteAttachments((current) => {
+        current.forEach((file) => {
+          if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+        });
+        return [];
+      });
+      setAttachedImages((current) => {
+        current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+        return [];
+      });
+      setMessages(mapMobileConversationMessages(conversation));
+      loadedConversationRef.current = conversation.conversationId;
+
+      if (updateUrl) {
+        setSearchParams({ conversation: conversation.conversationId });
+      }
+    } catch (error) {
+      toast.error(error.message || t("couldNotOpenChat"));
+    } finally {
+      setIsOpeningConversation(false);
+    }
+  }, [isChatSending, isGeneratingImage, isOpeningConversation, setSearchParams, t]);
+
+  useEffect(() => {
+    if (
+      !activeConversationId ||
+      loadedConversationRef.current === activeConversationId ||
+      isChatSending
+    ) {
+      return;
+    }
+
+    void loadConversationById(activeConversationId, { updateUrl: false });
+  }, [activeConversationId, isChatSending, loadConversationById]);
+
   const startNewChat = () => {
     closeMenu();
     setMessage("");
@@ -792,8 +873,7 @@ export default function MobileChat() {
   const openConversation = (conversationId) => {
     closeMenu();
     setMenuSearchOpen(false);
-    setChatMenuTarget(null);
-    setSearchParams({ conversation: conversationId });
+    void loadConversationById(conversationId);
   };
 
   const openRenameDialog = (conversation) => {
