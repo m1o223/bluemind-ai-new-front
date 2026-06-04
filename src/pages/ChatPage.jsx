@@ -757,7 +757,7 @@ function Sidebar({
             )}
             data-testid="new-chat-button"
           >
-            <Plus className="w-5 h-5 flex-shrink-0 stroke-[2.35]" />
+            <Pencil className="w-5 h-5 flex-shrink-0 stroke-[2.35]" />
             <span className="min-w-0 truncate text-sm font-semibold">{t("newChat")}</span>
           </button>
         </div>
