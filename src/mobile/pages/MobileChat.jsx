@@ -38,6 +38,7 @@ import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
 import BlueMindMediaPicker from "@/components/BlueMindMediaPicker";
+import SettingsSheet from "@/components/settings/SettingsSheet";
 import { useApp } from "@/context/AppContext";
 import {
   buildWriteEditMessage,
@@ -508,6 +509,7 @@ export default function MobileChat() {
   const [imageModeStatus, setImageModeStatus] = useState("");
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
+  const [settingsSheetOpen, setSettingsSheetOpen] = useState(false);
   const [imageSourceSheetOpen, setImageSourceSheetOpen] = useState(false);
   const attachedImagesRef = useRef([]);
   const touchStartXRef = useRef(null);
@@ -531,7 +533,14 @@ export default function MobileChat() {
 
   const navigationItems = [
     { label: "Images", action: () => enterImageMode(), icon: Image },
-    { label: t("settings"), path: "/mobile/settings", icon: Settings },
+    {
+      label: t("settings"),
+      action: () => {
+        closeMenu();
+        setSettingsSheetOpen(true);
+      },
+      icon: Settings,
+    },
   ];
 
   const visibleConversations = useMemo(() => {
@@ -3395,6 +3404,12 @@ export default function MobileChat() {
           </div>
         )}
       </AnimatePresence>
+
+      <SettingsSheet
+        open={settingsSheetOpen}
+        mobile
+        onClose={() => setSettingsSheetOpen(false)}
+      />
     </main>
   );
 }
