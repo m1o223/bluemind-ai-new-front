@@ -18,7 +18,7 @@ import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { useApp } from "../context/AppContext";
 import LanguageSelector from "../components/ui/LanguageSelector";
-import BrandLogo from "@/components/BrandLogo";
+import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -47,7 +47,7 @@ const accentColors = [
   { id: "#E11D48", label: "Rose" },
 ];
 
-export default function ProfilePage({ mobile = false }) {
+export default function ProfilePage({ mobile = false, settingsMode = false }) {
   const navigate = useNavigate();
 
   const { prefs, setPrefs, updatePref, t, resolvedTheme } = useApp();
@@ -73,6 +73,15 @@ export default function ProfilePage({ mobile = false }) {
   });
 
   const isDark = resolvedTheme === "dark";
+  const settingsSections = [
+    { id: "settings-profile", label: t("profile") },
+    { id: "settings-account", label: t("account") || "Account" },
+    { id: "settings-notifications", label: t("notifications") || "Notifications" },
+    { id: "settings-appearance", label: t("appearance") },
+    { id: "settings-language", label: t("language") || t("appLanguage") },
+    { id: "settings-privacy", label: t("privacy") || "Privacy" },
+    { id: "settings-about", label: t("about") || "About" },
+  ];
 
   const fetchProfile = useCallback(async () => {
     setIsLoading(true);
@@ -270,7 +279,7 @@ export default function ProfilePage({ mobile = false }) {
             logoClassName="w-8 h-8"
             textClassName={cn("hidden min-[390px]:inline text-sm sm:text-base", isDark ? "text-white" : "text-[#111827]")}
           />
-          <h1 className={cn("min-w-0 truncate text-base font-semibold sm:text-lg", isDark ? "text-white" : "text-[#111827]")}>{t("profile")}</h1>
+          <h1 className={cn("min-w-0 truncate text-base font-semibold sm:text-lg", isDark ? "text-white" : "text-[#111827]")}>{settingsMode ? t("settings") : t("profile")}</h1>
           <span className={cn("ml-auto max-w-[34vw] truncate text-xs", saveStatus === "error" ? "text-red-500" : isDark ? "text-[#888]" : "text-[#6B7280]")}>
             {isLoading ? t("loadingSettings") : saveStatus === "saving" ? t("saving") : saveStatus === "saved" ? t("saved") : saveStatus === "error" ? t("saveFailed") : ""}
           </span>
@@ -280,12 +289,38 @@ export default function ProfilePage({ mobile = false }) {
       {/* Content */}
       <div
         className={cn(
-          "flex-1 mx-auto w-full px-4 sm:px-6",
+          "flex flex-1 flex-col mx-auto w-full px-4 sm:px-6",
           mobile ? "max-w-[430px] py-4 pb-[max(24px,env(safe-area-inset-bottom))]" : "max-w-2xl py-6 sm:py-8",
         )}
       >
+        {settingsMode && (
+          <nav
+            className={cn(
+              "order-0 mb-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              mobile ? "-mx-1 px-1" : "",
+            )}
+            aria-label="Settings sections"
+          >
+            {settingsSections.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-2 text-xs font-bold transition-colors",
+                  isDark ? "border-white/[0.08] bg-white/[0.05] text-[#E5E7EB] hover:bg-white/[0.09]" : "border-[#E5E7EB] bg-white text-[#193B68] hover:bg-[#F8FAFC]",
+                )}
+              >
+                {section.label}
+              </a>
+            ))}
+          </nav>
+        )}
+
         {/* User Info */}
-        <section className={cn("rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+        <section id="settings-profile" className={cn("order-1 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+          {settingsMode && (
+            <h2 className={cn("mb-4 text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("profile")}</h2>
+          )}
           <div className="flex items-center gap-3">
             <div className={cn("w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden", isDark ? "bg-[#333]" : "bg-[#EEF2FF] border border-[#E0E7FF]")}>
               {user?.avatarUrl ? (
@@ -302,7 +337,7 @@ export default function ProfilePage({ mobile = false }) {
         </section>
 
         {/* Appearance */}
-        <section className={cn("rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+        <section id="settings-appearance" className={cn("order-4 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
           <h2 className={cn("text-base font-semibold mb-5", isDark ? "text-white" : "text-[#111827]")}>{t("appearance")}</h2>
 
           {/* Theme */}
@@ -435,7 +470,7 @@ export default function ProfilePage({ mobile = false }) {
         </section>
 
         {/* Language */}
-        <section className={cn("rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+        <section id="settings-language" className={cn("order-5 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
           <h2 className={cn("text-base font-semibold mb-4", isDark ? "text-white" : "text-[#111827]")}>{t("appLanguage")}</h2>
           <LanguageSelector
             currentLang={prefs.appLanguage || prefs.language}
@@ -445,10 +480,10 @@ export default function ProfilePage({ mobile = false }) {
         </section>
 
         {/* Security */}
-        <section className={cn("rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+        <section id="settings-account" className={cn("order-2 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
           <div className="flex items-center gap-2 mb-4">
             <ShieldCheck className={cn("w-4 h-4", isDark ? "text-[#888]" : "text-[#6B7280]")} />
-            <h2 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("security")}</h2>
+            <h2 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{settingsMode ? (t("account") || "Account") : t("security")}</h2>
           </div>
 
           <div className={cn("overflow-hidden rounded-xl border", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
@@ -568,8 +603,29 @@ export default function ProfilePage({ mobile = false }) {
           </div>
         </section>
 
+        <section id="settings-notifications" className={cn("order-3 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[#111827]")}>{t("notifications") || "Notifications"}</h2>
+          <p className={cn("text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+            Notification preferences use the same reminder and push notification system across desktop and mobile.
+          </p>
+        </section>
+
+        <section id="settings-privacy" className={cn("order-6 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[#111827]")}>{t("privacy") || "Privacy"}</h2>
+          <p className={cn("text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+            Profile, account, and preference data are shared from one authenticated BlueMind account.
+          </p>
+        </section>
+
+        <section id="settings-about" className={cn("order-7 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[#111827]")}>{t("about") || "About"}</h2>
+          <p className={cn("text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+            {APP_NAME}
+          </p>
+        </section>
+
         {/* Actions */}
-        <section className={cn("rounded-xl border p-5", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+        <section className={cn("order-8 rounded-xl border p-5", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
           <h2 className={cn("text-base font-semibold mb-4", isDark ? "text-white" : "text-[#111827]")}>{t("actions")}</h2>
           <div className="space-y-3">
             <button

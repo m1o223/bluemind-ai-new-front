@@ -30,7 +30,6 @@ import {
   ThumbsDown,
   ThumbsUp,
   Trash2,
-  UserCircle,
   X,
 } from "lucide-react";
 
@@ -529,7 +528,6 @@ export default function MobileChat() {
   const navigationItems = [
     { label: "Images", action: () => enterImageMode(), icon: Image },
     { label: t("settings"), path: "/mobile/settings", icon: Settings },
-    { label: t("profile"), path: "/mobile/profile", icon: UserCircle },
   ];
 
   const visibleConversations = useMemo(() => {

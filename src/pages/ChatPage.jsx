@@ -7,7 +7,7 @@ import {
   BookOpen,
   CalendarDays,
   Clock,
-  UserCircle,
+  Settings,
   Plus,
   ArrowUp,
   ChevronDown,
@@ -682,11 +682,11 @@ function Sidebar({
       action: () => navigate("/scheman"),
     },
   ];
-  const profileItem = {
-    id: "profile",
-    icon: UserCircle,
-    label: t("profile"),
-    action: () => navigate("/profile"),
+  const settingsItem = {
+    id: "settings",
+    icon: Settings,
+    label: t("settings"),
+    action: () => navigate("/settings"),
   };
 
   return (
@@ -1039,7 +1039,7 @@ function Sidebar({
         <button
           type="button"
           onClick={() => {
-            profileItem.action?.();
+            settingsItem.action?.();
           }}
           className={cn(
             "group relative flex w-full items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer",
@@ -1048,14 +1048,14 @@ function Sidebar({
               ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
               : "text-[#1F2937] hover:bg-black/[0.05] hover:text-[#0F172A]",
           )}
-          data-testid="nav-profile"
-          title={!isHistoryOpen ? profileItem.label : undefined}
+          data-testid="nav-settings"
+          title={!isHistoryOpen ? settingsItem.label : undefined}
         >
-          <profileItem.icon className={cn("flex-shrink-0 stroke-[2.35]", isHistoryOpen ? "h-[21px] w-[21px]" : "h-[23px] w-[23px]")} />
-          {isHistoryOpen && <span className="min-w-0 truncate text-sm font-medium">{profileItem.label}</span>}
+          <settingsItem.icon className={cn("flex-shrink-0 stroke-[2.35]", isHistoryOpen ? "h-[21px] w-[21px]" : "h-[23px] w-[23px]")} />
+          {isHistoryOpen && <span className="min-w-0 truncate text-sm font-medium">{settingsItem.label}</span>}
           {!isHistoryOpen && (
             <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100", isDark ? "bg-[#2A2A2A] text-white" : "bg-white text-[#111827]")}>
-              {profileItem.label}
+              {settingsItem.label}
             </span>
           )}
         </button>
