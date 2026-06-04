@@ -705,8 +705,9 @@ function Sidebar({
     >
       <div
         className={cn(
-          "flex items-center justify-between border-b p-4",
-          isDark ? "border-[#333]" : "border-[#E5E7EB]",
+          "relative flex items-center justify-between p-4 after:absolute after:bottom-0 after:h-px after:content-['']",
+          isHistoryOpen ? "after:left-3.5 after:right-3.5" : "after:left-4 after:right-4",
+          isDark ? "after:bg-[#333]" : "after:bg-[#E5E7EB]",
         )}
       >
         {isHistoryOpen ? (
