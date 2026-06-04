@@ -221,6 +221,98 @@ function createIdeaThumbnail(seed, primary, secondary, accent) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+const WRITE_CARD_ARTWORK = [
+  { from: "#193B68", via: "#3D7EC8", to: "#B9D7F6" },
+  { from: "#3767D8", via: "#75A7FF", to: "#D8E8FF" },
+  { from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF" },
+  { from: "#0F766E", via: "#34C3AA", to: "#C8F7EC" },
+  { from: "#A855F7", via: "#D18BFF", to: "#F1D9FF" },
+  { from: "#EA580C", via: "#FDBA74", to: "#FFEDD5" },
+  { from: "#BE123C", via: "#FB7185", to: "#FFE4E6" },
+  { from: "#0E7490", via: "#67E8F9", to: "#CFFAFE" },
+  { from: "#334155", via: "#64748B", to: "#E2E8F0" },
+  { from: "#4338CA", via: "#818CF8", to: "#E0E7FF" },
+];
+
+function getWriteCardArtwork(template, index = 0) {
+  return template?.artwork || WRITE_CARD_ARTWORK[index % WRITE_CARD_ARTWORK.length];
+}
+
+function DesktopWriteArtwork({ template, icon: Icon, index = 0, category }) {
+  const artwork = getWriteCardArtwork(template, index);
+  const from = artwork.from || "#193B68";
+  const via = artwork.via || "#3D7EC8";
+  const to = artwork.to || "#D8E8FF";
+
+  return (
+    <div
+      className="relative h-32 overflow-hidden rounded-[24px]"
+      style={{ background: `linear-gradient(135deg, ${from} 0%, ${via} 56%, ${to} 100%)` }}
+    >
+      <div className="absolute -left-8 -top-10 h-36 w-36 rounded-full bg-white/28 blur-sm" />
+      <div className="absolute right-5 top-5 h-16 w-16 rounded-[24px] bg-white/20 backdrop-blur-sm" />
+      <div className="absolute bottom-5 left-6 h-16 w-32 rounded-[28px] bg-white/18 backdrop-blur-sm" />
+      <div className="absolute bottom-6 right-7 h-24 w-24 rounded-[30px] bg-slate-950/14" />
+      <svg className="absolute inset-x-6 bottom-6 h-20 w-[calc(100%-48px)]" viewBox="0 0 360 120" fill="none" aria-hidden="true">
+        <path d="M8 88 C60 20 104 122 160 58 C224 -10 270 108 352 36" stroke="rgba(255,255,255,0.72)" strokeWidth="8" strokeLinecap="round" />
+        <path d="M10 92 C62 38 106 112 162 70 C224 24 272 98 350 54 L350 116 L10 116 Z" fill="rgba(15,23,42,0.16)" />
+      </svg>
+      <div className="absolute left-5 top-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/24 text-white shadow-sm backdrop-blur-sm">
+        {Icon && <Icon className="h-6 w-6 stroke-[2]" />}
+      </div>
+      {category && (
+        <span className="absolute bottom-4 left-5 rounded-full bg-white/24 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-white backdrop-blur-sm">
+          {category}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function DesktopWriteToolCard({
+  template,
+  title,
+  description,
+  icon,
+  index = 0,
+  category,
+  onClick,
+  isDark,
+  compact = false,
+  className,
+}) {
+  const Icon = icon || template?.icon || PenLine;
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.018, 0.14) }}
+      whileHover={{ y: -6 }}
+      whileTap={{ scale: 0.985 }}
+      className={cn(
+        "group flex h-full flex-col overflow-hidden rounded-[30px] border p-3 text-left shadow-sm transition-all duration-200",
+        isDark
+          ? "border-white/[0.08] bg-white/[0.055] text-white hover:border-white/[0.16] hover:bg-white/[0.085] hover:shadow-[0_22px_60px_rgba(0,0,0,0.24)]"
+          : "border-white/80 bg-white/88 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_24px_60px_rgba(15,23,42,0.13)]",
+        className,
+      )}
+    >
+      <DesktopWriteArtwork template={template} icon={Icon} index={index} category={category} />
+      <span className={cn("flex flex-1 flex-col px-2 pb-2", compact ? "pt-3" : "pt-4")}>
+        <span className={cn("block font-extrabold tracking-tight", compact ? "text-[15px] leading-5" : "text-base leading-6")}>
+          {title}
+        </span>
+        <span className={cn("mt-2 block font-semibold leading-5", compact ? "text-xs" : "text-sm", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+          {description}
+        </span>
+      </span>
+    </motion.button>
+  );
+}
+
 const IMAGE_IDEAS = [
   {
     id: "anime",
@@ -3193,34 +3285,20 @@ export default function ChatPage() {
               {QUICK_WRITE_TEMPLATES.map((template, index) => {
                 const { title, description, icon: Icon } = template;
                 return (
-                <motion.button
-                  key={title}
-                  type="button"
-                  onClick={() => handleWriteToolSelect(template)}
-                  data-quick-template-card
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
-                  whileHover={{ y: -4 }}
-                  whileTap={{ scale: 0.985 }}
-                  className={cn(
-                    "relative min-h-[170px] min-w-[calc(50%-0.375rem)] snap-start overflow-hidden rounded-[26px] border p-4 text-left shadow-sm transition-colors sm:min-w-[240px] md:min-w-[250px]",
-                    isDark
-                      ? "border-white/[0.08] bg-white/[0.055] text-white hover:bg-white/[0.09]"
-                      : "border-white/80 bg-white/90 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
-                  )}
-                >
-                  <span className={cn("absolute -right-6 -top-5 flex h-28 w-28 items-center justify-center rounded-[32px]", isDark ? "bg-white/[0.055] text-white/10" : "bg-[#EEF2FF] text-[#193B68]/12")}>
-                    <Icon className="h-16 w-16 stroke-[1.65]" />
-                  </span>
-                  <span className={cn("relative z-10 mb-6 flex h-12 w-12 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.08] text-[#D7D7D7]" : "bg-[#EEF2FF] text-[#193B68]")}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="relative z-10 block text-[15px] font-bold leading-5">{title}</span>
-                  <span className={cn("relative z-10 mt-2 block text-xs font-medium leading-5", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
-                    {description}
-                  </span>
-                </motion.button>
+                  <DesktopWriteToolCard
+                    key={title}
+                    template={template}
+                    title={title}
+                    description={description}
+                    icon={Icon}
+                    index={index}
+                    category={template.artwork?.category || "Quick"}
+                    onClick={() => handleWriteToolSelect(template)}
+                    isDark={isDark}
+                    compact
+                    className="min-h-[260px] min-w-[270px] snap-start md:min-w-[292px]"
+                    data-quick-template-card
+                  />
                 );
               })}
             </div>
@@ -3232,25 +3310,19 @@ export default function ChatPage() {
               {smartSuggestions.map((template, index) => {
                 const { title, icon: Icon } = template;
                 return (
-                <motion.button
-                  key={title}
-                  type="button"
-                  onClick={() => handleWriteUploadAction(template)}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.14) }}
-                  whileHover={{ y: -4 }}
-                  className={cn(
-                    "rounded-2xl border p-4 text-left transition-colors",
-                    isDark ? "border-white/[0.08] bg-white/[0.05] text-white hover:bg-white/[0.09]" : "border-white/75 bg-white/82 text-[#111827] hover:bg-white"
-                  )}
-                >
-                  <Icon className={cn("mb-3 h-5 w-5", isDark ? "text-[#D7D7D7]" : "text-[#193B68]")} />
-                  <span className="block text-sm font-semibold">{t(uiTextKey("writeUploadAction", title, "title"))}</span>
-                  <span className={cn("mt-1 block text-xs leading-5", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
-                    {writeFiles.length ? t("suggestedFromUploadedFiles") : t("uploadFileForSmarterContext")}
-                  </span>
-                </motion.button>
+                  <DesktopWriteToolCard
+                    key={title}
+                    template={template}
+                    title={t(uiTextKey("writeUploadAction", title, "title"))}
+                    description={writeFiles.length ? t("suggestedFromUploadedFiles") : t("uploadFileForSmarterContext")}
+                    icon={Icon}
+                    index={index + 3}
+                    category={writeFiles.length ? "From File" : "Smart"}
+                    onClick={() => handleWriteUploadAction(template)}
+                    isDark={isDark}
+                    compact
+                    className="min-h-[250px]"
+                  />
                 );
               })}
             </div>
@@ -3269,30 +3341,18 @@ export default function ChatPage() {
                     {section.items.map((template, index) => {
                       const { title, description } = template;
                       return (
-                      <motion.button
-                        key={`${section.title}-${title}-${index}`}
-                        type="button"
-                        onClick={() => handleWriteToolSelect(template)}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2, delay: Math.min(index * 0.018, 0.12) }}
-                        whileHover={{ y: -5 }}
-                        whileTap={{ scale: 0.985 }}
-                        className={cn(
-                          "group min-h-[150px] rounded-[28px] border p-4 text-left shadow-sm transition-colors duration-200",
-                          isDark
-                            ? "border-white/[0.08] bg-white/[0.06] text-white hover:border-white/[0.16] hover:bg-white/[0.1]"
-                            : "border-white/75 bg-white/82 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
-                        )}
-                      >
-                        <div className={cn("mb-4 flex h-12 w-12 items-center justify-center rounded-2xl transition-transform group-hover:scale-[1.04]", isDark ? "bg-white/[0.08]" : "bg-[#EEF2FF]")}>
-                          <SectionIcon className={cn("h-5 w-5", isDark ? "text-[#D7D7D7]" : "text-[#193B68]")} />
-                        </div>
-                        <span className="block text-[15px] font-semibold leading-5">{t(uiTextKey("writeTool", title, "title"))}</span>
-                        <span className={cn("mt-2 block text-sm leading-5", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
-                          {t(uiTextKey("writeTool", title, "description"))}
-                        </span>
-                      </motion.button>
+                        <DesktopWriteToolCard
+                          key={`${section.title}-${title}-${index}`}
+                          template={template}
+                          title={t(uiTextKey("writeTool", title, "title"))}
+                          description={t(uiTextKey("writeTool", title, "description")) || description}
+                          icon={SectionIcon}
+                          index={index + WRITE_EDIT_SECTIONS.findIndex((item) => item.id === section.id) * 3}
+                          category={t(uiTextKey("writeSection", section.title))}
+                          onClick={() => handleWriteToolSelect(template)}
+                          isDark={isDark}
+                          className="min-h-[270px]"
+                        />
                       );
                     })}
                   </div>
