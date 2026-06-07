@@ -1,5 +1,5 @@
 import api, { API_BASE_URL, getApiErrorMessage, unwrapApiResponse } from "./api";
-import { STORAGE_KEYS, storeRefreshSession, storeUser } from "./storageKeys";
+import { readStoredRefreshSession, STORAGE_KEYS, storeRefreshSession, storeUser } from "./storageKeys";
 
 function parseSseBlock(block) {
   const lines = block.split("\n");
@@ -35,20 +35,21 @@ function persistStreamSession(session) {
   }
 
   if (session?.session) {
-    storeRefreshSession(session.session);
+    storeRefreshSession(session.session, session.refreshToken);
   }
 
   return session;
 }
 
 async function refreshAccessToken() {
+  const refreshToken = readStoredRefreshSession()?.refreshToken;
   const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify({}),
+    body: JSON.stringify(refreshToken ? { refreshToken } : {}),
   });
 
   if (!response.ok) {

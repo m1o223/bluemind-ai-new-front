@@ -149,16 +149,17 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
+        const refreshToken = readStoredRefreshSession()?.refreshToken;
         const refreshResponse = await axios.post(
           `${API_BASE_URL}/auth/refresh`,
-          {},
+          refreshToken ? { refreshToken } : {},
           { withCredentials: true },
         );
         const session = unwrapApiResponse(refreshResponse);
 
         if (session?.token) {
           localStorage.setItem(STORAGE_KEYS.token, session.token);
-          storeRefreshSession(session.session);
+          storeRefreshSession(session.session, session.refreshToken);
           originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${session.token}`;
           return api(originalRequest);

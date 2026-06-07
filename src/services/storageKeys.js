@@ -72,12 +72,13 @@ export function readStoredRefreshSession() {
   return readJson(STORAGE_KEYS.refreshSession);
 }
 
-export function storeRefreshSession(session) {
+export function storeRefreshSession(session, refreshToken = undefined) {
   if (!session?.expiresAt) return;
 
   localStorage.setItem(STORAGE_KEYS.refreshSession, JSON.stringify({
     id: session.id,
     expiresAt: session.expiresAt,
+    ...(refreshToken ? { refreshToken } : {}),
   }));
 }
 

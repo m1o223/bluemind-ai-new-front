@@ -16,7 +16,7 @@ function persistSession(session) {
   }
 
   if (session?.session) {
-    storeRefreshSession(session.session);
+    storeRefreshSession(session.session, session.refreshToken);
   }
 
   if (session?.user) {
@@ -123,13 +123,15 @@ export const loginGuestUser = async () => {
 };
 
 export const restoreSession = async () => {
+  const refreshToken = readStoredRefreshSession()?.refreshToken;
   logAuthDebug("restoreSession:before-request", {
     endpoint: "/auth/refresh",
     method: "POST",
     authorizationHeaderExpected: Boolean(localStorage.getItem(STORAGE_KEYS.token)),
+    refreshTokenFallbackPresent: Boolean(refreshToken),
   });
 
-  const response = await api.post("/auth/refresh", {});
+  const response = await api.post("/auth/refresh", refreshToken ? { refreshToken } : {});
   return persistSession(unwrapApiResponse(response));
 };
 
@@ -176,8 +178,9 @@ export const startGoogleLogin = () => {
 };
 
 export const logoutUser = async () => {
+  const refreshToken = readStoredRefreshSession()?.refreshToken;
   try {
-    await api.post("/auth/logout", {});
+    await api.post("/auth/logout", refreshToken ? { refreshToken } : {});
   } finally {
     removeStoredAuthSession();
     sessionStorage.removeItem(STORAGE_KEYS.pendingVerificationEmail);
