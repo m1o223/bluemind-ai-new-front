@@ -222,7 +222,6 @@ export default function AccountSettingsSection({ mobile = false, isDark = false 
       state: ["google", "mixed"].includes(user?.authProvider) ? "Connected" : "Not connected",
       available: ["google", "mixed"].includes(user?.authProvider),
     },
-    { label: "Apple", state: "Coming Soon", available: false },
     { label: "Microsoft", state: "Coming Soon", available: false },
   ]), [user?.authProvider]);
 

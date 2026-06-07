@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,23 +10,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
 import { getApiErrorMessage } from "@/services/api";
-import { loginUser, startGoogleLogin } from "@/services/authService";
+import { loginUser, signInWithGoogle } from "@/services/authService";
 
 function GoogleIcon() {
   return (
     <img
       src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-      alt=""
-      aria-hidden="true"
-      className="h-5 w-5"
-    />
-  );
-}
-
-function AppleIcon() {
-  return (
-    <img
-      src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
       alt=""
       aria-hidden="true"
       className="h-5 w-5"
@@ -40,7 +29,6 @@ function LoadingSpinner({ className = "border-[#9CA3AF]/30 border-t-[#193B68]" }
 
 export default function MobileEmail() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { resolvedTheme, t } = useApp();
   const isDark = resolvedTheme === "dark";
   const [showPassword, setShowPassword] = useState(false);
@@ -57,14 +45,6 @@ export default function MobileEmail() {
   const inputClass = isDark
     ? "border-white/[0.1] bg-white/[0.06] text-white placeholder:text-white/35 focus:border-[#193B68] focus:ring-1 focus:ring-[#193B68]"
     : "border-[#E5E7EB] bg-white text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#193B68] focus:ring-1 focus:ring-[#193B68]";
-
-  useEffect(() => {
-    if (searchParams.get("authError") === "GOOGLE_OAUTH_NOT_CONFIGURED") {
-      const message = t("googleOAuthNotConfigured");
-      setErrorMessage(message);
-      toast.error(message);
-    }
-  }, [searchParams, t]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -85,14 +65,22 @@ export default function MobileEmail() {
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setSocialLoading("google");
-    startGoogleLogin();
-  };
-
-  const handleAppleLogin = () => {
-    setSocialLoading("apple");
-    window.setTimeout(() => setSocialLoading(""), 500);
+    setErrorMessage("");
+    try {
+      await signInWithGoogle();
+      toast.success(t("welcomeBackToast"));
+      navigate("/mobile/chat");
+    } catch (error) {
+      const message = error?.message === "FIREBASE_AUTH_NOT_CONFIGURED"
+        ? "Google sign-in is not configured yet."
+        : getApiErrorMessage(error, t("googleSignInFailed"));
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setSocialLoading("");
+    }
   };
 
   return (
@@ -208,7 +196,7 @@ export default function MobileEmail() {
           <div className={isDark ? "h-px flex-1 bg-white/[0.1]" : "h-px flex-1 bg-[#E5E7EB]"} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <button
             type="button"
             onClick={handleGoogleLogin}
@@ -218,16 +206,6 @@ export default function MobileEmail() {
           >
             {socialLoading === "google" ? <LoadingSpinner /> : <GoogleIcon />}
             <span>{t("google")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleAppleLogin}
-            disabled={Boolean(socialLoading)}
-            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl border border-[#E1E7F0] bg-white text-[15px] font-semibold text-[#111827] shadow-sm transition-colors disabled:opacity-70"
-            data-testid="mobile-apple-login"
-          >
-            {socialLoading === "apple" ? <LoadingSpinner /> : <AppleIcon />}
-            <span>{t("apple")}</span>
           </button>
         </div>
 

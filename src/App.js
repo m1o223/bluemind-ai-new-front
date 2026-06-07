@@ -19,7 +19,6 @@ import FeedbackPage from "@/pages/FeedbackPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LearningPage from "@/pages/LearningPage";
 import SchemanPage from "@/pages/SchemanPage";
-import GoogleCallbackPage from "@/pages/GoogleCallbackPage";
 import MobileLayout from "@/mobile/layouts/MobileLayout";
 import MobileChat from "@/mobile/pages/MobileChat";
 import MobileSearch from "@/mobile/pages/MobileSearch";
@@ -133,7 +132,6 @@ function AppContent() {
           <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
           <Route path="/reminders" element={<ProtectedRoute><RemindersPage /></ProtectedRoute>} />

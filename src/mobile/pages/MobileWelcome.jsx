@@ -6,7 +6,7 @@ import BrandLogo from "@/components/BrandLogo";
 import { useApp } from "@/context/AppContext";
 import { startMobileGuestSession } from "@/mobile/mobileGuestSession";
 import { getApiErrorMessage } from "@/services/api";
-import { loginGuestUser, startGoogleLogin } from "@/services/authService";
+import { loginGuestUser, signInWithGoogle } from "@/services/authService";
 
 const BLUE_PRIMARY = "#193B68";
 
@@ -21,17 +21,6 @@ function GoogleIcon() {
   );
 }
 
-function AppleIcon() {
-  return (
-    <img
-      src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
-      alt=""
-      aria-hidden="true"
-      className="h-5 w-5 invert"
-    />
-  );
-}
-
 function LoadingSpinner() {
   return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />;
 }
@@ -40,6 +29,7 @@ export default function MobileWelcome() {
   const navigate = useNavigate();
   const { resolvedTheme } = useApp();
   const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const isDark = resolvedTheme === "dark";
 
   const surfaceClass = isDark
@@ -50,9 +40,22 @@ export default function MobileWelcome() {
   const googleButtonClass = isDark
     ? "border-white/[0.12] bg-white/[0.075] text-white shadow-[0_14px_34px_rgba(0,0,0,0.18)] active:bg-white/[0.11]"
     : "border-[#E1E7F0] bg-white/90 text-[#111827] shadow-[0_14px_34px_rgba(15,23,42,0.08)] active:bg-[#F3F6FA]";
-  const appleButtonClass = "border-black bg-black text-white disabled:opacity-100";
   const emailButtonClass = "border-transparent text-white shadow-[0_16px_36px_rgba(25,59,104,0.24)] active:brightness-95";
-  const comingSoonClass = "rounded-full bg-white/[0.16] px-2 py-0.5 text-[11px] font-semibold text-white/85";
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      navigate("/mobile/chat");
+    } catch (error) {
+      const message = error?.message === "FIREBASE_AUTH_NOT_CONFIGURED"
+        ? "Google sign-in is not configured yet."
+        : getApiErrorMessage(error, "Google sign-in failed");
+      toast.error(message);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   return (
     <main
@@ -82,21 +85,12 @@ export default function MobileWelcome() {
           <div className="mt-9 w-full space-y-3">
             <button
               type="button"
-              onClick={startGoogleLogin}
+              onClick={handleGoogleLogin}
+              disabled={isGoogleLoading}
               className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${googleButtonClass}`}
             >
-              <GoogleIcon />
+              {isGoogleLoading ? <LoadingSpinner /> : <GoogleIcon />}
               <span>Continue with Google</span>
-            </button>
-
-            <button
-              type="button"
-              disabled
-              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold ${appleButtonClass}`}
-            >
-              <AppleIcon />
-              <span>Continue with Apple</span>
-              <span className={comingSoonClass}>Coming Soon</span>
             </button>
 
             <button

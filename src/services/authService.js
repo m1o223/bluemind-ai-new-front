@@ -1,4 +1,5 @@
-import api, { API_BASE_URL, unwrapApiResponse } from "./api";
+import api, { unwrapApiResponse } from "./api";
+import { signInWithFirebaseGoogle } from "./firebaseClient";
 import {
   dispatchUserUpdated,
   readStoredRefreshSession,
@@ -173,8 +174,10 @@ export const restoreExistingSession = async () => {
   return restoreSession();
 };
 
-export const startGoogleLogin = () => {
-  window.location.href = `${API_BASE_URL}/auth/google`;
+export const signInWithGoogle = async () => {
+  const idToken = await signInWithFirebaseGoogle();
+  const response = await api.post("/auth/firebase/google", { idToken });
+  return persistSession(unwrapApiResponse(response));
 };
 
 export const logoutUser = async () => {
