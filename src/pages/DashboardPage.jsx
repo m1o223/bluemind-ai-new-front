@@ -28,7 +28,7 @@ function getTextOnColor(hex) {
   return luminance > 0.52 ? "#111827" : "#FFFFFF";
 }
 
-function ShellHeader({ isDark, t }) {
+function ShellHeader({ isDark }) {
   const navigate = useNavigate();
 
   return (
@@ -37,8 +37,8 @@ function ShellHeader({ isDark, t }) {
         <button type="button" onClick={() => navigate("/dashboard")} className="flex items-center gap-3">
           <BrandLogo showName={false} logoClassName="h-9 w-9" />
           <div className="text-left">
-            <h1 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("dashboardTitle")}</h1>
-            <p className={cn("hidden text-sm sm:block", isDark ? "text-[#999]" : "text-[#6B7280]")}>{t("dashboardSubtitle")}</p>
+            <h1 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[#111827]")}>Smart Hub</h1>
+            <p className={cn("hidden text-sm sm:block", isDark ? "text-[#999]" : "text-[#6B7280]")}>Fast shortcuts for your day</p>
           </div>
         </button>
       </div>
@@ -46,44 +46,37 @@ function ShellHeader({ isDark, t }) {
   );
 }
 
-function ShortcutCard({ isDark, appColor, accentText, icon: Icon, title, subtitle, onClick, featured = false }) {
+function ShortcutCard({ isDark, appColor, accentText, icon: Icon, title, description, onClick }) {
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -5, scale: 1.01 }}
       whileTap={{ scale: 0.985 }}
       className={cn(
-        "group flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-all duration-200 sm:gap-5 sm:p-6",
-        featured ? "min-h-[172px] sm:min-h-[240px]" : "min-h-[132px] sm:min-h-[170px]",
+        "group flex min-h-[220px] w-full flex-col justify-between rounded-[28px] border p-6 text-left shadow-sm transition-all duration-200",
         isDark
-          ? "border-[#333] bg-[#252525] shadow-black/20 hover:border-[#466589] hover:bg-[#2a2a2a]"
-          : "border-[#D1D5DB] bg-white shadow-sm shadow-slate-200/70 hover:border-[#193B68]/45 hover:bg-[#F8FAFC] hover:shadow-md",
+          ? "border-white/[0.08] bg-[#252525] shadow-black/20 hover:border-white/[0.16] hover:bg-[#2b2b2b] hover:shadow-xl hover:shadow-black/30"
+          : "border-[#E5E7EB] bg-white shadow-slate-200/80 hover:border-[#193B68]/35 hover:bg-[#F8FAFC] hover:shadow-xl hover:shadow-slate-200",
       )}
     >
-      <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+      <div className="flex items-start justify-between gap-4">
         <div
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-2xl",
-            featured ? "h-14 w-14 sm:h-20 sm:w-20" : "h-12 w-12 sm:h-16 sm:w-16",
-            isDark ? "bg-[#333]" : "bg-[#EEF2FF]",
-          )}
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
           style={{ backgroundColor: appColor, color: accentText }}
         >
-          <Icon className={featured ? "h-6 w-6 sm:h-8 sm:w-8" : "h-5 w-5 sm:h-6 sm:w-6"} />
+          <Icon className="h-7 w-7" />
         </div>
-        <div className="min-w-0">
-          <h2 className={cn(featured ? "text-2xl sm:text-4xl" : "text-xl sm:text-3xl", "font-semibold tracking-tight leading-tight", isDark ? "text-white" : "text-[#111827]")}>
-            {title}
-          </h2>
-          <p className={cn("mt-3 max-w-2xl text-sm leading-6 sm:text-base", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
-            {subtitle}
-          </p>
-        </div>
+        <span className={cn("flex h-10 w-10 items-center justify-center rounded-full border opacity-70 transition-all group-hover:translate-x-1 group-hover:opacity-100", isDark ? "border-white/[0.12] text-white" : "border-[#CBD5E1] text-[#111827]")}>
+          <ArrowRight className="h-4 w-4" />
+        </span>
       </div>
 
-      <div className={cn("hidden shrink-0 items-center justify-center rounded-full border p-3 transition-transform group-hover:translate-x-1 sm:flex", isDark ? "border-[#333] text-white" : "border-[#D1D5DB] text-[#111827]")}>
-        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" style={{ color: appColor }} />
+      <div>
+        <h2 className={cn("text-2xl font-extrabold tracking-tight", isDark ? "text-white" : "text-[#111827]")}>{title}</h2>
+        <p className={cn("mt-3 text-base font-semibold leading-7", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+          {description}
+        </p>
       </div>
     </motion.button>
   );
@@ -91,7 +84,7 @@ function ShortcutCard({ isDark, appColor, accentText, icon: Icon, title, subtitl
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { t, prefs, resolvedTheme, uiLanguage } = useApp();
+  const { prefs, resolvedTheme, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor || "#193B68";
   const accentText = getTextOnColor(appColor);
@@ -101,51 +94,51 @@ export default function DashboardPage() {
     {
       key: "chat",
       icon: MessageSquare,
-      title: t("dashboardAssistantCardTitle"),
-      subtitle: t("dashboardAssistantCardSubtitle"),
+      title: "Chat",
+      description: "Talk with BlueMind AI",
       path: "/chat",
-      featured: true,
-    },
-    {
-      key: "systems",
-      icon: CalendarDays,
-      title: t("dashboardSmartSystemsCardTitle"),
-      subtitle: t("dashboardSmartSystemsCardSubtitle"),
-      path: "/scheman",
     },
     {
       key: "reminders",
       icon: Bell,
-      title: t("dashboardRemindersCardTitle"),
-      subtitle: t("dashboardRemindersCardSubtitle"),
+      title: "Reminders",
+      description: "View and manage your reminders",
       path: "/reminders",
     },
     {
       key: "learning",
       icon: BookOpen,
-      title: t("dashboardLearningCardTitle"),
-      subtitle: t("dashboardLearningCardSubtitle"),
+      title: "Learning",
+      description: "Continue your learning journey",
       path: "/learning",
     },
+    {
+      key: "scheman",
+      icon: CalendarDays,
+      title: "Scheman",
+      description: "Manage your study schedule",
+      path: "/scheman",
+    },
   ];
+  const welcomeTitle = isRTL ? "مرحباً" : "Welcome back";
+  const welcomeSubtitle = isRTL ? "اختر القسم الذي تريد الوصول إليه بسرعة." : "Choose where you want to go.";
 
   return (
     <div className={cn("min-h-screen", isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]")} dir={isRTL ? "rtl" : "ltr"} data-testid="dashboard-page">
-      <ShellHeader isDark={isDark} t={t} />
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <p className={cn("mb-3 text-sm font-medium", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("dashboardSmartHubKicker")}</p>
-          <h2 className={cn("text-2xl font-semibold tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[#111827]")}>{t("dashboardWelcomeBack")}</h2>
-          <p className={cn("mt-3 max-w-2xl text-base leading-7", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("dashboardWelcomeSubtitle")}</p>
+      <ShellHeader isDark={isDark} />
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }} className="mb-7 sm:mb-9">
+          <h2 className={cn("text-3xl font-extrabold tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[#111827]")}>{welcomeTitle}</h2>
+          <p className={cn("mt-3 text-base font-semibold sm:text-lg", isDark ? "text-[#AFAFAF]" : "text-[#64748B]")}>{welcomeSubtitle}</p>
         </motion.div>
 
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
           {shortcuts.map((shortcut, index) => (
             <motion.div
               key={shortcut.key}
-              initial={{ opacity: 0, y: 14 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
+              transition={{ delay: index * 0.045, duration: 0.22 }}
             >
               <ShortcutCard
                 isDark={isDark}
@@ -153,8 +146,7 @@ export default function DashboardPage() {
                 accentText={accentText}
                 icon={shortcut.icon}
                 title={shortcut.title}
-                subtitle={shortcut.subtitle}
-                featured={shortcut.featured}
+                description={shortcut.description}
                 onClick={() => navigate(shortcut.path)}
               />
             </motion.div>
