@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, School, PlayCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, School, Construction } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
@@ -41,12 +41,6 @@ const parts = [
   { id: "1", label: "Part 1" },
   { id: "2", label: "Part 2" },
   { id: "3", label: "Part 3" },
-];
-
-const lessonVideos = [
-  { id: "video-1", title: "Video 1", duration: "1-3 min", description: "Quick overview of the selected chapter." },
-  { id: "video-2", title: "Video 2", duration: "1-3 min", description: "Key ideas explained in smaller steps." },
-  { id: "video-3", title: "Video 3", duration: "1-3 min", description: "Practice and recap for easier learning." },
 ];
 
 function StepIndicator({ current, total, isDark }) {
@@ -108,52 +102,6 @@ function SimpleOption({ label, isSelected, onClick, isDark }) {
   );
 }
 
-function LearningContent({ selections, isDark }) {
-  const selectedPath = [
-    schools.find((item) => item.id === selections.school)?.label,
-    grades.find((item) => item.id === selections.grade)?.label,
-    subjects.find((item) => item.id === selections.subject)?.label,
-    books.find((item) => item.id === selections.book)?.label,
-    parts.find((item) => item.id === selections.part)?.label,
-  ].filter(Boolean).join(" / ");
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-      <div className={cn("rounded-2xl border p-5 sm:p-6", isDark ? "border-white/[0.10] bg-[#252525]" : "border-[#E5E7EB] bg-white")}>
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#193B68] text-white">
-            <Sparkles className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className={cn("text-lg font-semibold sm:text-xl", isDark ? "text-white" : "text-[#111827]")}>AI learning content</h3>
-            <p className={cn("mt-1 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{selectedPath}</p>
-          </div>
-        </div>
-        <p className={cn("text-sm leading-6", isDark ? "text-[#CFCFCF]" : "text-[#4B5563]")}>
-          BlueMind will turn this chapter into short learning videos divided into easy parts, so students can learn without one long lesson.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {lessonVideos.map((video) => (
-          <button
-            key={video.id}
-            type="button"
-            className={cn("rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm", isDark ? "border-white/[0.10] bg-[#252525] hover:bg-[#2b2b2b]" : "border-[#E5E7EB] bg-white hover:border-[#D1D5DB]")}
-          >
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#193B68] text-white">
-              <PlayCircle className="h-5 w-5" />
-            </div>
-            <h4 className={cn("font-semibold", isDark ? "text-white" : "text-[#111827]")}>{video.title}</h4>
-            <p className={cn("mt-1 text-xs font-medium", isDark ? "text-[#999]" : "text-[#6B7280]")}>{video.duration}</p>
-            <p className={cn("mt-3 text-sm leading-6", isDark ? "text-[#B8B8B8]" : "text-[#4B5563]")}>{video.description}</p>
-          </button>
-        ))}
-      </div>
-    </motion.div>
-  );
-}
-
 export default function LearningPage({ mobile = false }) {
   const navigate = useNavigate();
   const { t, resolvedTheme } = useApp();
@@ -167,27 +115,23 @@ export default function LearningPage({ mobile = false }) {
     book: null,
     part: null,
   });
-  const [showLearningContent, setShowLearningContent] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const totalSteps = 5;
   const hubPath = mobile ? "/mobile/smart-hub" : "/dashboard";
+  const chatPath = mobile ? "/mobile/chat" : "/chat";
 
   const handleSelect = (key, value) => {
     setSelections((prev) => ({ ...prev, [key]: value }));
     if (key === "part") {
-      setShowLearningContent(true);
+      setShowComingSoon(true);
+      setTimeout(() => navigate(chatPath), 2000);
       return;
     }
     setTimeout(() => setStep((s) => s + 1), 200);
   };
 
   const handleBack = () => {
-    if (showLearningContent) {
-      setShowLearningContent(false);
-      setStep(4);
-      setSelections((prev) => ({ ...prev, part: null }));
-      return;
-    }
     if (step === 0) { navigate(hubPath); return; }
     setStep((s) => s - 1);
   };
@@ -201,8 +145,20 @@ export default function LearningPage({ mobile = false }) {
   ];
 
   const renderStep = () => {
-    if (showLearningContent) {
-      return <LearningContent selections={selections} isDark={isDark} />;
+    if (showComingSoon) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-12 sm:py-16"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-[#FEF3C7] flex items-center justify-center mx-auto mb-5">
+            <Construction className="w-8 h-8 text-[#D97706]" />
+          </div>
+          <h3 className={cn("text-xl sm:text-2xl font-semibold mb-2", isDark ? "text-white" : "text-[#111827]")}>{t("comingSoon")}</h3>
+          <p className={cn("text-sm", isDark ? "text-[#888]" : "text-[#6B7280]")}>{t("redirectingToChat")}</p>
+        </motion.div>
+      );
     }
 
     switch (step) {
@@ -306,7 +262,7 @@ export default function LearningPage({ mobile = false }) {
 
       {/* Content */}
       <div className={cn("max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8", mobile && "pb-[calc(28px+env(safe-area-inset-bottom))]")}>
-        {!showLearningContent && (
+        {!showComingSoon && (
           <>
             <StepIndicator current={step} total={totalSteps} isDark={isDark} />
             <p className={cn("text-xs mb-1", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("stepProgress", { current: step + 1, total: totalSteps })}</p>
@@ -316,7 +272,7 @@ export default function LearningPage({ mobile = false }) {
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={showLearningContent ? "content" : step}
+            key={showComingSoon ? "done" : step}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
