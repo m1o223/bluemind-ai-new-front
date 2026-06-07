@@ -18,12 +18,31 @@ function hasFirebaseAuthConfig() {
   );
 }
 
+export function getFirebaseAuthConfigStatus() {
+  return {
+    ready: hasFirebaseAuthConfig(),
+    missing: Object.entries({
+      REACT_APP_FIREBASE_API_KEY: firebaseConfig.apiKey,
+      REACT_APP_FIREBASE_AUTH_DOMAIN: firebaseConfig.authDomain,
+      REACT_APP_FIREBASE_PROJECT_ID: firebaseConfig.projectId,
+      REACT_APP_FIREBASE_APP_ID: firebaseConfig.appId,
+    })
+      .filter(([, value]) => !value)
+      .map(([key]) => key),
+  };
+}
+
 let firebaseApp;
 let firebaseAuth;
 
 export async function signInWithFirebaseGoogle() {
-  if (!hasFirebaseAuthConfig()) {
-    throw new Error("FIREBASE_AUTH_NOT_CONFIGURED");
+  const configStatus = getFirebaseAuthConfigStatus();
+
+  if (!configStatus.ready) {
+    const error = new Error("Firebase Google sign-in configuration is missing.");
+    error.code = "FIREBASE_AUTH_CONFIG_MISSING";
+    error.missing = configStatus.missing;
+    throw error;
   }
 
   if (!firebaseApp) {

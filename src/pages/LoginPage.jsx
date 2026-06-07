@@ -5,7 +5,7 @@ import { ArrowLeft, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { loginUser, signInWithGoogle } from "../services/authService";
+import { getGoogleSignInErrorMessage, loginUser, signInWithGoogle } from "../services/authService";
 import { getApiErrorMessage } from "../services/api";
 import { toast } from "sonner";
 import { useApp } from "@/context/AppContext";
@@ -61,9 +61,7 @@ export default function LoginPage() {
       toast.success(t("welcomeBackToast"));
       navigate(getPreferredAppRoute(session));
     } catch (error) {
-      const message = error?.message === "FIREBASE_AUTH_NOT_CONFIGURED"
-        ? "Google sign-in is not configured yet."
-        : getApiErrorMessage(error, t("googleSignInFailed"));
+      const message = getGoogleSignInErrorMessage(error, t("googleSignInFailed"));
       setErrorMessage(message);
       toast.error(message);
     } finally {

@@ -6,7 +6,7 @@ import BrandLogo from "@/components/BrandLogo";
 import { useApp } from "@/context/AppContext";
 import { startMobileGuestSession } from "@/mobile/mobileGuestSession";
 import { getApiErrorMessage } from "@/services/api";
-import { loginGuestUser, signInWithGoogle } from "@/services/authService";
+import { getGoogleSignInErrorMessage, loginGuestUser, signInWithGoogle } from "@/services/authService";
 
 const BLUE_PRIMARY = "#193B68";
 
@@ -48,9 +48,7 @@ export default function MobileWelcome() {
       await signInWithGoogle();
       navigate("/mobile/chat");
     } catch (error) {
-      const message = error?.message === "FIREBASE_AUTH_NOT_CONFIGURED"
-        ? "Google sign-in is not configured yet."
-        : getApiErrorMessage(error, "Google sign-in failed");
+      const message = getGoogleSignInErrorMessage(error, "Google sign-in failed");
       toast.error(message);
     } finally {
       setIsGoogleLoading(false);

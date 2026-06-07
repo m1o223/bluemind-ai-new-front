@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { registerUser, signInWithGoogle } from "../services/authService";
+import { getGoogleSignInErrorMessage, registerUser, signInWithGoogle } from "../services/authService";
 import { getApiErrorMessage } from "../services/api";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
@@ -73,9 +73,7 @@ export default function RegisterPage() {
       toast.success(t("welcomeBackToast"));
       navigate("/chat", { replace: true, state: { session } });
     } catch (error) {
-      const message = error?.message === "FIREBASE_AUTH_NOT_CONFIGURED"
-        ? "Google sign-in is not configured yet."
-        : getApiErrorMessage(error, t("googleSignInFailed"));
+      const message = getGoogleSignInErrorMessage(error, t("googleSignInFailed"));
       setErrorMessage(message);
       toast.error(message);
     } finally {

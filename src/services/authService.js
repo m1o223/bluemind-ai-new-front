@@ -1,4 +1,4 @@
-import api, { unwrapApiResponse } from "./api";
+import api, { getApiErrorMessage, unwrapApiResponse } from "./api";
 import { signInWithFirebaseGoogle } from "./firebaseClient";
 import {
   dispatchUserUpdated,
@@ -179,6 +179,17 @@ export const signInWithGoogle = async () => {
   const response = await api.post("/auth/firebase/google", { idToken });
   return persistSession(unwrapApiResponse(response));
 };
+
+export function getGoogleSignInErrorMessage(error, fallback = "Google sign-in failed. Please try again.") {
+  if (error?.code === "FIREBASE_AUTH_CONFIG_MISSING") {
+    console.warn("[BlueMind auth] Firebase Google sign-in config is missing", {
+      missing: error.missing,
+    });
+    return "Google sign-in is temporarily unavailable. Please use email and password for now.";
+  }
+
+  return getApiErrorMessage(error, fallback);
+}
 
 export const logoutUser = async () => {
   const refreshToken = readStoredRefreshSession()?.refreshToken;

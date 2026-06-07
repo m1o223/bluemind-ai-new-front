@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/services/api";
-import { registerUser, signInWithGoogle } from "@/services/authService";
+import { getGoogleSignInErrorMessage, registerUser, signInWithGoogle } from "@/services/authService";
 
 function GoogleIcon() {
   return (
@@ -86,9 +86,7 @@ export default function MobileRegister() {
       toast.success(t("welcomeBackToast"));
       navigate("/mobile/chat");
     } catch (error) {
-      const message = error?.message === "FIREBASE_AUTH_NOT_CONFIGURED"
-        ? "Google sign-in is not configured yet."
-        : getApiErrorMessage(error, t("googleSignInFailed"));
+      const message = getGoogleSignInErrorMessage(error, t("googleSignInFailed"));
       setErrorMessage(message);
       toast.error(message);
     } finally {
