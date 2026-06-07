@@ -111,13 +111,21 @@ export function getApiErrorMessage(error, fallback = "Request failed") {
     return "Cannot reach BlueMind backend. Please try again in a moment.";
   }
 
-  return (
+  const rawMessage = (
     error?.response?.data?.error?.message ||
     error?.response?.data?.error?.code ||
     error?.response?.data?.message ||
     error?.message ||
     fallback
   );
+  const errorCode = error?.response?.data?.error?.code;
+  const technicalEmailPattern = /SMTP_|SMTP |SMTP connection|SMTP auth|Gmail App Password|EMAIL_SEND_FAILED|EMAIL_PROVIDER|502 Bad Gateway|Bad Gateway/i;
+
+  if (errorCode === "EMAIL_SEND_FAILED" || technicalEmailPattern.test(String(rawMessage))) {
+    return "We couldn't send the reset code right now. Please try again later.";
+  }
+
+  return rawMessage;
 }
 
 api.interceptors.response.use(
