@@ -1,8 +1,5 @@
+import LearningPage from "@/pages/LearningPage";
+
 export default function MobileLearning() {
-  return (
-    <section>
-      <h1>Mobile Learning</h1>
-      <p>مرحبا</p>
-    </section>
-  );
+  return <LearningPage mobile />;
 }
