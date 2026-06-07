@@ -5,21 +5,24 @@ import { toast } from "sonner";
 import {
   Bell,
   BookOpen,
+  Cake,
   Camera,
   Check,
   ChevronRight,
   CreditCard,
+  FileUp,
   Flag,
   Globe2,
   HelpCircle,
   Info,
   KeyRound,
+  LogOut,
   Mail,
   Moon,
   Palette,
-  Paperclip,
   Shield,
-  User,
+  Settings,
+  Sparkles,
   X,
 } from "lucide-react";
 
@@ -31,11 +34,11 @@ import {
   confirmEmailChange,
   requestEmailChange,
   requestPasswordReset,
+  logoutUser,
 } from "@/services/authService";
 import { getProfile, updatePreferences } from "@/services/profileService";
 import { readStoredUser } from "@/services/storageKeys";
 import { reportIssue } from "@/services/supportService";
-import ProfileSettingsSection from "@/components/settings/ProfileSettingsSection";
 
 const SUPPORT_EMAIL = "supportbluemindai@gmail.com";
 const APP_VERSION = process.env.REACT_APP_VERSION || "0.1.0";
@@ -47,16 +50,28 @@ const COLOR_OPTIONS = [
   { label: "Teal", value: "#0F766E" },
   { label: "Emerald", value: "#059669" },
   { label: "Green", value: "#16A34A" },
+  { label: "Lime", value: "#65A30D" },
+  { label: "Yellow", value: "#CA8A04" },
+  { label: "Amber", value: "#D97706" },
   { label: "Orange", value: "#EA580C" },
   { label: "Red", value: "#DC2626" },
   { label: "Rose", value: "#E11D48" },
+  { label: "Pink", value: "#DB2777" },
+  { label: "Fuchsia", value: "#C026D3" },
   { label: "Purple", value: "#9333EA" },
   { label: "Violet", value: "#7C3AED" },
   { label: "Indigo", value: "#4F46E5" },
+  { label: "Slate", value: "#475569" },
+  { label: "Stone", value: "#57534E" },
+  { label: "Zinc", value: "#52525B" },
+  { label: "Mint", value: "#10B981" },
+  { label: "Ocean", value: "#2563EB" },
+  { label: "Berry", value: "#BE123C" },
+  { label: "Copper", value: "#B45309" },
 ];
 const LANGUAGE_OPTIONS = [
   { label: "English", value: "en" },
-  { label: "Arabic", value: "ar" },
+  { label: "العربية", value: "ar" },
   { label: "Svenska", value: "sv" },
 ];
 const NOTIFICATION_ROWS = [
@@ -68,13 +83,6 @@ const NOTIFICATION_ROWS = [
     keys: ["importantAccountEmails", "securityEmails", "notificationSummaries"],
   },
   {
-    id: "ai",
-    title: "AI Notifications",
-    description: "Receive AI task updates and completed results.",
-    section: "ai",
-    keys: ["taskCompleted", "researchCompleted", "imageGenerationCompleted", "longRunningTaskCompleted", "recommendations"],
-  },
-  {
     id: "reminders",
     title: "Reminder Notifications",
     description: "Receive reminder alerts and schedules.",
@@ -82,11 +90,39 @@ const NOTIFICATION_ROWS = [
     keys: ["alerts", "daily", "weekly", "missed", "overdue"],
   },
   {
-    id: "system",
-    title: "System Notifications",
-    description: "Receive feature updates, announcements, and service alerts.",
+    id: "study",
+    title: "Study Notifications",
+    description: "Receive study plan and learning reminders.",
+    section: "study",
+    keys: ["sessionReminders", "dailyGoals", "weeklyProgress", "missedSessions", "streakAlerts"],
+  },
+  {
+    id: "ai",
+    title: "AI Notifications",
+    description: "Receive AI task updates and completed results.",
+    section: "ai",
+    keys: ["taskCompleted", "researchCompleted", "imageGenerationCompleted", "longRunningTaskCompleted", "recommendations"],
+  },
+  {
+    id: "security",
+    title: "Security Notifications",
+    description: "Receive login and account security alerts.",
+    section: "security",
+    keys: ["newLogin", "passwordChanged", "emailChanged", "securityAlerts", "accountActivity"],
+  },
+  {
+    id: "appUpdates",
+    title: "App Update Notifications",
+    description: "Receive feature updates and announcements.",
     section: "system",
-    keys: ["newFeatures", "appUpdates", "maintenanceAnnouncements", "serviceAlerts"],
+    keys: ["newFeatures", "appUpdates", "maintenanceAnnouncements"],
+  },
+  {
+    id: "birthday",
+    title: "Birthday Notifications",
+    description: "Receive birthday greetings and celebration messages.",
+    section: "birthday",
+    keys: ["birthdayGreetings"],
   },
 ];
 const HELP_TOPICS = [
@@ -223,12 +259,14 @@ function Row({ icon: Icon, title, description, value, trailing, onClick, isDark 
   );
 }
 
-export default function DesktopSettingsPanel({ initialSection = "home", open = true, modal = false, onClose }) {
+export default function DesktopSettingsPanel({ initialSection = "account", open = true, modal = false, onClose }) {
   const navigate = useNavigate();
   const { prefs, setPrefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
-  const [activeSection, setActiveSection] = useState(initialSection || "home");
+  const normalizeSection = (sectionId) => (["account", "general", "notifications", "report-issue", "help-center", "about"].includes(sectionId) ? sectionId : "account");
+  const [activeSection, setActiveSection] = useState(() => normalizeSection(initialSection));
   const [accountPane, setAccountPane] = useState("");
+  const [generalPane, setGeneralPane] = useState("");
   const [aboutPane, setAboutPane] = useState("");
   const [user, setUser] = useState(() => readStoredUser());
   const [saving, setSaving] = useState("");
@@ -237,26 +275,25 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
   const [passwordRecovery, setPasswordRecovery] = useState({ email: "", sent: false });
   const [issueReport, setIssueReport] = useState({ title: "", description: "", attachments: [] });
   const [openHelpTopic, setOpenHelpTopic] = useState("");
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const issueCameraInputRef = useRef(null);
   const issuePhotosInputRef = useRef(null);
   const issueFilesInputRef = useRef(null);
 
   const navItems = [
-    { id: "profile", title: "Profile", icon: User },
     { id: "account", title: "Account", icon: KeyRound },
-    { id: "general", title: "General", icon: Palette },
+    { id: "general", title: "General", icon: Settings },
     { id: "notifications", title: "Notifications", icon: Bell },
     { id: "report-issue", title: "Report App Issue", icon: Flag },
     { id: "help-center", title: "Help Center", icon: HelpCircle },
     { id: "about", title: "About", icon: Info },
   ];
-  const validSections = new Set(["home", ...navItems.map((item) => item.id)]);
-  const displayName = user?.name || "BlueMind User";
   const email = user?.email || "";
   const plan = user?.authProvider === "guest" ? "Guest" : "Free";
   const currentLanguage = LANGUAGE_OPTIONS.find((item) => item.value === (prefs.appLanguage || prefs.language)) || LANGUAGE_OPTIONS[0];
   const currentTheme = prefs.theme || "system";
   const currentAccent = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "#193B68").toLowerCase()) || COLOR_OPTIONS[0];
+  const currentMessageColor = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.messageColor || prefs.chatColor || "#193B68").toLowerCase()) || COLOR_OPTIONS[0];
   const avatarColor = useMemo(() => avatarColorFor(user), [user]);
   const panelBg = isDark ? "border-white/[0.08] bg-[#202020]" : "border-white/80 bg-[#FAFBFC]";
   const sidebarBg = isDark ? "border-white/[0.08] bg-[#181818]" : "border-[#E5E7EB] bg-white";
@@ -264,8 +301,9 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
   const closeSettings = onClose || (() => navigate("/chat"));
 
   useEffect(() => {
-    setActiveSection(validSections.has(initialSection) ? initialSection : "home");
+    setActiveSection(normalizeSection(initialSection));
     setAccountPane("");
+    setGeneralPane("");
     setAboutPane("");
   }, [initialSection]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -285,11 +323,24 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
   }, []);
 
   const setSection = (sectionId) => {
-    setActiveSection(sectionId);
+    const nextSection = normalizeSection(sectionId);
+    setActiveSection(nextSection);
     setAccountPane("");
+    setGeneralPane("");
     setAboutPane("");
     if (!modal) {
-      navigate(sectionId === "home" ? "/settings" : `/settings/${sectionId}`, { replace: false });
+      navigate(`/settings/${nextSection}`, { replace: false });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setLogoutConfirmOpen(false);
+      closeSettings();
+      navigate("/", { replace: true });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not log out."));
     }
   };
 
@@ -433,21 +484,6 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
     </div>
   );
 
-  const renderHome = () => (
-    <div className="mx-auto flex max-w-2xl flex-col items-center py-8 text-center">
-      <Avatar large />
-      <h1 className="mt-5 text-3xl font-extrabold tracking-tight">{displayName}</h1>
-      {email && <p className={cn("mt-1 text-sm font-semibold", muted)}>{email}</p>}
-      <div className={cn("mt-10 rounded-[30px] border p-8 shadow-sm", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white")}>
-        <h2 className="text-2xl font-extrabold tracking-tight">Welcome to BlueMind Settings</h2>
-        <p className={cn("mx-auto mt-4 max-w-xl text-base font-semibold leading-7", muted)}>
-          Manage your profile, account, notifications, and application preferences from one place.
-          You can customize your experience and manage your account here.
-        </p>
-      </div>
-    </div>
-  );
-
   const renderAccount = () => {
     if (accountPane === "change-email") {
       return (
@@ -508,59 +544,100 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
     );
   };
 
-  const renderGeneral = () => (
-    <div className="max-w-4xl space-y-7">
-      <section>
-        <h3 className="mb-3 text-sm font-extrabold uppercase tracking-[0.12em]">Theme</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {["system", "dark", "light"].map((theme) => (
-            <button
-              key={theme}
-              type="button"
-              onClick={() => savePreference({ theme })}
-              className={cn("flex min-h-[76px] items-center justify-between rounded-[22px] border px-4 capitalize transition-colors", currentTheme === theme ? "border-[#193B68] bg-[#193B68]/10" : isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white")}
-            >
-              <span className="inline-flex items-center gap-3 text-sm font-extrabold"><Moon className="h-5 w-5" />{theme}</span>
-              {currentTheme === theme && <Check className="h-5 w-5 text-[#4C8DFF]" />}
-            </button>
-          ))}
-        </div>
-      </section>
-      <section>
-        <h3 className="mb-3 text-sm font-extrabold uppercase tracking-[0.12em]">Language</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {LANGUAGE_OPTIONS.map((language) => (
-            <button
-              key={language.value}
-              type="button"
-              onClick={() => savePreference({ appLanguage: language.value, language: language.value })}
-              className={cn("flex min-h-[72px] items-center justify-between rounded-[22px] border px-4 transition-colors", currentLanguage.value === language.value ? "border-[#193B68] bg-[#193B68]/10" : isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white")}
-            >
-              <span className="inline-flex items-center gap-3 text-sm font-extrabold"><Globe2 className="h-5 w-5" />{language.label}</span>
-              {currentLanguage.value === language.value && <Check className="h-5 w-5 text-[#4C8DFF]" />}
-            </button>
-          ))}
-        </div>
-      </section>
-      <section>
-        <h3 className="mb-3 text-sm font-extrabold uppercase tracking-[0.12em]">Accent Color</h3>
-        <div className="grid grid-cols-4 gap-3">
-          {COLOR_OPTIONS.map((color) => (
-            <button
-              key={color.value}
-              type="button"
-              onClick={() => savePreference({ appColor: color.value, accentColor: color.value })}
-              className={cn("flex min-h-[64px] items-center gap-3 rounded-[20px] border px-4 transition-colors", currentAccent.value === color.value ? "border-[#193B68] bg-[#193B68]/10" : isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white")}
-            >
-              <span className="h-6 w-6 rounded-full shadow-sm" style={{ backgroundColor: color.value }} />
-              <span className="min-w-0 flex-1 truncate text-sm font-extrabold">{color.label}</span>
-              {currentAccent.value === color.value && <Check className="h-4 w-4 text-[#4C8DFF]" />}
-            </button>
-          ))}
-        </div>
-      </section>
+  const renderColorSelector = ({ title, description, activeColor, onSelect }) => (
+    <div className="max-w-4xl space-y-5">
+      <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to General</button>
+      <div>
+        <h3 className="text-xl font-extrabold">{title}</h3>
+        <p className={cn("mt-1 text-sm font-semibold", muted)}>{description}</p>
+      </div>
+      <div className="grid grid-cols-4 gap-3">
+        {COLOR_OPTIONS.map((color) => (
+          <button
+            key={color.value}
+            type="button"
+            onClick={() => onSelect(color)}
+            className={cn("flex min-h-[64px] items-center gap-3 rounded-[20px] border px-4 transition-colors", activeColor.value === color.value ? "border-[#193B68] bg-[#193B68]/10" : isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white")}
+          >
+            <span className="h-6 w-6 rounded-full shadow-sm" style={{ backgroundColor: color.value }} />
+            <span className="min-w-0 flex-1 truncate text-sm font-extrabold">{color.label}</span>
+            {activeColor.value === color.value && <Check className="h-4 w-4 text-[#4C8DFF]" />}
+          </button>
+        ))}
+      </div>
     </div>
   );
+
+  const renderGeneral = () => {
+    if (generalPane === "language") {
+      return (
+        <div className="max-w-3xl space-y-5">
+          <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to General</button>
+          <SettingCard isDark={isDark}>
+            {LANGUAGE_OPTIONS.map((language) => (
+              <Row
+                key={language.value}
+                isDark={isDark}
+                icon={Globe2}
+                title={language.label}
+                trailing={currentLanguage.value === language.value ? <Check className="h-5 w-5 text-[#4C8DFF]" /> : null}
+                onClick={() => savePreference({ appLanguage: language.value, language: language.value })}
+              />
+            ))}
+          </SettingCard>
+        </div>
+      );
+    }
+
+    if (generalPane === "appearance") {
+      return (
+        <div className="max-w-3xl space-y-5">
+          <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to General</button>
+          <SettingCard isDark={isDark}>
+            {["system", "dark", "light"].map((theme) => (
+              <Row
+                key={theme}
+                isDark={isDark}
+                icon={Moon}
+                title={theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light"}
+                trailing={currentTheme === theme ? <Check className="h-5 w-5 text-[#4C8DFF]" /> : null}
+                onClick={() => savePreference({ theme })}
+              />
+            ))}
+          </SettingCard>
+        </div>
+      );
+    }
+
+    if (generalPane === "accent-color") {
+      return renderColorSelector({
+        title: "Accent Color",
+        description: "Choose your BlueMind accent color.",
+        activeColor: currentAccent,
+        onSelect: (color) => savePreference({ appColor: color.value, accentColor: color.value }),
+      });
+    }
+
+    if (generalPane === "message-color") {
+      return renderColorSelector({
+        title: "Message Color",
+        description: "Choose the color of your messages.",
+        activeColor: currentMessageColor,
+        onSelect: (color) => savePreference({ messageColor: color.value, chatColor: color.value }),
+      });
+    }
+
+    return (
+      <SettingCard isDark={isDark} className="max-w-3xl">
+        <Row isDark={isDark} icon={Globe2} title="Language" description="Choose your application language." value={currentLanguage.label} onClick={() => setGeneralPane("language")} />
+        <Row isDark={isDark} icon={Moon} title="Appearance" description="Choose application theme." value={currentTheme === "system" ? "System" : currentTheme === "dark" ? "Dark" : "Light"} onClick={() => setGeneralPane("appearance")} />
+        <Row isDark={isDark} icon={Palette} title="Accent Color" description="Choose your BlueMind accent color." value={currentAccent.label} onClick={() => setGeneralPane("accent-color")} />
+        <Row isDark={isDark} icon={Palette} title="Message Color" description="Choose the color of your messages." value={currentMessageColor.label} onClick={() => setGeneralPane("message-color")} />
+        <Row isDark={isDark} icon={Cake} title="Birthday Greetings" description="Receive birthday wishes and celebration effects." trailing={<Toggle checked={prefs.birthdayGreetings !== false} disabled={saving === "preferences"} isDark={isDark} onChange={() => savePreference({ birthdayGreetings: prefs.birthdayGreetings === false })} />} />
+        <Row isDark={isDark} icon={Sparkles} title="Animations" description="Enable visual effects and transitions." trailing={<Toggle checked={prefs.animations !== false} disabled={saving === "preferences"} isDark={isDark} onChange={() => savePreference({ animations: prefs.animations === false })} />} />
+      </SettingCard>
+    );
+  };
 
   const renderNotifications = () => (
     <SettingCard isDark={isDark} className="max-w-3xl">
@@ -598,8 +675,8 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
         <div className="mt-4 grid grid-cols-3 gap-3">
           {[
             ["Camera", Camera, () => issueCameraInputRef.current?.click()],
-            ["Photos", Paperclip, () => issuePhotosInputRef.current?.click()],
-            ["Files", Paperclip, () => issueFilesInputRef.current?.click()],
+            ["Photos", FileUp, () => issuePhotosInputRef.current?.click()],
+            ["Files", FileUp, () => issueFilesInputRef.current?.click()],
           ].map(([label, Icon, action]) => (
             <button key={label} type="button" onClick={action} className={cn("flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border text-sm font-extrabold", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-[#F8FAFC]")}>
               <Icon className="h-5 w-5" />
@@ -693,14 +770,13 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
   };
 
   const renderContent = () => {
-    if (activeSection === "profile") return <ProfileSettingsSection mobile={false} isDark={isDark} />;
     if (activeSection === "account") return renderAccount();
     if (activeSection === "general") return renderGeneral();
     if (activeSection === "notifications") return renderNotifications();
     if (activeSection === "report-issue") return renderReportIssue();
     if (activeSection === "help-center") return renderHelpCenter();
     if (activeSection === "about") return renderAbout();
-    return renderHome();
+    return renderAccount();
   };
 
   const pageTitle = navItems.find((item) => item.id === activeSection)?.title || "Settings";
@@ -708,16 +784,16 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
   if (!open) return null;
 
   const panel = (
-      <section className={cn("grid h-[min(860px,calc(100vh-48px))] w-full max-w-6xl grid-cols-[280px_minmax(0,1fr)] overflow-hidden rounded-[34px] border shadow-2xl", panelBg)}>
+      <section className={cn("relative grid h-[min(860px,calc(100vh-48px))] w-full max-w-6xl grid-cols-[280px_minmax(0,1fr)] overflow-hidden rounded-[34px] border shadow-2xl", panelBg)}>
         <aside className={cn("flex min-h-0 flex-col border-r p-4", sidebarBg)}>
-          <button type="button" onClick={() => setSection("home")} className="mb-5 flex items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.06]">
+          <button type="button" onClick={() => setSection("account")} className="mb-5 flex items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.06]">
             <Avatar />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-extrabold">BlueMind Settings</span>
               <span className={cn("block truncate text-xs font-semibold", muted)}>{email || "Account settings"}</span>
             </span>
           </button>
-          <nav className="space-y-1">
+          <nav className="min-h-0 flex-1 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = activeSection === item.id;
@@ -739,15 +815,24 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
               );
             })}
           </nav>
+          <button
+            type="button"
+            onClick={() => setLogoutConfirmOpen(true)}
+            className={cn(
+              "mt-4 flex min-h-[50px] w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-extrabold transition-colors",
+              isDark ? "text-red-300 hover:bg-red-500/10" : "text-red-600 hover:bg-red-50",
+            )}
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            Log out
+          </button>
         </aside>
 
         <div className="flex min-h-0 flex-col">
           <header className={cn("flex h-20 shrink-0 items-center justify-between border-b px-8", isDark ? "border-white/[0.08]" : "border-[#E5E7EB]")}>
             <div>
               <h1 className="text-xl font-extrabold tracking-tight">{pageTitle}</h1>
-              <p className={cn("mt-1 text-sm font-semibold", muted)}>
-                {activeSection === "home" ? "Manage BlueMind from one place." : "Use the sidebar to switch settings sections."}
-              </p>
+              <p className={cn("mt-1 text-sm font-semibold", muted)}>Use the sidebar to switch settings sections.</p>
             </div>
             <button type="button" onClick={closeSettings} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors", isDark ? "text-white hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#EEF2F7]")} aria-label="Close settings">
               <X className="h-5 w-5" />
@@ -756,12 +841,40 @@ export default function DesktopSettingsPanel({ initialSection = "home", open = t
 
           <div className="min-h-0 flex-1 overflow-y-auto px-8 py-7">
             <AnimatePresence mode="wait">
-              <motion.div key={`${activeSection}-${accountPane}-${aboutPane}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }}>
+              <motion.div key={`${activeSection}-${accountPane}-${generalPane}-${aboutPane}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }}>
                 {renderContent()}
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
+        <AnimatePresence>
+          {logoutConfirmOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 p-6"
+            >
+              <motion.div
+                initial={{ y: 14, opacity: 0, scale: 0.98 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 14, opacity: 0, scale: 0.98 }}
+                className={cn("w-full max-w-md rounded-[28px] p-6 ring-1", isDark ? "bg-[#262626] ring-white/[0.08]" : "bg-white ring-black/[0.08]")}
+              >
+                <p className={cn("text-lg font-extrabold", isDark ? "text-white" : "text-[#111827]")}>Log out?</p>
+                <p className={cn("mt-2 text-sm font-medium leading-6", muted)}>You will need to sign in again to use BlueMind AI.</p>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => setLogoutConfirmOpen(false)} className={cn("min-h-12 rounded-2xl text-sm font-bold", isDark ? "bg-white/[0.08] text-white" : "bg-[#EEF2F7] text-[#111827]")}>
+                    Cancel
+                  </button>
+                  <button type="button" onClick={handleLogout} className="min-h-12 rounded-2xl bg-red-600 text-sm font-bold text-white">
+                    Log out
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
   );
 

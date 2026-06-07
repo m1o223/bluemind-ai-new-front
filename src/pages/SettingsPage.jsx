@@ -10,7 +10,7 @@ export default function SettingsPage({ mobile = false }) {
   if (!mobile) {
     return (
       <DesktopSettingsPanel
-        initialSection={sectionId || "home"}
+        initialSection={sectionId || "account"}
         modal
         onClose={() => navigate("/chat", { replace: true })}
       />

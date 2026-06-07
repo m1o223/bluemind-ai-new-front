@@ -4186,7 +4186,7 @@ export default function ChatPage() {
           <DesktopSettingsPanel
             open
             modal
-            initialSection="home"
+            initialSection="account"
             onClose={() => setDesktopSettingsOpen(false)}
           />
         )}
