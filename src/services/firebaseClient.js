@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const firebaseConfig = {
@@ -46,7 +46,7 @@ export async function signInWithFirebaseGoogle() {
   }
 
   if (!firebaseApp) {
-    firebaseApp = initializeApp(firebaseConfig);
+    firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
   }
 
   if (!firebaseAuth) {

@@ -268,12 +268,12 @@ export async function setupReminderNotifications() {
   }
 
   try {
-    const [{ initializeApp }, { getMessaging, getToken }] = await Promise.all([
+    const [{ getApp, getApps, initializeApp }, { getMessaging, getToken }] = await Promise.all([
       import(/* webpackIgnore: true */ "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
       import(/* webpackIgnore: true */ "https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging.js"),
     ]);
 
-    const app = initializeApp(FIREBASE_CONFIG);
+    const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
     const messaging = getMessaging(app);
     const token = await getToken(messaging, {
       vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY,
