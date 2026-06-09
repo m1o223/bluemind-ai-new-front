@@ -2,6 +2,8 @@ import { memo, useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
+  Lock,
+  Glasses,
   Home,
   Bell,
   BookOpen,
@@ -74,9 +76,20 @@ import {
   listConversations,
   searchConversations,
   streamChatMessage,
+  streamHiddenChatMessage,
 } from "@/services/chatService";
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import {
+  createPrivateSpace,
+  deletePrivateSpaceChat,
+  getPrivateSpaceChat,
+  listPrivateSpaceChats,
+  listPrivateSpaces,
+  streamPrivateSpaceMessage,
+  renamePrivateSpaceChat,
+  unlockPrivateSpace,
+} from "@/services/privateSpaceService";
 import {
   createSuggestedReminder,
   suggestReminder,
@@ -665,6 +678,11 @@ function Sidebar({
   onRenameConversation,
   onShareConversation,
   onDeleteConversation,
+  chatSessionMode,
+  privateSpaceName,
+  onSelectNormalChat,
+  onOpenPrivateChat,
+  onOpenHiddenChat,
 }) {
   const navigate = useNavigate();
   const { t, prefs, resolvedTheme } = useApp();
@@ -695,6 +713,13 @@ function Sidebar({
     setIsSearching(true);
     const timer = window.setTimeout(async () => {
       try {
+        if (chatSessionMode !== "normal") {
+          if (!cancelled) {
+            setSearchResults([]);
+          }
+          return;
+        }
+
         const result = await searchConversations(query, 20);
         if (!cancelled) {
           setSearchResults(Array.isArray(result?.items) ? result.items : []);
@@ -715,7 +740,7 @@ function Sidebar({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [searchOpen, searchQuery]);
+  }, [chatSessionMode, searchOpen, searchQuery]);
 
   const openSearchPanel = useCallback(() => {
     setSearchOpen(true);
@@ -755,6 +780,27 @@ function Sidebar({
         setSearchOpen(false);
         setRecentsOpen((open) => !open);
       },
+    },
+    {
+      id: "normal_chat",
+      icon: MessageSquare,
+      label: "Normal Chat",
+      action: onSelectNormalChat,
+      active: chatSessionMode === "normal",
+    },
+    {
+      id: "private_chat",
+      icon: Lock,
+      label: privateSpaceName ? `Private Chat: ${privateSpaceName}` : "Private Chat",
+      action: onOpenPrivateChat,
+      active: chatSessionMode === "private",
+    },
+    {
+      id: "hidden_chat",
+      icon: Glasses,
+      label: "Hidden Chat",
+      action: onOpenHiddenChat,
+      active: chatSessionMode === "hidden",
     },
   ];
 
@@ -809,6 +855,7 @@ function Sidebar({
               isDark
                 ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
                 : "text-[#1F2937] hover:bg-black/[0.05] hover:text-[#0F172A]",
+              item.active && (isDark ? "bg-white/[0.1] text-white" : "bg-[#E8F1FF] text-[#193B68]"),
             )}
             data-testid={item.testId || `nav-${item.id}`}
             title={!isHistoryOpen ? item.label : undefined}
@@ -1450,6 +1497,18 @@ export default function ChatPage() {
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [activeMode, setActiveMode] = useState("default");
+  const [chatSessionMode, setChatSessionMode] = useState("normal");
+  const [privateSpaceModalOpen, setPrivateSpaceModalOpen] = useState(false);
+  const [privateSpaceStep, setPrivateSpaceStep] = useState("list");
+  const [privateSpaces, setPrivateSpaces] = useState([]);
+  const [isLoadingPrivateSpaces, setIsLoadingPrivateSpaces] = useState(false);
+  const [privateSpaceError, setPrivateSpaceError] = useState("");
+  const [privateSpaceForm, setPrivateSpaceForm] = useState({ name: "", pin: "", confirmPin: "" });
+  const [privatePinInput, setPrivatePinInput] = useState("");
+  const [selectedPrivateSpace, setSelectedPrivateSpace] = useState(null);
+  const [activePrivateSpace, setActivePrivateSpace] = useState(null);
+  const [privateSpaceAccessToken, setPrivateSpaceAccessToken] = useState("");
+  const [hiddenChatModalOpen, setHiddenChatModalOpen] = useState(false);
   const [websiteSearchQuery, setWebsiteSearchQuery] = useState("");
   const [activeWebsiteCategory, setActiveWebsiteCategory] = useState("All");
   const [websitePage, setWebsitePage] = useState(0);
@@ -1626,6 +1685,44 @@ export default function ChatPage() {
     setIsAiTyping(false);
   };
 
+  const loadNormalHistory = async () => {
+    const data = await listConversations();
+    setHistory(Array.isArray(data?.items) ? data.items : []);
+  };
+
+  const handleSelectNormalChat = () => {
+    setChatSessionMode("normal");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    setPrivateSpaceModalOpen(false);
+    setHiddenChatModalOpen(false);
+    handleNewChat();
+    loadNormalHistory().catch(() => {});
+  };
+
+  const handleExitPrivateSpace = () => {
+    setChatSessionMode("normal");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    handleNewChat();
+    loadNormalHistory().catch(() => {});
+  };
+
+  const handleStartHiddenChat = () => {
+    setChatSessionMode("hidden");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    setHiddenChatModalOpen(false);
+    setHistory([]);
+    handleNewChat();
+  };
+
+  const handleExitHiddenMode = () => {
+    setChatSessionMode("normal");
+    handleNewChat();
+    loadNormalHistory().catch(() => {});
+  };
+
   const mapConversationMessages = (conversation) => (
     (conversation?.messages || []).map((message) => ({
       id: message.id,
@@ -1641,16 +1738,205 @@ export default function ChatPage() {
   );
 
   const refreshHistory = useCallback(async () => {
-    const data = await listConversations();
+    if (chatSessionMode === "hidden") {
+      setHistory([]);
+      return;
+    }
+
+    const data = chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken
+      ? await listPrivateSpaceChats(activePrivateSpace.privateSpaceId, privateSpaceAccessToken)
+      : await listConversations();
     setHistory(Array.isArray(data?.items) ? data.items : []);
+  }, [activePrivateSpace?.privateSpaceId, chatSessionMode, privateSpaceAccessToken]);
+
+  const loadPrivateSpaces = useCallback(async () => {
+    setIsLoadingPrivateSpaces(true);
+    setPrivateSpaceError("");
+    try {
+      const data = await listPrivateSpaces();
+      setPrivateSpaces(Array.isArray(data?.items) ? data.items : []);
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not load private spaces");
+    } finally {
+      setIsLoadingPrivateSpaces(false);
+    }
   }, []);
+
+  const openPrivateSpaceModal = useCallback(() => {
+    setPrivateSpaceModalOpen(true);
+    setPrivateSpaceStep("list");
+    setPrivateSpaceError("");
+    setPrivatePinInput("");
+    setSelectedPrivateSpace(null);
+    loadPrivateSpaces().catch(() => {});
+  }, [loadPrivateSpaces]);
+
+  const handleCreatePrivateSpace = async (event) => {
+    event.preventDefault();
+    setPrivateSpaceError("");
+
+    try {
+      await createPrivateSpace(privateSpaceForm);
+      setPrivateSpaceForm({ name: "", pin: "", confirmPin: "" });
+      setPrivateSpaceStep("list");
+      await loadPrivateSpaces();
+      toast.success("Private space created");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not create private space");
+    }
+  };
+
+  const handleUnlockPrivateSpace = async (event) => {
+    event.preventDefault();
+    if (!selectedPrivateSpace?.privateSpaceId) return;
+
+    setPrivateSpaceError("");
+    try {
+      const data = await unlockPrivateSpace(selectedPrivateSpace.privateSpaceId, privatePinInput);
+      const unlockedSpace = data?.privateSpace || selectedPrivateSpace;
+      setActivePrivateSpace(unlockedSpace);
+      setPrivateSpaceAccessToken(data?.accessToken || "");
+      setChatSessionMode("private");
+      setPrivateSpaceModalOpen(false);
+      setPrivatePinInput("");
+      setSelectedPrivateSpace(null);
+      setMessages([]);
+      setAttachments([]);
+      setConversationId(null);
+      setActiveConversationId(null);
+      const chats = await listPrivateSpaceChats(unlockedSpace.privateSpaceId, data?.accessToken || "");
+      setHistory(Array.isArray(chats?.items) ? chats.items : []);
+      toast.success(`${unlockedSpace.name} private space unlocked`);
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Incorrect PIN. Try again.");
+    }
+  };
+
+  const renderChatModeModals = () => (
+    <AnimatePresence>
+      {privateSpaceModalOpen && (
+        <motion.div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setPrivateSpaceModalOpen(false)}
+        >
+          <motion.div
+            className={cn(
+              "w-full max-w-md rounded-3xl border p-5 shadow-2xl",
+              isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]",
+            )}
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.98 }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Private Chat</h2>
+                <p className={cn("text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>Unlock a private space inside your account.</p>
+              </div>
+              <button type="button" className={cn("flex h-9 w-9 items-center justify-center rounded-full", isDark ? "bg-white/10 hover:bg-white/15" : "bg-black/5 hover:bg-black/10")} onClick={() => setPrivateSpaceModalOpen(false)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {privateSpaceError && <div className="mb-3 rounded-2xl bg-red-500/10 px-3 py-2 text-sm font-medium text-red-500">{privateSpaceError}</div>}
+
+            {privateSpaceStep === "list" && (
+              <div className="space-y-3">
+                <div className="max-h-64 space-y-2 overflow-y-auto">
+                  {isLoadingPrivateSpaces && <p className={cn("text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>Loading private spaces...</p>}
+                  {!isLoadingPrivateSpaces && privateSpaces.length === 0 && (
+                    <p className={cn("rounded-2xl border px-3 py-4 text-sm", isDark ? "border-white/10 text-[#A7A7A7]" : "border-black/10 text-[#64748B]")}>No private spaces yet.</p>
+                  )}
+                  {privateSpaces.map((space) => (
+                    <button
+                      key={space.privateSpaceId}
+                      type="button"
+                      className={cn("flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition", isDark ? "border-white/10 hover:bg-white/10" : "border-black/10 hover:bg-black/5")}
+                      onClick={() => {
+                        setSelectedPrivateSpace(space);
+                        setPrivatePinInput("");
+                        setPrivateSpaceError("");
+                        setPrivateSpaceStep("pin");
+                      }}
+                    >
+                      <Lock className="h-5 w-5" />
+                      <span className="font-medium">{space.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]" onClick={() => setPrivateSpaceStep("create")}>
+                  Create Private Space
+                </button>
+              </div>
+            )}
+
+            {privateSpaceStep === "create" && (
+              <form className="space-y-3" onSubmit={handleCreatePrivateSpace}>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Private Space Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="PIN" inputMode="numeric" type="password" value={privateSpaceForm.pin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "") }))} />
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Confirm PIN" inputMode="numeric" type="password" value={privateSpaceForm.confirmPin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, confirmPin: event.target.value.replace(/\D/g, "") }))} />
+                <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]">Create Private Space</button>
+              </form>
+            )}
+
+            {privateSpaceStep === "pin" && selectedPrivateSpace && (
+              <form className="space-y-3" onSubmit={handleUnlockPrivateSpace}>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <h3 className="text-base font-semibold">Enter PIN for {selectedPrivateSpace.name}</h3>
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="PIN" inputMode="numeric" type="password" value={privatePinInput} onChange={(event) => setPrivatePinInput(event.target.value.replace(/\D/g, ""))} />
+                <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]">Unlock</button>
+              </form>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+
+      {hiddenChatModalOpen && (
+        <motion.div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setHiddenChatModalOpen(false)}
+        >
+          <motion.div
+            className={cn("w-full max-w-sm rounded-3xl border p-5 shadow-2xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]")}
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.98 }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Hidden Chat</h2>
+              <button type="button" className={cn("flex h-9 w-9 items-center justify-center rounded-full", isDark ? "bg-white/10 hover:bg-white/15" : "bg-black/5 hover:bg-black/10")} onClick={() => setHiddenChatModalOpen(false)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className={cn("mb-5 text-sm leading-6", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>
+              This chat is temporary. Messages are not saved, will not appear in History or Search, and are deleted when you leave.
+            </p>
+            <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]" onClick={handleStartHiddenChat}>
+              Start Hidden Chat
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   const handleOpenConversation = async (id) => {
     if (!id || isAiTyping) return;
 
     setIsHistoryLoading(true);
     try {
-      const data = await getConversation(id);
+      const data = chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken
+        ? await getPrivateSpaceChat(activePrivateSpace.privateSpaceId, id, privateSpaceAccessToken)
+        : await getConversation(id);
       const conversation = data?.conversation;
 
       setConversationId(conversation.conversationId);
@@ -1674,7 +1960,11 @@ export default function ChatPage() {
       )));
 
       try {
-        await renameChat(conversation.conversationId, inlineTitle);
+        if (chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken) {
+          await renamePrivateSpaceChat(activePrivateSpace.privateSpaceId, conversation.conversationId, inlineTitle, privateSpaceAccessToken);
+        } else {
+          await renameChat(conversation.conversationId, inlineTitle);
+        }
         refreshHistory().catch(() => {});
       } catch (error) {
         setHistory(previousHistory);
@@ -1701,7 +1991,11 @@ export default function ChatPage() {
     )));
 
     try {
-      await renameChat(renameTarget.conversationId, nextTitle);
+      if (chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken) {
+        await renamePrivateSpaceChat(activePrivateSpace.privateSpaceId, renameTarget.conversationId, nextTitle, privateSpaceAccessToken);
+      } else {
+        await renameChat(renameTarget.conversationId, nextTitle);
+      }
       setRenameTarget(null);
       setRenameTitle("");
       refreshHistory().catch(() => {});
@@ -1720,7 +2014,11 @@ export default function ChatPage() {
     }
 
     try {
-      await deleteChat(conversation.conversationId);
+      if (chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken) {
+        await deletePrivateSpaceChat(activePrivateSpace.privateSpaceId, conversation.conversationId, privateSpaceAccessToken);
+      } else {
+        await deleteChat(conversation.conversationId);
+      }
     } catch (error) {
       setHistory(previousHistory);
       toast.error(error.message || t("saveFailed"));
@@ -2140,13 +2438,23 @@ export default function ChatPage() {
         return;
       }
 
-      await streamChatMessage({
+      const streamMessage = chatSessionMode === "hidden"
+        ? streamHiddenChatMessage
+        : chatSessionMode === "private"
+          ? streamPrivateSpaceMessage
+          : streamChatMessage;
+      const streamOptions = {
         message: currentInput,
         imageIds,
-        conversationId,
+        conversationId: chatSessionMode === "hidden" ? undefined : conversationId,
+        privateSpaceId: activePrivateSpace?.privateSpaceId,
+        accessToken: privateSpaceAccessToken,
         mode: selectedResponseMode,
         metadata: {
           chatMode: mode,
+          chatSessionMode,
+          privateSpaceId: chatSessionMode === "private" ? activePrivateSpace?.privateSpaceId : undefined,
+          hiddenChat: chatSessionMode === "hidden" || undefined,
           mode: selectedResponseMode,
           responseMode: selectedResponseMode,
           writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
@@ -2157,6 +2465,7 @@ export default function ChatPage() {
           if (payload?.conversation?.conversationId) {
             setConversationId(payload.conversation.conversationId);
             setActiveConversationId(payload.conversation.conversationId);
+            if (chatSessionMode === "hidden") return;
             setHistory((prev) => {
               const exists = prev.some((item) => item.conversationId === payload.conversation.conversationId);
               if (exists) return prev;
@@ -2177,7 +2486,7 @@ export default function ChatPage() {
           if (payload?.conversation?.conversationId) {
             setConversationId(payload.conversation.conversationId);
             setActiveConversationId(payload.conversation.conversationId);
-            setHistory((prev) => {
+            if (chatSessionMode !== "hidden") setHistory((prev) => {
               const conversation = {
                 ...payload.conversation,
                 updatedAt: new Date().toISOString(),
@@ -2186,7 +2495,7 @@ export default function ChatPage() {
               const withoutCurrent = prev.filter((item) => item.conversationId !== conversation.conversationId);
               return [conversation, ...withoutCurrent];
             });
-            refreshHistory().catch(() => {});
+            if (chatSessionMode !== "hidden") refreshHistory().catch(() => {});
           }
 
           setMessages((prev) =>
@@ -2201,7 +2510,7 @@ export default function ChatPage() {
             ),
           );
 
-          if (currentInput) {
+          if (currentInput && chatSessionMode !== "hidden") {
             const suggestionResult = await suggestReminder(
               currentInput,
               payload?.conversation?.conversationId || conversationId,
@@ -2223,7 +2532,9 @@ export default function ChatPage() {
             }
           }
         },
-      });
+      };
+
+      await streamMessage(streamOptions);
     } catch (error) {
       flushAiDelta(aiMessageId);
 
@@ -2257,8 +2568,10 @@ export default function ChatPage() {
     }
   }, [
     activeMode,
+    activePrivateSpace?.privateSpaceId,
     attachments,
     activeWriteTask,
+    chatSessionMode,
     conversationId,
     flushAiDelta,
     input,
@@ -2267,6 +2580,7 @@ export default function ChatPage() {
     queueAiDelta,
     refreshHistory,
     responseMode,
+    privateSpaceAccessToken,
     stopVoiceInput,
     t,
     writeFiles,
@@ -4180,6 +4494,7 @@ export default function ChatPage() {
       </AnimatePresence>
 
       {renderWebsiteDetails()}
+      {renderChatModeModals()}
 
       <AnimatePresence>
         {desktopSettingsOpen && (
@@ -4204,6 +4519,11 @@ export default function ChatPage() {
           onRenameConversation={handleRenameConversation}
           onShareConversation={handleShareConversation}
           onDeleteConversation={handleDeleteConversation}
+          chatSessionMode={chatSessionMode}
+          privateSpaceName={activePrivateSpace?.name}
+          onSelectNormalChat={handleSelectNormalChat}
+          onOpenPrivateChat={openPrivateSpaceModal}
+          onOpenHiddenChat={() => setHiddenChatModalOpen(true)}
         />
       </div>
 
@@ -4216,6 +4536,20 @@ export default function ChatPage() {
         >
           <div className="flex items-center gap-3">
             {renderResponseModeSelector()}
+            {chatSessionMode === "private" && activePrivateSpace && (
+              <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[#E8F1FF] text-[#193B68]")}>
+                <Lock className="h-3.5 w-3.5" />
+                <span>{activePrivateSpace.name} Private Space</span>
+                <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitPrivateSpace}>Exit</button>
+              </div>
+            )}
+            {chatSessionMode === "hidden" && (
+              <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[#F1F5F9] text-[#111827]")}>
+                <Glasses className="h-3.5 w-3.5" />
+                <span>Hidden Mode</span>
+                <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitHiddenMode}>Exit</button>
+              </div>
+            )}
           </div>
           <button
             onClick={handleNewChat}

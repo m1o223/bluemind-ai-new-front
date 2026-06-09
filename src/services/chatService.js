@@ -60,10 +60,10 @@ async function refreshAccessToken() {
   return persistStreamSession(payload?.data ?? payload);
 }
 
-function createStreamRequest(payload, signal) {
+function createStreamRequest(payload, signal, path = "/chat/stream") {
   const token = localStorage.getItem(STORAGE_KEYS.token);
 
-  return fetch(`${API_BASE_URL}/chat/stream`, {
+  return fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -147,6 +147,67 @@ export async function streamChatMessage({
       if (parsed.event === "error") {
         onError?.(parsed.data);
         throw new Error(parsed.data?.message || "AI stream failed");
+      }
+    }
+  }
+}
+
+export async function streamHiddenChatMessage(options) {
+  const {
+    message,
+    imageIds = [],
+    mode,
+    metadata,
+    onReady,
+    onAiStart,
+    onDelta,
+    onComplete,
+    onError,
+    signal,
+  } = options;
+  const payload = {};
+
+  if (imageIds.length > 0) payload.imageIds = imageIds;
+  if (message?.trim()) payload.message = message.trim();
+  if (metadata && Object.keys(metadata).length > 0) payload.metadata = metadata;
+  if (mode) payload.mode = mode;
+
+  let response = await createStreamRequest(payload, signal, "/chat/hidden/stream");
+
+  if (response.status === 401) {
+    const session = await refreshAccessToken();
+    if (session?.token) {
+      response = await createStreamRequest(payload, signal, "/chat/hidden/stream");
+    }
+  }
+
+  if (!response.ok || !response.body) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error?.message || "Hidden chat stream failed");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split("\n\n");
+    buffer = blocks.pop() || "";
+
+    for (const block of blocks) {
+      const parsed = parseSseBlock(block.trim());
+
+      if (parsed.event === "ready") onReady?.(parsed.data);
+      if (parsed.event === "ai_start") onAiStart?.(parsed.data);
+      if (parsed.event === "delta") onDelta?.(parsed.data);
+      if (parsed.event === "complete") onComplete?.(parsed.data);
+      if (parsed.event === "error") {
+        onError?.(parsed.data);
+        throw new Error(parsed.data?.message || "Hidden chat stream failed");
       }
     }
   }

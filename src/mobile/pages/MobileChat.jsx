@@ -14,6 +14,8 @@ import {
   Clipboard,
   FileText,
   Image,
+  Lock,
+  Glasses,
   MoreVertical,
   MessageSquare,
   Mic,
@@ -54,9 +56,19 @@ import {
 } from "@/data/searchDiscovery";
 import { getApiErrorMessage } from "@/services/api";
 import { restoreExistingSession } from "@/services/authService";
-import { getConversation, listConversations, searchConversations, streamChatMessage } from "@/services/chatService";
+import { getConversation, listConversations, searchConversations, streamChatMessage, streamHiddenChatMessage } from "@/services/chatService";
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import {
+  createPrivateSpace,
+  deletePrivateSpaceChat,
+  getPrivateSpaceChat,
+  listPrivateSpaceChats,
+  listPrivateSpaces,
+  streamPrivateSpaceMessage,
+  renamePrivateSpaceChat,
+  unlockPrivateSpace,
+} from "@/services/privateSpaceService";
 import { AUTH_SESSION_CLEARED_EVENT } from "@/services/storageKeys";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 
@@ -501,6 +513,18 @@ export default function MobileChat() {
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [chatSessionMode, setChatSessionMode] = useState("normal");
+  const [privateSpaceModalOpen, setPrivateSpaceModalOpen] = useState(false);
+  const [privateSpaceStep, setPrivateSpaceStep] = useState("list");
+  const [privateSpaces, setPrivateSpaces] = useState([]);
+  const [isLoadingPrivateSpaces, setIsLoadingPrivateSpaces] = useState(false);
+  const [privateSpaceError, setPrivateSpaceError] = useState("");
+  const [privateSpaceForm, setPrivateSpaceForm] = useState({ name: "", pin: "", confirmPin: "" });
+  const [selectedPrivateSpace, setSelectedPrivateSpace] = useState(null);
+  const [privatePinInput, setPrivatePinInput] = useState("");
+  const [activePrivateSpace, setActivePrivateSpace] = useState(null);
+  const [privateSpaceAccessToken, setPrivateSpaceAccessToken] = useState("");
+  const [hiddenChatModalOpen, setHiddenChatModalOpen] = useState(false);
   const [messageFeedback, setMessageFeedback] = useState({});
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [responseMode, setResponseMode] = useState(() => {
@@ -632,6 +656,31 @@ export default function MobileChat() {
     }
   }, [redirectToMobileLogin]);
 
+  const loadConversationHistory = useCallback(async () => {
+    setIsLoadingConversations(true);
+    setHistoryError("");
+
+    try {
+      const authenticated = await ensureMobileChatAuth();
+      if (!authenticated) return;
+
+      if (chatSessionMode === "hidden") {
+        setConversations([]);
+        return;
+      }
+
+      const data = chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken
+        ? await listPrivateSpaceChats(activePrivateSpace.privateSpaceId, privateSpaceAccessToken)
+        : await listConversations();
+      setConversations(Array.isArray(data?.items) ? data.items : []);
+    } catch (error) {
+      setHistoryError(error?.message || "Could not load chat history");
+      setConversations([]);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, [activePrivateSpace?.privateSpaceId, chatSessionMode, ensureMobileChatAuth, privateSpaceAccessToken]);
+
   useEffect(() => {
     resizeChatComposer();
   }, [message, resizeChatComposer, shouldPinComposer]);
@@ -647,33 +696,13 @@ export default function MobileChat() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadHistory() {
-      setIsLoadingConversations(true);
-      setHistoryError("");
-      try {
-        const authenticated = await ensureMobileChatAuth();
-        if (!authenticated || cancelled) return;
-        const data = await listConversations();
-        if (!cancelled) {
-          setConversations(Array.isArray(data?.items) ? data.items : []);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setHistoryError(error?.message || "Could not load chat history");
-          setConversations([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingConversations(false);
-        }
-      }
-    }
-
-    loadHistory();
+    loadConversationHistory().catch(() => {
+      if (!cancelled) setIsLoadingConversations(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, [ensureMobileChatAuth]);
+  }, [loadConversationHistory]);
 
   useEffect(() => {
     if (!menuSearchOpen) return undefined;
@@ -695,6 +724,19 @@ export default function MobileChat() {
       try {
         const authenticated = await ensureMobileChatAuth();
         if (!authenticated || cancelled) return;
+        if (chatSessionMode === "hidden") {
+          if (!cancelled) setSearchResults([]);
+          return;
+        }
+
+        if (chatSessionMode === "private") {
+          const normalized = query.toLowerCase();
+          if (!cancelled) {
+            setSearchResults(conversations.filter((item) => String(item.title || "").toLowerCase().includes(normalized)).slice(0, 20));
+          }
+          return;
+        }
+
         const data = await searchConversations(query, 20);
         if (!cancelled) {
           setSearchResults(Array.isArray(data?.items) ? data.items : []);
@@ -714,7 +756,7 @@ export default function MobileChat() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [ensureMobileChatAuth, menuSearchOpen, menuSearchQuery]);
+  }, [chatSessionMode, conversations, ensureMobileChatAuth, menuSearchOpen, menuSearchQuery]);
 
   useEffect(() => {
     attachedImagesRef.current = attachedImages;
@@ -817,7 +859,9 @@ export default function MobileChat() {
     try {
       const authenticated = await ensureMobileChatAuth();
       if (!authenticated) return;
-      const data = await getConversation(conversationId);
+      const data = chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken
+        ? await getPrivateSpaceChat(activePrivateSpace.privateSpaceId, conversationId, privateSpaceAccessToken)
+        : await getConversation(conversationId);
       const conversation = data?.conversation;
 
       if (!conversation?.conversationId) {
@@ -861,7 +905,7 @@ export default function MobileChat() {
     } finally {
       setIsOpeningConversation(false);
     }
-  }, [ensureMobileChatAuth, isChatSending, isGeneratingImage, isOpeningConversation, setSearchParams, t]);
+  }, [activePrivateSpace?.privateSpaceId, chatSessionMode, ensureMobileChatAuth, isChatSending, isGeneratingImage, isOpeningConversation, privateSpaceAccessToken, setSearchParams, t]);
 
   useEffect(() => {
     if (
@@ -908,6 +952,102 @@ export default function MobileChat() {
     navigate("/mobile/chat", { replace: false });
   };
 
+  const loadNormalConversationHistory = useCallback(async () => {
+    const data = await listConversations();
+    setConversations(Array.isArray(data?.items) ? data.items : []);
+  }, []);
+
+  const selectNormalChat = () => {
+    setChatSessionMode("normal");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    startNewChat();
+    loadNormalConversationHistory().catch(() => {});
+  };
+
+  const exitPrivateSpace = () => {
+    setChatSessionMode("normal");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    startNewChat();
+    loadNormalConversationHistory().catch(() => {});
+  };
+
+  const startHiddenChat = () => {
+    setChatSessionMode("hidden");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    setHiddenChatModalOpen(false);
+    setConversations([]);
+    startNewChat();
+  };
+
+  const exitHiddenMode = () => {
+    setChatSessionMode("normal");
+    startNewChat();
+    loadNormalConversationHistory().catch(() => {});
+  };
+
+  const loadMobilePrivateSpaces = useCallback(async () => {
+    setIsLoadingPrivateSpaces(true);
+    setPrivateSpaceError("");
+    try {
+      const data = await listPrivateSpaces();
+      setPrivateSpaces(Array.isArray(data?.items) ? data.items : []);
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not load private spaces");
+    } finally {
+      setIsLoadingPrivateSpaces(false);
+    }
+  }, []);
+
+  const openPrivateChatModal = useCallback(() => {
+    closeMenu();
+    setPrivateSpaceModalOpen(true);
+    setPrivateSpaceStep("list");
+    setPrivateSpaceError("");
+    setSelectedPrivateSpace(null);
+    setPrivatePinInput("");
+    loadMobilePrivateSpaces().catch(() => {});
+  }, [loadMobilePrivateSpaces]);
+
+  const handleCreatePrivateSpace = async (event) => {
+    event.preventDefault();
+    setPrivateSpaceError("");
+    try {
+      await createPrivateSpace(privateSpaceForm);
+      setPrivateSpaceForm({ name: "", pin: "", confirmPin: "" });
+      setPrivateSpaceStep("list");
+      await loadMobilePrivateSpaces();
+      toast.success("Private space created");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not create private space");
+    }
+  };
+
+  const handleUnlockPrivateSpace = async (event) => {
+    event.preventDefault();
+    if (!selectedPrivateSpace?.privateSpaceId) return;
+
+    setPrivateSpaceError("");
+    try {
+      const data = await unlockPrivateSpace(selectedPrivateSpace.privateSpaceId, privatePinInput);
+      const unlockedSpace = data?.privateSpace || selectedPrivateSpace;
+      setActivePrivateSpace(unlockedSpace);
+      setPrivateSpaceAccessToken(data?.accessToken || "");
+      setChatSessionMode("private");
+      setPrivateSpaceModalOpen(false);
+      setPrivatePinInput("");
+      setSelectedPrivateSpace(null);
+      startNewChat();
+      const chats = await listPrivateSpaceChats(unlockedSpace.privateSpaceId, data?.accessToken || "");
+      setConversations(Array.isArray(chats?.items) ? chats.items : []);
+      toast.success(`${unlockedSpace.name} private space unlocked`);
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Incorrect PIN. Try again.");
+    }
+  };
+
   const openConversation = (conversationId) => {
     closeMenu();
     setMenuSearchOpen(false);
@@ -938,11 +1078,14 @@ export default function MobileChat() {
     )));
 
     try {
-      await renameChat(renameTarget.conversationId, nextTitle);
+      if (chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken) {
+        await renamePrivateSpaceChat(activePrivateSpace.privateSpaceId, renameTarget.conversationId, nextTitle, privateSpaceAccessToken);
+      } else {
+        await renameChat(renameTarget.conversationId, nextTitle);
+      }
       setRenameTarget(null);
       setRenameTitle("");
-      const data = await listConversations().catch(() => null);
-      if (Array.isArray(data?.items)) setConversations(data.items);
+      await loadConversationHistory();
     } catch (error) {
       setConversations(previousConversations);
       toast.error(error.message || "Could not rename conversation");
@@ -964,7 +1107,11 @@ export default function MobileChat() {
     }
 
     try {
-      await deleteChat(target.conversationId);
+      if (chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken) {
+        await deletePrivateSpaceChat(activePrivateSpace.privateSpaceId, target.conversationId, privateSpaceAccessToken);
+      } else {
+        await deleteChat(target.conversationId);
+      }
     } catch (error) {
       setConversations(previousConversations);
       toast.error(error.message || "Could not delete conversation");
@@ -1501,15 +1648,28 @@ export default function MobileChat() {
     streamAbortRef.current = controller;
 
     try {
-      await streamChatMessage({
+      const streamMessage = chatSessionMode === "hidden"
+        ? streamHiddenChatMessage
+        : chatSessionMode === "private"
+          ? streamPrivateSpaceMessage
+          : streamChatMessage;
+
+      await streamMessage({
         message: currentMessage,
         imageIds: imageIds.length ? imageIds : activeWriteTask ? writeAttachments.map((file) => file.imageId).filter(Boolean) : [],
-        conversationId: activeConversationId,
+        conversationId: chatSessionMode === "hidden" ? undefined : activeConversationId,
+        privateSpaceId: activePrivateSpace?.privateSpaceId,
+        accessToken: privateSpaceAccessToken,
         mode: selectedMode,
-        metadata: userMetadata,
+        metadata: {
+          ...userMetadata,
+          chatSessionMode,
+          privateSpaceId: chatSessionMode === "private" ? activePrivateSpace?.privateSpaceId : undefined,
+          hiddenChat: chatSessionMode === "hidden" || undefined,
+        },
         signal: controller.signal,
         onReady: (payload) => {
-          if (payload?.conversation?.conversationId) {
+          if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
             setSearchParams({ conversation: payload.conversation.conversationId });
           }
         },
@@ -1524,7 +1684,7 @@ export default function MobileChat() {
           );
         },
         onComplete: (payload) => {
-          if (payload?.conversation?.conversationId) {
+          if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
             setSearchParams({ conversation: payload.conversation.conversationId });
           }
           setMessages((current) =>
@@ -1565,7 +1725,7 @@ export default function MobileChat() {
       stopRequestedRef.current = false;
       setIsChatSending(false);
     }
-  }, [activeConversationId, activeWriteTask, ensureMobileChatAuth, isChatSending, isGeneratingImage, isListening, responseMode, setSearchParams, stopVoiceInput, writeAttachments]);
+  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, isChatSending, isGeneratingImage, isListening, privateSpaceAccessToken, responseMode, setSearchParams, stopVoiceInput, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -2500,6 +2660,18 @@ export default function MobileChat() {
         </button>
       </header>
 
+      {(chatSessionMode === "private" || chatSessionMode === "hidden") && (
+        <div className={`z-30 flex items-center justify-between border-b px-4 py-2 text-xs font-bold ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
+          <span className="flex items-center gap-2">
+            {chatSessionMode === "private" ? <Lock className="h-4 w-4" /> : <Glasses className="h-4 w-4" />}
+            {chatSessionMode === "private" ? `${activePrivateSpace?.name || "Private"} Private Space` : "Hidden Mode"}
+          </span>
+          <button type="button" className={isDark ? "text-[#A7C7FF]" : "text-[#193B68]"} onClick={chatSessionMode === "private" ? exitPrivateSpace : exitHiddenMode}>
+            Exit
+          </button>
+        </div>
+      )}
+
       <section className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={messagesScrollRef}
@@ -3246,6 +3418,88 @@ export default function MobileChat() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {privateSpaceModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-[90] flex items-end bg-black/45 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPrivateSpaceModalOpen(false)}
+          >
+            <motion.div
+              className={`max-h-[82dvh] w-full overflow-y-auto rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]"}`}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">Private Chat</h2>
+                  <p className={`text-sm ${mutedText}`}>Unlock a private space inside your account.</p>
+                </div>
+                <button type="button" className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full bg-white/10" : "flex h-10 w-10 items-center justify-center rounded-full bg-black/5"} onClick={() => setPrivateSpaceModalOpen(false)}>
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {privateSpaceError && <div className="mb-3 rounded-2xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-500">{privateSpaceError}</div>}
+              {privateSpaceStep === "list" && (
+                <div className="space-y-3">
+                  {isLoadingPrivateSpaces && <p className={`text-sm ${mutedText}`}>Loading private spaces...</p>}
+                  {!isLoadingPrivateSpaces && privateSpaces.length === 0 && <p className={`rounded-2xl border px-3 py-4 text-sm ${borderColor} ${mutedText}`}>No private spaces yet.</p>}
+                  {privateSpaces.map((space) => (
+                    <button key={space.privateSpaceId} type="button" className={`flex min-h-[54px] w-full items-center gap-3 rounded-2xl border px-4 text-left font-semibold ${borderColor}`} onClick={() => {
+                      setSelectedPrivateSpace(space);
+                      setPrivatePinInput("");
+                      setPrivateSpaceError("");
+                      setPrivateSpaceStep("pin");
+                    }}>
+                      <Lock className="h-5 w-5" />
+                      {space.name}
+                    </button>
+                  ))}
+                  <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white" onClick={() => setPrivateSpaceStep("create")}>Create Private Space</button>
+                </div>
+              )}
+              {privateSpaceStep === "create" && (
+                <form className="space-y-3" onSubmit={handleCreatePrivateSpace}>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[#A7C7FF]" : "text-sm font-bold text-[#193B68]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="Private Space Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
+                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="PIN" inputMode="numeric" type="password" value={privateSpaceForm.pin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "") }))} />
+                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="Confirm PIN" inputMode="numeric" type="password" value={privateSpaceForm.confirmPin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, confirmPin: event.target.value.replace(/\D/g, "") }))} />
+                  <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white">Create Private Space</button>
+                </form>
+              )}
+              {privateSpaceStep === "pin" && selectedPrivateSpace && (
+                <form className="space-y-3" onSubmit={handleUnlockPrivateSpace}>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[#A7C7FF]" : "text-sm font-bold text-[#193B68]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <h3 className="text-base font-bold">Enter PIN for {selectedPrivateSpace.name}</h3>
+                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="PIN" inputMode="numeric" type="password" value={privatePinInput} onChange={(event) => setPrivatePinInput(event.target.value.replace(/\D/g, ""))} />
+                  <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white">Unlock</button>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {hiddenChatModalOpen && (
+          <motion.div className="fixed inset-0 z-[90] flex items-end bg-black/45 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setHiddenChatModalOpen(false)}>
+            <motion.div className={`w-full rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]"}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} onClick={(event) => event.stopPropagation()}>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold">Hidden Chat</h2>
+                <button type="button" className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full bg-white/10" : "flex h-10 w-10 items-center justify-center rounded-full bg-black/5"} onClick={() => setHiddenChatModalOpen(false)}>
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <p className={`mb-5 text-sm leading-6 ${mutedText}`}>This chat is temporary. Messages are not saved, will not appear in History or Search, and are deleted when you leave.</p>
+              <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white" onClick={startHiddenChat}>Start Hidden Chat</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {menuOpen && (
           <motion.section
             className={`fixed inset-0 z-[70] flex flex-col overflow-hidden ${textColor}`}
@@ -3313,6 +3567,33 @@ export default function MobileChat() {
                 >
                   <Clock3 className="h-5 w-5 shrink-0" />
                   <span>Recent Chats</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={selectNormalChat}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[#111827] active:bg-[#EEF2F7]"} flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold ${chatSessionMode === "normal" ? (isDark ? "bg-white/[0.08]" : "bg-[#E8F1FF]") : ""}`}
+                >
+                  <MessageSquare className="h-5 w-5 shrink-0" />
+                  <span>Normal Chat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openPrivateChatModal}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[#111827] active:bg-[#EEF2F7]"} flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold ${chatSessionMode === "private" ? (isDark ? "bg-white/[0.08]" : "bg-[#E8F1FF]") : ""}`}
+                >
+                  <Lock className="h-5 w-5 shrink-0" />
+                  <span>{activePrivateSpace?.name ? `Private Chat: ${activePrivateSpace.name}` : "Private Chat"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    setHiddenChatModalOpen(true);
+                  }}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[#111827] active:bg-[#EEF2F7]"} flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold ${chatSessionMode === "hidden" ? (isDark ? "bg-white/[0.08]" : "bg-[#E8F1FF]") : ""}`}
+                >
+                  <Glasses className="h-5 w-5 shrink-0" />
+                  <span>Hidden Chat</span>
                 </button>
               </section>
 
