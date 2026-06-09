@@ -82,11 +82,14 @@ import { deleteChat, renameChat, shareChat } from "@/services/conversationAction
 import { generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 import {
   createPrivateSpace,
+  changePrivateSpacePin,
+  deletePrivateSpace,
   deletePrivateSpaceChat,
   getPrivateSpaceChat,
   listPrivateSpaceChats,
   listPrivateSpaces,
   streamPrivateSpaceMessage,
+  renamePrivateSpace,
   renamePrivateSpaceChat,
   unlockPrivateSpace,
 } from "@/services/privateSpaceService";
@@ -781,6 +784,9 @@ function Sidebar({
         setRecentsOpen((open) => !open);
       },
     },
+  ];
+
+  const chatModeItems = [
     {
       id: "normal_chat",
       icon: MessageSquare,
@@ -791,7 +797,7 @@ function Sidebar({
     {
       id: "private_chat",
       icon: Lock,
-      label: privateSpaceName ? `Private Chat: ${privateSpaceName}` : "Private Chat",
+      label: "Private Chat",
       action: onOpenPrivateChat,
       active: chatSessionMode === "private",
     },
@@ -1065,6 +1071,7 @@ function Sidebar({
 
       <nav className={cn("space-y-2 px-3.5 pt-4", !isHistoryOpen && "px-4")} data-testid="chat-sidebar-nav">
         {renderSidebarSection("CHAT", chatItems)}
+        {renderSidebarSection("CHAT MODES", chatModeItems)}
         {renderSidebarSection("BLUEMIND", bluemindItems)}
       </nav>
 
@@ -1504,6 +1511,11 @@ export default function ChatPage() {
   const [isLoadingPrivateSpaces, setIsLoadingPrivateSpaces] = useState(false);
   const [privateSpaceError, setPrivateSpaceError] = useState("");
   const [privateSpaceForm, setPrivateSpaceForm] = useState({ name: "", pin: "", confirmPin: "" });
+  const [privateSpaceActionMenuId, setPrivateSpaceActionMenuId] = useState(null);
+  const [isCreatingPrivateSpace, setIsCreatingPrivateSpace] = useState(false);
+  const [privateSpaceRenameName, setPrivateSpaceRenameName] = useState("");
+  const [privateSpacePinForm, setPrivateSpacePinForm] = useState({ currentPin: "", newPin: "", confirmNewPin: "" });
+  const [privateSpaceDeleteTarget, setPrivateSpaceDeleteTarget] = useState(null);
   const [privatePinInput, setPrivatePinInput] = useState("");
   const [selectedPrivateSpace, setSelectedPrivateSpace] = useState(null);
   const [activePrivateSpace, setActivePrivateSpace] = useState(null);
@@ -1754,9 +1766,12 @@ export default function ChatPage() {
     setPrivateSpaceError("");
     try {
       const data = await listPrivateSpaces();
-      setPrivateSpaces(Array.isArray(data?.items) ? data.items : []);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setPrivateSpaces(items);
+      return items;
     } catch (error) {
-      setPrivateSpaceError(error.message || "Could not load private spaces");
+      setPrivateSpaceError(error.message || "Could not load private chats");
+      return [];
     } finally {
       setIsLoadingPrivateSpaces(false);
     }
@@ -1768,12 +1783,19 @@ export default function ChatPage() {
     setPrivateSpaceError("");
     setPrivatePinInput("");
     setSelectedPrivateSpace(null);
-    loadPrivateSpaces().catch(() => {});
+    setPrivateSpaceActionMenuId(null);
+    setPrivateSpaceDeleteTarget(null);
+    loadPrivateSpaces()
+      .then((items) => {
+        setPrivateSpaceStep(items.length ? "list" : "create");
+      })
+      .catch(() => {});
   }, [loadPrivateSpaces]);
 
   const handleCreatePrivateSpace = async (event) => {
     event.preventDefault();
     setPrivateSpaceError("");
+    setIsCreatingPrivateSpace(true);
 
     try {
       await createPrivateSpace(privateSpaceForm);
@@ -1782,8 +1804,20 @@ export default function ChatPage() {
       await loadPrivateSpaces();
       toast.success("Private space created");
     } catch (error) {
-      setPrivateSpaceError(error.message || "Could not create private space");
+      setPrivateSpaceError(error.message || "Could not create private chat");
+    } finally {
+      setIsCreatingPrivateSpace(false);
     }
+  };
+
+  const handleStartCreatePrivateSpace = () => {
+    if (privateSpaces.length >= 5) {
+      setPrivateSpaceError("Maximum private chats reached. Delete one before creating another.");
+      return;
+    }
+
+    setPrivateSpaceError("");
+    setPrivateSpaceStep("create");
   };
 
   const handleUnlockPrivateSpace = async (event) => {
@@ -1806,9 +1840,63 @@ export default function ChatPage() {
       setActiveConversationId(null);
       const chats = await listPrivateSpaceChats(unlockedSpace.privateSpaceId, data?.accessToken || "");
       setHistory(Array.isArray(chats?.items) ? chats.items : []);
-      toast.success(`${unlockedSpace.name} private space unlocked`);
+      toast.success(`${unlockedSpace.name} private chat unlocked`);
     } catch (error) {
       setPrivateSpaceError(error.message || "Incorrect PIN. Try again.");
+    }
+  };
+
+  const handleRenamePrivateSpace = async (event) => {
+    event.preventDefault();
+    if (!selectedPrivateSpace?.privateSpaceId || !privateSpaceRenameName.trim()) return;
+
+    setPrivateSpaceError("");
+    try {
+      const data = await renamePrivateSpace(selectedPrivateSpace.privateSpaceId, privateSpaceRenameName.trim());
+      const updated = data?.privateSpace;
+      if (updated) {
+        setPrivateSpaces((items) => items.map((item) => item.privateSpaceId === updated.privateSpaceId ? updated : item));
+        if (activePrivateSpace?.privateSpaceId === updated.privateSpaceId) setActivePrivateSpace(updated);
+      }
+      setSelectedPrivateSpace(null);
+      setPrivateSpaceRenameName("");
+      setPrivateSpaceStep("list");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not rename private chat");
+    }
+  };
+
+  const handleChangePrivateSpacePin = async (event) => {
+    event.preventDefault();
+    if (!selectedPrivateSpace?.privateSpaceId) return;
+
+    setPrivateSpaceError("");
+    try {
+      await changePrivateSpacePin(selectedPrivateSpace.privateSpaceId, privateSpacePinForm);
+      setPrivateSpacePinForm({ currentPin: "", newPin: "", confirmNewPin: "" });
+      setSelectedPrivateSpace(null);
+      setPrivateSpaceStep("list");
+      toast.success("PIN changed");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not change PIN");
+    }
+  };
+
+  const handleDeletePrivateSpace = async () => {
+    if (!privateSpaceDeleteTarget?.privateSpaceId) return;
+
+    setPrivateSpaceError("");
+    try {
+      await deletePrivateSpace(privateSpaceDeleteTarget.privateSpaceId);
+      setPrivateSpaces((items) => items.filter((item) => item.privateSpaceId !== privateSpaceDeleteTarget.privateSpaceId));
+      if (activePrivateSpace?.privateSpaceId === privateSpaceDeleteTarget.privateSpaceId) {
+        handleExitPrivateSpace();
+      }
+      setPrivateSpaceDeleteTarget(null);
+      setSelectedPrivateSpace(null);
+      setPrivateSpaceStep("list");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not delete private chat");
     }
   };
 
@@ -1835,7 +1923,7 @@ export default function ChatPage() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Private Chat</h2>
-                <p className={cn("text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>Unlock a private space inside your account.</p>
+                <p className={cn("text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>Unlock a private chat inside your account.</p>
               </div>
               <button type="button" className={cn("flex h-9 w-9 items-center justify-center rounded-full", isDark ? "bg-white/10 hover:bg-white/15" : "bg-black/5 hover:bg-black/10")} onClick={() => setPrivateSpaceModalOpen(false)}>
                 <X className="h-5 w-5" />
@@ -1847,29 +1935,55 @@ export default function ChatPage() {
             {privateSpaceStep === "list" && (
               <div className="space-y-3">
                 <div className="max-h-64 space-y-2 overflow-y-auto">
-                  {isLoadingPrivateSpaces && <p className={cn("text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>Loading private spaces...</p>}
+                  {isLoadingPrivateSpaces && <p className={cn("text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>Loading private chats...</p>}
                   {!isLoadingPrivateSpaces && privateSpaces.length === 0 && (
-                    <p className={cn("rounded-2xl border px-3 py-4 text-sm", isDark ? "border-white/10 text-[#A7A7A7]" : "border-black/10 text-[#64748B]")}>No private spaces yet.</p>
+                    <p className={cn("rounded-2xl border px-3 py-4 text-sm", isDark ? "border-white/10 text-[#A7A7A7]" : "border-black/10 text-[#64748B]")}>No private chats yet.</p>
                   )}
                   {privateSpaces.map((space) => (
-                    <button
-                      key={space.privateSpaceId}
-                      type="button"
-                      className={cn("flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition", isDark ? "border-white/10 hover:bg-white/10" : "border-black/10 hover:bg-black/5")}
-                      onClick={() => {
-                        setSelectedPrivateSpace(space);
-                        setPrivatePinInput("");
-                        setPrivateSpaceError("");
-                        setPrivateSpaceStep("pin");
-                      }}
-                    >
-                      <Lock className="h-5 w-5" />
-                      <span className="font-medium">{space.name}</span>
-                    </button>
+                    <div key={space.privateSpaceId} className="relative">
+                      <button
+                        type="button"
+                        className={cn("flex w-full items-center gap-3 rounded-2xl border px-4 py-3 pr-12 text-left transition", isDark ? "border-white/10 hover:bg-white/10" : "border-black/10 hover:bg-black/5")}
+                        onClick={() => {
+                          setSelectedPrivateSpace(space);
+                          setPrivatePinInput("");
+                          setPrivateSpaceError("");
+                          setPrivateSpaceActionMenuId(null);
+                          setPrivateSpaceStep("pin");
+                        }}
+                      >
+                        <Lock className="h-5 w-5" />
+                        <span className="font-medium">{space.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={cn("absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full", isDark ? "hover:bg-white/10" : "hover:bg-black/5")}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setPrivateSpaceActionMenuId((current) => current === space.privateSpaceId ? null : space.privateSpaceId);
+                        }}
+                        aria-label="Private chat actions"
+                      >
+                        <MoreVertical className="h-5 w-5" />
+                      </button>
+                      {privateSpaceActionMenuId === space.privateSpaceId && (
+                        <div className={cn("absolute right-2 top-12 z-10 w-36 rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#2A2A2A]" : "border-black/10 bg-white")}>
+                          {[
+                            ["Rename", () => { setSelectedPrivateSpace(space); setPrivateSpaceRenameName(space.name); setPrivateSpaceStep("rename"); }],
+                            ["Change PIN", () => { setSelectedPrivateSpace(space); setPrivateSpacePinForm({ currentPin: "", newPin: "", confirmNewPin: "" }); setPrivateSpaceStep("changePin"); }],
+                            ["Delete", () => { setPrivateSpaceDeleteTarget(space); setPrivateSpaceStep("delete"); }],
+                          ].map(([label, action]) => (
+                            <button key={label} type="button" className={cn("w-full rounded-xl px-3 py-2 text-left text-sm font-medium", label === "Delete" ? "text-red-500" : "")} onClick={() => { setPrivateSpaceActionMenuId(null); action(); }}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
-                <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]" onClick={() => setPrivateSpaceStep("create")}>
-                  Create Private Space
+                <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]" onClick={handleStartCreatePrivateSpace}>
+                  Create Private Chat
                 </button>
               </div>
             )}
@@ -1877,11 +1991,38 @@ export default function ChatPage() {
             {privateSpaceStep === "create" && (
               <form className="space-y-3" onSubmit={handleCreatePrivateSpace}>
                 <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Private Space Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Chat Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
                 <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="PIN" inputMode="numeric" type="password" value={privateSpaceForm.pin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "") }))} />
                 <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Confirm PIN" inputMode="numeric" type="password" value={privateSpaceForm.confirmPin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, confirmPin: event.target.value.replace(/\D/g, "") }))} />
-                <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]">Create Private Space</button>
+                <button type="submit" disabled={isCreatingPrivateSpace} className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80] disabled:opacity-70">{isCreatingPrivateSpace ? "Creating..." : "Create"}</button>
               </form>
+            )}
+
+            {privateSpaceStep === "rename" && selectedPrivateSpace && (
+              <form className="space-y-3" onSubmit={handleRenamePrivateSpace}>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Chat Name" value={privateSpaceRenameName} onChange={(event) => setPrivateSpaceRenameName(event.target.value)} />
+                <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]">Save</button>
+              </form>
+            )}
+
+            {privateSpaceStep === "changePin" && selectedPrivateSpace && (
+              <form className="space-y-3" onSubmit={handleChangePrivateSpacePin}>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Current PIN" inputMode="numeric" type="password" value={privateSpacePinForm.currentPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, currentPin: event.target.value.replace(/\D/g, "") }))} />
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.newPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, newPin: event.target.value.replace(/\D/g, "") }))} />
+                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Confirm New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.confirmNewPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, confirmNewPin: event.target.value.replace(/\D/g, "") }))} />
+                <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]">Change PIN</button>
+              </form>
+            )}
+
+            {privateSpaceStep === "delete" && privateSpaceDeleteTarget && (
+              <div className="space-y-4">
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <p className="text-base font-semibold">Delete this private chat?</p>
+                <p className={cn("text-sm", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>All conversations inside it will be permanently deleted.</p>
+                <button type="button" className="w-full rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700" onClick={handleDeletePrivateSpace}>Delete</button>
+              </div>
             )}
 
             {privateSpaceStep === "pin" && selectedPrivateSpace && (
@@ -1917,8 +2058,12 @@ export default function ChatPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className={cn("mb-5 text-sm leading-6", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>
-              This chat is temporary. Messages are not saved, will not appear in History or Search, and are deleted when you leave.
+            <p className={cn("mb-5 whitespace-pre-line text-sm leading-6", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>
+              This chat is temporary.
+              Messages are not saved.
+              It does not appear in History.
+              It does not appear in Search.
+              Everything will be deleted when you leave.
             </p>
             <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]" onClick={handleStartHiddenChat}>
               Start Hidden Chat
@@ -4539,15 +4684,15 @@ export default function ChatPage() {
             {chatSessionMode === "private" && activePrivateSpace && (
               <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[#E8F1FF] text-[#193B68]")}>
                 <Lock className="h-3.5 w-3.5" />
-                <span>{activePrivateSpace.name} Private Space</span>
-                <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitPrivateSpace}>Exit</button>
+                <span>{activePrivateSpace.name} Chat</span>
+                <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitPrivateSpace}>Exit Private Chat</button>
               </div>
             )}
             {chatSessionMode === "hidden" && (
               <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[#F1F5F9] text-[#111827]")}>
                 <Glasses className="h-3.5 w-3.5" />
                 <span>Hidden Mode</span>
-                <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitHiddenMode}>Exit</button>
+                <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitHiddenMode}>Exit Hidden Chat</button>
               </div>
             )}
           </div>

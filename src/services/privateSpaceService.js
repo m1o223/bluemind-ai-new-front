@@ -67,7 +67,7 @@ export async function listPrivateSpaces() {
     const response = await api.get("/private-spaces");
     return unwrapApiResponse(response);
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "Could not load private spaces"));
+    throw new Error(getApiErrorMessage(error, "Could not load private chats"));
   }
 }
 
@@ -76,7 +76,7 @@ export async function createPrivateSpace({ name, pin, confirmPin }) {
     const response = await api.post("/private-spaces", { name, pin, confirmPin });
     return unwrapApiResponse(response);
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "Could not create private space"));
+    throw new Error(getApiErrorMessage(error, "Could not create private chat"));
   }
 }
 
@@ -86,6 +86,37 @@ export async function unlockPrivateSpace(privateSpaceId, pin) {
     return unwrapApiResponse(response);
   } catch (error) {
     throw new Error(getApiErrorMessage(error, "Incorrect PIN. Try again."));
+  }
+}
+
+export async function renamePrivateSpace(privateSpaceId, name) {
+  try {
+    const response = await api.patch(`/private-spaces/${privateSpaceId}`, { name });
+    return unwrapApiResponse(response);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Could not rename private chat"));
+  }
+}
+
+export async function changePrivateSpacePin(privateSpaceId, { currentPin, newPin, confirmNewPin }) {
+  try {
+    const response = await api.patch(`/private-spaces/${privateSpaceId}/pin`, {
+      currentPin,
+      newPin,
+      confirmNewPin,
+    });
+    return unwrapApiResponse(response);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Could not change PIN"));
+  }
+}
+
+export async function deletePrivateSpace(privateSpaceId) {
+  try {
+    const response = await api.delete(`/private-spaces/${privateSpaceId}`);
+    return unwrapApiResponse(response);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Could not delete private chat"));
   }
 }
 
