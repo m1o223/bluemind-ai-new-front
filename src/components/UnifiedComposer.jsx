@@ -213,7 +213,7 @@ export default function UnifiedComposer({
           style={{
             ...inputDirectionStyle,
             letterSpacing: "0",
-            caretColor: appColor,
+            caretColor: isDark ? "#FFFFFF" : "#111827",
             maxHeight: `${maxTextHeight}px`,
             minHeight: `${textareaMinHeight}px`,
           }}

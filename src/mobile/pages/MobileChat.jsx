@@ -2383,7 +2383,7 @@ export default function MobileChat() {
                 rows={3}
                 placeholder={isImageMode ? "Describe an image..." : "Write, paste, or choose a productivity tool..."}
                 className={`max-h-[180px] min-h-[86px] w-full resize-none bg-transparent text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-                style={{ caretColor: "var(--bluemind-app-color, #193B68)" }}
+                style={{ caretColor: isDark ? "#FFFFFF" : "#111827" }}
               />
 
               <div className="mt-1 flex items-center justify-end gap-1.5">
@@ -2526,7 +2526,7 @@ export default function MobileChat() {
                   rows={1}
                   placeholder={activeWriteTask ? activeWriteTask.prompt : "Ask anything..."}
                   className={`max-h-[128px] min-h-[50px] flex-1 resize-none bg-transparent py-[13px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-                  style={{ caretColor: "var(--bluemind-app-color, #193B68)" }}
+                  style={{ caretColor: isDark ? "#FFFFFF" : "#111827" }}
                 />
 
                 <button

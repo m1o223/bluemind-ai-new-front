@@ -134,7 +134,13 @@ input,
 textarea,
 select {
   color: #111827;
-  caret-color: var(--bluemind-app-color, #193B68);
+  caret-color: #111827;
+}
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  caret-color: #ffffff;
 }
 
 input::placeholder,
@@ -162,7 +168,7 @@ select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus {
   -webkit-text-fill-color: #111827;
-  caret-color: var(--bluemind-app-color, #193B68);
+  caret-color: #111827;
   box-shadow: 0 0 0 1000px #ffffff inset;
   transition: background-color 9999s ease-out;
 }

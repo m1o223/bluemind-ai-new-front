@@ -4344,7 +4344,7 @@ export default function ChatPage() {
               ? "text-white placeholder:text-[#A7A7A7]/80"
               : "text-[#111827] placeholder:text-[#64748B]/85",
           )}
-          style={{ ...inputDirectionStyle, letterSpacing: "-0.01em", caretColor: appColor }}
+          style={{ ...inputDirectionStyle, letterSpacing: "-0.01em", caretColor: isDark ? "#FFFFFF" : "#111827" }}
           data-testid={testSuffix ? `chat-input-${testSuffix}` : "chat-input"}
           />
         </div>
