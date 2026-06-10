@@ -139,57 +139,6 @@ const WEBSITE_FAVORITES_STORAGE_KEY = "bluemind_website_favorites";
 const WEBSITE_RECENTS_STORAGE_KEY = "bluemind_website_recents";
 const WEBSITE_PAGE_SIZE = 10;
 
-const RESPONSE_MODES = {
-  fast: {
-    id: "fast",
-    label: "Fast",
-    labelKey: "responseModeFast",
-    badge: "⚡",
-    status: "Generating quick response...",
-    statusKey: "responseModeFastStatus",
-    uiDescription: "Fast and light",
-    uiDescriptionKey: "responseModeFastDescription",
-    description: "سريع وخفيف",
-  },
-  smart: {
-    id: "smart",
-    label: "Smart",
-    labelKey: "responseModeSmart",
-    badge: "🧠",
-    status: "Analyzing request...",
-    statusKey: "responseModeSmartStatus",
-    uiDescription: "Balanced",
-    uiDescriptionKey: "responseModeSmartDescription",
-    description: "متوازن",
-  },
-  thinking: {
-    id: "thinking",
-    label: "Thinking",
-    labelKey: "responseModeThinking",
-    badge: "🔍",
-    status: "Thinking deeply...",
-    statusKey: "responseModeThinkingStatus",
-    uiDescription: "Smarter and deeper",
-    uiDescriptionKey: "responseModeThinkingDescription",
-    description: "أذكى وأدق",
-  },
-};
-
-function normalizeResponseModeId(value) {
-  const aliases = {
-    instant: "fast",
-    default: "smart",
-    balanced: "smart",
-    deep_thinking: "thinking",
-  };
-  const mode = String(value || "smart").trim().toLowerCase();
-  return RESPONSE_MODES[aliases[mode] || mode] ? aliases[mode] || mode : "smart";
-}
-
-function getResponseMode(value) {
-  return RESPONSE_MODES[normalizeResponseModeId(value)] || RESPONSE_MODES.smart;
-}
-
 function uiTextKey(prefix, value, suffix = "") {
   const slug = String(value || "")
     .trim()
@@ -3868,6 +3817,7 @@ export default function ChatPage() {
 
   const renderResponseModeSelector = () => {
     const selectedMode = getAiMode(responseMode);
+    const SelectedModeIcon = selectedMode.icon;
     const handleModeSelect = async (modeId) => {
       const nextMode = normalizeAiModeId(modeId);
       setResponseMode(nextMode);
@@ -3886,11 +3836,11 @@ export default function ChatPage() {
           onClick={() => setResponseModeMenuOpen((open) => !open)}
           className={cn(
             "inline-flex h-[38px] min-w-[118px] items-center justify-center gap-2 rounded-full border px-3 text-sm font-semibold backdrop-blur-[10px] transition-colors duration-200",
-            isDark ? "border-white/[0.08] bg-white/[0.06] text-[#F3F4F6] hover:bg-white/[0.1]" : "border-black/[0.05] bg-white/50 text-[#193B68] hover:bg-white/75"
+            isDark ? "border-white/[0.12] bg-white/[0.075] text-white hover:bg-white/[0.12]" : "border-black/[0.05] bg-white/50 text-[#193B68] hover:bg-white/75"
           )}
           data-testid="response-mode-selector"
         >
-          <span>{selectedMode.badge}</span>
+          <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />
           <span>{selectedMode.title}</span>
           <ChevronDown className="h-4 w-4 stroke-[2.1]" />
         </button>
@@ -3904,29 +3854,37 @@ export default function ChatPage() {
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
                 className={cn(
-                  "absolute left-0 top-[calc(100%+8px)] z-40 w-60 overflow-hidden rounded-2xl border p-1.5 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-[20px]",
-                  isDark ? "border-white/[0.08] bg-[#242424]/92 text-white" : "border-black/[0.06] bg-white/90 text-[#111827]"
+                  "absolute left-0 top-[calc(100%+8px)] z-40 w-[270px] overflow-hidden rounded-2xl border p-1.5 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-[20px]",
+                  isDark ? "border-white/[0.12] bg-[#202020]/95 text-white" : "border-black/[0.06] bg-white/90 text-[#111827]"
                 )}
               >
-                {AI_MODES.map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => handleModeSelect(mode.id)}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition-colors duration-200",
-                      responseMode === mode.id
-                        ? isDark ? "bg-white/[0.08] text-white" : "bg-[#F8FAFC] text-[#111827]"
-                        : isDark ? "text-[#DADADA] hover:bg-white/[0.055]" : "text-[#334155] hover:bg-[#F8FAFC]"
-                    )}
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-[15px] font-semibold leading-5">{mode.badge} {mode.title}</span>
-                      <span className={cn("mt-1 block text-xs font-medium", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{mode.description}</span>
-                    </span>
-                    {responseMode === mode.id && <Check className="h-[18px] w-[18px] flex-shrink-0 stroke-[2.1]" />}
-                  </button>
-                ))}
+                {AI_MODES.map((mode) => {
+                  const ModeIcon = mode.icon;
+                  return (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => handleModeSelect(mode.id)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition-colors duration-200",
+                        responseMode === mode.id
+                          ? isDark ? "bg-white/[0.11] text-white" : "bg-[#F8FAFC] text-[#111827]"
+                          : isDark ? "text-white hover:bg-white/[0.075]" : "text-[#1F2937] hover:bg-[#F8FAFC]"
+                      )}
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.08] text-white" : "bg-[#193B68]/[0.075] text-[#193B68]")}>
+                          <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[15px] font-bold leading-5">{mode.title}</span>
+                          <span className={cn("mt-1 block text-xs font-semibold leading-4", isDark ? "text-[#F1F5F9]" : "text-[#475569]")}>{mode.description}</span>
+                        </span>
+                      </span>
+                      {responseMode === mode.id && <Check className="h-[18px] w-[18px] flex-shrink-0 stroke-[2.2]" />}
+                    </button>
+                  );
+                })}
               </motion.div>
             </>
           )}

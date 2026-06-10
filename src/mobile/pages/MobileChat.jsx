@@ -2687,11 +2687,14 @@ export default function MobileChat() {
           <button
             type="button"
             onClick={() => setResponseModeMenuOpen((open) => !open)}
-            className={isDark ? "inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-sm font-semibold capitalize text-white active:bg-white/[0.08]" : "inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-sm font-semibold capitalize text-[#111827] active:bg-[#EEF2F7]"}
+            className={isDark ? "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold capitalize text-[#111827] active:bg-[#EEF2F7]"}
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen}
           >
-            <span>{getAiMode(responseMode).badge}</span>
+            {(() => {
+              const SelectedModeIcon = getAiMode(responseMode).icon;
+              return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
+            })()}
             <span>{getAiMode(responseMode).title}</span>
             <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
@@ -2703,40 +2706,44 @@ export default function MobileChat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                className={`absolute left-12 top-12 z-50 w-[276px] overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
+                className={`absolute left-12 top-12 z-50 w-[292px] overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
                   isDark
-                    ? "border-white/[0.08] bg-[#242424]/92"
+                    ? "border-white/[0.12] bg-[#202020]/95"
                     : "border-black/[0.06] bg-white/90"
                 }`}
               >
-                {AI_MODES.map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => selectResponseMode(mode.id)}
-                    className={`flex min-h-[70px] w-full items-center justify-between gap-3 rounded-2xl px-3.5 py-3.5 text-left transition-colors duration-200 ${
-                      responseMode === mode.id
-                        ? isDark
-                          ? "bg-white/[0.08] text-white"
-                          : "bg-[#F8FAFC] text-[#111827]"
-                        : isDark
-                          ? "text-[#DADADA] active:bg-white/[0.055]"
-                          : "text-[#334155] active:bg-[#F8FAFC]"
-                    }`}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold leading-5">{mode.badge} {mode.title}</span>
-                      <span className={`mt-1 block text-xs font-semibold leading-4 ${
+                {AI_MODES.map((mode) => {
+                  const ModeIcon = mode.icon;
+                  return (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => selectResponseMode(mode.id)}
+                      className={`flex min-h-[72px] w-full items-center justify-between gap-3 rounded-2xl px-3.5 py-3.5 text-left transition-colors duration-200 ${
                         responseMode === mode.id
-                          ? isDark ? "text-[#A7A7A7]" : "text-[#64748B]"
-                          : isDark ? "text-[#A7A7A7]" : "text-[#64748B]"
-                      }`}>
-                        {mode.description}
+                          ? isDark
+                            ? "bg-white/[0.11] text-white"
+                            : "bg-[#F8FAFC] text-[#111827]"
+                          : isDark
+                            ? "text-white active:bg-white/[0.075]"
+                            : "text-[#1F2937] active:bg-[#F8FAFC]"
+                      }`}
+                    >
+                      <span className="flex min-w-0 flex-1 items-center gap-3">
+                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isDark ? "bg-white/[0.08] text-white" : "bg-[#193B68]/[0.075] text-[#193B68]"}`}>
+                          <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[15px] font-bold leading-5">{mode.title}</span>
+                          <span className={`mt-1 block text-xs font-semibold leading-4 ${isDark ? "text-[#F1F5F9]" : "text-[#475569]"}`}>
+                            {mode.description}
+                          </span>
+                        </span>
                       </span>
-                    </span>
-                    {responseMode === mode.id && <Check className="h-[18px] w-[18px] shrink-0 stroke-[2.1]" />}
-                  </button>
-                ))}
+                      {responseMode === mode.id && <Check className="h-[18px] w-[18px] shrink-0 stroke-[2.2]" />}
+                    </button>
+                  );
+                })}
               </motion.div>
             )}
           </AnimatePresence>

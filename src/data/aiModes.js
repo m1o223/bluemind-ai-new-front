@@ -1,8 +1,8 @@
 import {
   BriefcaseBusiness,
   ChefHat,
-  GraduationCap,
-  MessageSquare,
+  BookOpen,
+  MessageCircle,
   Microscope,
   PenLine,
 } from "lucide-react";
@@ -11,23 +11,20 @@ export const AI_MODES = [
   {
     id: "general",
     title: "General",
-    badge: "💬",
     description: "Everyday questions and normal help",
     status: "Analyzing request...",
-    icon: MessageSquare,
+    icon: MessageCircle,
   },
   {
     id: "study",
     title: "Study",
-    badge: "🎓",
     description: "Careful learning and homework support",
     status: "Preparing a careful study answer...",
-    icon: GraduationCap,
+    icon: BookOpen,
   },
   {
     id: "research",
     title: "Research",
-    badge: "🔬",
     description: "Deeper analysis and source comparison",
     status: "Researching the request...",
     icon: Microscope,
@@ -35,7 +32,6 @@ export const AI_MODES = [
   {
     id: "work",
     title: "Work",
-    badge: "💻",
     description: "Planning, documents, and productivity",
     status: "Organizing the work request...",
     icon: BriefcaseBusiness,
@@ -43,7 +39,6 @@ export const AI_MODES = [
   {
     id: "writing",
     title: "Writing",
-    badge: "✍️",
     description: "Drafting, rewriting, and polishing text",
     status: "Shaping the writing...",
     icon: PenLine,
@@ -51,7 +46,6 @@ export const AI_MODES = [
   {
     id: "cooking",
     title: "Cooking",
-    badge: "🍳",
     description: "Recipes, ingredients, and substitutions",
     status: "Preparing cooking guidance...",
     icon: ChefHat,
