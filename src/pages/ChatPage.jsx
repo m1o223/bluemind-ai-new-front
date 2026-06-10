@@ -546,7 +546,7 @@ const HistoryItem = memo(function HistoryItem({
           className={cn(
             "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg opacity-0 transition-all duration-200 group-hover/history:opacity-100",
             menuOpenId === item.conversationId && "opacity-100",
-            isDark ? "text-[#aaa] hover:bg-[#333] hover:text-white" : "text-[#64748B] hover:bg-[#EEF2F7] hover:text-[#111827]",
+            isDark ? "text-[#D7D7D7] hover:bg-white/[0.08] hover:text-white" : "text-[#64748B] hover:bg-[#EEF2F7] hover:text-[#111827]",
           )}
           data-testid={`history-menu-${item.conversationId}`}
         >
@@ -560,7 +560,7 @@ const HistoryItem = memo(function HistoryItem({
           <div
             className={cn(
               "absolute right-1 top-9 z-30 w-36 overflow-hidden rounded-xl border py-1 shadow-lg",
-              isDark ? "border-[#333] bg-[#222]" : "border-[#E5E7EB] bg-white",
+              isDark ? "border-white/[0.08] bg-[#202020]" : "border-[#E5E7EB] bg-white",
             )}
             data-testid={`history-dropdown-${item.conversationId}`}
           >
@@ -572,7 +572,7 @@ const HistoryItem = memo(function HistoryItem({
               }}
               className={cn(
                 "flex w-full items-center gap-2 px-3 py-2 text-left text-sm",
-                isDark ? "text-[#ddd] hover:bg-[#2a2a2a]" : "text-[#374151] hover:bg-[#F9FAFB]",
+                isDark ? "text-[#F5F5F5] hover:bg-white/[0.08]" : "text-[#374151] hover:bg-[#F9FAFB]",
               )}
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -584,7 +584,7 @@ const HistoryItem = memo(function HistoryItem({
                 onShare(item);
                 onMenuToggle(null);
               }}
-              className={cn("flex w-full items-center gap-2 px-3 py-2 text-left text-sm", isDark ? "text-[#ddd] hover:bg-[#2a2a2a]" : "text-[#374151] hover:bg-[#F9FAFB]")}
+              className={cn("flex w-full items-center gap-2 px-3 py-2 text-left text-sm", isDark ? "text-[#F5F5F5] hover:bg-white/[0.08]" : "text-[#374151] hover:bg-[#F9FAFB]")}
             >
               <Share2 className="h-3.5 w-3.5" />
               Share
@@ -869,7 +869,7 @@ function Sidebar({
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "h-full flex flex-col overflow-visible flex-shrink-0",
-        isDark ? "bg-[#1e1e1e]/96" : "bg-[#F7F8FA]/96",
+        isDark ? "bg-[#1a1a1a]/96" : "bg-[#FAFBFC]/96",
       )}
       data-testid="sidebar"
     >
@@ -877,7 +877,7 @@ function Sidebar({
         className={cn(
           "relative flex items-center justify-between p-4 after:absolute after:bottom-0 after:h-px after:content-['']",
           isHistoryOpen ? "after:left-3.5 after:right-3.5" : "after:left-4 after:right-4",
-          isDark ? "after:bg-[#333]" : "after:bg-[#E5E7EB]",
+          isDark ? "after:bg-white/[0.08]" : "after:bg-[#E5E7EB]",
         )}
       >
         {isHistoryOpen ? (
@@ -1397,7 +1397,7 @@ function AttachmentTray({ attachments, onRemove, isDark, isUploading }) {
     <div
       className={cn(
         "mb-2 flex max-w-full gap-2 overflow-x-auto rounded-[22px] border p-2 md:mb-3 md:flex-wrap md:gap-3",
-        isDark ? "border-[#3a3a3a] bg-[#222]/90" : "border-[#E5E7EB] bg-white/90",
+        isDark ? "border-white/[0.08] bg-[#202020]/90" : "border-[#E5E7EB] bg-white/90",
       )}
     >
       {attachments.map((attachment) => (
@@ -4092,7 +4092,7 @@ export default function ChatPage() {
             ? "min-h-[132px] items-end gap-3 rounded-[34px] px-4 py-4 sm:px-6 sm:py-5"
             : "min-h-[62px] items-center gap-3 rounded-[31px] px-4 py-2.5 sm:gap-3.5 sm:px-5",
           isDark
-            ? "border-[#333] bg-[#252525] focus-within:bg-[#272727] focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.05)]"
+            ? "border-white/[0.08] bg-[#202020] focus-within:bg-[#202020] focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
             : "border-[#E5E7EB] bg-white focus-within:border-[#D6DEE9] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
         )}
       >
@@ -4356,7 +4356,7 @@ export default function ChatPage() {
             isListening
               ? "text-white"
               : isDark
-                ? "border-[#333] bg-[#2a2a2a] text-[#D4D4D4] hover:bg-[#333] hover:text-white"
+                ? "border-white/[0.08] bg-white/[0.06] text-[#D7D7D7] hover:bg-white/[0.1] hover:text-white"
                 : "border-[#E5E7EB] bg-[#F9FAFB] text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827]",
           )}
           style={isListening ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : undefined}
@@ -4481,7 +4481,7 @@ export default function ChatPage() {
               exit={{ opacity: 0, y: 12, scale: 0.96 }}
               className={cn(
                 "relative z-10 w-full max-w-sm rounded-2xl border p-5 shadow-xl",
-                isDark ? "border-[#333] bg-[#222]" : "border-[#E5E7EB] bg-white",
+                isDark ? "border-white/[0.08] bg-[#202020]" : "border-[#E5E7EB] bg-white",
               )}
               data-testid="rename-chat-modal"
             >
@@ -4493,7 +4493,7 @@ export default function ChatPage() {
                 onChange={(event) => setRenameTitle(event.target.value.slice(0, 120))}
                 className={cn(
                   "w-full rounded-xl border px-4 py-3 text-sm outline-none",
-                  isDark ? "border-[#333] bg-[#1a1a1a] text-white placeholder-[#777]" : "border-[#E5E7EB] bg-white text-[#111827] placeholder-[#9CA3AF]",
+                  isDark ? "border-white/[0.08] bg-[#1a1a1a] text-white placeholder-[#8A8A8A]" : "border-[#E5E7EB] bg-white text-[#111827] placeholder-[#9CA3AF]",
                 )}
                 placeholder={t("chatTitle")}
                 autoFocus
@@ -4505,7 +4505,7 @@ export default function ChatPage() {
                   onClick={() => setRenameTarget(null)}
                   className={cn(
                     "flex-1 rounded-xl border py-3 text-sm font-medium",
-                    isDark ? "border-[#333] text-[#ddd] hover:bg-[#2a2a2a]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]",
+                    isDark ? "border-white/[0.08] text-[#F5F5F5] hover:bg-white/[0.08]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]",
                   )}
                 >
                   {t("cancel")}
@@ -4654,7 +4654,7 @@ export default function ChatPage() {
         <header
           className={cn(
             "sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3.5 sm:px-6",
-            isDark ? "border-[#333] bg-[#222]" : "border-[#E5E7EB] bg-white",
+            isDark ? "border-white/[0.08] bg-[#1a1a1a]" : "border-[#E5E7EB] bg-[#FAFBFC]",
           )}
         >
           <div className="flex items-center gap-3">
