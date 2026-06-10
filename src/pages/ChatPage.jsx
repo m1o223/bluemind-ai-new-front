@@ -907,7 +907,7 @@ function Sidebar({
             )}
             data-testid="sidebar-toggle"
           >
-            <BrandLogo showName={false} logoClassName="h-9 w-9 transition-opacity duration-150 group-hover:opacity-0" />
+            <BrandLogo showName={false} small logoClassName="h-10 w-10 transition-opacity duration-150 group-hover:opacity-0" />
             <PanelLeft className="absolute h-6 w-6 opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
             <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100", isDark ? "bg-[#2A2A2A] text-white" : "bg-white text-[#111827]")}>
               Open sidebar

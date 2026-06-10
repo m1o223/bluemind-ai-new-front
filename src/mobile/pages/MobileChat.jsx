@@ -3679,7 +3679,7 @@ Everything will be deleted when you leave.</p>
           >
             <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
               <div className="flex items-center gap-2.5">
-                <BrandLogo showName={false} logoClassName="h-9 w-9" />
+                <BrandLogo showName={false} small logoClassName="h-10 w-10" />
                 <h2 className="text-[21px] font-extrabold leading-tight tracking-tight">BlueMind AI</h2>
               </div>
               <button

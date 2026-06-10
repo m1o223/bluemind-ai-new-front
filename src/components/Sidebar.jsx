@@ -27,10 +27,10 @@ export default function Sidebar() {
         <TooltipTrigger asChild>
           <button
             onClick={() => navigate("/")}
-            className="w-10 h-10 flex items-center justify-center mb-6 hover:opacity-80 transition-opacity"
+            className="w-11 h-11 flex items-center justify-center mb-6 hover:opacity-90 transition-opacity"
             data-testid="sidebar-logo"
           >
-            <BrandLogo forceTheme="dark" showName={false} logoClassName="w-10 h-10" />
+            <BrandLogo forceTheme="dark" showName={false} small logoClassName="w-11 h-11" />
           </button>
         </TooltipTrigger>
         <TooltipContent side="right" className="bg-[#2f2f2f] text-white border-[#4a4a4a]">
