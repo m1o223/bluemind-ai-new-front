@@ -54,6 +54,7 @@ import {
   SEARCH_DISCOVERY_CATEGORIES,
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
+import { AI_MODES, getAiMode, normalizeAiModeId } from "@/data/aiModes";
 import { getApiErrorMessage } from "@/services/api";
 import { restoreExistingSession } from "@/services/authService";
 import { getConversation, listConversations, searchConversations, streamChatMessage, streamHiddenChatMessage } from "@/services/chatService";
@@ -73,14 +74,8 @@ import {
   unlockPrivateSpace,
 } from "@/services/privateSpaceService";
 import { AUTH_SESSION_CLEARED_EVENT } from "@/services/storageKeys";
+import { updatePreferences } from "@/services/profileService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
-
-const AI_RESPONSE_MODES = [
-  { id: "fast", title: "Fast", description: "Fast and light" },
-  { id: "smart", title: "Smart", description: "Balanced" },
-  { id: "thinking", title: "Thinking", description: "Smarter and deeper" },
-];
-const AI_RESPONSE_MODE_IDS = AI_RESPONSE_MODES.map((mode) => mode.id);
 
 const MAX_IMAGE_ATTACHMENTS = 6;
 
@@ -537,7 +532,7 @@ export default function MobileChat() {
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
-    return AI_RESPONSE_MODE_IDS.includes(storedMode) ? storedMode : "smart";
+    return normalizeAiModeId(storedMode);
   });
   const [isImageMode, setIsImageMode] = useState(false);
   const [isWriteEditMode, setIsWriteEditMode] = useState(false);
@@ -775,6 +770,13 @@ export default function MobileChat() {
   }, [responseMode]);
 
   useEffect(() => {
+    const savedMode = normalizeAiModeId(prefs.aiMode || localStorage.getItem("bluemind-response-mode"));
+    if (savedMode !== responseMode) {
+      setResponseMode(savedMode);
+    }
+  }, [prefs.aiMode, responseMode]);
+
+  useEffect(() => {
     if (searchParams.get("mode") === "image") {
       setIsImageMode(true);
       setIsWriteEditMode(false);
@@ -835,9 +837,15 @@ export default function MobileChat() {
     setMenuOpen(true);
   };
 
-  const selectResponseMode = (mode) => {
-    setResponseMode(mode);
+  const selectResponseMode = async (mode) => {
+    const nextMode = normalizeAiModeId(mode);
+    setResponseMode(nextMode);
     setResponseModeMenuOpen(false);
+    try {
+      await updatePreferences({ aiMode: nextMode });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not save AI mode"));
+    }
   };
 
   const goTo = (path) => {
@@ -1679,16 +1687,17 @@ export default function MobileChat() {
     if ((!currentMessage && !canStartFromContext) || isGeneratingImage || isChatSending) return;
     if (isListening) stopVoiceInput();
 
-    const selectedMode = AI_RESPONSE_MODE_IDS.includes(mode) ? mode : responseMode;
+    const selectedMode = normalizeAiModeId(mode || responseMode);
     const authenticated = await ensureMobileChatAuth();
     if (!authenticated) return;
     const userMessageId = crypto.randomUUID();
     const aiMessageId = crypto.randomUUID();
     const userMetadata = {
       chatMode: "chat",
+      ...metadata,
       mode: selectedMode,
       responseMode: selectedMode,
-      ...metadata,
+      aiMode: selectedMode,
       chatMode: activeWriteTask ? "write_edit" : metadata.chatMode || "chat",
       writeEditTask: activeWriteTask || undefined,
     };
@@ -1888,7 +1897,7 @@ export default function MobileChat() {
     void sendChatPrompt({
       prompt: previousUser.content,
       keepComposer: true,
-      mode: previousUser.metadata?.mode || previousUser.metadata?.responseMode || responseMode,
+      mode: previousUser.metadata?.aiMode || previousUser.metadata?.mode || previousUser.metadata?.responseMode || responseMode,
       metadata: previousUser.metadata || {},
     });
   }, [isChatSending, messages, responseMode, sendChatPrompt, t]);
@@ -2682,7 +2691,8 @@ export default function MobileChat() {
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen}
           >
-            <span>{AI_RESPONSE_MODES.find((mode) => mode.id === responseMode)?.title || "Smart"}</span>
+            <span>{getAiMode(responseMode).badge}</span>
+            <span>{getAiMode(responseMode).title}</span>
             <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
@@ -2699,7 +2709,7 @@ export default function MobileChat() {
                     : "border-black/[0.06] bg-white/90"
                 }`}
               >
-                {AI_RESPONSE_MODES.map((mode) => (
+                {AI_MODES.map((mode) => (
                   <button
                     key={mode.id}
                     type="button"
@@ -2715,7 +2725,7 @@ export default function MobileChat() {
                     }`}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold leading-5">{mode.title}</span>
+                      <span className="block text-[15px] font-semibold leading-5">{mode.badge} {mode.title}</span>
                       <span className={`mt-1 block text-xs font-semibold leading-4 ${
                         responseMode === mode.id
                           ? isDark ? "text-[#A7A7A7]" : "text-[#64748B]"
@@ -3110,7 +3120,7 @@ export default function MobileChat() {
                         {item.content ? <div className="whitespace-pre-wrap">{item.content}</div> : null}
                       </>
                     ) : item.isStreaming && !item.content ? (
-                      <ThinkingIndicator responseMode={item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
+                      <ThinkingIndicator responseMode={item.metadata?.aiMode || item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
                     ) : (
                       <MessageResponse
                         message={item}

@@ -62,6 +62,7 @@ import {
   SEARCH_DISCOVERY_CATEGORIES,
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
+import { AI_MODES, getAiMode, normalizeAiModeId } from "@/data/aiModes";
 import {
   buildWriteEditMessage,
   createWriteEditTask,
@@ -97,6 +98,7 @@ import {
   createSuggestedReminder,
   suggestReminder,
 } from "@/services/reminderService";
+import { updatePreferences } from "@/services/profileService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 
 const CHAT_MODES = {
@@ -1364,7 +1366,7 @@ const ChatMessage = memo(function ChatMessage({
   const directionStyle = getDirectionalStyle(message.content);
 
   if (!isUser && message.isStreaming && !message.content) {
-    return <ThinkingIndicator responseMode={message.metadata?.responseMode || message.metadata?.mode || message.responseMode} />;
+    return <ThinkingIndicator responseMode={message.metadata?.aiMode || message.metadata?.responseMode || message.metadata?.mode || message.responseMode} />;
   }
 
   return (
@@ -1500,7 +1502,7 @@ export default function ChatPage() {
   const [conversationId, setConversationId] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
-  const [responseMode, setResponseMode] = useState(() => normalizeResponseModeId(localStorage.getItem(RESPONSE_MODE_STORAGE_KEY)));
+  const [responseMode, setResponseMode] = useState(() => normalizeAiModeId(localStorage.getItem(RESPONSE_MODE_STORAGE_KEY)));
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [activeMode, setActiveMode] = useState("default");
@@ -1592,6 +1594,13 @@ export default function ChatPage() {
   useEffect(() => {
     localStorage.setItem(RESPONSE_MODE_STORAGE_KEY, responseMode);
   }, [responseMode]);
+
+  useEffect(() => {
+    const savedMode = normalizeAiModeId(prefs.aiMode || localStorage.getItem(RESPONSE_MODE_STORAGE_KEY));
+    if (savedMode !== responseMode) {
+      setResponseMode(savedMode);
+    }
+  }, [prefs.aiMode, responseMode]);
 
   useEffect(() => {
     localStorage.setItem(WEBSITE_FAVORITES_STORAGE_KEY, JSON.stringify(websiteFavorites));
@@ -2491,7 +2500,7 @@ export default function ChatPage() {
 
   const handleSend = useCallback(async (options = {}) => {
     const mode = options.mode || activeMode;
-    const selectedResponseMode = normalizeResponseModeId(options.responseMode || responseMode);
+    const selectedResponseMode = normalizeAiModeId(options.responseMode || responseMode);
     const sourceMessage = options.message;
     const sourceAttachments = options.attachments;
     const visibleInput = String(sourceMessage ?? input).trim();
@@ -2516,6 +2525,7 @@ export default function ChatPage() {
         chatMode: mode,
         mode: selectedResponseMode,
         responseMode: selectedResponseMode,
+        aiMode: selectedResponseMode,
         writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
       },
     };
@@ -2534,6 +2544,7 @@ export default function ChatPage() {
           chatMode: mode,
           mode: selectedResponseMode,
           responseMode: selectedResponseMode,
+          aiMode: selectedResponseMode,
           requestContent: visibleInput,
         },
       },
@@ -2596,14 +2607,15 @@ export default function ChatPage() {
         accessToken: privateSpaceAccessToken,
         mode: selectedResponseMode,
         metadata: {
+          ...requestMetadata,
           chatMode: mode,
           chatSessionMode,
           privateSpaceId: chatSessionMode === "private" ? activePrivateSpace?.privateSpaceId : undefined,
           hiddenChat: chatSessionMode === "hidden" || undefined,
           mode: selectedResponseMode,
           responseMode: selectedResponseMode,
+          aiMode: selectedResponseMode,
           writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
-          ...requestMetadata,
         },
         signal: abortController.signal,
         onReady: (payload) => {
@@ -2817,7 +2829,7 @@ export default function ChatPage() {
       message: previousUser.content,
       attachments: previousUser.attachments || [],
       mode: previousUser.metadata?.chatMode || activeMode,
-      responseMode: normalizeResponseModeId(previousUser.metadata?.mode || previousUser.metadata?.responseMode || responseMode),
+      responseMode: normalizeAiModeId(previousUser.metadata?.aiMode || previousUser.metadata?.mode || previousUser.metadata?.responseMode || responseMode),
       keepComposer: true,
     });
   }, [activeMode, handleSend, isAiTyping, messages, responseMode, t]);
@@ -3855,7 +3867,17 @@ export default function ChatPage() {
   );
 
   const renderResponseModeSelector = () => {
-    const selectedMode = getResponseMode(responseMode);
+    const selectedMode = getAiMode(responseMode);
+    const handleModeSelect = async (modeId) => {
+      const nextMode = normalizeAiModeId(modeId);
+      setResponseMode(nextMode);
+      setResponseModeMenuOpen(false);
+      try {
+        await updatePreferences({ aiMode: nextMode });
+      } catch (error) {
+        toast.error("Could not save AI mode");
+      }
+    };
 
     return (
       <div className="relative flex-shrink-0">
@@ -3868,7 +3890,8 @@ export default function ChatPage() {
           )}
           data-testid="response-mode-selector"
         >
-          <span>{t(selectedMode.labelKey)}</span>
+          <span>{selectedMode.badge}</span>
+          <span>{selectedMode.title}</span>
           <ChevronDown className="h-4 w-4 stroke-[2.1]" />
         </button>
         <AnimatePresence>
@@ -3885,14 +3908,11 @@ export default function ChatPage() {
                   isDark ? "border-white/[0.08] bg-[#242424]/92 text-white" : "border-black/[0.06] bg-white/90 text-[#111827]"
                 )}
               >
-                {Object.values(RESPONSE_MODES).map((mode) => (
+                {AI_MODES.map((mode) => (
                   <button
                     key={mode.id}
                     type="button"
-                    onClick={() => {
-                      setResponseMode(normalizeResponseModeId(mode.id));
-                      setResponseModeMenuOpen(false);
-                    }}
+                    onClick={() => handleModeSelect(mode.id)}
                     className={cn(
                       "flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition-colors duration-200",
                       responseMode === mode.id
@@ -3901,8 +3921,8 @@ export default function ChatPage() {
                     )}
                   >
                     <span className="min-w-0">
-                      <span className="block text-[15px] font-semibold leading-5">{t(mode.labelKey)}</span>
-                      <span className={cn("mt-1 block text-xs font-medium", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{t(mode.uiDescriptionKey)}</span>
+                      <span className="block text-[15px] font-semibold leading-5">{mode.badge} {mode.title}</span>
+                      <span className={cn("mt-1 block text-xs font-medium", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{mode.description}</span>
                     </span>
                     {responseMode === mode.id && <Check className="h-[18px] w-[18px] flex-shrink-0 stroke-[2.1]" />}
                   </button>

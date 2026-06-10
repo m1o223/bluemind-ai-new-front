@@ -13,6 +13,7 @@ import {
   USER_UPDATED_EVENT,
 } from "@/services/storageKeys";
 import { ensureUiLanguage } from "@/services/translationService";
+import { normalizeAiModeId } from "@/data/aiModes";
 
 const defaultPrefs = {
   theme: "system",
@@ -22,6 +23,7 @@ const defaultPrefs = {
   appLanguage: "en",
   language: "en",
   aiLanguageMode: "auto",
+  aiMode: "general",
   notificationPreferences: undefined,
   birthdayGreetings: true,
   animations: true,
@@ -47,6 +49,7 @@ function normalizePrefs(preferences = {}) {
     appLanguage,
     language: appLanguage,
     aiLanguageMode,
+    aiMode: normalizeAiModeId(preferences.aiMode),
     birthdayGreetings: preferences.birthdayGreetings !== false,
     animations: preferences.animations !== false,
     openAppDirectlyToChat: preferences.openAppDirectlyToChat === true,
