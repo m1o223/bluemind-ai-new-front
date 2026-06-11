@@ -91,11 +91,11 @@ export default function MobileSmartHub() {
       path: "/mobile/learning",
     },
     {
-      key: "ai-plans",
+      key: "scheman",
       icon: CalendarDays,
-      title: "AI Plans",
-      description: "Build and track intelligent project plans",
-      path: "/mobile/ai-plans",
+      title: "Scheman",
+      description: "Manage your study schedule",
+      path: "/mobile/scheman",
     },
   ];
 

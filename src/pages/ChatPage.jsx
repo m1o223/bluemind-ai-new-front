@@ -36,6 +36,7 @@ import {
   Globe2,
   Check,
   Star,
+  Sparkles,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
@@ -779,6 +780,12 @@ function Sidebar({
       icon: BookOpen,
       label: t("learning"),
       action: () => navigate("/learning"),
+    },
+    {
+      id: "ai_plans",
+      icon: Sparkles,
+      label: "AI Plans",
+      action: () => navigate("/ai-plans"),
     },
     {
       id: "scheman",

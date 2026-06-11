@@ -19,6 +19,7 @@ import FeedbackPage from "@/pages/FeedbackPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LearningPage from "@/pages/LearningPage";
 import AIPlansPage from "@/pages/AIPlansPage";
+import SchemanPage from "@/pages/SchemanPage";
 import MobileLayout from "@/mobile/layouts/MobileLayout";
 import MobileChat from "@/mobile/pages/MobileChat";
 import MobileSearch from "@/mobile/pages/MobileSearch";
@@ -143,7 +144,7 @@ function AppContent() {
           <Route path="/settings/:sectionId/:detailId" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
           <Route path="/ai-plans" element={<ProtectedRoute><AIPlansPage /></ProtectedRoute>} />
-          <Route path="/scheman" element={<ProtectedRoute><AIPlansPage /></ProtectedRoute>} />
+          <Route path="/scheman" element={<ProtectedRoute><SchemanPage /></ProtectedRoute>} />
           <Route path="/mobile" element={<MobileLayout />}>
             <Route index element={<MobileWelcome />} />
             <Route path="email" element={<MobileEmail />} />
@@ -160,8 +161,8 @@ function AppContent() {
             <Route path="settings/:sectionId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="settings/:sectionId/:detailId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
-            <Route path="ai-plans" element={<MobileAccessRoute><AIPlansPage mobile /></MobileAccessRoute>} />
-            <Route path="scheman" element={<MobileAccessRoute><AIPlansPage mobile /></MobileAccessRoute>} />
+            <Route path="ai-plans" element={<MobileAccessRoute><AIPlansPage /></MobileAccessRoute>} />
+            <Route path="scheman" element={<MobileAccessRoute><SchemanPage /></MobileAccessRoute>} />
           </Route>
         </Routes>
       </AnimatePresence>

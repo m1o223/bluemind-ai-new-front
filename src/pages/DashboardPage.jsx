@@ -113,11 +113,11 @@ export default function DashboardPage() {
       path: "/learning",
     },
     {
-      key: "ai-plans",
+      key: "scheman",
       icon: CalendarDays,
-      title: "AI Plans",
-      description: "Build and track intelligent project plans",
-      path: "/ai-plans",
+      title: "Scheman",
+      description: "Manage your study schedule",
+      path: "/scheman",
     },
   ];
   const welcomeTitle = isRTL ? "مرحباً" : "Welcome back";
