@@ -33,12 +33,13 @@ import BrandLogo from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { inputClasses, typeClasses } from "@/lib/interactions";
 import { useApp } from "@/context/AppContext";
 import { analyzeSchoolScheduleImage } from "@/services/studyPlanService";
 
 const STORAGE_KEY = "bluemind_ai_plans_v2";
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-const COLORS = ["#193B68", "#2563EB", "#10B981", "#8B5CF6", "#F59E0B", "#EF4444", "#0EA5E9"];
+const COLORS = ["var(--bm-primary)", "#2563EB", "var(--bm-success)", "#8B5CF6", "var(--bm-warning)", "var(--bm-error)", "var(--bm-info)"];
 const RTL_LANGUAGE_RE = /^(ar|fa|he|ur|ku)/i;
 
 const PLAN_TYPES = [
@@ -61,25 +62,25 @@ const REMINDER_OPTIONS = [
 const VIEW_MODES = ["day", "week", "month"];
 const schemaThemeCss = `
   [data-schema-theme="light"] button:not([style*="background"]) {
-    background-color: #F8FAFC;
-    color: #111827;
-    border-color: #CBD5E1;
+    background-color: var(--bm-bg-elevated);
+    color: var(--bm-text-primary);
+    border-color: var(--bm-border-strong);
     border-width: 1px;
     border-style: solid;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   }
 
   [data-schema-theme="light"] button:not([style*="background"]):hover {
-    background-color: #EEF2F7;
-    border-color: #94A3B8;
-    color: #0F172A;
+    background-color: var(--bm-hover-bg);
+    border-color: var(--bm-text-muted);
+    color: var(--bm-text-primary);
   }
 
   [data-schema-theme="light"] button[disabled],
   [data-schema-theme="light"] button:disabled {
-    background-color: #E5E7EB !important;
-    border-color: #CBD5E1 !important;
-    color: #6B7280 !important;
+    background-color: var(--bm-border) !important;
+    border-color: var(--bm-border-strong) !important;
+    color: var(--bm-text-secondary) !important;
     cursor: not-allowed;
     opacity: 1;
   }
@@ -88,32 +89,32 @@ const schemaThemeCss = `
   [data-schema-theme="light"] select,
   [data-schema-theme="light"] textarea {
     background-color: #FFFFFF !important;
-    color: #111827 !important;
-    border-color: #94A3B8 !important;
+    color: var(--bm-text-primary) !important;
+    border-color: var(--bm-text-muted) !important;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   }
 
   [data-schema-theme="light"] input::placeholder,
   [data-schema-theme="light"] textarea::placeholder {
-    color: #6B7280 !important;
+    color: var(--bm-text-secondary) !important;
     opacity: 1;
   }
 
   [data-schema-theme="light"] input:focus,
   [data-schema-theme="light"] select:focus,
   [data-schema-theme="light"] textarea:focus {
-    border-color: #193B68 !important;
+    border-color: var(--bm-primary) !important;
     box-shadow: 0 0 0 3px rgba(25, 59, 104, 0.16);
     outline: none;
   }
 
-  [data-schema-theme="light"] [class*="border-[#E5E7EB]"],
-  [data-schema-theme="light"] [class*="border-\\[\\#E5E7EB\\]"] {
-    border-color: #CBD5E1 !important;
+  [data-schema-theme="light"] [class*="border-[var(--bm-border)]"],
+  [data-schema-theme="light"] [class*="border-\\[\\var(--bm-border)\\]"] {
+    border-color: var(--bm-border-strong) !important;
   }
 
   [data-schema-theme="light"] [class*="bg-white"],
-  [data-schema-theme="light"] [class*="bg-\\[\\#F9FAFB\\]"] {
+  [data-schema-theme="light"] [class*="bg-\\[\\var(--bm-bg-elevated)\\]"] {
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   }
 
@@ -143,7 +144,7 @@ function writePlans(plans) {
 }
 
 function hexToRgba(hex, alpha = 1) {
-  const normalized = String(hex || "#193B68").replace("#", "");
+  const normalized = String(hex || "var(--bm-primary)").replace("#", "");
   const value = normalized.length === 3
     ? normalized.split("").map((char) => char + char).join("")
     : normalized.padEnd(6, "0").slice(0, 6);
@@ -152,7 +153,7 @@ function hexToRgba(hex, alpha = 1) {
 }
 
 function getTextOnColor(hex) {
-  const normalized = String(hex || "#193B68").replace("#", "");
+  const normalized = String(hex || "var(--bm-primary)").replace("#", "");
   const value = normalized.length === 3
     ? normalized.split("").map((char) => char + char).join("")
     : normalized.padEnd(6, "0").slice(0, 6);
@@ -164,7 +165,7 @@ function getTextOnColor(hex) {
     .map((channel) => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
     .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
 
-  return luminance > 0.52 ? "#111827" : "#FFFFFF";
+  return luminance > 0.52 ? "var(--bm-text-primary)" : "#FFFFFF";
 }
 
 function addHours(time, hours) {
@@ -526,20 +527,20 @@ function createPlan(type, answers, t, appColor) {
 
 function Header({ isDark, onBack, t }) {
   return (
-    <header className={cn("sticky top-0 z-20 border-b px-4 py-4 sm:px-6", isDark ? "border-[#333] bg-[#222]" : "border-[#E5E7EB] bg-white")}>
+    <header className={cn("sticky top-0 z-20 border-b px-4 py-4 sm:px-6", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
       <div className="mx-auto flex max-w-6xl items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBack}
-            className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", isDark ? "text-[#999] hover:bg-[#333] hover:text-white" : "text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]")}
+            className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", isDark ? "text-[var(--bm-text-muted)] hover:bg-[var(--bm-bg-elevated)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]")}
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <BrandLogo showName={false} logoClassName="h-9 w-9" />
           <div>
-            <h1 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemaPageTitle")}</h1>
-            <p className={cn("hidden text-sm sm:block", isDark ? "text-[#999]" : "text-[#6B7280]")}>{t("schemaPageSubtitle")}</p>
+            <h1 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaPageTitle")}</h1>
+            <p className={cn("hidden text-sm sm:block", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaPageSubtitle")}</p>
           </div>
         </div>
       </div>
@@ -567,20 +568,20 @@ function NotificationBanner({ isDark, appColor, t }) {
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn("mb-5 rounded-xl border p-4", isDark ? "border-[#333] bg-[#252525]" : "border-[#E5E7EB] bg-white")}
+      className={cn("mb-5 rounded-xl border p-4", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white")}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", isDark ? "bg-[#333]" : "bg-[#EEF2FF]")}>
+          <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
             <Bell className="h-5 w-5" style={{ color: appColor }} />
           </div>
           <div>
-            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemaNotificationPromptTitle")}</p>
-            <p className={cn("mt-1 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("schemaNotificationPromptBody")}</p>
+            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaNotificationPromptTitle")}</p>
+            <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaNotificationPromptBody")}</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setVisible(false)} className={cn("rounded-xl border px-4 py-2 text-sm", isDark ? "border-[#333] text-[#ddd] hover:bg-[#2a2a2a]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]")}>
+          <button type="button" onClick={() => setVisible(false)} className={cn("rounded-xl border px-4 py-2 text-sm", isDark ? "border-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]")}>
             {t("cancel")}
           </button>
           <button type="button" onClick={requestPermission} className="rounded-xl px-4 py-2 text-sm font-medium" style={{ backgroundColor: appColor, color: accentText }}>
@@ -600,13 +601,13 @@ function PlanTypeCard({ item, isDark, appColor, onClick, t }) {
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.99 }}
       onClick={() => onClick(item.id)}
-      className={cn("min-h-[190px] rounded-2xl border p-6 text-left transition-all sm:min-h-[210px]", isDark ? "border-[#333] bg-[#252525] hover:border-[#466589] hover:bg-[#2a2a2a]" : "border-[#D1D5DB] bg-white shadow-sm shadow-slate-200/60 hover:border-[#193B68]/40 hover:bg-[#F8FAFC] hover:shadow-md")}
+      className={cn("min-h-[190px] rounded-2xl border p-6 text-left transition-all sm:min-h-[210px]", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)] hover:border-[#466589] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] bg-white shadow-sm shadow-slate-200/60 hover:border-[var(--bm-primary)]/40 hover:bg-[var(--bm-bg-elevated)] hover:shadow-md")}
     >
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: hexToRgba(appColor, isDark ? 0.22 : 0.12) }}>
         <Icon className="h-6 w-6" style={{ color: appColor }} />
       </div>
-      <h3 className={cn("text-xl font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t(item.title)}</h3>
-      <p className={cn("mt-3 text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t(item.subtitle)}</p>
+      <h3 className={cn("text-xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t(item.title)}</h3>
+      <p className={cn("mt-3 text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t(item.subtitle)}</p>
     </motion.button>
   );
 }
@@ -615,11 +616,11 @@ function EmptyCreateScreen({ isDark, appColor, onSelectType, t }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
-        <div className={cn("mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl", isDark ? "bg-[#252525]" : "bg-white border border-[#D1D5DB] shadow-sm")}>
+        <div className={cn("mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-white border border-[var(--bm-border-strong)] shadow-sm")}>
           <Sparkles className="h-6 w-6" style={{ color: appColor }} />
         </div>
-        <h2 className={cn("text-3xl font-semibold tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[#111827]")}>{t("schemaCreateTitle")}</h2>
-        <p className={cn("mx-auto mt-3 max-w-xl text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("schemaCreateSubtitle")}</p>
+        <h2 className={cn("text-3xl font-semibold tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaCreateTitle")}</h2>
+        <p className={cn("mx-auto mt-3 max-w-xl text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaCreateSubtitle")}</p>
       </motion.div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {PLAN_TYPES.map((item) => <PlanTypeCard key={item.id} item={item} isDark={isDark} appColor={appColor} onClick={onSelectType} t={t} />)}
@@ -635,8 +636,8 @@ function PlansDashboard({ plans, isDark, appColor, onCreate, onOpen, onDelete, o
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className={cn("text-2xl font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemaDashboardTitle")}</h2>
-          <p className={cn("mt-1 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("schemaDashboardSubtitle")}</p>
+          <h2 className={cn("text-2xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaDashboardTitle")}</h2>
+          <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaDashboardSubtitle")}</p>
         </div>
         <Button type="button" onClick={() => onCreate()} className="rounded-xl px-4" style={{ backgroundColor: appColor, color: accentText }}>
           <Plus className="h-4 w-4" />
@@ -654,24 +655,24 @@ function PlansDashboard({ plans, isDark, appColor, onCreate, onOpen, onDelete, o
             <motion.div
               key={plan.id}
               layout
-              className={cn("rounded-xl border p-5 transition-all", isDark ? "border-[#333] bg-[#252525]" : "border-[#E5E7EB] bg-white")}
+              className={cn("rounded-xl border p-5 transition-all", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white")}
             >
               <div className="flex items-start gap-4">
-                <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-[#333]" : "bg-[#EEF2FF]")}>
+                <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
                   <Icon className="h-5 w-5" style={{ color: appColor }} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className={cn("truncate text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{plan.title}</h3>
-                    <span className={cn("rounded-full px-2.5 py-1 text-xs", plan.active ? "bg-[#10B981]/15 text-[#10B981]" : isDark ? "bg-[#333] text-[#aaa]" : "bg-[#F3F4F6] text-[#6B7280]")}>
+                    <h3 className={cn("truncate text-base font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{plan.title}</h3>
+                    <span className={cn("rounded-full px-2.5 py-1 text-xs", plan.active ? "bg-[var(--bm-success)]/15 text-[var(--bm-success)]" : isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-muted)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
                       {plan.active ? t("schemaActive") : t("schemaSavedOnly")}
                     </span>
                   </div>
-                  <p className={cn("mt-1 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{plan.subtitle}</p>
+                  <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{plan.subtitle}</p>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-black/10">
                     <div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: appColor }} />
                   </div>
-                  <div className={cn("mt-3 flex flex-wrap gap-3 text-xs", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>
+                  <div className={cn("mt-3 flex flex-wrap gap-3 text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>
                     <span>{plan.tasks.length} {t("schemaTasksLower")}</span>
                     <span>{progress}% {t("schemaDoneLower")}</span>
                     <span>{plan.reminders === "disabled" ? t("schemaNoReminders") : t("schemaRemindersOn")}</span>
@@ -714,7 +715,7 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
               key={value}
               type="button"
               onClick={() => setValue(question.id, value)}
-              className={cn("rounded-xl border px-4 py-4 text-left text-sm font-medium transition-all", selected ? "" : isDark ? "border-[#333] bg-[#1f1f1f] text-[#ddd] hover:bg-[#2a2a2a]" : "border-[#E5E7EB] bg-white text-[#111827] hover:bg-[#F9FAFB]")}
+              className={cn("rounded-xl border px-4 py-4 text-left text-sm font-medium transition-all", selected ? "" : isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]")}
               style={selected ? { backgroundColor: appColor, borderColor: appColor, color: accentText } : undefined}
             >
               {t(labelKey)}
@@ -728,11 +729,11 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
   if (question.type === "slider") {
     const value = Number(answers[question.id] || question.min || 1);
     return (
-      <div className={cn("rounded-xl border p-5", isDark ? "border-[#333] bg-[#1f1f1f]" : "border-[#E5E7EB] bg-white")}>
+      <div className={cn("rounded-xl border p-5", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
         <div className="mb-5 flex items-center justify-between">
-          <span className={cn("text-sm", isDark ? "text-[#ccc]" : "text-[#374151]")}>{question.min}</span>
+          <span className={cn("text-sm", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{question.min}</span>
           <span className="rounded-full px-4 py-2 text-sm font-semibold" style={{ backgroundColor: appColor, color: accentText }}>{value}</span>
-          <span className={cn("text-sm", isDark ? "text-[#ccc]" : "text-[#374151]")}>{question.max}</span>
+          <span className={cn("text-sm", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{question.max}</span>
         </div>
         <input
           type="range"
@@ -754,13 +755,13 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
           type="time"
           value={answers.from || "16:00"}
           onChange={(event) => setAnswers((prev) => ({ ...prev, from: event.target.value }))}
-          className={cn("h-12 rounded-xl border text-sm", isDark ? "border-[#333] bg-[#1a1a1a] text-white" : "border-[#E5E7EB] bg-white text-[#111827]")}
+          className="font-semibold"
         />
         <Input
           type="time"
           value={answers.to || "20:00"}
           onChange={(event) => setAnswers((prev) => ({ ...prev, to: event.target.value }))}
-          className={cn("h-12 rounded-xl border text-sm", isDark ? "border-[#333] bg-[#1a1a1a] text-white" : "border-[#E5E7EB] bg-white text-[#111827]")}
+          className="font-semibold"
         />
       </div>
     );
@@ -772,7 +773,7 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
         type="time"
         value={answers[question.id] || "22:30"}
         onChange={(event) => setValue(question.id, event.target.value)}
-        className={cn("h-12 rounded-xl border text-sm", isDark ? "border-[#333] bg-[#1a1a1a] text-white" : "border-[#E5E7EB] bg-white text-[#111827]")}
+        className="font-semibold"
       />
     );
   }
@@ -831,30 +832,30 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={isAnalyzing}
-          className={cn("flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors disabled:opacity-70", isDark ? "border-[#333] bg-[#1f1f1f] hover:bg-[#2a2a2a]" : "border-[#D1D5DB] bg-white hover:bg-[#F9FAFB]")}
+          className={cn("flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors disabled:opacity-70", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] bg-white hover:bg-[var(--bm-bg-elevated)]")}
         >
-          <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", isDark ? "bg-[#333]" : "bg-[#EEF2FF]")}>
+          <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
             {isAnalyzing ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: appColor }} /> : <FileImage className="h-5 w-5" style={{ color: appColor }} />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>
+            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
               {isAnalyzing ? t("schemaAnalyzingTimetable") : fileName || t("schemaUploadSchoolSchedule")}
             </p>
-            <p className={cn("mt-1 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("schemaUploadSchoolScheduleHint")}</p>
+            <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaUploadSchoolScheduleHint")}</p>
           </div>
           {preview && <img src={preview} alt="" className="h-14 w-14 rounded-xl object-cover" />}
         </button>
 
         {timetable?.entries?.length > 0 && (
-          <div className={cn("rounded-xl border p-4", isDark ? "border-[#333] bg-[#202020]" : "border-[#D1D5DB] bg-[#F8FAFC]")}>
+          <div className={cn("rounded-xl border p-4", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border-strong)] bg-[var(--bm-bg-elevated)]")}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemaTimetableReady")}</p>
-                <p className={cn("mt-1 text-xs", isDark ? "text-[#999]" : "text-[#6B7280]")}>
+                <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaTimetableReady")}</p>
+                <p className={cn("mt-1 text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                   {t("schemaTimetableReadyMeta", { count: timetable.entries.length })}
                 </p>
               </div>
-              <span className={cn("rounded-full px-2.5 py-1 text-xs", isDark ? "bg-[#333] text-[#ddd]" : "bg-white text-[#374151]")}>
+              <span className={cn("rounded-full px-2.5 py-1 text-xs", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "bg-white text-[var(--bm-text-secondary)]")}>
                 {Math.round((timetable.confidence || 0) * 100)}%
               </span>
             </div>
@@ -901,18 +902,18 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className={cn("flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors", isDark ? "border-[#333] bg-[#1f1f1f] hover:bg-[#2a2a2a]" : "border-[#E5E7EB] bg-white hover:bg-[#F9FAFB]")}
+          className={cn("flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white hover:bg-[var(--bm-bg-elevated)]")}
         >
-          <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", isDark ? "bg-[#333]" : "bg-[#EEF2FF]")}>
+          <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
             {acceptsAny ? <Paperclip className="h-5 w-5" style={{ color: appColor }} /> : <FileImage className="h-5 w-5" style={{ color: appColor }} />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>{fileName || t(acceptsAny ? "schemaUploadAnyButton" : "schemaUploadImageButton")}</p>
-            <p className={cn("mt-1 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t(acceptsAny ? "schemaUploadAnyHint" : "schemaUploadImageHint")}</p>
+            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{fileName || t(acceptsAny ? "schemaUploadAnyButton" : "schemaUploadImageButton")}</p>
+            <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t(acceptsAny ? "schemaUploadAnyHint" : "schemaUploadImageHint")}</p>
           </div>
           {preview && <img src={preview} alt="" className="h-14 w-14 rounded-xl object-cover" />}
         </button>
-        <p className={cn("mt-3 text-xs", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("schemaUploadOptional")}</p>
+        <p className={cn("mt-3 text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{t("schemaUploadOptional")}</p>
       </div>
     );
   }
@@ -924,9 +925,9 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
         value={answers[question.id] || ""}
         onChange={(event) => setValue(question.id, event.target.value)}
         placeholder={question.placeholder || ""}
-        className={cn("h-12 rounded-xl border pr-12 text-sm", isDark ? "border-[#333] bg-[#1a1a1a] text-white placeholder-[#888]" : "border-[#E5E7EB] bg-white text-[#111827] placeholder-[#9CA3AF]")}
+        className="pr-12 font-semibold"
       />
-      {question.suffix && <span className={cn("absolute right-4 top-1/2 -translate-y-1/2 text-sm", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{question.suffix}</span>}
+      {question.suffix && <span className={cn("absolute right-4 top-1/2 -translate-y-1/2 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{question.suffix}</span>}
     </div>
   );
 }
@@ -937,7 +938,7 @@ function MiniTimetablePreview({ timetable, isDark }) {
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {entries.map((entry, index) => (
-        <div key={`${entry.day}-${entry.startTime}-${index}`} className={cn("rounded-lg border-l-4 px-3 py-2 text-xs", isDark ? "bg-[#252525] text-[#ddd]" : "bg-white text-[#374151]")} style={{ borderLeftColor: entry.color || "#193B68" }}>
+        <div key={`${entry.day}-${entry.startTime}-${index}`} className={cn("rounded-lg border-l-4 px-3 py-2 text-xs", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "bg-white text-[var(--bm-text-secondary)]")} style={{ borderLeftColor: entry.color || "var(--bm-primary)" }}>
           <span className="font-semibold">{entry.day} {entry.startTime}</span>
           <span className="mx-1">-</span>
           <span>{entry.subject}</span>
@@ -990,19 +991,19 @@ function SetupFlow({ setup, isDark, appColor, onClose, onComplete, t }) {
         initial={{ opacity: 0, y: 18, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 18, scale: 0.98 }}
-        className={cn("w-full max-w-2xl overflow-hidden rounded-2xl border shadow-xl", isDark ? "border-[#333] bg-[#252525]" : "border-[#E5E7EB] bg-white")}
+        className={cn("w-full max-w-2xl overflow-hidden rounded-2xl border shadow-xl", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white")}
       >
-        <div className={cn("border-b p-5", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
+        <div className={cn("border-b p-5", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className={cn("text-xs font-medium uppercase tracking-[0.18em]", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("schemaAiSetup")}</p>
-              <h2 className={cn("mt-1 text-lg font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t(getPlanType(selectedType).title)}</h2>
+              <p className={cn("text-xs font-medium uppercase tracking-[0.18em]", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{t("schemaAiSetup")}</p>
+              <h2 className={cn("mt-1 text-lg font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t(getPlanType(selectedType).title)}</h2>
             </div>
-            <button type="button" onClick={onClose} className={cn("flex h-8 w-8 items-center justify-center rounded-lg", isDark ? "text-[#aaa] hover:bg-[#333]" : "text-[#6B7280] hover:bg-[#F3F4F6]")}>
+            <button type="button" onClick={onClose} className={cn("flex h-8 w-8 items-center justify-center rounded-lg", isDark ? "text-[var(--bm-text-muted)] hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)]")}>
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className={cn("h-1 overflow-hidden rounded-full", isDark ? "bg-[#333]" : "bg-[#EEF2F7]")}>
+          <div className={cn("h-1 overflow-hidden rounded-full", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-hover-bg)]")}>
             <motion.div className="h-full rounded-full" animate={{ width: `${progress}%` }} style={{ backgroundColor: appColor }} />
           </div>
         </div>
@@ -1010,11 +1011,11 @@ function SetupFlow({ setup, isDark, appColor, onClose, onComplete, t }) {
         <div className="p-5">
           <div className="mb-5 space-y-3">
             {answers.initialPrompt && (
-              <div className={cn("ml-auto max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6", isDark ? "bg-[#333] text-white" : "bg-[#EEF2F7] text-[#111827]")}>
+              <div className={cn("ml-auto max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6", isDark ? "bg-[var(--bm-bg-elevated)] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
                 {answers.initialPrompt}
               </div>
             )}
-            <div className={cn("mr-auto max-w-[92%] rounded-2xl border px-4 py-3 text-sm leading-6", isDark ? "border-[#333] bg-[#202020] text-[#ddd]" : "border-[#E5E7EB] bg-[#F9FAFB] text-[#374151]")}>
+            <div className={cn("mr-auto max-w-[92%] rounded-2xl border px-4 py-3 text-sm leading-6", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)] text-[var(--bm-text-secondary)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]")}>
               {t("schemaAiUnderstood", { type: t(getPlanType(selectedType).title) })}
             </div>
           </div>
@@ -1027,17 +1028,17 @@ function SetupFlow({ setup, isDark, appColor, onClose, onComplete, t }) {
               transition={{ duration: 0.18 }}
             >
               <div className="mb-5 flex items-start gap-3">
-                <div className={cn("mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-[#333]" : "bg-[#EEF2FF]")}>
+                <div className={cn("mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
                   <Sparkles className="h-4 w-4" style={{ color: appColor }} />
                 </div>
-                <h3 className={cn("text-xl font-semibold leading-8", isDark ? "text-white" : "text-[#111827]")}>{question.title}</h3>
+                <h3 className={cn("text-xl font-semibold leading-8", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{question.title}</h3>
               </div>
               <QuestionInput question={question} answers={answers} setAnswers={setAnswers} isDark={isDark} appColor={appColor} t={t} />
             </motion.div>
           </AnimatePresence>
         </div>
 
-        <div className={cn("flex items-center justify-between border-t p-5", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
+        <div className={cn("flex items-center justify-between border-t p-5", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
           <Button
             type="button"
             variant="outline"
@@ -1070,7 +1071,7 @@ function GeneratingOverlay({ open, progress, isDark, appColor, t }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={cn("w-full max-w-md rounded-2xl border p-6 text-center shadow-xl", isDark ? "border-[#333] bg-[#252525]" : "border-[#E5E7EB] bg-white")}
+        className={cn("w-full max-w-md rounded-2xl border p-6 text-center shadow-xl", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white")}
       >
         <motion.div
           className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl"
@@ -1080,12 +1081,12 @@ function GeneratingOverlay({ open, progress, isDark, appColor, t }) {
         >
           <Sparkles className="h-7 w-7" style={{ color: appColor }} />
         </motion.div>
-        <h3 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemaBuildingTitle")}</h3>
-        <p className={cn("mt-2 text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("schemaBuildingSubtitle")}</p>
-        <div className={cn("mt-6 h-2 overflow-hidden rounded-full", isDark ? "bg-[#333]" : "bg-[#EEF2F7]")}>
+        <h3 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaBuildingTitle")}</h3>
+        <p className={cn("mt-2 text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaBuildingSubtitle")}</p>
+        <div className={cn("mt-6 h-2 overflow-hidden rounded-full", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-hover-bg)]")}>
           <motion.div className="h-full rounded-full" animate={{ width: `${progress}%` }} style={{ backgroundColor: appColor }} />
         </div>
-        <p className={cn("mt-3 text-xs font-medium", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{Math.round(progress)}%</p>
+        <p className={cn("mt-3 text-xs font-medium", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{Math.round(progress)}%</p>
       </motion.div>
     </div>
   );
@@ -1100,15 +1101,15 @@ function PlanTypePickerModal({ open, isDark, appColor, onClose, onSelectType, t 
         initial={{ opacity: 0, y: 14, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 14, scale: 0.98 }}
-        className={cn("w-full max-w-4xl rounded-2xl border p-5 shadow-xl", isDark ? "border-[#333] bg-[#252525]" : "border-[#E5E7EB] bg-white")}
+        className={cn("w-full max-w-4xl rounded-2xl border p-5 shadow-xl", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white")}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className={cn("text-xs font-medium uppercase tracking-[0.18em]", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("schemaAiSetup")}</p>
-            <h2 className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemaChoosePlanType")}</h2>
-            <p className={cn("mt-1 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("schemaChoosePlanTypeHint")}</p>
+            <p className={cn("text-xs font-medium uppercase tracking-[0.18em]", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{t("schemaAiSetup")}</p>
+            <h2 className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaChoosePlanType")}</h2>
+            <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaChoosePlanTypeHint")}</p>
           </div>
-          <button type="button" onClick={onClose} className={cn("flex h-8 w-8 items-center justify-center rounded-lg", isDark ? "text-[#aaa] hover:bg-[#333]" : "text-[#6B7280] hover:bg-[#F3F4F6]")}>
+          <button type="button" onClick={onClose} className={cn("flex h-8 w-8 items-center justify-center rounded-lg", isDark ? "text-[var(--bm-text-muted)] hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)]")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -1131,7 +1132,7 @@ function TaskCard({ taskItem, isDark, editMode, onEdit, onDragStart }) {
       draggable
       onDragStart={() => onDragStart(taskItem.id)}
       whileHover={{ y: -2 }}
-      className={cn("group cursor-grab rounded-xl border p-3 transition-all", isDark ? "border-[#333] bg-[#202020] hover:bg-[#2a2a2a]" : "border-[#E5E7EB] bg-white hover:shadow-sm")}
+      className={cn("group cursor-grab rounded-xl border p-3 transition-all", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white hover:shadow-sm")}
       style={{ borderLeft: `3px solid ${taskItem.color}` }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -1140,10 +1141,10 @@ function TaskCard({ taskItem, isDark, editMode, onEdit, onDragStart }) {
             <Clock3 className="h-3 w-3" />
             {taskItem.time}
           </span>
-          <p className={cn("mt-2 truncate text-sm font-semibold", taskItem.done && "line-through opacity-60", isDark ? "text-white" : "text-[#111827]")}>{taskItem.title}</p>
-          <p className={cn("mt-1 line-clamp-2 text-xs leading-5", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{taskItem.description}</p>
+          <p className={cn("mt-2 truncate text-sm font-semibold", taskItem.done && "line-through opacity-60", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{taskItem.title}</p>
+          <p className={cn("mt-1 line-clamp-2 text-xs leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{taskItem.description}</p>
         </div>
-        <button type="button" onClick={() => onEdit(taskItem)} className={cn("rounded-lg p-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100", isDark ? "hover:bg-[#333]" : "hover:bg-[#F3F4F6]")}>
+        <button type="button" onClick={() => onEdit(taskItem)} className={cn("rounded-lg p-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100", isDark ? "hover:bg-[var(--bm-bg-elevated)]" : "hover:bg-[var(--bm-hover-bg)]")}>
           {editMode ? <Edit3 className="h-4 w-4" /> : <MoreHorizontal className="h-4 w-4" />}
         </button>
       </div>
@@ -1153,15 +1154,15 @@ function TaskCard({ taskItem, isDark, editMode, onEdit, onDragStart }) {
 
 function DayColumn({ day, items, isDark, editMode, appColor, onEdit, onAddTask, onDropTask, onDragStart, t }) {
   return (
-    <div onDragOver={(event) => event.preventDefault()} onDrop={() => onDropTask(day)} className={cn("min-h-[320px] rounded-xl border p-3", isDark ? "border-[#333] bg-[#202020]" : "border-[#E5E7EB] bg-[#F9FAFB]")}>
+    <div onDragOver={(event) => event.preventDefault()} onDrop={() => onDropTask(day)} className={cn("min-h-[320px] rounded-xl border p-3", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t(`schemanDay_${day}`)}</h3>
-        <span className={cn("text-xs", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{items.length}</span>
+        <h3 className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t(`schemanDay_${day}`)}</h3>
+        <span className={cn("text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{items.length}</span>
       </div>
       <div className="space-y-3">
         {items.map((item) => <TaskCard key={item.id} taskItem={item} isDark={isDark} editMode={editMode} onEdit={onEdit} onDragStart={onDragStart} />)}
         {editMode && (
-          <button type="button" onClick={() => onAddTask(day)} className={cn("flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-3 text-sm", isDark ? "border-[#444] text-[#aaa] hover:bg-[#2a2a2a]" : "border-[#CBD5E1] text-[#6B7280] hover:bg-white")}>
+          <button type="button" onClick={() => onAddTask(day)} className={cn("flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-3 text-sm", isDark ? "border-[var(--bm-border-strong)] text-[var(--bm-text-muted)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] text-[var(--bm-text-secondary)] hover:bg-white")}>
             <Plus className="h-4 w-4" style={{ color: appColor }} />
             {t("schemanAddTask")}
           </button>
@@ -1173,14 +1174,14 @@ function DayColumn({ day, items, isDark, editMode, appColor, onEdit, onAddTask, 
 
 function TaskEditor({ taskItem, isDark, appColor, onClose, onUpdate, onDelete, onDuplicate, t }) {
   if (!taskItem) return null;
-  const inputClass = cn("h-11 rounded-xl border text-sm", isDark ? "border-[#333] bg-[#1a1a1a] text-white placeholder-[#888]" : "border-[#E5E7EB] bg-white text-[#111827] placeholder-[#9CA3AF]");
+  const inputClass = cn(inputClasses.compact, typeClasses.small, "font-semibold");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={cn("w-full max-w-md rounded-2xl border p-5 shadow-xl", isDark ? "border-[#333] bg-[#252525]" : "border-[#E5E7EB] bg-white")}>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={cn("w-full max-w-md rounded-2xl border p-5 shadow-xl", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white")}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemanEditTask")}</h3>
-          <button type="button" onClick={onClose} className={cn("rounded-lg p-2", isDark ? "hover:bg-[#333]" : "hover:bg-[#F3F4F6]")}>
+          <h3 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemanEditTask")}</h3>
+          <button type="button" onClick={onClose} className={cn("rounded-lg p-2", isDark ? "hover:bg-[var(--bm-bg-elevated)]" : "hover:bg-[var(--bm-hover-bg)]")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -1189,7 +1190,7 @@ function TaskEditor({ taskItem, isDark, appColor, onClose, onUpdate, onDelete, o
           <Input className={inputClass} value={taskItem.description} onChange={(event) => onUpdate(taskItem.id, { description: event.target.value })} />
           <div className="grid grid-cols-2 gap-3">
             <Input type="time" className={inputClass} value={taskItem.time} onChange={(event) => onUpdate(taskItem.id, { time: event.target.value })} />
-            <select value={taskItem.day} onChange={(event) => onUpdate(taskItem.id, { day: event.target.value })} className={cn("h-11 rounded-xl border px-3 text-sm", isDark ? "border-[#333] bg-[#1a1a1a] text-white" : "border-[#E5E7EB] bg-white text-[#111827]")}>
+            <select value={taskItem.day} onChange={(event) => onUpdate(taskItem.id, { day: event.target.value })} className={inputClass}>
               {DAYS.map((day) => <option key={day} value={day}>{t(`schemanDay_${day}`)}</option>)}
             </select>
           </div>
@@ -1228,20 +1229,20 @@ function TimetableView({ timetable, isDark, appColor, onEntryClick, t }) {
   if (!entries.length) return null;
 
   return (
-    <div className={cn("mb-6 rounded-lg border p-3", isDark ? "border-[#333] bg-[#202020]" : "border-[#CBD5E1] bg-[#F8FAFC]")}>
+    <div className={cn("mb-6 rounded-lg border p-3", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border-strong)] bg-[var(--bm-bg-elevated)]")}>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h3 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemaSchoolTimetable")}</h3>
-          <p className={cn("mt-1 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("schemaSchoolTimetableSubtitle")}</p>
+          <h3 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaSchoolTimetable")}</h3>
+          <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaSchoolTimetableSubtitle")}</p>
         </div>
-      <span className={cn("w-fit rounded-full px-2.5 py-1 text-xs", isDark ? "bg-[#333] text-[#ddd]" : "bg-white text-[#374151]")}>
+      <span className={cn("w-fit rounded-full px-2.5 py-1 text-xs", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "bg-white text-[var(--bm-text-secondary)]")}>
           {Math.round((timetable.confidence || 0) * 100)}% {t("schemaConfidence")}
         </span>
       </div>
       <div className="space-y-3 md:hidden">
         {days.map((day) => (
-          <div key={day.key} className={cn("rounded-xl border p-3", isDark ? "border-[#333] bg-[#1b1b1b]" : "border-[#CBD5E1] bg-white")}>
-            <h4 className={cn("mb-2 text-sm font-extrabold", isDark ? "text-white" : "text-[#0F172A]")}>{day.label}</h4>
+          <div key={day.key} className={cn("rounded-xl border p-3", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border-strong)] bg-white")}>
+            <h4 className={cn("mb-2 text-sm font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{day.label}</h4>
             <div className="space-y-2">
               {entries
                 .filter((entry) => entry.day === day.key)
@@ -1264,19 +1265,19 @@ function TimetableView({ timetable, isDark, appColor, onEntryClick, t }) {
       </div>
       <div className="hidden overflow-x-auto pb-2 md:block">
         <div
-          className={cn("min-w-[960px] overflow-hidden rounded border", isDark ? "border-[#4A4A4A] bg-[#1b1b1b]" : "border-[#94A3B8] bg-white")}
+          className={cn("min-w-[960px] overflow-hidden rounded border", isDark ? "border-[#4A4A4A] bg-[var(--bm-bg-card)]" : "border-[var(--bm-text-muted)] bg-white")}
           style={{ display: "grid", gridTemplateColumns: `82px repeat(${Math.max(days.length, 1)}, minmax(150px, 1fr))` }}
         >
-          <div className={cn("border-b px-2 py-2 text-center text-xs font-extrabold uppercase", isDark ? "border-[#4A4A4A] bg-[#252525] text-white" : "border-[#94A3B8] bg-[#E2E8F0] text-[#0F172A]")}>
+          <div className={cn("border-b px-2 py-2 text-center text-xs font-extrabold uppercase", isDark ? "border-[#4A4A4A] bg-[var(--bm-bg-elevated)] text-white" : "border-[var(--bm-text-muted)] bg-[var(--bm-active-bg)] text-[var(--bm-text-primary)]")}>
             {minutesToTime(bounds.start)}
           </div>
             {days.map((day) => (
-              <div key={day.key} className={cn("border-b border-l px-3 py-2 text-center text-sm font-extrabold", isDark ? "border-[#4A4A4A] bg-[#252525] text-white" : "border-[#94A3B8] bg-[#E2E8F0] text-[#0F172A]")}>
+              <div key={day.key} className={cn("border-b border-l px-3 py-2 text-center text-sm font-extrabold", isDark ? "border-[#4A4A4A] bg-[var(--bm-bg-elevated)] text-white" : "border-[var(--bm-text-muted)] bg-[var(--bm-active-bg)] text-[var(--bm-text-primary)]")}>
                 {day.label}
               </div>
             ))}
 
-          <div className={cn("relative", isDark ? "bg-[#1b1b1b]" : "bg-[#F8FAFC]")} style={{ height: timelineHeight }}>
+          <div className={cn("relative", isDark ? "bg-[var(--bm-bg-card)]" : "bg-[var(--bm-bg-elevated)]")} style={{ height: timelineHeight }}>
               {rowMarks.map((mark) => {
                 const isHour = mark % 60 === 0;
                 return (
@@ -1285,7 +1286,7 @@ function TimetableView({ timetable, isDark, appColor, onEntryClick, t }) {
                   className={cn(
                     "absolute left-0 right-0 pr-2 pt-1 text-right leading-none",
                     isHour ? "border-t text-[12px] font-extrabold" : "border-t border-dashed text-[10px] font-bold",
-                    isDark ? (isHour ? "border-[#4A4A4A] text-white" : "border-[#333] text-[#CFCFCF]") : (isHour ? "border-[#CBD5E1] text-[#0F172A]" : "border-[#E2E8F0] text-[#334155]")
+                    isDark ? (isHour ? "border-[#4A4A4A] text-white" : "border-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]") : (isHour ? "border-[var(--bm-border-strong)] text-[var(--bm-text-primary)]" : "border-[var(--bm-active-bg)] text-[var(--bm-text-secondary)]")
                   )}
                   style={{ top: `${((mark - bounds.start) / totalMinutes) * 100}%` }}
                 >
@@ -1296,7 +1297,7 @@ function TimetableView({ timetable, isDark, appColor, onEntryClick, t }) {
             </div>
 
             {days.map((day) => (
-            <div key={`${day.key}-body`} className={cn("relative border-l", isDark ? "border-[#4A4A4A] bg-[#1f1f1f]" : "border-[#94A3B8] bg-white")} style={{ height: timelineHeight }}>
+            <div key={`${day.key}-body`} className={cn("relative border-l", isDark ? "border-[#4A4A4A] bg-[var(--bm-bg-card)]" : "border-[var(--bm-text-muted)] bg-white")} style={{ height: timelineHeight }}>
                 {rowMarks.map((mark) => {
                   const isHour = mark % 60 === 0;
                   return (
@@ -1305,7 +1306,7 @@ function TimetableView({ timetable, isDark, appColor, onEntryClick, t }) {
                     className={cn(
                       "absolute left-0 right-0 border-t",
                       !isHour ? "border-dashed" : "",
-                      isDark ? (isHour ? "border-[#4A4A4A]" : "border-[#333]") : (isHour ? "border-[#CBD5E1]" : "border-[#E2E8F0]")
+                      isDark ? (isHour ? "border-[#4A4A4A]" : "border-[var(--bm-bg-elevated)]") : (isHour ? "border-[var(--bm-border-strong)]" : "border-[var(--bm-active-bg)]")
                     )}
                     style={{ top: `${((mark - bounds.start) / totalMinutes) * 100}%` }}
                   />
@@ -1331,7 +1332,7 @@ function TimetableView({ timetable, isDark, appColor, onEntryClick, t }) {
                     className={cn(
                       "absolute left-0 right-0 flex flex-col overflow-hidden border px-2 py-1 text-left transition-colors hover:z-10 hover:ring-2",
                       isBreak ? "border-dashed" : "",
-                      isDark ? "border-black/30 hover:ring-white/25" : "border-white/80 hover:ring-[#193B68]/25"
+                      isDark ? "border-black/30 hover:ring-white/25" : "border-white/80 hover:ring-[var(--bm-primary)]/25"
                     )}
                       style={{
                         top: `${Math.max(0, top)}%`,
@@ -1364,21 +1365,21 @@ function TimetableEntryModal({ entry, isDark, onClose, t }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={cn("w-full max-w-sm rounded-2xl border p-5 shadow-xl", isDark ? "border-[#333] bg-[#252525]" : "border-[#E5E7EB] bg-white")}>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={cn("w-full max-w-sm rounded-2xl border p-5 shadow-xl", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white")}>
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className={cn("text-xs uppercase tracking-[0.18em]", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{entry.day} · {entry.startTime} - {entry.endTime}</p>
-            <h3 className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[#111827]")}>{entry.subject}</h3>
+            <p className={cn("text-xs uppercase tracking-[0.18em]", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{entry.day} · {entry.startTime} - {entry.endTime}</p>
+            <h3 className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{entry.subject}</h3>
           </div>
-          <button type="button" onClick={onClose} className={cn("rounded-lg p-2", isDark ? "hover:bg-[#333]" : "hover:bg-[#F3F4F6]")}>
+          <button type="button" onClick={onClose} className={cn("rounded-lg p-2", isDark ? "hover:bg-[var(--bm-bg-elevated)]" : "hover:bg-[var(--bm-hover-bg)]")}>
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="space-y-2 text-sm">
-          <p className={isDark ? "text-[#ddd]" : "text-[#374151]"}>{t("schemaType")}: {entry.type}</p>
-          {entry.teacher && <p className={isDark ? "text-[#ddd]" : "text-[#374151]"}>{t("schemaTeacher")}: {entry.teacher}</p>}
-          {entry.room && <p className={isDark ? "text-[#ddd]" : "text-[#374151]"}>{t("schemaRoom")}: {entry.room}</p>}
-          {entry.notes && <p className={isDark ? "text-[#aaa]" : "text-[#6B7280]"}>{entry.notes}</p>}
+          <p className={isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}>{t("schemaType")}: {entry.type}</p>
+          {entry.teacher && <p className={isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}>{t("schemaTeacher")}: {entry.teacher}</p>}
+          {entry.room && <p className={isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}>{t("schemaRoom")}: {entry.room}</p>}
+          {entry.notes && <p className={isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}>{entry.notes}</p>}
           {entry.needsClarification && <p className="text-amber-500">{t("schemaEntryNeedsClarification")}</p>}
         </div>
       </motion.div>
@@ -1425,19 +1426,19 @@ function PlanDetail({ plan, isDark, appColor, onBack, onChange, t }) {
 
   const content = (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <div className={cn("rounded-xl border p-5", isDark ? "border-[#333] bg-[#252525]" : "border-[#E5E7EB] bg-white")}>
+      <div className={cn("rounded-xl border p-5", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white")}>
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <button type="button" onClick={onBack} className={cn("mb-4 inline-flex items-center gap-2 text-sm", isDark ? "text-[#aaa] hover:text-white" : "text-[#6B7280] hover:text-[#111827]")}>
+            <button type="button" onClick={onBack} className={cn("mb-4 inline-flex items-center gap-2 text-sm", isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]")}>
               <ArrowLeft className="h-4 w-4" />
               {t("schemaBackToPlans")}
             </button>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={cn("rounded-full px-2.5 py-1 text-xs", plan.active ? "bg-[#10B981]/15 text-[#10B981]" : isDark ? "bg-[#333] text-[#aaa]" : "bg-[#F3F4F6] text-[#6B7280]")}>{plan.active ? t("schemaActive") : t("schemaSavedOnly")}</span>
-              <span className={cn("rounded-full px-2.5 py-1 text-xs", isDark ? "bg-[#333] text-[#aaa]" : "bg-[#F3F4F6] text-[#6B7280]")}>{plan.reminders === "disabled" ? t("schemaNoReminders") : t("schemaRemindersOn")}</span>
+              <span className={cn("rounded-full px-2.5 py-1 text-xs", plan.active ? "bg-[var(--bm-success)]/15 text-[var(--bm-success)]" : isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-muted)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>{plan.active ? t("schemaActive") : t("schemaSavedOnly")}</span>
+              <span className={cn("rounded-full px-2.5 py-1 text-xs", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-muted)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>{plan.reminders === "disabled" ? t("schemaNoReminders") : t("schemaRemindersOn")}</span>
             </div>
-            <h2 className={cn("mt-3 text-2xl font-semibold", isDark ? "text-white" : "text-[#111827]")}>{plan.title}</h2>
-            <p className={cn("mt-2 max-w-2xl text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("schemaPlanDetailSubtitle")}</p>
+            <h2 className={cn("mt-3 text-2xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{plan.title}</h2>
+            <p className={cn("mt-2 max-w-2xl text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaPlanDetailSubtitle")}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => setEditMode((value) => !value)} className="rounded-xl">{editMode ? t("schemanDoneEditing") : t("schemanEditSchedule")}</Button>
@@ -1447,24 +1448,24 @@ function PlanDetail({ plan, isDark, appColor, onBack, onChange, t }) {
         </div>
 
         <div className="mb-5 grid gap-3 sm:grid-cols-3">
-          <div className={cn("rounded-xl border p-4", isDark ? "border-[#333] bg-[#202020]" : "border-[#E5E7EB] bg-[#F9FAFB]")}>
-            <p className={cn("text-xs", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("schemaProgress")}</p>
-            <p className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[#111827]")}>{progress}%</p>
+          <div className={cn("rounded-xl border p-4", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+            <p className={cn("text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{t("schemaProgress")}</p>
+            <p className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{progress}%</p>
           </div>
-          <div className={cn("rounded-xl border p-4", isDark ? "border-[#333] bg-[#202020]" : "border-[#E5E7EB] bg-[#F9FAFB]")}>
-            <p className={cn("text-xs", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("schemaTasksLower")}</p>
-            <p className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[#111827]")}>{plan.tasks.length}</p>
+          <div className={cn("rounded-xl border p-4", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+            <p className={cn("text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{t("schemaTasksLower")}</p>
+            <p className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{plan.tasks.length}</p>
           </div>
-          <div className={cn("rounded-xl border p-4", isDark ? "border-[#333] bg-[#202020]" : "border-[#E5E7EB] bg-[#F9FAFB]")}>
-            <p className={cn("text-xs", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("schemaActiveState")}</p>
-            <p className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[#111827]")}>{plan.active ? t("schemaRunning") : t("schemaPaused")}</p>
+          <div className={cn("rounded-xl border p-4", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+            <p className={cn("text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{t("schemaActiveState")}</p>
+            <p className={cn("mt-1 text-xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{plan.active ? t("schemaRunning") : t("schemaPaused")}</p>
           </div>
         </div>
 
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className={cn("inline-flex rounded-xl p-1", isDark ? "bg-[#202020]" : "bg-[#F3F4F6]")}>
+          <div className={cn("inline-flex rounded-xl p-1", isDark ? "bg-[var(--bm-bg-card)]" : "bg-[var(--bm-hover-bg)]")}>
             {VIEW_MODES.map((mode) => (
-              <button key={mode} type="button" onClick={() => setView(mode)} className={cn("rounded-lg px-4 py-2 text-sm transition-colors", view === mode ? "" : isDark ? "text-[#aaa]" : "text-[#6B7280]")} style={view === mode ? { backgroundColor: appColor, color: accentText } : undefined}>
+              <button key={mode} type="button" onClick={() => setView(mode)} className={cn("rounded-lg px-4 py-2 text-sm transition-colors", view === mode ? "" : isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")} style={view === mode ? { backgroundColor: appColor, color: accentText } : undefined}>
                 {t(`schemanView_${mode}`)}
               </button>
             ))}
@@ -1483,7 +1484,7 @@ function PlanDetail({ plan, isDark, appColor, onBack, onChange, t }) {
         {view === "day" && (
           <div>
             <div className="mb-3 flex flex-wrap gap-2 pb-1 md:flex-nowrap md:overflow-x-auto">
-              {DAYS.map((day) => <button key={day} type="button" onClick={() => setActiveDay(day)} className={cn("shrink-0 rounded-xl px-3 py-2 text-sm", activeDay === day ? "" : isDark ? "bg-[#202020] text-[#aaa]" : "bg-[#F3F4F6] text-[#6B7280]")} style={activeDay === day ? { backgroundColor: appColor, color: accentText } : undefined}>{t(`schemanDayShort_${day}`)}</button>)}
+              {DAYS.map((day) => <button key={day} type="button" onClick={() => setActiveDay(day)} className={cn("shrink-0 rounded-xl px-3 py-2 text-sm", activeDay === day ? "" : isDark ? "bg-[var(--bm-bg-card)] text-[var(--bm-text-muted)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")} style={activeDay === day ? { backgroundColor: appColor, color: accentText } : undefined}>{t(`schemanDayShort_${day}`)}</button>)}
             </div>
             <DayColumn day={activeDay} items={grouped[activeDay] || []} isDark={isDark} editMode={editMode} appColor={appColor} onEdit={setSelectedTask} onAddTask={addTask} onDropTask={dropTask} onDragStart={setDragging} t={t} />
           </div>
@@ -1502,10 +1503,10 @@ function PlanDetail({ plan, isDark, appColor, onBack, onChange, t }) {
             {Array.from({ length: 35 }, (_, index) => {
               const day = DAYS[index % DAYS.length];
               return (
-                <div key={index} className={cn("min-h-[115px] rounded-xl border p-3", isDark ? "border-[#333] bg-[#202020]" : "border-[#E5E7EB] bg-[#F9FAFB]")}>
+                <div key={index} className={cn("min-h-[115px] rounded-xl border p-3", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
                   <div className="flex justify-between text-xs">
-                    <span className={isDark ? "text-white" : "text-[#111827]"}>{index + 1}</span>
-                    <span className={isDark ? "text-[#888]" : "text-[#9CA3AF]"}>{t(`schemanDayShort_${day}`)}</span>
+                    <span className={isDark ? "text-white" : "text-[var(--bm-text-primary)]"}>{index + 1}</span>
+                    <span className={isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]"}>{t(`schemanDayShort_${day}`)}</span>
                   </div>
                   <div className="mt-3 space-y-1">
                     {(grouped[day] || []).slice(0, 2).map((item) => <button key={`${index}-${item.id}`} type="button" onClick={() => setSelectedTask(item)} className="block w-full truncate rounded-lg px-2 py-1 text-left text-xs" style={{ backgroundColor: item.color, color: getTextOnColor(item.color) }}>{item.title}</button>)}
@@ -1517,16 +1518,16 @@ function PlanDetail({ plan, isDark, appColor, onBack, onChange, t }) {
         )}
 
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <div className={cn("rounded-xl border p-4", isDark ? "border-[#333] bg-[#202020]" : "border-[#E5E7EB] bg-[#F9FAFB]")}>
-            <h3 className={cn("mb-3 font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemanHabitTracker")}</h3>
+          <div className={cn("rounded-xl border p-4", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+            <h3 className={cn("mb-3 font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemanHabitTracker")}</h3>
             <div className="space-y-3">
-              {plan.habits.map((habit) => <div key={habit.id}><div className="mb-1 flex justify-between text-sm"><span className={isDark ? "text-[#ccc]" : "text-[#374151]"}>{habit.label}</span><span className={isDark ? "text-[#aaa]" : "text-[#6B7280]"}>{habit.value}%</span></div><div className={cn("h-2 rounded-full", isDark ? "bg-[#333]" : "bg-[#E5E7EB]")}><div className="h-full rounded-full" style={{ width: `${habit.value}%`, backgroundColor: appColor }} /></div></div>)}
+              {plan.habits.map((habit) => <div key={habit.id}><div className="mb-1 flex justify-between text-sm"><span className={isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}>{habit.label}</span><span className={isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}>{habit.value}%</span></div><div className={cn("h-2 rounded-full", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-border)]")}><div className="h-full rounded-full" style={{ width: `${habit.value}%`, backgroundColor: appColor }} /></div></div>)}
             </div>
           </div>
-          <div className={cn("rounded-xl border p-4 lg:col-span-2", isDark ? "border-[#333] bg-[#202020]" : "border-[#E5E7EB] bg-[#F9FAFB]")}>
-            <h3 className={cn("mb-3 font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("schemanSmartInsights")}</h3>
+          <div className={cn("rounded-xl border p-4 lg:col-span-2", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+            <h3 className={cn("mb-3 font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemanSmartInsights")}</h3>
             <div className="grid gap-2 sm:grid-cols-3">
-              {plan.insights.map((insight) => <button key={insight} type="button" onClick={() => toast.success(t("schemanSuggestionApplied"))} className={cn("rounded-xl p-3 text-left text-sm leading-6", isDark ? "bg-[#252525] text-[#ddd] hover:bg-[#2a2a2a]" : "bg-white text-[#374151] hover:bg-[#F3F4F6]")}><Sparkles className="mb-2 h-4 w-4" style={{ color: appColor }} />{insight}</button>)}
+              {plan.insights.map((insight) => <button key={insight} type="button" onClick={() => toast.success(t("schemanSuggestionApplied"))} className={cn("rounded-xl p-3 text-left text-sm leading-6", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)]")}><Sparkles className="mb-2 h-4 w-4" style={{ color: appColor }} />{insight}</button>)}
             </div>
           </div>
         </div>
@@ -1537,14 +1538,14 @@ function PlanDetail({ plan, isDark, appColor, onBack, onChange, t }) {
     </div>
   );
 
-  return fullScreen ? <div className={cn("fixed inset-0 z-40 overflow-auto", isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]")}>{content}</div> : content;
+  return fullScreen ? <div className={cn("fixed inset-0 z-40 overflow-auto", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]")}>{content}</div> : content;
 }
 
 export default function SchemanPage() {
   const navigate = useNavigate();
   const { t, prefs, resolvedTheme, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
-  const appColor = prefs.appColor || prefs.accentColor || "#193B68";
+  const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const isRTL = RTL_LANGUAGE_RE.test(uiLanguage);
   const [plans, setPlans] = useState(readPlans);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
@@ -1608,7 +1609,7 @@ export default function SchemanPage() {
 
   return (
     <div
-      className={cn("min-h-screen", isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]")}
+      className={cn("min-h-screen", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]")}
       dir={isRTL ? "rtl" : "ltr"}
       data-schema-theme={isDark ? "dark" : "light"}
       data-testid="scheman-page"

@@ -39,18 +39,18 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
         onClick={() => setIsOpen(true)}
         className={cn(
           "w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer",
-          isDark ? "bg-[#1a1a1a] border-[#333] hover:border-[#555]" : "bg-[#F9FAFB] border-[#E5E7EB] hover:border-[#D1D5DB]"
+          isDark ? "bg-[var(--bm-bg-app)] border-[var(--bm-bg-elevated)] hover:border-[var(--bm-border-strong)]" : "bg-[var(--bm-bg-elevated)] border-[var(--bm-border)] hover:border-[var(--bm-border-strong)]"
         )}
         data-testid="language-selector-trigger"
       >
         <div className="flex items-center gap-3">
-          <Globe className={cn("w-4 h-4", isDark ? "text-[#888]" : "text-[#6B7280]")} />
+          <Globe className={cn("w-4 h-4", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")} />
           <div className="text-left">
-            <p className={cn("text-sm font-medium", isDark ? "text-white" : "text-[#111827]")}>{currentLanguage.native}</p>
-            <p className={cn("text-xs", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{currentLanguage.name}</p>
+            <p className={cn("text-sm font-medium", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{currentLanguage.native}</p>
+            <p className={cn("text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{currentLanguage.name}</p>
           </div>
         </div>
-        <ChevronDown className={cn("w-4 h-4", isDark ? "text-[#888]" : "text-[#9CA3AF]")} />
+        <ChevronDown className={cn("w-4 h-4", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")} />
       </button>
 
       {/* Modal */}
@@ -72,32 +72,32 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
               transition={{ duration: 0.2 }}
               className={cn(
                 "relative w-full max-w-md max-h-[70vh] rounded-2xl border shadow-xl flex flex-col overflow-hidden z-10",
-                isDark ? "bg-[#222] border-[#333]" : "bg-white border-[#E5E7EB]"
+                isDark ? "bg-[var(--bm-bg-card)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]"
               )}
               data-testid="language-modal"
             >
               {/* Header */}
-              <div className={cn("flex items-center justify-between px-5 py-4 border-b", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
-                <h3 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("selectLanguage")}</h3>
+              <div className={cn("flex items-center justify-between px-5 py-4 border-b", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
+                <h3 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("selectLanguage")}</h3>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[#888] hover:text-white hover:bg-[#333]" : "text-[#9CA3AF] hover:text-[#111827] hover:bg-[#F3F4F6]")}
+                  className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-muted)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]")}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Search */}
-              <div className={cn("px-5 py-3 border-b", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
-                <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-xl border", isDark ? "bg-[#1a1a1a] border-[#333]" : "bg-[#F9FAFB] border-[#E5E7EB]")}>
-                  <Search className={cn("w-4 h-4 flex-shrink-0", isDark ? "text-[#666]" : "text-[#9CA3AF]")} />
+              <div className={cn("px-5 py-3 border-b", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
+                <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-xl border", isDark ? "bg-[var(--bm-bg-app)] border-[var(--bm-bg-elevated)]" : "bg-[var(--bm-bg-elevated)] border-[var(--bm-border)]")}>
+                  <Search className={cn("w-4 h-4 flex-shrink-0", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")} />
                   <input
                     ref={searchRef}
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={t("searchLanguages")}
-                    className={cn("flex-1 bg-transparent outline-none text-sm", isDark ? "text-white placeholder-[#666]" : "text-[#111827] placeholder-[#9CA3AF]")}
+                    className={cn("flex-1 bg-transparent outline-none text-sm", isDark ? "text-white placeholder-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder-[var(--bm-text-muted)]")}
                     data-testid="language-search-input"
                   />
                 </div>
@@ -107,7 +107,7 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
               <div className="flex-1 overflow-y-auto px-2 py-2">
                 {filtered.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className={cn("text-sm", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("noLanguagesFound")}</p>
+                    <p className={cn("text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{t("noLanguagesFound")}</p>
                   </div>
                 ) : (
                   filtered.map((lang) => {
@@ -119,16 +119,16 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
                         className={cn(
                           "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer mb-0.5",
                           isSelected
-                            ? (isDark ? "bg-[#193B68]/30 text-white" : "bg-[#EEF2FF] text-[#193B68]")
-                            : (isDark ? "hover:bg-[#2a2a2a] text-[#ccc]" : "hover:bg-[#F9FAFB] text-[#111827]")
+                            ? (isDark ? "bg-[var(--bm-primary)]/30 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")
+                            : (isDark ? "hover:bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "hover:bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")
                         )}
                         data-testid={`lang-option-${lang.code}`}
                       >
                         <div className="flex flex-col items-start">
                           <span className="text-sm font-medium">{lang.native}</span>
-                          <span className={cn("text-xs", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{lang.name}</span>
+                          <span className={cn("text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{lang.name}</span>
                         </div>
-                        {isSelected && <Check className="w-4 h-4 text-[#193B68]" />}
+                        {isSelected && <Check className="w-4 h-4 text-[var(--bm-primary)]" />}
                       </button>
                     );
                   })

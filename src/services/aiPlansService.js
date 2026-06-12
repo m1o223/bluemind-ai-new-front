@@ -311,8 +311,10 @@ function buildRecommendations(goal, answers) {
   ];
 }
 
-export function createAIPlanFromConversation(goal, answers = []) {
+export function createAIPlanFromConversation(goal, answers = [], context = {}) {
   const now = new Date().toISOString();
+  const attachments = Array.isArray(context.attachments) ? context.attachments : [];
+  const messages = Array.isArray(context.messages) ? context.messages : [];
   return {
     id: uid("plan"),
     userId: null,
@@ -322,7 +324,22 @@ export function createAIPlanFromConversation(goal, answers = []) {
     status: "Active",
     createdAt: now,
     updatedAt: now,
-    aiConversation: answers,
+    aiConversation: {
+      source: "ai_plans_builder",
+      storage: "local_fallback_backend_ready",
+      selectedQuickCard: context.selectedQuickCard || null,
+      messages,
+      answers,
+      attachments,
+      generatedDraftAt: now,
+    },
+    uploadedAttachments: attachments,
+    generatedPlanDraft: {
+      goal: String(goal || "").trim(),
+      answers,
+      attachments,
+      createdAt: now,
+    },
     phases: buildPhases(goal, answers),
     recommendations: buildRecommendations(goal, answers),
   };

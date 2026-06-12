@@ -66,7 +66,7 @@ export default function RotatingChatSuggestion({ className = "", iconClassName =
       >
         <Icon
           aria-hidden="true"
-          className={`shrink-0 ${isDark ? "text-white" : "text-[#111827]"} ${iconClassName}`}
+          className={`shrink-0 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"} ${iconClassName}`}
         />
         <p className={`min-w-0 ${textClassName}`}>{t(suggestion.key)}</p>
       </motion.div>

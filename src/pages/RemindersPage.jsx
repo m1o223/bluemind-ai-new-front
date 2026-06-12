@@ -30,6 +30,7 @@ import {
 
 import { useNavigate, useParams } from "react-router-dom"
 import { cn } from "@/lib/utils"
+import { inputClasses, typeClasses } from "@/lib/interactions"
 import { useApp } from "@/context/AppContext"
 import BrandLogo from "@/components/BrandLogo"
 import { toast } from "sonner"
@@ -69,7 +70,7 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
       className={cn(
         "rounded-xl border p-5 hover:shadow-sm transition-all duration-200 relative",
         isHighlighted && "ring-2 ring-offset-2 ring-offset-transparent",
-        isDark ? "bg-[#252525] border-[#333] hover:border-[#466589]" : "bg-white border-[#E5E7EB] hover:border-[#193B68]/50",
+        isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)] hover:border-[#466589]" : "bg-white border-[var(--bm-border)] hover:border-[var(--bm-primary)]/50",
       )}
       style={isHighlighted ? { "--tw-ring-color": appColor } : undefined}
       data-testid={`reminder-card-${reminder._id}`}
@@ -77,11 +78,11 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className={cn("font-medium text-base truncate", isDark ? "text-white" : "text-[#111827]")}>
+          <h3 className={cn("font-medium text-base truncate", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
             {reminder.title}
           </h3>
 
-          <p className={cn("text-sm mt-1 line-clamp-2", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+          <p className={cn("text-sm mt-1 line-clamp-2", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
             {reminder.description}
           </p>
 
@@ -98,7 +99,7 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
           </div>
 
           {(reminder.recurrence?.frequency || "none") !== "none" && (
-            <span className={cn("mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", isDark ? "bg-[#333] text-[#ddd]" : "bg-[#EEF2FF] text-[#193B68]")}>
+            <span className={cn("mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
               <Repeat2 className="h-3.5 w-3.5" />
               {t(`repeat_${reminder.recurrence.frequency}`)}
             </span>
@@ -110,7 +111,7 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
             onClick={() => setMenuOpen(!menuOpen)}
             className={cn(
               "p-1.5 rounded-lg flex items-center justify-center transition-colors cursor-pointer",
-              isDark ? "text-[#aaa] hover:text-white hover:bg-[#333]" : "text-[#193B68] hover:text-[#111827] hover:bg-[#F3F4F6]",
+              isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-primary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
             )}
             data-testid={`reminder-menu-${reminder._id}`}
           >
@@ -127,7 +128,7 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
               <div
                 className={cn(
                   "absolute right-0 top-9 rounded-lg border shadow-lg z-20 py-1 w-28",
-                  isDark ? "bg-[#222] border-[#333]" : "bg-white border-[#E5E7EB]",
+                  isDark ? "bg-[var(--bm-bg-card)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]",
                 )}
                 data-testid={`reminder-dropdown-${reminder._id}`}
               >
@@ -136,7 +137,7 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
                     onEdit(reminder)
                     setMenuOpen(false)
                   }}
-                  className={cn("w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer", isDark ? "text-[#ddd] hover:bg-[#2a2a2a]" : "text-[#374151] hover:bg-[#F9FAFB]")}
+                  className={cn("w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]")}
                 >
                   {t("edit")}
                 </button>
@@ -146,7 +147,7 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
                     onDelete(reminder._id)
                     setMenuOpen(false)
                   }}
-                  className={cn("w-full px-3 py-2 text-sm text-red-500 text-left transition-colors cursor-pointer", isDark ? "hover:bg-red-950/30" : "hover:bg-[#FEF2F2]")}
+                  className={cn("w-full px-3 py-2 text-sm text-red-500 text-left transition-colors cursor-pointer", isDark ? "hover:bg-red-950/30" : "hover:bg-[var(--bm-hover-bg)]")}
                 >
                   {t("delete")}
                 </button>
@@ -230,23 +231,23 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
         exit={{ opacity: 0, scale: 0.95 }}
         className={cn(
           "relative max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl shadow-xl border w-full max-w-md p-5 sm:p-6 z-10",
-          isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]",
+          isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]",
         )}
       >
         <button
           onClick={onClose}
-          className={cn("absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[#aaa] hover:text-white hover:bg-[#333]" : "text-[#193B68] hover:text-[#6B7280] hover:bg-[#F3F4F6]")}
+          className={cn("absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-primary)] hover:text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)]")}
         >
           <X className="w-4 h-4" />
         </button>
 
-        <h2 className={cn("text-lg font-semibold mb-6", isDark ? "text-white" : "text-[#111827]")}>
+        <h2 className={cn("text-lg font-semibold mb-6", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
           {isEdit ? t("editReminder") : t("createReminder")}
         </h2>
 
         <div className="space-y-4">
           <div>
-            <label className={cn("text-sm font-medium mb-1.5 block", isDark ? "text-[#ddd]" : "text-[#374151]")}>
+            <label className={cn("text-sm font-medium mb-1.5 block", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
               {t("title")}
             </label>
 
@@ -260,14 +261,14 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
                 })
               }
               placeholder={t("reminderTitle")}
-              className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all", isDark ? "bg-[#1a1a1a] border-[#333] text-white placeholder-[#888]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+              className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
               style={{ "--tw-ring-color": `${appColor}33` }}
               data-testid="modal-title-input"
             />
           </div>
 
           <div>
-            <label className={cn("text-sm font-medium mb-1.5 block", isDark ? "text-[#ddd]" : "text-[#374151]")}>
+            <label className={cn("text-sm font-medium mb-1.5 block", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
               {t("description")}
             </label>
 
@@ -281,14 +282,14 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
               }
               placeholder={t("descriptionOptional")}
               rows={3}
-              className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all resize-none", isDark ? "bg-[#1a1a1a] border-[#333] text-white placeholder-[#888]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+              className={cn(inputClasses.textarea, typeClasses.body, "resize-none font-semibold")}
               data-testid="modal-description-input"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
             <div>
-              <label className={cn("text-sm font-medium mb-1.5 block", isDark ? "text-[#ddd]" : "text-[#374151]")}>
+              <label className={cn("text-sm font-medium mb-1.5 block", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
                 {t("date")}
               </label>
 
@@ -301,13 +302,13 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
                     date: e.target.value,
                   })
                 }
-                className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all", isDark ? "bg-[#1a1a1a] border-[#333] text-white" : "bg-white border-[#E5E7EB] text-[#111827]")}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
                 data-testid="modal-date-input"
               />
             </div>
 
             <div>
-              <label className={cn("text-sm font-medium mb-1.5 block", isDark ? "text-[#ddd]" : "text-[#374151]")}>
+              <label className={cn("text-sm font-medium mb-1.5 block", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
                 {t("time")}
               </label>
 
@@ -320,14 +321,14 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
                     time: e.target.value,
                   })
                 }
-                className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all", isDark ? "bg-[#1a1a1a] border-[#333] text-white" : "bg-white border-[#E5E7EB] text-[#111827]")}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
                 data-testid="modal-time-input"
               />
             </div>
           </div>
 
           <div>
-            <label className={cn("text-sm font-medium mb-1.5 flex items-center gap-2", isDark ? "text-[#ddd]" : "text-[#374151]")}>
+            <label className={cn("text-sm font-medium mb-1.5 flex items-center gap-2", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
               <Repeat2 className="h-4 w-4" />
               {t("recurringReminder")}
             </label>
@@ -344,7 +345,7 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
                     },
                   })
                 }
-                className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all", isDark ? "bg-[#1a1a1a] border-[#333] text-white" : "bg-white border-[#E5E7EB] text-[#111827]")}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
                 data-testid="modal-recurrence-frequency"
               >
                 <option value="none">{t("doesNotRepeat")}</option>
@@ -369,7 +370,7 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
                   })
                 }
                 aria-label={t("repeatInterval")}
-                className={cn("w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all disabled:opacity-50", isDark ? "bg-[#1a1a1a] border-[#333] text-white" : "bg-white border-[#E5E7EB] text-[#111827]")}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold disabled:opacity-50")}
                 data-testid="modal-recurrence-interval"
               />
             </div>
@@ -378,7 +379,7 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
           <div className="grid grid-cols-1 gap-3 pt-2 min-[420px]:grid-cols-2">
             <button
               onClick={onClose}
-              className={cn("py-3 border rounded-xl text-sm font-medium transition-colors cursor-pointer", isDark ? "border-[#333] text-[#ddd] hover:bg-[#2a2a2a]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]")}
+              className={cn("py-3 border rounded-xl text-sm font-medium transition-colors cursor-pointer", isDark ? "border-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]")}
               data-testid="modal-cancel"
             >
               {t("cancel")}
@@ -425,7 +426,7 @@ function NotificationSetupPanel({
     <section
       className={cn(
         "mb-6 rounded-2xl border p-4 shadow-sm",
-        isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]",
+        isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]",
       )}
       data-testid="notification-setup-panel"
     >
@@ -436,18 +437,18 @@ function NotificationSetupPanel({
               "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
               isGranted
                 ? isDark ? "bg-emerald-500/15 text-emerald-300" : "bg-emerald-50 text-emerald-700"
-                : isDark ? "bg-[#333] text-[#ddd]" : "bg-[#F3F4F6] text-[#193B68]",
+                : isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]",
             )}
           >
             {isDenied ? <BellOff className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
           </div>
 
           <div className="min-w-0">
-            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>
+            <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
               {statusLabel}
             </p>
 
-            <p className={cn("mt-1 text-xs leading-5", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+            <p className={cn("mt-1 text-xs leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
               {t("notificationSetupDescription")}
             </p>
           </div>
@@ -473,7 +474,7 @@ function NotificationSetupPanel({
             disabled={!isGranted || !debugState?.subscriptionExists || sendingTest}
             className={cn(
               "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-3.5 text-sm font-medium transition-colors disabled:opacity-50",
-              isDark ? "border-[#3a3a3a] text-[#ddd] hover:bg-[#2f2f2f]" : "border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]",
+              isDark ? "border-[var(--bm-border-strong)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]",
             )}
             data-testid="send-test-notification-button"
           >
@@ -487,7 +488,7 @@ function NotificationSetupPanel({
             disabled={refreshing}
             className={cn(
               "inline-flex min-h-10 w-10 items-center justify-center rounded-xl border transition-colors disabled:opacity-50",
-              isDark ? "border-[#3a3a3a] text-[#ddd] hover:bg-[#2f2f2f]" : "border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]",
+              isDark ? "border-[var(--bm-border-strong)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]",
             )}
             aria-label={t("refreshNotificationStatus")}
             data-testid="refresh-notification-status-button"
@@ -500,7 +501,7 @@ function NotificationSetupPanel({
       <pre
         className={cn(
           "mt-4 overflow-x-auto rounded-xl border p-3 text-xs leading-5",
-          isDark ? "border-[#333] bg-[#1a1a1a] text-[#ddd]" : "border-[#E5E7EB] bg-[#F9FAFB] text-[#374151]",
+          isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-app)] text-[var(--bm-text-secondary)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]",
         )}
         data-testid="notification-debug-panel"
       >
@@ -531,7 +532,7 @@ export default function RemindersPage() {
   const { t, prefs, resolvedTheme } = useApp()
   const language = prefs.language || "en"
   const isDark = resolvedTheme === "dark"
-  const appColor = prefs.appColor || prefs.accentColor || "#193B68"
+  const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)"
 
   const [reminders, setReminders] = useState([])
   const [remindersLoaded, setRemindersLoaded] = useState(false)
@@ -752,16 +753,16 @@ const fetchReminders = useCallback(async () => {
 
   return (
     <div
-      className={cn("min-h-screen", isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]")}
+      className={cn("min-h-screen", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]")}
       data-testid="reminders-page"
     >
       {/* Header */}
-      <header className={cn("border-b sticky top-0 z-10", isDark ? "bg-[#222] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+      <header className={cn("border-b sticky top-0 z-10", isDark ? "bg-[var(--bm-bg-card)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex min-w-0 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => navigate("/dashboard")}
-              className={cn("p-2 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[#aaa] hover:text-white hover:bg-[#333]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]")}
+              className={cn("p-2 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]")}
               data-testid="back-button"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -770,10 +771,10 @@ const fetchReminders = useCallback(async () => {
             <div className="flex items-center gap-3 min-w-0">
               <BrandLogo
                 logoClassName="w-8 h-8"
-                textClassName={cn("hidden min-[390px]:inline text-sm sm:text-base", isDark ? "text-white" : "text-[#111827]")}
+                textClassName={cn("hidden min-[390px]:inline text-sm sm:text-base", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}
               />
 
-              <h1 className={cn("text-lg font-semibold truncate", isDark ? "text-white" : "text-[#111827]")}>
+              <h1 className={cn("text-lg font-semibold truncate", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
                 {t("myReminders")}
               </h1>
             </div>
@@ -821,7 +822,7 @@ const fetchReminders = useCallback(async () => {
                 setSearchQuery(e.target.value)
               }
               placeholder={t("searchReminders")}
-              className={cn("w-full pl-11 pr-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-1 transition-all", isDark ? "bg-[#252525] border-[#333] text-white placeholder-[#888]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+              className={cn(inputClasses.search, typeClasses.body, "pl-11 pr-4 font-semibold")}
               data-testid="search-input"
             />
           </div>
@@ -849,11 +850,11 @@ const fetchReminders = useCallback(async () => {
         {/* Empty state */}
         {filteredReminders.length === 0 && (
           <div className="text-center py-16">
-            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4", isDark ? "bg-[#252525]" : "bg-[#F3F4F6]")}>
+            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-hover-bg)]")}>
               <Clock className="w-6 h-6" style={{ color: appColor }} />
             </div>
 
-            <p className={cn("text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+            <p className={cn("text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
               {searchQuery
                 ? t("noMatch")
                 : t("noReminders")}

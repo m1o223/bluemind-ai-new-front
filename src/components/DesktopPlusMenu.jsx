@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Camera, FileText, Image as ImageIcon, PenLine, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { iconClasses, interactionClasses, motionTokens, typeClasses } from "@/lib/interactions";
 
 export default function DesktopPlusMenu({
   open,
@@ -16,14 +17,11 @@ export default function DesktopPlusMenu({
   onSearch,
 }) {
   const surfaceClass = isDark
-    ? "border-white/[0.1] bg-[#181818]/[0.94] text-white shadow-[0_24px_70px_rgba(0,0,0,0.45)]"
-    : "border-black/[0.08] bg-white/[0.94] text-[#111827] shadow-[0_24px_70px_rgba(15,23,42,0.16)]";
-  const groupLabelClass = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
-  const rowClass = isDark
-    ? "hover:bg-white/[0.08] active:bg-white/[0.12]"
-    : "hover:bg-[#F3F6FA] active:bg-[#E8EEF6]";
-  const iconClass = isDark ? "text-[#E5E7EB]" : "text-[#193B68]";
-  const dividerClass = isDark ? "bg-white/[0.1]" : "bg-[#E5EAF0]";
+    ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.94] text-white shadow-[0_24px_70px_rgba(0,0,0,0.45)]"
+    : "border-black/[0.08] bg-white/[0.94] text-[var(--bm-text-primary)] shadow-[0_24px_70px_rgba(15,23,42,0.16)]";
+  const groupLabelClass = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
+  const iconClass = isDark ? "text-[var(--bm-border)]" : "text-[var(--bm-primary)]";
+  const dividerClass = isDark ? "bg-white/[0.1]" : "bg-[var(--bm-border)]";
 
   const pickerItems = [
     { label: "Camera", description: "Take a photo", icon: Camera, action: onCamera },
@@ -42,11 +40,11 @@ export default function DesktopPlusMenu({
     const content = (
       <>
         <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF4FB]")}>
-          <Icon className={cn("h-[18px] w-[18px]", iconClass)} />
+          <Icon className={cn(iconClasses.button, iconClass)} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-extrabold leading-5">{item.label}</span>
-          <span className={cn("mt-0.5 block text-xs font-semibold leading-4", groupLabelClass)}>{item.description}</span>
+          <span className={cn("block font-extrabold", typeClasses.small)}>{item.label}</span>
+          <span className={cn("mt-0.5 block font-semibold", typeClasses.small, groupLabelClass)}>{item.description}</span>
         </span>
       </>
     );
@@ -56,8 +54,9 @@ export default function DesktopPlusMenu({
         <label
           key={item.label}
           className={cn(
-            "relative flex min-h-[54px] cursor-pointer items-center gap-3 rounded-2xl px-3 py-2 text-left transition-colors",
-            rowClass,
+            "relative flex min-h-[54px] cursor-pointer items-center rounded-2xl px-3 py-2 text-left transition-colors",
+            iconClasses.iconText,
+            interactionClasses.menuItem,
           )}
         >
           {content}
@@ -80,7 +79,7 @@ export default function DesktopPlusMenu({
         key={item.label}
         type="button"
         onClick={item.action}
-        className={cn("flex min-h-[54px] w-full items-center gap-3 rounded-2xl px-3 py-2 text-left transition-colors", rowClass)}
+        className={cn("flex min-h-[54px] w-full items-center rounded-2xl px-3 py-2 text-left", iconClasses.iconText, interactionClasses.menuItem)}
       >
         {content}
       </button>
@@ -104,11 +103,11 @@ export default function DesktopPlusMenu({
               initial={{ opacity: 0, y: 10, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.96 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              transition={motionTokens.transition}
             >
               <div className="px-3 pb-2 pt-2">
-                <p className="text-sm font-extrabold leading-5">BlueMind AI</p>
-                <p className={cn("mt-0.5 text-xs font-semibold", groupLabelClass)}>Add media or choose a tool.</p>
+                <p className={cn("font-extrabold", typeClasses.small)}>BlueMind AI</p>
+                <p className={cn("mt-0.5 font-semibold", typeClasses.small, groupLabelClass)}>Add media or choose a tool.</p>
               </div>
 
               <div className="space-y-1">{pickerItems.map(renderRow)}</div>

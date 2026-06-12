@@ -22,16 +22,14 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const { t, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
-  const pageClass = isDark ? "bg-[#1a1a1a] text-white" : "bg-white text-[#111827]";
-  const primaryText = isDark ? "text-white" : "text-[#111827]";
-  const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#6B7280]";
-  const dividerClass = isDark ? "bg-white/[0.10]" : "bg-[#E5E7EB]";
-  const inputClass = isDark
-    ? "bg-[#202020] border-white/[0.10] text-white placeholder:text-[#777] focus:border-[#4C8DFF] focus:ring-1 focus:ring-[#4C8DFF]"
-    : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF] focus:border-[#193B68] focus:ring-1 focus:ring-[#193B68]";
+  const pageClass = isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-white text-[var(--bm-text-primary)]";
+  const primaryText = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
+  const mutedText = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
+  const dividerClass = isDark ? "bg-white/[0.10]" : "bg-[var(--bm-border)]";
+  const inputClass = "font-semibold";
   const socialButtonClass = isDark
     ? "border-white/[0.10] bg-white/[0.06] hover:bg-white/[0.10] hover:border-white/[0.16]"
-    : "border-[#E5E7EB] hover:bg-[#F9FAFB] hover:border-[#D1D5DB]";
+    : "border-[var(--bm-border)] hover:bg-[var(--bm-bg-elevated)] hover:border-[var(--bm-border-strong)]";
 
   const isFormValid = formData.email.trim() && formData.password.trim();
 
@@ -80,7 +78,7 @@ export default function LoginPage() {
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className={`absolute top-5 left-5 flex items-center gap-1.5 transition-colors duration-200 cursor-pointer ${isDark ? "text-[#A7A7A7] hover:text-white" : "text-[#6B7280] hover:text-[#111827]"}`}
+        className={`absolute top-5 left-5 flex items-center gap-1.5 transition-colors duration-200 cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}
         data-testid="back-button"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -100,7 +98,7 @@ export default function LoginPage() {
           <div>
             <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("email")}</label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#9CA3AF]" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--bm-text-muted)]" />
               <Input
                 type="email"
                 value={formData.email}
@@ -115,7 +113,7 @@ export default function LoginPage() {
           <div>
             <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("password")}</label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#9CA3AF]" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--bm-text-muted)]" />
               <Input
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
@@ -127,7 +125,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors duration-200 cursor-pointer"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--bm-text-muted)] hover:text-[var(--bm-text-secondary)] transition-colors duration-200 cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
               </button>
@@ -140,12 +138,12 @@ export default function LoginPage() {
                 id="remember"
                 checked={rememberMe}
                 onCheckedChange={setRememberMe}
-                className="border-[#E5E7EB] data-[state=checked]:bg-[#193B68] data-[state=checked]:border-[#193B68] cursor-pointer"
+                className="border-[var(--bm-border)] data-[state=checked]:bg-[var(--bm-primary)] data-[state=checked]:border-[var(--bm-primary)] cursor-pointer"
                 data-testid="remember-checkbox"
               />
               <label htmlFor="remember" className={`text-sm cursor-pointer ${mutedText}`}>{t("rememberMe")}</label>
             </div>
-            <button type="button" onClick={() => navigate("/auth/forgot-password")} className="text-sm text-[#193B68] hover:underline cursor-pointer transition-all duration-200" data-testid="forgot-password-link">
+            <button type="button" onClick={() => navigate("/auth/forgot-password")} className="text-sm text-[var(--bm-primary)] hover:underline cursor-pointer transition-all duration-200" data-testid="forgot-password-link">
               {t("forgotPassword")}
             </button>
           </div>
@@ -153,7 +151,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={!isFormValid || isLoading}
-            className="w-full py-5 text-sm bg-[#193B68] hover:bg-[#142f54] text-white rounded-xl font-medium disabled:opacity-50 transition-all duration-200 cursor-pointer"
+            className="w-full py-5 text-sm bg-[var(--bm-primary)] hover:bg-[var(--bm-primary-hover)] text-white rounded-xl font-medium disabled:opacity-50 transition-all duration-200 cursor-pointer"
             data-testid="login-submit-button"
           >
             {isLoading ? (
@@ -173,7 +171,7 @@ export default function LoginPage() {
         {/* Divider */}
         <div className="flex items-center gap-3 my-5">
           <div className={`flex-1 h-px ${dividerClass}`} />
-          <span className="text-[#9CA3AF] text-xs">{t("orContinueWith")}</span>
+          <span className="text-[var(--bm-text-muted)] text-xs">{t("orContinueWith")}</span>
           <div className={`flex-1 h-px ${dividerClass}`} />
         </div>
 
@@ -186,23 +184,23 @@ export default function LoginPage() {
             className={`flex items-center justify-center gap-2 py-3 border rounded-xl transition-all duration-200 cursor-pointer ${socialButtonClass}`}
             data-testid="google-login"
           >
-            {socialLoading === "google" ? <div className="w-5 h-5 border-2 border-[#9CA3AF]/30 border-t-[#193B68] rounded-full animate-spin" /> : <svg className="w-5 h-5" viewBox="0 0 24 24">
+            {socialLoading === "google" ? <div className="w-5 h-5 border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)] rounded-full animate-spin" /> : <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="var(--bm-success)"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="var(--bm-warning)"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="var(--bm-error)"/>
             </svg>}
             <span className={`text-sm font-medium ${primaryText}`}>{t("google")}</span>
           </button>
         </div>
-        <p className="text-center text-[#9CA3AF] text-xs mt-2">{t("googleSignInHint")}</p>
+        <p className="text-center text-[var(--bm-text-muted)] text-xs mt-2">{t("googleSignInHint")}</p>
 
         {/* Bottom text */}
         <p className={`text-center text-sm mt-6 ${mutedText}`}>
           {t("noAccount")}{" "}
           <button
             onClick={() => navigate("/auth/register")}
-            className="text-[#193B68] font-medium cursor-pointer hover:underline transition-all duration-200"
+            className="text-[var(--bm-primary)] font-medium cursor-pointer hover:underline transition-all duration-200"
             data-testid="register-link"
           >
             {t("createOne")}

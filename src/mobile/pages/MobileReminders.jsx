@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { inputClasses, typeClasses } from "@/lib/interactions";
 import { useApp } from "@/context/AppContext";
 import {
   createReminder,
@@ -141,7 +142,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
       <motion.form
         className={cn(
           "w-full rounded-[28px] border p-4 shadow-2xl",
-          isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]",
+          isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]",
         )}
         initial={{ y: 40, opacity: 0.96 }}
         animate={{ y: 0, opacity: 1 }}
@@ -161,7 +162,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
             onClick={onClose}
             className={cn(
               "grid h-10 w-10 place-items-center rounded-full",
-              isDark ? "bg-white/10 text-white" : "bg-black/5 text-[#111827]",
+              isDark ? "bg-white/10 text-white" : "bg-black/5 text-[var(--bm-text-primary)]",
             )}
             aria-label="Close"
           >
@@ -175,11 +176,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
             <input
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-              className={cn(
-                "h-12 w-full rounded-2xl border px-4 text-base outline-none transition focus:ring-2",
-                isDark ? "border-white/10 bg-white/[0.08] text-white placeholder:text-white/[0.35]" : "border-black/10 bg-[#F7F8FA] text-[#111827] placeholder:text-[#9CA3AF]",
-              )}
-              style={{ "--tw-ring-color": appColor }}
+              className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
               placeholder="What should BlueMind remind you about?"
             />
           </label>
@@ -189,11 +186,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
             <textarea
               value={form.description}
               onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-              className={cn(
-                "min-h-[88px] w-full resize-none rounded-2xl border px-4 py-3 text-sm outline-none transition focus:ring-2",
-                isDark ? "border-white/10 bg-white/[0.08] text-white placeholder:text-white/[0.35]" : "border-black/10 bg-[#F7F8FA] text-[#111827] placeholder:text-[#9CA3AF]",
-              )}
-              style={{ "--tw-ring-color": appColor }}
+              className={cn(inputClasses.textarea, typeClasses.body, "resize-none font-semibold")}
               placeholder="Optional note"
             />
           </label>
@@ -205,11 +198,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
                 type="date"
                 value={form.date}
                 onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
-                className={cn(
-                  "h-12 w-full rounded-2xl border px-3 text-sm outline-none transition focus:ring-2",
-                  isDark ? "border-white/10 bg-white/[0.08] text-white" : "border-black/10 bg-[#F7F8FA] text-[#111827]",
-                )}
-                style={{ "--tw-ring-color": appColor }}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
               />
             </label>
 
@@ -219,11 +208,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
                 type="time"
                 value={form.time}
                 onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
-                className={cn(
-                  "h-12 w-full rounded-2xl border px-3 text-sm outline-none transition focus:ring-2",
-                  isDark ? "border-white/10 bg-white/[0.08] text-white" : "border-black/10 bg-[#F7F8FA] text-[#111827]",
-                )}
-                style={{ "--tw-ring-color": appColor }}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
               />
             </label>
           </div>
@@ -237,11 +222,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
                   ...prev,
                   recurrence: { ...prev.recurrence, frequency: event.target.value },
                 }))}
-                className={cn(
-                  "h-12 w-full rounded-2xl border px-3 text-sm outline-none transition focus:ring-2",
-                  isDark ? "border-white/10 bg-white/[0.08] text-white" : "border-black/10 bg-[#F7F8FA] text-[#111827]",
-                )}
-                style={{ "--tw-ring-color": appColor }}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
               >
                 <option value="none">Does not repeat</option>
                 <option value="daily">Daily</option>
@@ -260,11 +241,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
                   ...prev,
                   recurrence: { ...prev.recurrence, interval: event.target.value },
                 }))}
-                className={cn(
-                  "h-12 w-full rounded-2xl border px-3 text-sm outline-none transition focus:ring-2",
-                  isDark ? "border-white/10 bg-white/[0.08] text-white" : "border-black/10 bg-[#F7F8FA] text-[#111827]",
-                )}
-                style={{ "--tw-ring-color": appColor }}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
               />
             </label>
           </div>
@@ -276,7 +253,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
             onClick={onClose}
             className={cn(
               "h-12 flex-1 rounded-2xl text-sm font-semibold",
-                isDark ? "bg-white/[0.10] text-white" : "bg-black/5 text-[#111827]",
+                isDark ? "bg-white/[0.10] text-white" : "bg-black/5 text-[var(--bm-text-primary)]",
             )}
           >
             Cancel
@@ -311,7 +288,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
       exit={{ opacity: 0, y: -8 }}
       className={cn(
         "relative rounded-[24px] border p-4 shadow-sm transition",
-        isDark ? "border-white/10 bg-white/[0.055] text-white" : "border-black/[0.08] bg-white text-[#111827]",
+        isDark ? "border-white/10 bg-white/[0.055] text-white" : "border-black/[0.08] bg-white text-[var(--bm-text-primary)]",
         highlighted && "ring-2",
       )}
       style={highlighted ? { "--tw-ring-color": appColor } : undefined}
@@ -324,7 +301,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
             "mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full border transition",
             isCompleted
               ? "border-transparent text-white"
-              : isDark ? "border-white/15 text-white/70" : "border-black/10 text-[#6B7280]",
+              : isDark ? "border-white/15 text-white/70" : "border-black/10 text-[var(--bm-text-secondary)]",
           )}
           style={isCompleted ? { backgroundColor: appColor } : undefined}
           aria-label={isCompleted ? "Reopen reminder" : "Complete reminder"}
@@ -339,7 +316,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                 {reminder.title}
               </h3>
               {reminder.description && (
-                <p className={cn("mt-1 line-clamp-2 text-sm leading-5", isDark ? "text-white/[0.58]" : "text-[#6B7280]")}>
+                <p className={cn("mt-1 line-clamp-2 text-sm leading-5", isDark ? "text-white/[0.58]" : "text-[var(--bm-text-secondary)]")}>
                   {reminder.description}
                 </p>
               )}
@@ -351,7 +328,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                 onClick={() => setMenuOpen((value) => !value)}
                 className={cn(
                   "grid h-9 w-9 place-items-center rounded-full",
-                  isDark ? "text-white/60 hover:bg-white/[0.10]" : "text-[#6B7280] hover:bg-black/5",
+                  isDark ? "text-white/60 hover:bg-white/[0.10]" : "text-[var(--bm-text-secondary)] hover:bg-black/5",
                 )}
                 aria-label="Reminder actions"
               >
@@ -369,7 +346,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                   <div
                     className={cn(
                       "absolute right-0 top-10 z-20 w-36 overflow-hidden rounded-2xl border py-1 shadow-xl",
-                      isDark ? "border-white/10 bg-[#242424]" : "border-black/10 bg-white",
+                      isDark ? "border-white/10 bg-[var(--bm-bg-elevated)]" : "border-black/10 bg-white",
                     )}
                   >
                     <button
@@ -400,19 +377,19 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[#F3F6FA] text-[#4B5563]")}>
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
               <Calendar className="h-3.5 w-3.5" style={{ color: appColor }} />
               {formatDate(reminder.reminderDate || reminder.date, language)}
             </span>
-            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[#F3F6FA] text-[#4B5563]")}>
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
               <Clock className="h-3.5 w-3.5" style={{ color: appColor }} />
               {formatTime(reminder.time, language)}
             </span>
-            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[#F3F6FA] text-[#4B5563]")}>
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
               {STATUS_LABELS[status] || status}
             </span>
             {(reminder.recurrence?.frequency || "none") !== "none" && (
-              <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[#F3F6FA] text-[#4B5563]")}>
+              <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
                 <Repeat2 className="h-3.5 w-3.5" style={{ color: appColor }} />
                 {reminder.recurrence.frequency}
               </span>
@@ -445,7 +422,7 @@ function NotificationPanel({ debug, busy, isDark, appColor, onEnable, onRefresh,
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-[15px] font-semibold">{notificationLabel(permission)}</h2>
-          <p className={cn("mt-1 text-xs leading-5", isDark ? "text-white/[0.55]" : "text-[#6B7280]")}>
+          <p className={cn("mt-1 text-xs leading-5", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
             Mobile reminders use the same push subscription and scheduler as desktop.
           </p>
         </div>
@@ -458,7 +435,7 @@ function NotificationPanel({ debug, busy, isDark, appColor, onEnable, onRefresh,
           disabled={busy.enabling || isEnabled}
           className={cn(
             "h-10 rounded-2xl text-xs font-semibold disabled:opacity-45",
-              isDark ? "bg-white/[0.10] text-white" : "bg-[#F3F6FA] text-[#111827]",
+              isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
           )}
         >
           {busy.enabling ? "Enabling" : "Enable"}
@@ -469,7 +446,7 @@ function NotificationPanel({ debug, busy, isDark, appColor, onEnable, onRefresh,
           disabled={busy.refreshing}
           className={cn(
             "grid h-10 place-items-center rounded-2xl disabled:opacity-45",
-              isDark ? "bg-white/[0.10] text-white" : "bg-[#F3F6FA] text-[#111827]",
+              isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
           )}
           aria-label="Refresh notification status"
         >
@@ -495,7 +472,7 @@ export default function MobileReminders() {
   const { reminderId: routeReminderId } = useParams();
   const { resolvedTheme, prefs, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
-  const appColor = prefs?.appColor || prefs?.chatColor || "#193B68";
+  const appColor = prefs?.appColor || prefs?.chatColor || "var(--bm-primary)";
   const language = uiLanguage || prefs?.language || "en";
 
   const [reminders, setReminders] = useState([]);
@@ -735,14 +712,14 @@ export default function MobileReminders() {
     <div
       className={cn(
         "min-h-[100dvh] pb-[max(24px,env(safe-area-inset-bottom))]",
-        isDark ? "bg-[#1a1a1a] text-white" : "bg-[#FAFBFC] text-[#111827]",
+        isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
       )}
       data-testid="mobile-reminders-page"
     >
       <header
         className={cn(
           "sticky top-0 z-20 border-b px-4 pb-3 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-xl",
-          isDark ? "border-white/10 bg-[#1a1a1a]/92" : "border-black/[0.08] bg-[#FAFBFC]/92",
+          isDark ? "border-white/10 bg-[var(--bm-bg-app)]/92" : "border-black/[0.08] bg-[var(--bm-bg-app)]/92",
         )}
       >
         <div className="flex items-center justify-between">
@@ -752,14 +729,14 @@ export default function MobileReminders() {
               onClick={() => navigate("/mobile/chat")}
               className={cn(
                 "grid h-10 w-10 place-items-center rounded-full",
-                isDark ? "bg-white/[0.08] text-white" : "bg-white text-[#111827] shadow-sm",
+                isDark ? "bg-white/[0.08] text-white" : "bg-white text-[var(--bm-text-primary)] shadow-sm",
               )}
               aria-label="Back to chat"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="min-w-0">
-              <p className={cn("text-xs font-medium", isDark ? "text-white/[0.48]" : "text-[#6B7280]")}>
+              <p className={cn("text-xs font-medium", isDark ? "text-white/[0.48]" : "text-[var(--bm-text-secondary)]")}>
                 BlueMind AI
               </p>
               <h1 className="truncate text-xl font-semibold">Reminders</h1>
@@ -802,18 +779,14 @@ export default function MobileReminders() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search reminders"
-            className={cn(
-              "h-12 w-full rounded-2xl border pl-11 pr-4 text-sm outline-none transition focus:ring-2",
-              isDark ? "border-white/10 bg-white/[0.055] text-white placeholder:text-white/[0.38]" : "border-black/[0.08] bg-white text-[#111827] placeholder:text-[#9CA3AF]",
-            )}
-            style={{ "--tw-ring-color": appColor }}
+            className={cn(inputClasses.search, typeClasses.body, "pl-11 pr-4 font-semibold")}
             data-testid="mobile-reminder-search"
           />
         </div>
 
         <section className="space-y-3">
           {loading ? (
-            <div className={cn("rounded-[24px] border p-5 text-sm", isDark ? "border-white/10 bg-white/[0.055] text-white/60" : "border-black/[0.08] bg-white text-[#6B7280]")}>
+            <div className={cn("rounded-[24px] border p-5 text-sm", isDark ? "border-white/10 bg-white/[0.055] text-white/60" : "border-black/[0.08] bg-white text-[var(--bm-text-secondary)]")}>
               Loading reminders...
             </div>
           ) : (
@@ -851,7 +824,7 @@ export default function MobileReminders() {
             <h2 className="text-base font-semibold">
               {searchQuery ? "No matching reminders" : "No reminders yet"}
             </h2>
-            <p className={cn("mx-auto mt-2 max-w-[260px] text-sm leading-6", isDark ? "text-white/[0.55]" : "text-[#6B7280]")}>
+            <p className={cn("mx-auto mt-2 max-w-[260px] text-sm leading-6", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
               {searchQuery
                 ? "Try a different title or note."
                 : "Create a reminder here and it will appear on desktop too."}

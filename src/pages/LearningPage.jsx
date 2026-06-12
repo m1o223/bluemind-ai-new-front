@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import BrandLogo from "@/components/BrandLogo";
+import { iconClasses, interactionClasses, motionTokens, spacingClasses, typeClasses } from "@/lib/interactions";
 
 const schools = [
   { id: "nordic", label: "Nordic School" },
@@ -51,7 +52,7 @@ function StepIndicator({ current, total, isDark }) {
           key={i}
           className={cn(
             "h-1.5 rounded-full transition-all duration-300 flex-1",
-            i < current ? "bg-[#193B68]" : (i === current ? "bg-[#193B68]/50" : isDark ? "bg-white/[0.12]" : "bg-[#E5E7EB]")
+            i < current ? "bg-[var(--bm-primary)]" : (i === current ? "bg-[var(--bm-primary)]/50" : isDark ? "bg-white/[0.12]" : "bg-[var(--bm-border)]")
           )}
         />
       ))}
@@ -64,21 +65,23 @@ function OptionCard({ label, icon: Icon, isSelected, onClick, isDark }) {
     <button
       onClick={onClick}
       className={cn(
-        "w-full p-4 sm:p-5 rounded-xl border text-left transition-all duration-200 cursor-pointer",
+        "w-full rounded-xl border text-left transition-all duration-200 cursor-pointer",
+        spacingClasses.card,
+        interactionClasses.card,
         isSelected
-          ? "border-[#193B68] bg-[#EEF2FF]"
+          ? "border-[var(--bm-primary)] bg-[var(--bm-active-bg)]"
           : isDark
-            ? "border-white/[0.10] bg-[#252525] hover:border-white/[0.18] hover:bg-[#2b2b2b] hover:shadow-sm"
-            : "border-[#E5E7EB] bg-white hover:border-[#D1D5DB] hover:shadow-sm"
+            ? "border-white/[0.10] bg-[var(--bm-bg-elevated)]"
+            : "border-[var(--bm-border)] bg-white"
       )}
     >
       <div className="flex items-center gap-3">
         {Icon && (
-          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0", isSelected ? "bg-[#193B68]" : isDark ? "bg-white/[0.08]" : "bg-[#F3F4F6]")}>
-            <Icon className={cn("w-5 h-5", isSelected ? "text-white" : isDark ? "text-[#CFCFCF]" : "text-[#6B7280]")} />
+          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0", isSelected ? "bg-[var(--bm-primary)]" : isDark ? "bg-white/[0.08]" : "bg-[var(--bm-hover-bg)]")}>
+            <Icon className={cn(iconClasses.card, isSelected ? "text-white" : isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
           </div>
         )}
-        <p className={cn("font-medium text-sm sm:text-base", isSelected ? "text-[#193B68]" : isDark ? "text-white" : "text-[#111827]")}>{label}</p>
+        <p className={cn("font-medium", typeClasses.body, isSelected ? "text-[var(--bm-primary)]" : isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{label}</p>
       </div>
     </button>
   );
@@ -89,12 +92,15 @@ function SimpleOption({ label, isSelected, onClick, isDark }) {
     <button
       onClick={onClick}
       className={cn(
-        "w-full py-3.5 sm:py-4 px-4 sm:px-5 rounded-xl border text-sm sm:text-base font-medium transition-all duration-200 cursor-pointer text-left",
+        "w-full rounded-xl border font-medium transition-all duration-200 cursor-pointer text-left",
+        spacingClasses.card,
+        typeClasses.body,
+        interactionClasses.menuItem,
         isSelected
-          ? "border-[#193B68] bg-[#EEF2FF] text-[#193B68]"
+          ? "border-[var(--bm-primary)] bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
           : isDark
-            ? "border-white/[0.10] bg-[#252525] text-white hover:border-white/[0.18] hover:bg-[#2b2b2b] hover:shadow-sm"
-            : "border-[#E5E7EB] bg-white text-[#111827] hover:border-[#D1D5DB] hover:shadow-sm"
+            ? "border-white/[0.10] bg-[var(--bm-bg-elevated)] text-white"
+            : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"
       )}
     >
       {label}
@@ -155,8 +161,8 @@ export default function LearningPage({ mobile = false }) {
           <div className="w-16 h-16 rounded-2xl bg-[#FEF3C7] flex items-center justify-center mx-auto mb-5">
             <Construction className="w-8 h-8 text-[#D97706]" />
           </div>
-          <h3 className={cn("text-xl sm:text-2xl font-semibold mb-2", isDark ? "text-white" : "text-[#111827]")}>{t("comingSoon")}</h3>
-          <p className={cn("text-sm", isDark ? "text-[#888]" : "text-[#6B7280]")}>{t("redirectingToChat")}</p>
+          <h3 className={cn("font-semibold mb-2", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("comingSoon")}</h3>
+          <p className={cn(typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("redirectingToChat")}</p>
         </motion.div>
       );
     }
@@ -239,23 +245,23 @@ export default function LearningPage({ mobile = false }) {
   };
 
   return (
-    <div className={cn("min-h-screen", mobile && "min-h-[100dvh]", isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]")} data-testid={mobile ? "mobile-learning-page" : "learning-page"}>
+    <div className={cn("min-h-screen", mobile && "min-h-[100dvh]", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]")} data-testid={mobile ? "mobile-learning-page" : "learning-page"}>
       {/* Header */}
-      <header className={cn("sticky top-0 z-10 border-b", mobile && "pt-[env(safe-area-inset-top)]", isDark ? "bg-[#222] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+      <header className={cn("sticky top-0 z-10 border-b", mobile && "pt-[env(safe-area-inset-top)]", isDark ? "bg-[var(--bm-bg-card)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex min-w-0 items-center gap-3">
           <button
             onClick={handleBack}
-            className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[#999] hover:text-white hover:bg-[#333]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]")}
+            className={cn("w-9 h-9 rounded-lg flex items-center justify-center", interactionClasses.iconButton, isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]")}
             data-testid="back-button"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3 min-w-0">
             <BrandLogo
-              logoClassName="w-8 h-8"
-              textClassName={cn("hidden min-[390px]:inline text-sm sm:text-base", isDark ? "text-white" : "text-[#111827]")}
+              logoClassName={iconClasses.sidebarLogo}
+              textClassName={cn("hidden min-[390px]:inline", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}
             />
-            <h1 className={cn("min-w-0 truncate text-lg font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("learning")}</h1>
+            <h1 className={cn("min-w-0 truncate font-semibold", typeClasses.pageTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("learning")}</h1>
           </div>
         </div>
       </header>
@@ -265,8 +271,8 @@ export default function LearningPage({ mobile = false }) {
         {!showComingSoon && (
           <>
             <StepIndicator current={step} total={totalSteps} isDark={isDark} />
-            <p className={cn("text-xs mb-1", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{t("stepProgress", { current: step + 1, total: totalSteps })}</p>
-            <h2 className={cn("text-xl sm:text-2xl font-semibold mb-6", isDark ? "text-white" : "text-[#111827]")}>{stepTitles[step]}</h2>
+            <p className={cn("mb-1", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{t("stepProgress", { current: step + 1, total: totalSteps })}</p>
+            <h2 className={cn("font-semibold mb-6", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{stepTitles[step]}</h2>
           </>
         )}
 
@@ -276,7 +282,7 @@ export default function LearningPage({ mobile = false }) {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            transition={motionTokens.transition}
           >
             {renderStep()}
           </motion.div>

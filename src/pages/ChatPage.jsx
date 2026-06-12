@@ -44,6 +44,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { iconClasses, inputClasses, typeClasses } from "@/lib/interactions";
 import { useApp } from "@/context/AppContext";
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import DesktopSettingsPanel from "@/components/settings/DesktopSettingsPanel";
@@ -64,6 +65,7 @@ import {
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
 import { AI_MODES, getAiMode, normalizeAiModeId } from "@/data/aiModes";
+import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 import {
   buildWriteEditMessage,
   createWriteEditTask,
@@ -191,16 +193,16 @@ function createIdeaThumbnail(seed, primary, secondary, accent) {
 }
 
 const WRITE_CARD_ARTWORK = [
-  { from: "#193B68", via: "#3D7EC8", to: "#B9D7F6" },
-  { from: "#3767D8", via: "#75A7FF", to: "#D8E8FF" },
-  { from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF" },
-  { from: "#0F766E", via: "#34C3AA", to: "#C8F7EC" },
-  { from: "#A855F7", via: "#D18BFF", to: "#F1D9FF" },
-  { from: "#EA580C", via: "#FDBA74", to: "#FFEDD5" },
-  { from: "#BE123C", via: "#FB7185", to: "#FFE4E6" },
-  { from: "#0E7490", via: "#67E8F9", to: "#CFFAFE" },
-  { from: "#334155", via: "#64748B", to: "#E2E8F0" },
-  { from: "#4338CA", via: "#818CF8", to: "#E0E7FF" },
+  WRITE_EDIT_ARTWORK_COLORS.careerBlue,
+  WRITE_EDIT_ARTWORK_COLORS.writing,
+  WRITE_EDIT_ARTWORK_COLORS.study,
+  WRITE_EDIT_ARTWORK_COLORS.business,
+  WRITE_EDIT_ARTWORK_COLORS.careerPurple,
+  WRITE_EDIT_ARTWORK_COLORS.social,
+  WRITE_EDIT_ARTWORK_COLORS.product,
+  SEARCH_ARTWORK_COLORS[1],
+  { from: "var(--bm-text-secondary)", via: "var(--bm-text-secondary)", to: "var(--bm-active-bg)" },
+  SEARCH_ARTWORK_COLORS[7],
 ];
 
 function getWriteCardArtwork(template, index = 0) {
@@ -209,9 +211,9 @@ function getWriteCardArtwork(template, index = 0) {
 
 function DesktopWriteArtwork({ template, icon: Icon, index = 0, category }) {
   const artwork = getWriteCardArtwork(template, index);
-  const from = artwork.from || "#193B68";
-  const via = artwork.via || "#3D7EC8";
-  const to = artwork.to || "#D8E8FF";
+  const from = artwork.from || "var(--bm-primary)";
+  const via = artwork.via || WRITE_EDIT_ARTWORK_COLORS.careerBlue.via;
+  const to = artwork.to || WRITE_EDIT_ARTWORK_COLORS.writing.to;
 
   return (
     <div
@@ -265,7 +267,7 @@ function DesktopWriteToolCard({
         "group flex h-full flex-col overflow-hidden rounded-[30px] border p-3 text-left shadow-sm transition-all duration-200",
         isDark
           ? "border-white/[0.08] bg-white/[0.055] text-white hover:border-white/[0.16] hover:bg-white/[0.085] hover:shadow-[0_22px_60px_rgba(0,0,0,0.24)]"
-          : "border-white/80 bg-white/88 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_24px_60px_rgba(15,23,42,0.13)]",
+          : "border-white/80 bg-white/88 text-[var(--bm-text-primary)] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_24px_60px_rgba(15,23,42,0.13)]",
         className,
       )}
     >
@@ -274,7 +276,7 @@ function DesktopWriteToolCard({
         <span className={cn("block font-extrabold tracking-tight", compact ? "text-[15px] leading-5" : "text-base leading-6")}>
           {title}
         </span>
-        <span className={cn("mt-2 block font-semibold leading-5", compact ? "text-xs" : "text-sm", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+        <span className={cn("mt-2 block font-semibold leading-5", compact ? "text-xs" : "text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
           {description}
         </span>
       </span>
@@ -297,7 +299,7 @@ const IMAGE_IDEAS = [
     category: "People",
     description: "Generate a refined studio portrait.",
     prompt: "Create a refined professional portrait with soft studio lighting, realistic skin texture, sharp details, and a minimal background.",
-    thumbnail: createIdeaThumbnail("portrait", "#0F172A", "#475569", "#D8B4FE"),
+    thumbnail: createIdeaThumbnail("portrait", "var(--bm-text-primary)", "var(--bm-text-secondary)", "#D8B4FE"),
   },
   {
     id: "mini-me",
@@ -313,7 +315,7 @@ const IMAGE_IDEAS = [
     category: "Knowledge",
     description: "Visualize notes, data, and discoveries.",
     prompt: "Create a futuristic research board visual with notes, diagrams, data cards, and a calm blue glassmorphism interface.",
-    thumbnail: createIdeaThumbnail("research", "#193B68", "#2563EB", "#22D3EE"),
+    thumbnail: createIdeaThumbnail("research", "var(--bm-primary)", "#2563EB", "#22D3EE"),
   },
   {
     id: "recipe",
@@ -345,7 +347,7 @@ const IMAGE_IDEAS = [
     category: "Photography",
     description: "Make a natural, camera-real image.",
     prompt: "Create a realistic photo with natural light, believable details, true-to-life textures, shallow depth of field, and professional composition.",
-    thumbnail: createIdeaThumbnail("realistic-photo", "#334155", "#64748B", "#F8FAFC"),
+    thumbnail: createIdeaThumbnail("realistic-photo", "var(--bm-text-secondary)", "var(--bm-text-secondary)", "var(--bm-bg-elevated)"),
   },
   {
     id: "cartoon",
@@ -353,7 +355,7 @@ const IMAGE_IDEAS = [
     category: "Illustration",
     description: "Make a friendly polished cartoon.",
     prompt: "Create a friendly cartoon character with expressive features, modern colors, clean outlines, and a polished app-style finish.",
-    thumbnail: createIdeaThumbnail("cartoon", "#F97316", "#F59E0B", "#38BDF8"),
+    thumbnail: createIdeaThumbnail("cartoon", "var(--bm-warning)", "var(--bm-warning)", "#38BDF8"),
   },
   {
     id: "logo",
@@ -361,7 +363,7 @@ const IMAGE_IDEAS = [
     category: "Branding",
     description: "Explore a clean brand mark concept.",
     prompt: "Create a clean modern logo concept with a premium AI brand feeling, simple geometry, blue accent color, and strong scalability.",
-    thumbnail: createIdeaThumbnail("logo", "#111827", "#193B68", "#E0F2FE"),
+    thumbnail: createIdeaThumbnail("logo", "var(--bm-text-primary)", "var(--bm-primary)", "#E0F2FE"),
   },
   {
     id: "architecture",
@@ -369,7 +371,7 @@ const IMAGE_IDEAS = [
     category: "Spaces",
     description: "Imagine a premium building or interior.",
     prompt: "Create a modern architectural concept with elegant structure, warm interior lighting, clean materials, dramatic scale, and magazine-quality composition.",
-    thumbnail: createIdeaThumbnail("architecture", "#44403C", "#78716C", "#FDE68A"),
+    thumbnail: createIdeaThumbnail("architecture", "var(--bm-border-strong)03C", "#78716C", "#FDE68A"),
   },
   {
     id: "product-mockup",
@@ -385,7 +387,7 @@ const IMAGE_IDEAS = [
     category: "Landscape",
     description: "Generate cinematic natural scenery.",
     prompt: "Create a cinematic nature scene with rich atmosphere, detailed plants, natural light, depth, and a peaceful high-resolution landscape feel.",
-    thumbnail: createIdeaThumbnail("nature", "#14532D", "#16A34A", "#BAE6FD"),
+    thumbnail: createIdeaThumbnail("nature", "#14532D", "var(--bm-success)", "#BAE6FD"),
   },
   {
     id: "character-design",
@@ -485,13 +487,13 @@ const HistoryItem = memo(function HistoryItem({
         className={cn(
           "group relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors",
           isActive
-            ? isDark ? "bg-white/10 text-white" : "bg-[#EEF2FF] text-[#193B68]"
-            : isDark ? "text-[#BDBDBD] hover:bg-white/[0.08] hover:text-white" : "text-[#64748B] hover:bg-black/[0.05] hover:text-[#111827]"
+            ? isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+            : isDark ? "text-[var(--bm-text-muted)] hover:bg-white/[0.08] hover:text-white" : "text-[var(--bm-text-secondary)] hover:bg-black/[0.05] hover:text-[var(--bm-text-primary)]"
         )}
         title={item.title || t("newChat")}
       >
-        <MessageSquare className="h-[18px] w-[18px]" />
-        <span className={cn("pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-lg px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100", isDark ? "bg-[#2A2A2A] text-white" : "bg-white text-[#111827]")}>
+        <MessageSquare className={iconClasses.button} />
+        <span className={cn("pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-lg px-2 py-1 opacity-0 shadow-lg transition-opacity group-hover:opacity-100", typeClasses.small, isDark ? "bg-[var(--bm-bg-elevated)] text-white" : "bg-white text-[var(--bm-text-primary)]")}>
           {item.title || t("newChat")}
         </span>
       </button>
@@ -504,12 +506,12 @@ const HistoryItem = memo(function HistoryItem({
         "group/history relative rounded-xl border px-2.5 py-2 transition-all duration-200",
         isActive
           ? isDark ? "border-[#3F5F8C] bg-[#27384F] text-white" : "border-[#B7C7FF] bg-[#EAF0FF] text-[#102E5A]"
-          : isDark ? "border-transparent text-[#C7C7C7] hover:border-[#3A3A3A] hover:bg-[#2A2A2A] hover:text-white" : "border-transparent text-[#475569] hover:border-[#CBD5E1] hover:bg-white hover:text-[#0F172A]",
+          : isDark ? "border-transparent text-[var(--bm-text-secondary)] hover:border-[var(--bm-border-strong)] hover:bg-[var(--bm-bg-elevated)] hover:text-white" : "border-transparent text-[var(--bm-text-secondary)] hover:border-[var(--bm-border-strong)] hover:bg-white hover:text-[var(--bm-text-primary)]",
       )}
     >
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <button type="button" onClick={() => onOpen(item.conversationId)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left" data-testid={`history-chat-${item.conversationId}`} title={item.title || t("newChat")}>
-          <MessageSquare className={cn("h-[17px] w-[17px] flex-shrink-0", isActive && (isDark ? "text-white" : "text-[#193B68]"))} />
+      <div className={cn("flex min-w-0 items-center justify-between", iconClasses.iconText)}>
+        <button type="button" onClick={() => onOpen(item.conversationId)} className={cn("flex min-w-0 flex-1 items-center text-left", iconClasses.iconText)} data-testid={`history-chat-${item.conversationId}`} title={item.title || t("newChat")}>
+          <MessageSquare className={cn("flex-shrink-0", iconClasses.button, isActive && (isDark ? "text-white" : "text-[var(--bm-primary)]"))} />
           {isEditing ? (
             <input
               value={draftTitle}
@@ -529,10 +531,10 @@ const HistoryItem = memo(function HistoryItem({
                 setIsEditing(false);
               }}
               autoFocus
-              className={cn("min-w-0 flex-1 rounded-md bg-transparent text-sm font-semibold outline-none", isDark ? "text-white" : "text-[#111827]")}
+              className={cn("min-w-0 flex-1 rounded-md bg-transparent font-semibold outline-none", typeClasses.small, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}
             />
           ) : (
-            <span className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold leading-5" style={getDirectionalStyle(item.title || "")}>
+            <span className={cn("block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-semibold leading-5", typeClasses.small)} style={getDirectionalStyle(item.title || "")}>
               {item.title || t("newChat")}
             </span>
           )}
@@ -547,11 +549,11 @@ const HistoryItem = memo(function HistoryItem({
           className={cn(
             "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg opacity-0 transition-all duration-200 group-hover/history:opacity-100",
             menuOpenId === item.conversationId && "opacity-100",
-            isDark ? "text-[#D7D7D7] hover:bg-white/[0.08] hover:text-white" : "text-[#64748B] hover:bg-[#EEF2F7] hover:text-[#111827]",
+            isDark ? "text-[var(--bm-text-secondary)] hover:bg-white/[0.08] hover:text-white" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
           )}
           data-testid={`history-menu-${item.conversationId}`}
         >
-          <MoreVertical className="h-4 w-4" />
+          <MoreVertical className={iconClasses.button} />
         </button>
       </div>
 
@@ -561,7 +563,7 @@ const HistoryItem = memo(function HistoryItem({
           <div
             className={cn(
               "absolute right-1 top-9 z-30 w-36 overflow-hidden rounded-xl border py-1 shadow-lg",
-              isDark ? "border-white/[0.08] bg-[#202020]" : "border-[#E5E7EB] bg-white",
+              isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white",
             )}
             data-testid={`history-dropdown-${item.conversationId}`}
           >
@@ -572,11 +574,13 @@ const HistoryItem = memo(function HistoryItem({
                 onMenuToggle(null);
               }}
               className={cn(
-                "flex w-full items-center gap-2 px-3 py-2 text-left text-sm",
-                isDark ? "text-[#F5F5F5] hover:bg-white/[0.08]" : "text-[#374151] hover:bg-[#F9FAFB]",
+                "flex w-full items-center px-3 py-2 text-left",
+                iconClasses.iconText,
+                typeClasses.small,
+                isDark ? "text-[var(--bm-text-primary)] hover:bg-white/[0.08]" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]",
               )}
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil className={iconClasses.button} />
               {t("renameChat")}
             </button>
             <button
@@ -585,20 +589,22 @@ const HistoryItem = memo(function HistoryItem({
                 onShare(item);
                 onMenuToggle(null);
               }}
-              className={cn("flex w-full items-center gap-2 px-3 py-2 text-left text-sm", isDark ? "text-[#F5F5F5] hover:bg-white/[0.08]" : "text-[#374151] hover:bg-[#F9FAFB]")}
+              className={cn("flex w-full items-center px-3 py-2 text-left", iconClasses.iconText, typeClasses.small, isDark ? "text-[var(--bm-text-primary)] hover:bg-white/[0.08]" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]")}
             >
-              <Share2 className="h-3.5 w-3.5" />
+              <Share2 className={iconClasses.button} />
               Share
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
               className={cn(
-                "flex w-full items-center gap-2 px-3 py-2 text-left text-sm",
+                "flex w-full items-center px-3 py-2 text-left",
+                iconClasses.iconText,
+                typeClasses.small,
                 isDark ? "text-red-300 hover:bg-red-950/30" : "text-red-500 hover:bg-red-50",
               )}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className={iconClasses.button} />
               {t("deleteChat")}
             </button>
           </div>
@@ -606,7 +612,7 @@ const HistoryItem = memo(function HistoryItem({
       )}
 
       {confirmDelete && (
-        <div className={cn("mt-2 rounded-xl border p-2 text-xs", isDark ? "border-red-400/20 bg-red-950/20 text-red-100" : "border-red-200 bg-red-50 text-red-700")}>
+        <div className={cn("mt-2 rounded-xl border p-2", typeClasses.small, isDark ? "border-red-400/20 bg-red-950/20 text-red-100" : "border-red-200 bg-red-50 text-red-700")}>
           <p className="mb-2 font-semibold">{t("deleteChatShortConfirm")}</p>
           <div className="flex gap-2">
             <button type="button" onClick={() => setConfirmDelete(false)} className="flex-1 rounded-lg px-2 py-1 hover:bg-black/5">{t("cancel")}</button>
@@ -615,7 +621,7 @@ const HistoryItem = memo(function HistoryItem({
         </div>
       )}
 
-      <p className={cn("ml-[27px] mt-1 truncate text-[10.5px] font-medium leading-4", isDark ? "text-[#8A8A8A]" : "text-[#7C8798]")}>
+      <p className={cn("ml-[27px] mt-1 truncate font-medium leading-4", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>
         {formatHistoryDate(item.lastMessageAt || item.updatedAt, language)}
       </p>
     </div>
@@ -803,7 +809,7 @@ function Sidebar({
   const renderSidebarSection = (title, items) => (
     <div className="space-y-1">
       {isHistoryOpen && (
-        <p className={cn("px-3.5 pb-1 pt-2 text-[11px] font-bold uppercase tracking-[0.14em]", isDark ? "text-[#8F8F8F]" : "text-[#64748B]")}>
+        <p className={cn("px-3.5 pb-1 pt-2 font-bold uppercase tracking-[0.14em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
           {title}
         </p>
       )}
@@ -814,20 +820,21 @@ function Sidebar({
               item.action?.();
             }}
             className={cn(
-              "group flex w-full items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer",
+              "group flex w-full items-center rounded-xl transition-all duration-200 cursor-pointer",
+              iconClasses.iconText,
               isHistoryOpen ? "px-3.5 py-3" : "h-12 justify-center px-0 py-0",
               isDark
                 ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
-                : "text-[#1F2937] hover:bg-black/[0.05] hover:text-[#0F172A]",
-              item.active && (isDark ? "bg-white/[0.1] text-white" : "bg-[#E8F1FF] text-[#193B68]"),
+                : "text-[var(--bm-text-primary)] hover:bg-black/[0.05] hover:text-[var(--bm-text-primary)]",
+              item.active && (isDark ? "bg-white/[0.1] text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"),
             )}
             data-testid={item.testId || `nav-${item.id}`}
             title={!isHistoryOpen ? item.label : undefined}
           >
-            <item.icon className={cn("flex-shrink-0 stroke-[2.35]", isHistoryOpen ? "h-[21px] w-[21px]" : "h-[23px] w-[23px]")} />
-            {isHistoryOpen && <span className="min-w-0 truncate text-sm font-medium">{item.label}</span>}
+            <item.icon className={cn("flex-shrink-0 stroke-[2.35]", iconClasses.sidebar)} />
+            {isHistoryOpen && <span className={cn("min-w-0 truncate font-medium", typeClasses.body)}>{item.label}</span>}
             {!isHistoryOpen && (
-              <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100", isDark ? "bg-[#2A2A2A] text-white" : "bg-white text-[#111827]")}>
+              <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 opacity-0 shadow-lg transition-opacity group-hover:opacity-100", typeClasses.small, isDark ? "bg-[var(--bm-bg-elevated)] text-white" : "bg-white text-[var(--bm-text-primary)]")}>
                 {item.label}
               </span>
             )}
@@ -835,8 +842,8 @@ function Sidebar({
           {item.id === "recent_chats" && recentsOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setRecentsOpen(false)} />
-              <div className={cn("absolute left-full top-0 z-30 ml-3 w-[min(20rem,calc(100vw-6rem))] rounded-3xl border p-3 shadow-[0_24px_70px_rgba(15,23,42,0.25)] backdrop-blur-[18px]", isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/70 bg-white/95 text-[#111827]")}>
-                <p className={cn("mb-2 px-2 text-xs font-semibold uppercase tracking-[0.14em]", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{t("recents")}</p>
+              <div className={cn("absolute left-full top-0 z-30 ml-3 w-[min(20rem,calc(100vw-6rem))] rounded-3xl border p-3 shadow-[0_24px_70px_rgba(15,23,42,0.25)] backdrop-blur-[18px]", isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/70 bg-white/95 text-[var(--bm-text-primary)]")}>
+                <p className={cn("mb-2 px-2 font-semibold uppercase tracking-[0.14em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("recents")}</p>
                 <div className="max-h-[420px] space-y-1 overflow-y-auto">
                   {history.slice(0, 12).map((historyItem) => (
                     <HistoryItem
@@ -876,7 +883,7 @@ function Sidebar({
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "h-full flex flex-col overflow-visible flex-shrink-0",
-        isDark ? "bg-[#1a1a1a]/96" : "bg-[#FAFBFC]/96",
+        isDark ? "bg-[var(--bm-bg-app)]/96" : "bg-[var(--bm-bg-app)]/96",
       )}
       data-testid="sidebar"
     >
@@ -884,12 +891,12 @@ function Sidebar({
         className={cn(
           "relative flex items-center justify-between p-4 after:absolute after:bottom-0 after:h-px after:content-['']",
           isHistoryOpen ? "after:left-3.5 after:right-3.5" : "after:left-4 after:right-4",
-          isDark ? "after:bg-white/[0.08]" : "after:bg-[#E5E7EB]",
+          isDark ? "after:bg-white/[0.08]" : "after:bg-[var(--bm-border)]",
         )}
       >
         {isHistoryOpen ? (
           <>
-            <span className={cn("truncate text-xl font-semibold tracking-tight", isDark ? "text-white" : "text-[#111827]")}>
+            <span className={cn("truncate font-semibold tracking-tight", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
               {APP_NAME}
             </span>
             <button
@@ -897,11 +904,11 @@ function Sidebar({
               aria-label={t("collapseSidebar")}
               className={cn(
                 "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-colors duration-200 cursor-pointer",
-                isDark ? "text-[#D4D4D4] hover:bg-white/[0.08] hover:text-white" : "text-[#334155] hover:bg-black/[0.05] hover:text-[#0F172A]",
+                isDark ? "text-[var(--bm-text-secondary)] hover:bg-white/[0.08] hover:text-white" : "text-[var(--bm-text-secondary)] hover:bg-black/[0.05] hover:text-[var(--bm-text-primary)]",
               )}
               data-testid="sidebar-toggle"
             >
-              <PanelLeftClose className="h-5 w-5 stroke-[2.25]" />
+              <PanelLeftClose className={cn("stroke-[2.25]", iconClasses.sidebar)} />
             </button>
           </>
         ) : (
@@ -910,13 +917,13 @@ function Sidebar({
             aria-label={t("openSidebar")}
             className={cn(
               "group relative flex h-12 w-12 items-center justify-center rounded-2xl transition-colors duration-200",
-              isDark ? "text-white hover:bg-white/[0.08]" : "text-[#111827] hover:bg-black/[0.05]",
+              isDark ? "text-white hover:bg-white/[0.08]" : "text-[var(--bm-text-primary)] hover:bg-black/[0.05]",
             )}
             data-testid="sidebar-toggle"
           >
-            <BrandLogo showName={false} small logoClassName="h-10 w-10 transition-opacity duration-150 group-hover:opacity-0" />
-            <PanelLeft className="absolute h-6 w-6 opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
-            <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100", isDark ? "bg-[#2A2A2A] text-white" : "bg-white text-[#111827]")}>
+            <BrandLogo showName={false} small logoClassName={cn(iconClasses.sidebarLogo, "transition-opacity duration-150 group-hover:opacity-0")} />
+            <PanelLeft className={cn("absolute opacity-0 transition-opacity duration-150 group-hover:opacity-100", iconClasses.sidebar)} />
+            <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 opacity-0 shadow-lg transition-opacity group-hover:opacity-100", typeClasses.small, isDark ? "bg-[var(--bm-bg-elevated)] text-white" : "bg-white text-[var(--bm-text-primary)]")}>
               Open sidebar
             </span>
           </button>
@@ -938,11 +945,11 @@ function Sidebar({
               className={cn(
                 "flex h-12 w-full items-center gap-3 rounded-[18px] border px-4 transition-all duration-200",
                 searchOpen
-                  ? isDark ? "border-white/15 bg-white/[0.08] shadow-[0_16px_40px_rgba(0,0,0,0.24)]" : "border-[#B8C4D6] bg-white shadow-[0_16px_38px_rgba(15,23,42,0.12)]"
-                  : isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.07]" : "border-[#DCE3EE] bg-white/80 hover:bg-white",
+                  ? isDark ? "border-white/15 bg-white/[0.08] shadow-[0_16px_40px_rgba(0,0,0,0.24)]" : "border-[var(--bm-border-strong)] bg-white shadow-[0_16px_38px_rgba(15,23,42,0.12)]"
+                  : isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-white/80 hover:bg-white",
               )}
             >
-              <Search className={cn("h-[18px] w-[18px] flex-shrink-0 stroke-[2.25]", isDark ? "text-[#D6D6D6]" : "text-[#64748B]")} />
+              <Search className={cn("flex-shrink-0 stroke-[2.25]", iconClasses.button, isDark ? "text-[#D6D6D6]" : "text-[var(--bm-text-secondary)]")} />
               <input
                 ref={searchInputRef}
                 value={searchQuery}
@@ -951,8 +958,9 @@ function Sidebar({
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder={t("searchConversations")}
                 className={cn(
-                  "min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none",
-                  isDark ? "text-white placeholder:text-[#8A8A8A]" : "text-[#0F172A] placeholder:text-[#94A3B8]",
+                  "min-w-0 flex-1 bg-transparent font-semibold outline-none",
+                  typeClasses.small,
+                  isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-muted)]",
                 )}
                 data-testid="conversation-search-input"
               />
@@ -964,10 +972,10 @@ function Sidebar({
                     setSearchQuery("");
                     searchInputRef.current?.focus();
                   }}
-                  className={cn("flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors", isDark ? "text-[#BDBDBD] hover:bg-white/10 hover:text-white" : "text-[#64748B] hover:bg-[#EEF2F7] hover:text-[#0F172A]")}
+                  className={cn("flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors", isDark ? "text-[var(--bm-text-muted)] hover:bg-white/10 hover:text-white" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]")}
                   aria-label={t("clearSearch")}
                 >
-                  <X className="h-4 w-4" />
+                  <X className={iconClasses.button} />
                 </button>
               )}
             </label>
@@ -981,11 +989,11 @@ function Sidebar({
                   transition={{ duration: 0.16, ease: "easeOut" }}
                   className={cn(
                     "absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-[22px] border p-2 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-[18px]",
-                    isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/75 bg-white/95 text-[#111827]",
+                    isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/75 bg-white/95 text-[var(--bm-text-primary)]",
                   )}
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <div className={cn("px-2.5 pb-2 pt-1.5 text-[11px] font-bold uppercase tracking-[0.13em]", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+                  <div className={cn("px-2.5 pb-2 pt-1.5 font-bold uppercase tracking-[0.13em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                     {searchPanelTitle}
                   </div>
                   <div className="max-h-[336px] space-y-1 overflow-y-auto pr-0.5">
@@ -997,26 +1005,26 @@ function Sidebar({
                           setSearchOpen(false);
                           onOpenConversation(item.conversationId);
                         }}
-                        className={cn("flex w-full items-start gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-150", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#F1F5F9]")}
+                        className={cn("flex w-full items-start rounded-2xl px-3 py-2.5 text-left transition-all duration-150", iconClasses.iconText, isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
                       >
-                        <span className={cn("mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07] text-[#DADADA]" : "bg-[#EEF2FF] text-[#193B68]")}>
-                          <Search className="h-4 w-4 stroke-[2.25]" />
+                        <span className={cn("mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07] text-[#DADADA]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
+                          <Search className={cn("stroke-[2.25]", iconClasses.button)} />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold leading-5">
+                          <span className={cn("block truncate font-semibold leading-5", typeClasses.small)}>
                             <HighlightedMatch text={item.title || t("newChat")} query={searchQuery} />
                           </span>
-                          <span className={cn("mt-0.5 block truncate text-xs font-medium leading-4", isDark ? "text-[#AFAFAF]" : "text-[#64748B]")}>
+                          <span className={cn("mt-0.5 block truncate font-medium leading-4", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                             {formatHistoryDate(item.lastMessageAt || item.updatedAt, prefs.language)}
                           </span>
                         </span>
                       </button>
                     ))}
                     {isSearching && normalizedSearchQuery && (
-                      <div className={cn("rounded-2xl px-3 py-3 text-sm font-medium", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>{t("searching")}</div>
+                      <div className={cn("rounded-2xl px-3 py-3 font-medium", typeClasses.small, isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{t("searching")}</div>
                     )}
                     {!isSearching && normalizedSearchQuery && combinedSearchResults.length === 0 && (
-                      <div className={cn("rounded-2xl px-3 py-3 text-sm font-medium", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>{t("noChatsFound")}</div>
+                      <div className={cn("rounded-2xl px-3 py-3 font-medium", typeClasses.small, isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{t("noChatsFound")}</div>
                     )}
                   </div>
                 </motion.div>
@@ -1045,18 +1053,18 @@ function Sidebar({
               className={cn(
                 "absolute z-30 rounded-3xl border p-3 shadow-[0_24px_70px_rgba(15,23,42,0.24)] backdrop-blur-[20px]",
                 isHistoryOpen ? "left-[18px] right-[18px] top-[142px]" : "left-full top-[154px] ml-3 w-[min(20rem,calc(100vw-6rem))]",
-                isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/70 bg-white/95 text-[#111827]",
+                isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/70 bg-white/95 text-[var(--bm-text-primary)]",
               )}
               onClick={(event) => event.stopPropagation()}
             >
-              <div className={cn("flex items-center gap-2 rounded-2xl border px-3 py-2.5", isDark ? "border-white/10 bg-white/[0.06]" : "border-[#E2E8F0] bg-[#F8FAFC]")}>
-                <Search className="h-4 w-4 flex-shrink-0 opacity-75" />
+              <div className={cn("flex items-center rounded-2xl border px-3 py-2.5", iconClasses.iconText, isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-active-bg)] bg-[var(--bm-bg-elevated)]")}>
+                <Search className={cn("flex-shrink-0 opacity-75", iconClasses.button)} />
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   autoFocus
                   placeholder={t("searchChats")}
-                  className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:opacity-70"
+                  className={cn("min-w-0 flex-1 bg-transparent font-medium outline-none placeholder:opacity-70", typeClasses.small)}
                 />
                 <button
                   type="button"
@@ -1064,17 +1072,17 @@ function Sidebar({
                   className={cn("flex h-7 w-7 items-center justify-center rounded-full transition-colors", isDark ? "hover:bg-white/10" : "hover:bg-black/5")}
                   aria-label={t("closeSearch")}
                 >
-                  <X className="h-4 w-4" />
+                  <X className={iconClasses.button} />
                 </button>
               </div>
 
               <div className="mt-3 max-h-[420px] space-y-1 overflow-y-auto">
-                <p className={cn("px-1 pb-2 text-xs font-semibold uppercase tracking-[0.12em]", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{searchPanelTitle}</p>
+                <p className={cn("px-1 pb-2 font-semibold uppercase tracking-[0.12em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{searchPanelTitle}</p>
                 {isSearching && (
-                  <div className={cn("rounded-2xl px-3 py-4 text-sm font-medium", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>{t("searching")}</div>
+                  <div className={cn("rounded-2xl px-3 py-4 font-medium", typeClasses.small, isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{t("searching")}</div>
                 )}
                 {!isSearching && normalizedSearchQuery && combinedSearchResults.length === 0 && (
-                  <div className={cn("rounded-2xl px-3 py-4 text-sm font-medium", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>{t("noChatsFound")}</div>
+                  <div className={cn("rounded-2xl px-3 py-4 font-medium", typeClasses.small, isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{t("noChatsFound")}</div>
                 )}
                 {combinedSearchResults.map((item) => (
                   <button
@@ -1084,12 +1092,12 @@ function Sidebar({
                       setSearchOpen(false);
                       onOpenConversation(item.conversationId);
                     }}
-                    className={cn("flex w-full flex-col rounded-2xl px-3 py-2.5 text-left transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#F1F5F9]")}
+                    className={cn("flex w-full flex-col rounded-2xl px-3 py-2.5 text-left transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
                   >
-                    <span className="block max-w-full truncate text-sm font-semibold">
+                    <span className={cn("block max-w-full truncate font-semibold", typeClasses.small)}>
                       <HighlightedMatch text={item.title || "New conversation"} query={searchQuery} />
                     </span>
-                    <span className={cn("mt-1 block max-w-full truncate text-xs font-medium leading-4", isDark ? "text-[#B8B8B8]" : "text-[#475569]")}>
+                    <span className={cn("mt-1 block max-w-full truncate font-medium leading-4", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                       {formatHistoryDate(item.lastMessageAt || item.updatedAt, prefs.language)}
                     </span>
                   </button>
@@ -1103,7 +1111,7 @@ function Sidebar({
       <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
         {isHistoryOpen && (
           <div className="px-3.5 pb-2 pt-5">
-            <div className={cn("flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-[0.12em]", isDark ? "text-[#A7A7A7]" : "text-[#475569]")}>
+            <div className={cn("flex items-center justify-between px-1 font-semibold uppercase tracking-[0.12em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
               <span className="truncate">{t("history")}</span>
             </div>
           </div>
@@ -1158,19 +1166,20 @@ function Sidebar({
             settingsItem.action?.();
           }}
           className={cn(
-            "group relative flex w-full items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer",
+            "group relative flex w-full items-center rounded-xl transition-all duration-200 cursor-pointer",
+            iconClasses.iconText,
             isHistoryOpen ? "px-3.5 py-3" : "h-12 justify-center px-0 py-0",
             isDark
               ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
-              : "text-[#1F2937] hover:bg-black/[0.05] hover:text-[#0F172A]",
+              : "text-[var(--bm-text-primary)] hover:bg-black/[0.05] hover:text-[var(--bm-text-primary)]",
           )}
           data-testid="nav-settings"
           title={!isHistoryOpen ? settingsItem.label : undefined}
         >
-          <settingsItem.icon className={cn("flex-shrink-0 stroke-[2.35]", isHistoryOpen ? "h-[21px] w-[21px]" : "h-[23px] w-[23px]")} />
-          {isHistoryOpen && <span className="min-w-0 truncate text-sm font-medium">{settingsItem.label}</span>}
+          <settingsItem.icon className={cn("flex-shrink-0 stroke-[2.35]", iconClasses.sidebar)} />
+          {isHistoryOpen && <span className={cn("min-w-0 truncate font-medium", typeClasses.body)}>{settingsItem.label}</span>}
           {!isHistoryOpen && (
-            <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 text-xs opacity-0 shadow-lg transition-opacity group-hover:opacity-100", isDark ? "bg-[#2A2A2A] text-white" : "bg-white text-[#111827]")}>
+            <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 opacity-0 shadow-lg transition-opacity group-hover:opacity-100", typeClasses.small, isDark ? "bg-[var(--bm-bg-elevated)] text-white" : "bg-white text-[var(--bm-text-primary)]")}>
               {settingsItem.label}
             </span>
           )}
@@ -1209,7 +1218,7 @@ function MessageActionBar({
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "mt-2 flex flex-wrap items-center gap-1 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100",
-        isDark ? "text-[#9CA3AF]" : "text-[#6B7280]",
+        isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]",
       )}
       data-testid={`message-actions-${message.id}`}
     >
@@ -1221,8 +1230,8 @@ function MessageActionBar({
           className={cn(
             "flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-all duration-200 hover:scale-[1.03]",
             action.active
-              ? isDark ? "bg-white/10 text-white" : "bg-[#EEF2FF] text-[#193B68]"
-              : isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-[#F3F4F6] hover:text-[#111827]",
+              ? isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+              : isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
           )}
           title={action.label}
           aria-label={action.label}
@@ -1243,14 +1252,14 @@ function DislikeFeedbackPopover({ messageId, isDark, onSelect, onClose, t }) {
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
         className={cn(
           "absolute left-1/2 top-1/2 w-[min(92vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border p-3 shadow-2xl backdrop-blur-xl",
-          isDark ? "border-white/10 bg-[#202020]/95 text-white" : "border-[#E5E7EB] bg-white/95 text-[#111827]",
+          isDark ? "border-white/10 bg-[var(--bm-bg-card)]/95 text-white" : "border-[var(--bm-border)] bg-white/95 text-[var(--bm-text-primary)]",
         )}
         onClick={(event) => event.stopPropagation()}
         data-testid={`dislike-feedback-${messageId}`}
       >
         <div className="px-2 pb-2 pt-1">
           <p className="text-sm font-semibold">{t("tellUsMore")}</p>
-          <p className={cn("mt-1 text-xs", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("feedbackHelps")}</p>
+          <p className={cn("mt-1 text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("feedbackHelps")}</p>
         </div>
         <div className="space-y-1">
           {DISLIKE_REASONS.map((reason) => (
@@ -1260,11 +1269,11 @@ function DislikeFeedbackPopover({ messageId, isDark, onSelect, onClose, t }) {
               onClick={() => onSelect(reason)}
               className={cn(
                 "flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition-colors",
-                isDark ? "hover:bg-white/10" : "hover:bg-[#F3F4F6]",
+                isDark ? "hover:bg-white/10" : "hover:bg-[var(--bm-hover-bg)]",
               )}
             >
               {t(reason)}
-              <span className={cn("h-1.5 w-1.5 rounded-full", isDark ? "bg-white/30" : "bg-[#CBD5E1]")} />
+              <span className={cn("h-1.5 w-1.5 rounded-full", isDark ? "bg-white/30" : "bg-[var(--bm-border-strong)]")} />
             </button>
           ))}
         </div>
@@ -1283,11 +1292,11 @@ function ChatImage({ attachment, isDark, onExpand }) {
       onClick={() => onExpand?.({ src, name: attachment.name || attachment.prompt || "image" })}
       className={cn(
         "group relative block overflow-hidden rounded-3xl text-left shadow-sm transition-transform hover:scale-[1.01]",
-        isDark ? "border border-white/10 bg-white/5" : "border border-[#E5E7EB] bg-white",
+        isDark ? "border border-white/10 bg-white/5" : "border border-[var(--bm-border)] bg-white",
       )}
     >
       {!loaded && (
-        <div className={cn("absolute inset-0 animate-pulse", isDark ? "bg-white/10" : "bg-[#EEF2F7]")} />
+        <div className={cn("absolute inset-0 animate-pulse", isDark ? "bg-white/10" : "bg-[var(--bm-hover-bg)]")} />
       )}
       <img
         src={src}
@@ -1340,10 +1349,10 @@ const ChatMessage = memo(function ChatMessage({
             isUser
               ? "rounded-[24px] rounded-br-lg px-5 py-3.5 text-white shadow-sm"
               : isDark
-                ? "text-[#F3F4F6]"
-                : "text-[#1F2937]",
+                ? "text-[var(--bm-hover-bg)]"
+                : "text-[var(--bm-text-primary)]",
           )}
-          style={isUser ? { backgroundColor: prefs.chatColor || "#193B68", ...directionStyle } : directionStyle}
+          style={isUser ? { backgroundColor: prefs.chatColor || "var(--bm-primary)", ...directionStyle } : directionStyle}
         >
           {message.attachments?.length > 0 && (
             <div className="mb-4 grid max-w-sm grid-cols-1 gap-3">
@@ -1370,7 +1379,7 @@ const ChatMessage = memo(function ChatMessage({
           {message.suggestion && (
             <button
               onClick={() => onCreateSuggestion(message.suggestion)}
-              className="mt-3 rounded-full bg-[#01D5DE] px-4 py-2 text-sm font-medium text-white hover:bg-[#14B2F5] transition-colors"
+              className="mt-3 rounded-full bg-[var(--bm-info)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--bm-primary)] transition-colors"
             >
               {t("createReminderCta")}
             </button>
@@ -1404,7 +1413,7 @@ function AttachmentTray({ attachments, onRemove, isDark, isUploading }) {
     <div
       className={cn(
         "mb-2 flex max-w-full gap-2 overflow-x-auto rounded-[22px] border p-2 md:mb-3 md:flex-wrap md:gap-3",
-        isDark ? "border-white/[0.08] bg-[#202020]/90" : "border-[#E5E7EB] bg-white/90",
+        isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]/90" : "border-[var(--bm-border)] bg-white/90",
       )}
     >
       {attachments.map((attachment) => (
@@ -1414,18 +1423,18 @@ function AttachmentTray({ attachments, onRemove, isDark, isUploading }) {
             alt={attachment.name}
             className={cn(
               "h-16 w-16 rounded-[18px] object-cover shadow-sm transition-transform group-hover:scale-[1.02] md:h-20 md:w-20 md:rounded-2xl",
-              isDark ? "border border-white/10" : "border border-[#E5E7EB]",
+              isDark ? "border border-white/10" : "border border-[var(--bm-border)]",
             )}
             loading="lazy"
           />
           <button
             onClick={() => onRemove(attachment.id)}
-            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#111827] text-white shadow-sm transition-transform hover:scale-105"
+            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--bm-text-primary)] text-white shadow-sm transition-transform hover:scale-105"
             type="button"
           >
             <X className="h-3.5 w-3.5" />
           </button>
-          <div className="mt-1 max-w-16 truncate text-[10px] text-[#9CA3AF] md:max-w-20 md:text-[11px]">
+          <div className="mt-1 max-w-16 truncate text-[10px] text-[var(--bm-text-muted)] md:max-w-20 md:text-[11px]">
             {attachment.name}
           </div>
         </div>
@@ -1434,10 +1443,10 @@ function AttachmentTray({ attachments, onRemove, isDark, isUploading }) {
         <div
           className={cn(
             "flex h-20 w-20 items-center justify-center rounded-2xl border",
-            isDark ? "border-white/10 bg-white/5" : "border-[#E5E7EB] bg-white",
+            isDark ? "border-white/10 bg-white/5" : "border-[var(--bm-border)] bg-white",
           )}
         >
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#9CA3AF]/30 border-t-[#193B68]" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
         </div>
       )}
     </div>
@@ -1878,7 +1887,7 @@ export default function ChatPage() {
           <motion.div
             className={cn(
               "w-full max-w-md rounded-3xl border p-5 shadow-2xl",
-              isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]",
+              isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]",
             )}
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1888,7 +1897,7 @@ export default function ChatPage() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Private Chat</h2>
-                <p className={cn("text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>Unlock a private chat inside your account.</p>
+                <p className={cn("text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>Unlock a private chat inside your account.</p>
               </div>
               <button type="button" className={cn("flex h-9 w-9 items-center justify-center rounded-full", isDark ? "bg-white/10 hover:bg-white/15" : "bg-black/5 hover:bg-black/10")} onClick={() => setPrivateSpaceModalOpen(false)}>
                 <X className="h-5 w-5" />
@@ -1900,9 +1909,9 @@ export default function ChatPage() {
             {privateSpaceStep === "list" && (
               <div className="space-y-3">
                 <div className="max-h-64 space-y-2 overflow-y-auto">
-                  {isLoadingPrivateSpaces && <p className={cn("text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>Loading private chats...</p>}
+                  {isLoadingPrivateSpaces && <p className={cn("text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>Loading private chats...</p>}
                   {!isLoadingPrivateSpaces && privateSpaces.length === 0 && (
-                    <p className={cn("rounded-2xl border px-3 py-4 text-sm", isDark ? "border-white/10 text-[#A7A7A7]" : "border-black/10 text-[#64748B]")}>No private chats yet.</p>
+                    <p className={cn("rounded-2xl border px-3 py-4 text-sm", isDark ? "border-white/10 text-[var(--bm-text-muted)]" : "border-black/10 text-[var(--bm-text-secondary)]")}>No private chats yet.</p>
                   )}
                   {privateSpaces.map((space) => (
                     <div key={space.privateSpaceId} className="relative">
@@ -1932,7 +1941,7 @@ export default function ChatPage() {
                         <MoreVertical className="h-5 w-5" />
                       </button>
                       {privateSpaceActionMenuId === space.privateSpaceId && (
-                        <div className={cn("absolute right-2 top-12 z-10 w-36 rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#2A2A2A]" : "border-black/10 bg-white")}>
+                        <div className={cn("absolute right-2 top-12 z-10 w-36 rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[var(--bm-bg-elevated)]" : "border-black/10 bg-white")}>
                           {[
                             ["Rename", () => { setSelectedPrivateSpace(space); setPrivateSpaceRenameName(space.name); setPrivateSpaceStep("rename"); }],
                             ["Change PIN", () => { setSelectedPrivateSpace(space); setPrivateSpacePinForm({ currentPin: "", newPin: "", confirmNewPin: "" }); setPrivateSpaceStep("changePin"); }],
@@ -1947,7 +1956,7 @@ export default function ChatPage() {
                     </div>
                   ))}
                 </div>
-                <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]" onClick={handleStartCreatePrivateSpace}>
+                <button type="button" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--bm-primary-hover)]" onClick={handleStartCreatePrivateSpace}>
                   Create Private Chat
                 </button>
               </div>
@@ -1955,47 +1964,47 @@ export default function ChatPage() {
 
             {privateSpaceStep === "create" && (
               <form className="space-y-3" onSubmit={handleCreatePrivateSpace}>
-                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Chat Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="PIN" inputMode="numeric" type="password" value={privateSpaceForm.pin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "") }))} />
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Confirm PIN" inputMode="numeric" type="password" value={privateSpaceForm.confirmPin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, confirmPin: event.target.value.replace(/\D/g, "") }))} />
-                <button type="submit" disabled={isCreatingPrivateSpace} className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80] disabled:opacity-70">{isCreatingPrivateSpace ? "Creating..." : "Create"}</button>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[var(--bm-primary)]" : "text-[var(--bm-primary)]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <input className={cn(inputClasses.field, "font-semibold")} placeholder="Chat Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
+                <input className={cn(inputClasses.field, "font-semibold")} placeholder="PIN" inputMode="numeric" type="password" value={privateSpaceForm.pin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "") }))} />
+                <input className={cn(inputClasses.field, "font-semibold")} placeholder="Confirm PIN" inputMode="numeric" type="password" value={privateSpaceForm.confirmPin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, confirmPin: event.target.value.replace(/\D/g, "") }))} />
+                <button type="submit" disabled={isCreatingPrivateSpace} className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--bm-primary-hover)] disabled:opacity-70">{isCreatingPrivateSpace ? "Creating..." : "Create"}</button>
               </form>
             )}
 
             {privateSpaceStep === "rename" && selectedPrivateSpace && (
               <form className="space-y-3" onSubmit={handleRenamePrivateSpace}>
-                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Chat Name" value={privateSpaceRenameName} onChange={(event) => setPrivateSpaceRenameName(event.target.value)} />
-                <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]">Save</button>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[var(--bm-primary)]" : "text-[var(--bm-primary)]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <input className={cn(inputClasses.field, "font-semibold")} placeholder="Chat Name" value={privateSpaceRenameName} onChange={(event) => setPrivateSpaceRenameName(event.target.value)} />
+                <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--bm-primary-hover)]">Save</button>
               </form>
             )}
 
             {privateSpaceStep === "changePin" && selectedPrivateSpace && (
               <form className="space-y-3" onSubmit={handleChangePrivateSpacePin}>
-                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Current PIN" inputMode="numeric" type="password" value={privateSpacePinForm.currentPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, currentPin: event.target.value.replace(/\D/g, "") }))} />
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.newPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, newPin: event.target.value.replace(/\D/g, "") }))} />
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="Confirm New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.confirmNewPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, confirmNewPin: event.target.value.replace(/\D/g, "") }))} />
-                <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]">Change PIN</button>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[var(--bm-primary)]" : "text-[var(--bm-primary)]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <input className={cn(inputClasses.field, "font-semibold")} placeholder="Current PIN" inputMode="numeric" type="password" value={privateSpacePinForm.currentPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, currentPin: event.target.value.replace(/\D/g, "") }))} />
+                <input className={cn(inputClasses.field, "font-semibold")} placeholder="New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.newPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, newPin: event.target.value.replace(/\D/g, "") }))} />
+                <input className={cn(inputClasses.field, "font-semibold")} placeholder="Confirm New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.confirmNewPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, confirmNewPin: event.target.value.replace(/\D/g, "") }))} />
+                <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--bm-primary-hover)]">Change PIN</button>
               </form>
             )}
 
             {privateSpaceStep === "delete" && privateSpaceDeleteTarget && (
               <div className="space-y-4">
-                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[var(--bm-primary)]" : "text-[var(--bm-primary)]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
                 <p className="text-base font-semibold">Delete this private chat?</p>
-                <p className={cn("text-sm", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>All conversations inside it will be permanently deleted.</p>
+                <p className={cn("text-sm", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>All conversations inside it will be permanently deleted.</p>
                 <button type="button" className="w-full rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700" onClick={handleDeletePrivateSpace}>Delete</button>
               </div>
             )}
 
             {privateSpaceStep === "pin" && selectedPrivateSpace && (
               <form className="space-y-3" onSubmit={handleUnlockPrivateSpace}>
-                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[#A7C7FF]" : "text-[#193B68]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                <button type="button" className={cn("text-sm font-medium", isDark ? "text-[var(--bm-primary)]" : "text-[var(--bm-primary)]")} onClick={() => setPrivateSpaceStep("list")}>Back</button>
                 <h3 className="text-base font-semibold">Enter PIN for {selectedPrivateSpace.name}</h3>
-                <input className={cn("w-full rounded-2xl border px-4 py-3 outline-none", isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]")} placeholder="PIN" inputMode="numeric" type="password" value={privatePinInput} onChange={(event) => setPrivatePinInput(event.target.value.replace(/\D/g, ""))} />
-                <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]">Unlock</button>
+                <input className={cn(inputClasses.field, "font-semibold")} placeholder="PIN" inputMode="numeric" type="password" value={privatePinInput} onChange={(event) => setPrivatePinInput(event.target.value.replace(/\D/g, ""))} />
+                <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--bm-primary-hover)]">Unlock</button>
               </form>
             )}
           </motion.div>
@@ -2011,7 +2020,7 @@ export default function ChatPage() {
           onClick={() => setHiddenChatModalOpen(false)}
         >
           <motion.div
-            className={cn("w-full max-w-sm rounded-3xl border p-5 shadow-2xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]")}
+            className={cn("w-full max-w-sm rounded-3xl border p-5 shadow-2xl", isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 14, scale: 0.98 }}
@@ -2023,14 +2032,14 @@ export default function ChatPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className={cn("mb-5 whitespace-pre-line text-sm leading-6", isDark ? "text-[#CFCFCF]" : "text-[#475569]")}>
+            <p className={cn("mb-5 whitespace-pre-line text-sm leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
               This chat is temporary.
               Messages are not saved.
               It does not appear in History.
               It does not appear in Search.
               Everything will be deleted when you leave.
             </p>
-            <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244C80]" onClick={handleStartHiddenChat}>
+            <button type="button" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--bm-primary-hover)]" onClick={handleStartHiddenChat}>
               Start Hidden Chat
             </button>
           </motion.div>
@@ -2926,8 +2935,8 @@ export default function ChatPage() {
     >
       <div className="mb-3 flex items-end justify-between gap-4 px-1 md:mb-4">
         <div>
-          <h3 className={cn("text-[15px] font-semibold md:text-base", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("exploreImageIdeas")}</h3>
-          <p className={cn("mt-0.5 text-xs md:mt-1 md:text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+          <h3 className={cn("text-[15px] font-semibold md:text-base", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>{t("exploreImageIdeas")}</h3>
+          <p className={cn("mt-0.5 text-xs md:mt-1 md:text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
             {t("exploreImageIdeasSubtitle")}
           </p>
         </div>
@@ -2947,7 +2956,7 @@ export default function ChatPage() {
               "group overflow-hidden rounded-[24px] border p-1.5 text-left shadow-sm transition-colors duration-200 md:rounded-[28px] md:p-2",
               isDark
                 ? "border-white/[0.08] bg-white/[0.06] text-white hover:border-white/[0.16] hover:bg-white/[0.1]"
-                : "border-white/75 bg-white/80 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                : "border-white/75 bg-white/80 text-[var(--bm-text-primary)] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
             )}
           >
             <div className="relative aspect-[4/3] overflow-hidden rounded-[19px] md:rounded-[22px]">
@@ -2958,13 +2967,13 @@ export default function ChatPage() {
                 loading="lazy"
               />
               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent" />
-              <span className="absolute left-2 top-2 rounded-full bg-white/82 px-2 py-0.5 text-[10px] font-semibold text-[#193B68] shadow-sm backdrop-blur-md md:left-3 md:top-3 md:px-2.5 md:py-1 md:text-[11px]">
+              <span className="absolute left-2 top-2 rounded-full bg-white/82 px-2 py-0.5 text-[10px] font-semibold text-[var(--bm-primary)] shadow-sm backdrop-blur-md md:left-3 md:top-3 md:px-2.5 md:py-1 md:text-[11px]">
                 {t(`imageIdea_${idea.id.replace(/-/g, "_")}_category`)}
               </span>
             </div>
             <div className="px-2 pb-2.5 pt-2 md:px-2.5 md:pb-3 md:pt-3">
               <span className="block text-[13px] font-semibold leading-4 md:text-[15px] md:leading-5">{t(`imageIdea_${idea.id.replace(/-/g, "_")}_title`)}</span>
-              <span className={cn("mt-1 block text-xs leading-4 md:mt-1.5 md:text-sm md:leading-5", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+              <span className={cn("mt-1 block text-xs leading-4 md:mt-1.5 md:text-sm md:leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                 {t(`imageIdea_${idea.id.replace(/-/g, "_")}_description`)}
               </span>
             </div>
@@ -2989,7 +2998,7 @@ export default function ChatPage() {
           compact ? "w-full sm:min-w-[245px] sm:max-w-[245px]" : "",
           isDark
             ? "border-white/[0.08] bg-white/[0.06] text-white hover:border-white/[0.16] hover:bg-white/[0.1]"
-            : "border-white/75 bg-white/82 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+            : "border-white/75 bg-white/82 text-[var(--bm-text-primary)] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
         )}
       >
         <button
@@ -3002,7 +3011,7 @@ export default function ChatPage() {
           <div
             className={cn(
               "flex h-14 w-14 items-center justify-center rounded-2xl border transition-transform duration-300 group-hover:scale-[1.04]",
-              isDark ? "border-white/[0.08] bg-white/[0.08]" : "border-[#E5E7EB] bg-white"
+              isDark ? "border-white/[0.08] bg-white/[0.08]" : "border-[var(--bm-border)] bg-white"
             )}
           >
             <img
@@ -3022,7 +3031,7 @@ export default function ChatPage() {
               "relative z-20 flex h-9 w-9 items-center justify-center rounded-full border transition-colors",
               isFavorite
                 ? "border-amber-300/40 bg-amber-300/20 text-amber-500"
-                : isDark ? "border-white/[0.08] bg-white/[0.06] text-[#A7A7A7] hover:text-amber-300" : "border-black/[0.06] bg-white/70 text-[#64748B] hover:text-amber-500"
+                : isDark ? "border-white/[0.08] bg-white/[0.06] text-[var(--bm-text-muted)] hover:text-amber-300" : "border-black/[0.06] bg-white/70 text-[var(--bm-text-secondary)] hover:text-amber-500"
             )}
             aria-label={isFavorite ? t("removeFavorite") : t("addFavorite")}
           >
@@ -3032,22 +3041,22 @@ export default function ChatPage() {
         <div className="relative z-10 mb-2 flex flex-wrap items-center gap-2">
           <span className={cn(
             "rounded-full px-2.5 py-1 text-[11px] font-semibold",
-            isDark ? "bg-white/[0.08] text-[#D7D7D7]" : "bg-[#EEF2FF] text-[#193B68]"
+            isDark ? "bg-white/[0.08] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
           )}>
             {site.category}
           </span>
           <span className={cn(
             "rounded-full px-2.5 py-1 text-[11px] font-semibold",
-            isDark ? "bg-white/[0.06] text-[#B8B8B8]" : "bg-[#F8FAFC] text-[#64748B]"
+            isDark ? "bg-white/[0.06] text-[var(--bm-text-muted)]" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]"
           )}>
             {site.countryBadge}
           </span>
         </div>
         <span className="relative z-10 block text-[16px] font-semibold leading-5">{site.name}</span>
-        <span className={cn("relative z-10 mt-2 block flex-1 text-sm leading-5", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+        <span className={cn("relative z-10 mt-2 block flex-1 text-sm leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
           {site.description}
         </span>
-        <span className={cn("relative z-10 mt-4 block truncate text-xs font-semibold", isDark ? "text-[#8FB9FF]" : "text-[#193B68]")}>
+        <span className={cn("relative z-10 mt-4 block truncate text-xs font-semibold", isDark ? "text-[var(--bm-primary)]" : "text-[var(--bm-primary)]")}>
           {site.url.replace(/^https?:\/\//, "")}
         </span>
       </motion.article>
@@ -3059,8 +3068,8 @@ export default function ChatPage() {
       if (!emptyText) return null;
       return (
         <section className="mt-8">
-          <h3 className={cn("mb-3 text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{title}</h3>
-          <div className={cn("rounded-[28px] border px-5 py-6 text-sm", isDark ? "border-white/[0.08] bg-white/[0.05] text-[#A7A7A7]" : "border-[#E5E7EB] bg-white/70 text-[#64748B]")}>
+          <h3 className={cn("mb-3 text-base font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>{title}</h3>
+          <div className={cn("rounded-[28px] border px-5 py-6 text-sm", isDark ? "border-white/[0.08] bg-white/[0.05] text-[var(--bm-text-muted)]" : "border-[var(--bm-border)] bg-white/70 text-[var(--bm-text-secondary)]")}>
             {emptyText}
           </div>
         </section>
@@ -3069,7 +3078,7 @@ export default function ChatPage() {
 
     return (
       <section className="mt-8">
-        <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{title}</h3>
+        <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>{title}</h3>
         <div className="grid grid-cols-1 gap-3 sm:flex sm:gap-4 sm:overflow-x-auto sm:pb-2 sm:pr-2 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
           {sites.map((site, index) => renderWebsiteCard(site, index, true))}
         </div>
@@ -3079,7 +3088,7 @@ export default function ChatPage() {
 
   const renderSearchArtwork = (item, index = 0) => {
     const artwork = item.artwork || {};
-    const from = artwork.from || "#193B68";
+    const from = artwork.from || "var(--bm-primary)";
     const via = artwork.via || "#4E8EDB";
     const to = artwork.to || "#D8E8FF";
 
@@ -3132,13 +3141,13 @@ export default function ChatPage() {
         "group overflow-hidden rounded-[28px] border p-2 text-left shadow-sm transition-colors duration-200",
         isDark
           ? "border-white/[0.08] bg-white/[0.06] text-white hover:border-white/[0.16] hover:bg-white/[0.1]"
-          : "border-white/75 bg-white/82 text-[#111827] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+          : "border-white/75 bg-white/82 text-[var(--bm-text-primary)] shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
       )}
     >
       {renderSearchArtwork(category, index)}
       <div className="px-2.5 pb-3 pt-3">
         <span className="block text-[15px] font-semibold leading-5">{category.title}</span>
-        <span className={cn("mt-1.5 line-clamp-2 block text-sm leading-5", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+        <span className={cn("mt-1.5 line-clamp-2 block text-sm leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
           {category.description}
         </span>
       </div>
@@ -3155,7 +3164,7 @@ export default function ChatPage() {
         "group relative overflow-visible rounded-[28px] border p-2 text-left shadow-sm transition-colors duration-200",
         isDark
           ? "border-white/[0.08] bg-white/[0.06] text-white"
-          : "border-white/75 bg-white/82 text-[#111827] shadow-slate-200/70"
+          : "border-white/75 bg-white/82 text-[var(--bm-text-primary)] shadow-slate-200/70"
       )}
     >
       {renderSearchArtwork(item, index)}
@@ -3171,7 +3180,7 @@ export default function ChatPage() {
       {openSearchMenuItemId === item.id && (
         <div className={cn(
           "absolute right-4 top-14 z-20 w-40 overflow-hidden rounded-2xl border p-1 shadow-xl",
-          isDark ? "border-white/[0.08] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"
+          isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"
         )}>
           <button
             type="button"
@@ -3179,14 +3188,14 @@ export default function ChatPage() {
               setExpandedSearchItemId((current) => current === item.id ? null : item.id);
               setOpenSearchMenuItemId(null);
             }}
-            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#EEF2F7]")}
+            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
           >
             Learn More
           </button>
           <button
             type="button"
             onClick={() => copySearchItemName(item)}
-            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#EEF2F7]")}
+            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
           >
             Copy Name
           </button>
@@ -3197,7 +3206,7 @@ export default function ChatPage() {
               item,
               intent: "learn_more_about_selected_item",
             })}
-            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#EEF2F7]")}
+            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
           >
             Ask AI
           </button>
@@ -3206,11 +3215,11 @@ export default function ChatPage() {
 
       <div className="px-2.5 pb-3 pt-3">
         <span className="block text-[15px] font-semibold leading-5">{item.title}</span>
-        <span className={cn("mt-1.5 line-clamp-2 block text-sm leading-5", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>
+        <span className={cn("mt-1.5 line-clamp-2 block text-sm leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
           {item.description}
         </span>
         {expandedSearchItemId === item.id && (
-          <div className={cn("mt-3 rounded-2xl px-3 py-2 text-xs font-semibold leading-5", isDark ? "bg-white/[0.07] text-[#D7D7D7]" : "bg-[#EEF2F7] text-[#475569]")}>
+          <div className={cn("mt-3 rounded-2xl px-3 py-2 text-xs font-semibold leading-5", isDark ? "bg-white/[0.07] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
             {item.details || `More useful details about ${item.title} will appear here as search data is connected.`}
           </div>
         )}
@@ -3226,10 +3235,10 @@ export default function ChatPage() {
       <section className="mt-8">
         <div className="mb-4 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h3 className={cn("text-lg font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>
+            <h3 className={cn("text-lg font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>
               {activeCategory?.title || "Search"}
             </h3>
-            <p className={cn("mt-1 max-w-2xl text-sm leading-6", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+            <p className={cn("mt-1 max-w-2xl text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
               {activeCategory
                 ? "Explore results in this category. If you do not see what you need, Ask AI can help you find it."
                 : "Find what you need here. If you cannot find it, Ask AI can help you find it."}
@@ -3245,7 +3254,7 @@ export default function ChatPage() {
               }}
               className={cn(
                 "h-10 rounded-full border px-4 text-sm font-semibold transition-colors",
-                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[#193B68] hover:bg-white"
+                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[var(--bm-primary)] hover:bg-white"
               )}
             >
               All categories
@@ -3260,14 +3269,14 @@ export default function ChatPage() {
         ) : (
           <>
             <div className={cn("mb-5 rounded-[28px] border p-4", isDark ? "border-white/[0.08] bg-white/[0.05]" : "border-white/75 bg-white/82 shadow-sm shadow-slate-200/70")}>
-              <p className={cn("text-sm font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>Can&apos;t find what you&apos;re looking for?</p>
+              <p className={cn("text-sm font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>Can&apos;t find what you&apos;re looking for?</p>
               <button
                 type="button"
                 onClick={() => openSearchAskConfirm({
                   category: activeCategory,
                   intent: "item_not_found",
                 })}
-                className="mt-3 h-11 rounded-2xl bg-[#193B68] px-5 text-sm font-bold text-white transition-opacity hover:opacity-95"
+                className="mt-3 h-11 rounded-2xl bg-[var(--bm-primary)] px-5 text-sm font-bold text-white transition-opacity hover:opacity-95"
               >
                 Ask AI
               </button>
@@ -3348,8 +3357,8 @@ export default function ChatPage() {
         )}>
           <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h3 className={cn("text-lg font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("discoverWebsites")}</h3>
-              <p className={cn("mt-1 text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+              <h3 className={cn("text-lg font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>{t("discoverWebsites")}</h3>
+              <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                 {t("discoverWebsitesSubtitle")}
               </p>
             </div>
@@ -3358,10 +3367,10 @@ export default function ChatPage() {
                 "flex h-12 w-full items-center gap-2 rounded-full border px-4 transition-colors lg:w-96",
                 isDark
                   ? "border-white/[0.08] bg-white/[0.06] text-white focus-within:border-white/[0.18]"
-                  : "border-black/[0.06] bg-white/85 text-[#111827] shadow-sm shadow-slate-200/60 focus-within:border-[#CBD5E1]"
+                  : "border-black/[0.06] bg-white/85 text-[var(--bm-text-primary)] shadow-sm shadow-slate-200/60 focus-within:border-[var(--bm-border-strong)]"
               )}
             >
-              <Search className={cn("h-4 w-4 flex-shrink-0", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")} />
+              <Search className={cn("h-4 w-4 flex-shrink-0", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")} />
               <input
                 type="search"
                 value={websiteSearchQuery}
@@ -3369,7 +3378,7 @@ export default function ChatPage() {
                 placeholder={t("searchForWebsite")}
                 className={cn(
                   "min-w-0 flex-1 bg-transparent text-sm font-medium outline-none",
-                  isDark ? "placeholder:text-[#8A8A8A]" : "placeholder:text-[#94A3B8]"
+                  isDark ? "placeholder:text-[var(--bm-text-muted)]" : "placeholder:text-[var(--bm-text-muted)]"
                 )}
                 data-testid="website-search-input"
               />
@@ -3382,7 +3391,7 @@ export default function ChatPage() {
               onClick={() => scrollWebsiteCategories(-1)}
               className={cn(
                 "hidden h-10 shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-bold transition-colors sm:inline-flex",
-                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[#193B68] hover:bg-white"
+                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[var(--bm-primary)] hover:bg-white"
               )}
               aria-label="Previous categories"
             >
@@ -3403,8 +3412,8 @@ export default function ChatPage() {
                     className={cn(
                       "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
                       active
-                        ? "border-transparent bg-[#193B68] text-white shadow-sm"
-                        : isDark ? "border-white/[0.08] bg-white/[0.05] text-[#D7D7D7] hover:bg-white/[0.09]" : "border-black/[0.05] bg-white/75 text-[#475569] hover:bg-white"
+                        ? "border-transparent bg-[var(--bm-primary)] text-white shadow-sm"
+                        : isDark ? "border-white/[0.08] bg-white/[0.05] text-[var(--bm-text-secondary)] hover:bg-white/[0.09]" : "border-black/[0.05] bg-white/75 text-[var(--bm-text-secondary)] hover:bg-white"
                     )}
                   >
                     {category}
@@ -3417,7 +3426,7 @@ export default function ChatPage() {
               onClick={() => scrollWebsiteCategories(1)}
               className={cn(
                 "hidden h-10 shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-bold transition-colors sm:inline-flex",
-                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[#193B68] hover:bg-white"
+                isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[var(--bm-primary)] hover:bg-white"
               )}
               aria-label="Next categories"
             >
@@ -3435,10 +3444,10 @@ export default function ChatPage() {
           <section className="mt-8">
             <div className="mb-4 flex items-center justify-between gap-3 px-1">
               <div>
-                <h3 className={cn("text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>
+                <h3 className={cn("text-base font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>
                   {normalizedQuery ? t("searchResults") : t("categoryWebsites", { category: activeWebsiteCategory })}
                 </h3>
-                <p className={cn("mt-1 text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+                <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                   {t("websitesAvailable", { count: matchingWebsites.length })}
                   {liveResults.length ? ` ${t("includingLiveLookupSuggestions")}` : ""}
                   {isWebsiteLiveSearching ? ` ${t("searchingLiveWebDirectory")}` : ""}
@@ -3451,13 +3460,13 @@ export default function ChatPage() {
                   disabled={safePage === 0}
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full border transition-colors disabled:opacity-40",
-                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[#111827] hover:bg-white"
+                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[var(--bm-text-primary)] hover:bg-white"
                   )}
                   aria-label={t("previousWebsitePage")}
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <span className={cn("min-w-[86px] text-center text-sm font-semibold", isDark ? "text-[#D7D7D7]" : "text-[#475569]")}>
+                <span className={cn("min-w-[86px] text-center text-sm font-semibold", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
                   {t("pageOf", { current: safePage + 1, total: pageCount })}
                 </span>
                 <button
@@ -3466,7 +3475,7 @@ export default function ChatPage() {
                   disabled={safePage >= pageCount - 1}
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full border transition-colors disabled:opacity-40",
-                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[#111827] hover:bg-white"
+                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-black/[0.06] bg-white/80 text-[var(--bm-text-primary)] hover:bg-white"
                   )}
                   aria-label={t("nextWebsitePage")}
                 >
@@ -3521,7 +3530,7 @@ export default function ChatPage() {
             transition={{ duration: 0.2 }}
             className={cn(
               "relative z-10 w-full max-w-xl overflow-hidden rounded-[34px] border p-5 shadow-2xl",
-              isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-white bg-white text-[#111827]"
+              isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-white bg-white text-[var(--bm-text-primary)]"
             )}
           >
             <button
@@ -3529,7 +3538,7 @@ export default function ChatPage() {
               onClick={() => setSelectedWebsite(null)}
               className={cn(
                 "absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full transition-colors",
-                isDark ? "bg-white/[0.08] text-white hover:bg-white/[0.12]" : "bg-[#F1F5F9] text-[#111827] hover:bg-[#E2E8F0]"
+                isDark ? "bg-white/[0.08] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)] hover:bg-[var(--bm-active-bg)]"
               )}
               aria-label={t("closeWebsiteDetails")}
             >
@@ -3537,27 +3546,27 @@ export default function ChatPage() {
             </button>
 
             <div className="flex items-start gap-4 pr-12">
-              <div className={cn("flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-[24px] border", isDark ? "border-white/[0.08] bg-white/[0.08]" : "border-[#E5E7EB] bg-[#F8FAFC]")}>
+              <div className={cn("flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-[24px] border", isDark ? "border-white/[0.08] bg-white/[0.08]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
                 <img src={selectedWebsite.logo} alt={`${selectedWebsite.name} logo`} className="h-12 w-12 rounded-xl object-contain" />
               </div>
               <div className="min-w-0">
                 <h2 className="text-2xl font-semibold tracking-tight">{selectedWebsite.name}</h2>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", isDark ? "bg-white/[0.08] text-[#D7D7D7]" : "bg-[#EEF2FF] text-[#193B68]")}>
+                  <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", isDark ? "bg-white/[0.08] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
                     {selectedWebsite.category}
                   </span>
-                  <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", isDark ? "bg-white/[0.06] text-[#B8B8B8]" : "bg-[#F8FAFC] text-[#64748B]")}>
+                  <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", isDark ? "bg-white/[0.06] text-[var(--bm-text-muted)]" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]")}>
                     {selectedWebsite.countryBadge}
                   </span>
                 </div>
               </div>
             </div>
 
-            <p className={cn("mt-5 text-sm leading-6", isDark ? "text-[#C7C7C7]" : "text-[#475569]")}>
+            <p className={cn("mt-5 text-sm leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
               {selectedWebsite.description}
             </p>
 
-            <div className={cn("mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold", isDark ? "border-white/[0.08] bg-white/[0.05] text-[#8FB9FF]" : "border-[#E5E7EB] bg-[#F8FAFC] text-[#193B68]")}>
+            <div className={cn("mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold", isDark ? "border-white/[0.08] bg-white/[0.05] text-[var(--bm-primary)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] text-[var(--bm-primary)]")}>
               {selectedWebsite.url}
             </div>
 
@@ -3566,7 +3575,7 @@ export default function ChatPage() {
                 href={selectedWebsite.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#193B68] px-4 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--bm-primary)] px-4 text-sm font-semibold text-white transition-opacity hover:opacity-95"
               >
                 <ExternalLink className="h-4 w-4" />
                 {t("openWebsite")}
@@ -3578,7 +3587,7 @@ export default function ChatPage() {
                   "inline-flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition-colors",
                   isFavorite
                     ? "border-amber-300/40 bg-amber-300/20 text-amber-500"
-                    : isDark ? "border-white/[0.08] bg-white/[0.06] text-[#D7D7D7] hover:bg-white/[0.1]" : "border-[#E5E7EB] bg-white text-[#475569] hover:bg-[#F8FAFC]"
+                    : isDark ? "border-white/[0.08] bg-white/[0.06] text-[var(--bm-text-secondary)] hover:bg-white/[0.1]" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]"
                 )}
               >
                 <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
@@ -3589,7 +3598,7 @@ export default function ChatPage() {
                 onClick={() => handleAddWebsiteToChat(selectedWebsite)}
                 className={cn(
                   "inline-flex h-12 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition-colors",
-                  isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-[#E5E7EB] bg-[#F8FAFC] text-[#111827] hover:bg-white"
+                  isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)] hover:bg-white"
                 )}
               >
                 {t("addToChat")}
@@ -3628,12 +3637,12 @@ export default function ChatPage() {
         )}>
           <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h3 className={cn("text-lg font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("productivityWorkspace")}</h3>
-              <p className={cn("mt-1 text-sm", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+              <h3 className={cn("text-lg font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>{t("productivityWorkspace")}</h3>
+              <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                 {t("productivityWorkspaceSubtitle")}
               </p>
             </div>
-            <label className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#193B68] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-95">
+            <label className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[var(--bm-primary)] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-95">
               <FileText className="h-4 w-4" />
               {t("uploadFiles")}
               <input
@@ -3653,24 +3662,24 @@ export default function ChatPage() {
                   key={file.id}
                   className={cn(
                     "flex items-center gap-3 rounded-2xl border p-3",
-                    isDark ? "border-white/[0.08] bg-white/[0.05]" : "border-[#E5E7EB] bg-white/80"
+                    isDark ? "border-white/[0.08] bg-white/[0.05]" : "border-[var(--bm-border)] bg-white/80"
                   )}
                 >
                   {file.type === "image" && file.previewUrl ? (
                     <img src={file.previewUrl} alt={file.name} className="h-12 w-12 rounded-xl object-cover" />
                   ) : (
-                    <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", isDark ? "bg-white/[0.08]" : "bg-[#EEF2FF]")}>
-                      <FileText className={cn("h-5 w-5", isDark ? "text-[#D7D7D7]" : "text-[#193B68]")} />
+                    <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]")}>
+                      <FileText className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]")} />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className={cn("truncate text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>{file.name}</p>
-                    <p className={cn("text-xs", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{file.type.toUpperCase()}</p>
+                    <p className={cn("truncate text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{file.name}</p>
+                    <p className={cn("text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{file.type.toUpperCase()}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setWriteFiles((files) => files.filter((item) => item.id !== file.id))}
-                    className={cn("flex h-8 w-8 items-center justify-center rounded-full", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#F1F5F9]")}
+                    className={cn("flex h-8 w-8 items-center justify-center rounded-full", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
                     aria-label={t("removeFile")}
                   >
                     <X className="h-4 w-4" />
@@ -3682,14 +3691,14 @@ export default function ChatPage() {
 
           <section className="mb-7">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
-              <h3 className={cn("text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("quickTemplates")}</h3>
+              <h3 className={cn("text-base font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>{t("quickTemplates")}</h3>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => scrollQuickTemplates(-1)}
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-colors",
-                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-[#E5E7EB] bg-white text-[#193B68] hover:bg-[#F8FAFC]",
+                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-[var(--bm-border)] bg-white text-[var(--bm-primary)] hover:bg-[var(--bm-bg-elevated)]",
                   )}
                   aria-label="Previous quick template"
                 >
@@ -3700,7 +3709,7 @@ export default function ChatPage() {
                   onClick={() => scrollQuickTemplates(1)}
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-colors",
-                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-[#E5E7EB] bg-white text-[#193B68] hover:bg-[#F8FAFC]",
+                    isDark ? "border-white/[0.08] bg-white/[0.06] text-white hover:bg-white/[0.1]" : "border-[var(--bm-border)] bg-white text-[var(--bm-primary)] hover:bg-[var(--bm-bg-elevated)]",
                   )}
                   aria-label="Next quick template"
                 >
@@ -3735,7 +3744,7 @@ export default function ChatPage() {
           </section>
 
           <section className="mb-7">
-            <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t("smartSuggestions")}</h3>
+            <h3 className={cn("mb-3 px-1 text-base font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>{t("smartSuggestions")}</h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {smartSuggestions.map((template, index) => {
                 const { title, icon: Icon } = template;
@@ -3764,8 +3773,8 @@ export default function ChatPage() {
               return (
                   <section key={section.title}>
                   <div className="mb-3 flex items-center gap-2 px-1">
-                    <SectionIcon className={cn("h-5 w-5", isDark ? "text-[#D7D7D7]" : "text-[#193B68]")} />
-                    <h3 className={cn("text-base font-semibold", isDark ? "text-[#F3F4F6]" : "text-[#111827]")}>{t(uiTextKey("writeSection", section.title))}</h3>
+                    <SectionIcon className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]")} />
+                    <h3 className={cn("text-base font-semibold", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-primary)]")}>{t(uiTextKey("writeSection", section.title))}</h3>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {section.items.map((template, index) => {
@@ -3811,8 +3820,8 @@ export default function ChatPage() {
           className={cn(
             "inline-flex min-h-[32px] items-center justify-start gap-2 rounded-xl px-2.5 py-1 text-sm font-medium transition-colors duration-200 md:h-[34px] md:min-w-[104px] md:justify-center md:rounded-full md:px-3 md:py-0",
             activeMode === tool.id
-              ? isDark ? "bg-white/[0.075] text-white" : "bg-[#193B68]/[0.075] text-[#193B68]"
-              : isDark ? "text-[#D4D4D4] hover:bg-white/[0.045] hover:text-white" : "text-[#4B5563] hover:bg-[#193B68]/[0.045] hover:text-[#111827]"
+              ? isDark ? "bg-white/[0.075] text-white" : "bg-[var(--bm-primary)]/[0.075] text-[var(--bm-primary)]"
+              : isDark ? "text-[var(--bm-text-secondary)] hover:bg-white/[0.045] hover:text-white" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-primary)]/[0.045] hover:text-[var(--bm-text-primary)]"
           )}
         >
           <tool.icon className="h-[15px] w-[15px] flex-shrink-0 stroke-[2.05]" />
@@ -3843,7 +3852,7 @@ export default function ChatPage() {
           onClick={() => setResponseModeMenuOpen((open) => !open)}
           className={cn(
             "inline-flex h-[38px] min-w-[118px] items-center justify-center gap-2 rounded-full border px-3 text-sm font-semibold backdrop-blur-[10px] transition-colors duration-200",
-            isDark ? "border-white/[0.12] bg-white/[0.075] text-white hover:bg-white/[0.12]" : "border-black/[0.05] bg-white/50 text-[#193B68] hover:bg-white/75"
+            isDark ? "border-white/[0.12] bg-white/[0.075] text-white hover:bg-white/[0.12]" : "border-black/[0.05] bg-white/50 text-[var(--bm-primary)] hover:bg-white/75"
           )}
           data-testid="response-mode-selector"
         >
@@ -3862,7 +3871,7 @@ export default function ChatPage() {
                 transition={{ duration: 0.16 }}
                 className={cn(
                   "absolute left-0 top-[calc(100%+8px)] z-40 w-[270px] overflow-hidden rounded-2xl border p-1.5 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-[20px]",
-                  isDark ? "border-white/[0.12] bg-[#202020]/95 text-white" : "border-black/[0.06] bg-white/90 text-[#111827]"
+                  isDark ? "border-white/[0.12] bg-[var(--bm-bg-card)]/95 text-white" : "border-black/[0.06] bg-white/90 text-[var(--bm-text-primary)]"
                 )}
               >
                 {AI_MODES.map((mode) => {
@@ -3875,17 +3884,17 @@ export default function ChatPage() {
                       className={cn(
                         "flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition-colors duration-200",
                         responseMode === mode.id
-                          ? isDark ? "bg-white/[0.11] text-white" : "bg-[#F8FAFC] text-[#111827]"
-                          : isDark ? "text-white hover:bg-white/[0.075]" : "text-[#1F2937] hover:bg-[#F8FAFC]"
+                          ? isDark ? "bg-white/[0.11] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]"
+                          : isDark ? "text-white hover:bg-white/[0.075]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]"
                       )}
                     >
                       <span className="flex min-w-0 items-center gap-3">
-                        <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.08] text-white" : "bg-[#193B68]/[0.075] text-[#193B68]")}>
+                        <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/[0.075] text-[var(--bm-primary)]")}>
                           <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
                         </span>
                         <span className="min-w-0">
                           <span className="block text-[15px] font-bold leading-5">{mode.title}</span>
-                          <span className={cn("mt-1 block text-xs font-semibold leading-4", isDark ? "text-[#F1F5F9]" : "text-[#475569]")}>{mode.description}</span>
+                          <span className={cn("mt-1 block text-xs font-semibold leading-4", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-secondary)]")}>{mode.description}</span>
                         </span>
                       </span>
                       {responseMode === mode.id && <Check className="h-[18px] w-[18px] flex-shrink-0 stroke-[2.2]" />}
@@ -3979,13 +3988,13 @@ export default function ChatPage() {
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
             className={cn(
               "mb-3 max-w-[420px] rounded-3xl border p-3 shadow-xl backdrop-blur-2xl",
-              isDark ? "border-white/10 bg-[#181818]/95 text-white" : "border-black/10 bg-white/90 text-[#111827]",
+              isDark ? "border-white/10 bg-[var(--bm-bg-card)]/95 text-white" : "border-black/10 bg-white/90 text-[var(--bm-text-primary)]",
             )}
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold">{pendingWriteTemplate.title}</p>
-                <p className={cn("mt-1 text-xs font-medium", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+                <p className={cn("mt-1 text-xs font-medium", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                   Choose an optional file or continue writing manually.
                 </p>
               </div>
@@ -4006,7 +4015,7 @@ export default function ChatPage() {
                   onClick={() => openWriteAttachmentInput(option.id)}
                   className={cn(
                     "rounded-2xl px-3 py-3 text-left text-xs font-bold transition-colors",
-                    isDark ? "bg-white/[0.07] hover:bg-white/[0.12]" : "bg-[#EEF2F7] text-[#193B68] hover:bg-[#E2E8F0]",
+                    isDark ? "bg-white/[0.07] hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)] hover:bg-[var(--bm-active-bg)]",
                   )}
                 >
                   {option.label}
@@ -4099,8 +4108,8 @@ export default function ChatPage() {
             ? "min-h-[132px] items-end gap-3 rounded-[34px] px-4 py-4 sm:px-6 sm:py-5"
             : "min-h-[62px] items-center gap-3 rounded-[31px] px-4 py-2.5 sm:gap-3.5 sm:px-5",
           isDark
-            ? "border-white/[0.08] bg-[#202020] focus-within:bg-[#202020] focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
-            : "border-[#E5E7EB] bg-white focus-within:border-[#D6DEE9] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
+            ? "border-white/[0.08] bg-[var(--bm-bg-card)] focus-within:bg-[var(--bm-bg-card)] focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
+            : "border-[var(--bm-border)] bg-white focus-within:border-[var(--bm-border)] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
         )}
       >
         <button
@@ -4110,8 +4119,8 @@ export default function ChatPage() {
           className={cn(
             "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-200 cursor-pointer",
             isDark
-              ? "text-[#D4D4D4] hover:bg-[#333] hover:text-white"
-              : "text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827]",
+              ? "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)] hover:text-white"
+              : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
           )}
         >
           <Plus className="h-[23px] w-[23px] stroke-[2.1]" />
@@ -4129,7 +4138,7 @@ export default function ChatPage() {
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                 className={cn(
                   "absolute bottom-full left-0 z-40 mb-3 max-h-[min(420px,70vh)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-[28px] border p-2.5 shadow-2xl backdrop-blur-2xl",
-                  isDark ? "border-white/10 bg-[#141414]/96 text-white" : "border-black/10 bg-white/96 text-[#111827]",
+                  isDark ? "border-white/10 bg-[#141414]/96 text-white" : "border-black/10 bg-white/96 text-[var(--bm-text-primary)]",
                 )}
               >
                 {[
@@ -4180,11 +4189,11 @@ export default function ChatPage() {
                     className={cn(
                       "flex min-h-[48px] w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm font-semibold transition-all duration-200 hover:translate-x-0.5",
                       item.mode === activeMode
-                        ? isDark ? "bg-white/12 text-white" : "bg-[#EEF2FF] text-[#193B68]"
-                        : isDark ? "text-[#e5e5e5] hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#F8FAFC]",
+                        ? isDark ? "bg-white/12 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                        : isDark ? "text-[var(--bm-text-primary)] hover:bg-white/[0.08]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]",
                     )}
                   >
-                    <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF2FF]")}>
+                    <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)]")}>
                       <item.icon className="h-5 w-5 stroke-[2.1]" />
                     </span>
                     {item.label}
@@ -4203,13 +4212,13 @@ export default function ChatPage() {
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
                 className={cn(
                   "mb-3 max-w-[420px] rounded-3xl border p-3 shadow-xl backdrop-blur-2xl",
-                  isDark ? "border-white/10 bg-[#181818]/95 text-white" : "border-black/10 bg-white/90 text-[#111827]",
+                  isDark ? "border-white/10 bg-[var(--bm-bg-card)]/95 text-white" : "border-black/10 bg-white/90 text-[var(--bm-text-primary)]",
                 )}
               >
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-bold">{pendingWriteTemplate.title}</p>
-                    <p className={cn("mt-1 text-xs font-medium", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>
+                    <p className={cn("mt-1 text-xs font-medium", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
                       Choose an optional file or continue writing manually.
                     </p>
                   </div>
@@ -4230,7 +4239,7 @@ export default function ChatPage() {
                       onClick={() => openWriteAttachmentInput(option.id)}
                       className={cn(
                         "rounded-2xl px-3 py-3 text-left text-xs font-bold transition-colors",
-                        isDark ? "bg-white/[0.07] hover:bg-white/[0.12]" : "bg-[#EEF2F7] text-[#193B68] hover:bg-[#E2E8F0]",
+                        isDark ? "bg-white/[0.07] hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)] hover:bg-[var(--bm-active-bg)]",
                       )}
                     >
                       {option.label}
@@ -4247,17 +4256,17 @@ export default function ChatPage() {
                   "group mb-2 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-semibold shadow-sm transition-colors duration-200",
                   isDark
                     ? "border-white/[0.1] bg-white/[0.1] text-white"
-                    : "border-[#CBD5E1] bg-white/85 text-[#0F172A]",
+                    : "border-[var(--bm-border-strong)] bg-white/85 text-[var(--bm-text-primary)]",
                 )}
               >
-                <Globe2 className={cn("h-4 w-4 flex-shrink-0 stroke-[2.1]", isDark ? "text-[#E5E7EB]" : "text-[#334155]")} />
+                <Globe2 className={cn("h-4 w-4 flex-shrink-0 stroke-[2.1]", isDark ? "text-[var(--bm-border)]" : "text-[var(--bm-text-secondary)]")} />
                 <span className="truncate">{t(CHAT_MODES.web_search.labelKey)}</span>
                 <button
                   type="button"
                   onClick={() => setActiveMode("default")}
                   className={cn(
                     "ml-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full opacity-0 transition-all duration-150 group-hover:opacity-100",
-                    isDark ? "text-[#D1D5DB] hover:bg-white/[0.12] hover:text-white" : "text-[#475569] hover:bg-black/[0.06] hover:text-[#0F172A]",
+                    isDark ? "text-[var(--bm-border-strong)] hover:bg-white/[0.12] hover:text-white" : "text-[var(--bm-text-secondary)] hover:bg-black/[0.06] hover:text-[var(--bm-text-primary)]",
                   )}
                   aria-label={t("removeWebSearch")}
                 >
@@ -4271,7 +4280,7 @@ export default function ChatPage() {
                   onClick={clearWriteTask}
                   className={cn(
                     "inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
-                    isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-[#EEF2FF] text-[#193B68] hover:bg-[#E0E7FF]",
+                    isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)] hover:bg-[var(--bm-active-bg)]",
                   )}
                 >
                   <Edit3 className="h-3.5 w-3.5" />
@@ -4285,13 +4294,13 @@ export default function ChatPage() {
                         key={file.id}
                         className={cn(
                           "inline-flex max-w-full items-center gap-2 rounded-2xl border px-2.5 py-1.5 text-xs font-semibold",
-                          isDark ? "border-white/10 bg-white/[0.07] text-white" : "border-[#E5E7EB] bg-white/85 text-[#111827]",
+                          isDark ? "border-white/10 bg-white/[0.07] text-white" : "border-[var(--bm-border)] bg-white/85 text-[var(--bm-text-primary)]",
                         )}
                       >
                         {file.type === "image" && file.previewUrl ? (
                           <img src={file.previewUrl} alt="" className="h-6 w-6 rounded-lg object-cover" />
                         ) : (
-                          <FileText className={cn("h-4 w-4", isDark ? "text-[#D7D7D7]" : "text-[#193B68]")} />
+                          <FileText className={cn("h-4 w-4", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]")} />
                         )}
                         <span className="truncate">{getWriteEditAttachmentLabel(file)}</span>
                       </span>
@@ -4305,7 +4314,7 @@ export default function ChatPage() {
                 onClick={() => setActiveMode("default")}
                 className={cn(
                   "mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                  isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-[#EEF2FF] text-[#193B68] hover:bg-[#E0E7FF]",
+                  isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)] hover:bg-[var(--bm-active-bg)]",
                 )}
               >
                 {(() => {
@@ -4343,15 +4352,16 @@ export default function ChatPage() {
                   : t("askAnything")
           }
           className={cn(
+            inputClasses.composer,
             "block w-full resize-none bg-transparent font-medium outline-none",
             usesLargeComposer
               ? "max-h-[220px] min-h-[92px] text-[16px] leading-7"
               : "max-h-40 min-h-8 text-[17px] leading-8",
             isDark
-              ? "text-white placeholder:text-[#A7A7A7]/80"
-              : "text-[#111827] placeholder:text-[#64748B]/85",
+              ? "text-white placeholder:text-[var(--bm-text-muted)]/80"
+              : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
           )}
-          style={{ ...inputDirectionStyle, letterSpacing: "-0.01em", caretColor: isDark ? "#FFFFFF" : "#111827" }}
+          style={{ ...inputDirectionStyle, letterSpacing: "-0.01em", caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)" }}
           data-testid={testSuffix ? `chat-input-${testSuffix}` : "chat-input"}
           />
         </div>
@@ -4363,8 +4373,8 @@ export default function ChatPage() {
             isListening
               ? "text-white"
               : isDark
-                ? "border-white/[0.08] bg-white/[0.06] text-[#D7D7D7] hover:bg-white/[0.1] hover:text-white"
-                : "border-[#E5E7EB] bg-[#F9FAFB] text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827]",
+                ? "border-white/[0.08] bg-white/[0.06] text-[var(--bm-text-secondary)] hover:bg-white/[0.1] hover:text-white"
+                : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
           )}
           style={isListening ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : undefined}
           aria-label={isListening ? t("stopVoiceInput") : t("startVoiceInput")}
@@ -4388,8 +4398,8 @@ export default function ChatPage() {
             : (input.trim() || attachments.length > 0)
               ? "text-white hover:opacity-95"
               : isDark
-                ? "border-transparent bg-[#4B5563] text-white cursor-not-allowed"
-                : "border-transparent bg-[#9CA3AF] text-white cursor-not-allowed",
+                ? "border-transparent bg-[var(--bm-text-secondary)] text-white cursor-not-allowed"
+                : "border-transparent bg-[var(--bm-text-muted)] text-white cursor-not-allowed",
           )}
           style={
             isAiTyping || isListening || input.trim() || attachments.length > 0
@@ -4420,7 +4430,7 @@ export default function ChatPage() {
 
   return (
     <div
-      className={cn("h-screen flex overflow-hidden", isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]")}
+      className={cn("h-screen flex overflow-hidden", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]")}
       data-testid="chat-page"
     >
       <input
@@ -4488,19 +4498,20 @@ export default function ChatPage() {
               exit={{ opacity: 0, y: 12, scale: 0.96 }}
               className={cn(
                 "relative z-10 w-full max-w-sm rounded-2xl border p-5 shadow-xl",
-                isDark ? "border-white/[0.08] bg-[#202020]" : "border-[#E5E7EB] bg-white",
+                isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white",
               )}
               data-testid="rename-chat-modal"
             >
-              <h2 className={cn("mb-4 text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>
+              <h2 className={cn("mb-4 text-base font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
                 {t("renameChat")}
               </h2>
               <input
                 value={renameTitle}
                 onChange={(event) => setRenameTitle(event.target.value.slice(0, 120))}
                 className={cn(
-                  "w-full rounded-xl border px-4 py-3 text-sm outline-none",
-                  isDark ? "border-white/[0.08] bg-[#1a1a1a] text-white placeholder-[#8A8A8A]" : "border-[#E5E7EB] bg-white text-[#111827] placeholder-[#9CA3AF]",
+                  inputClasses.field,
+                  typeClasses.body,
+                  "font-semibold",
                 )}
                 placeholder={t("chatTitle")}
                 autoFocus
@@ -4512,7 +4523,7 @@ export default function ChatPage() {
                   onClick={() => setRenameTarget(null)}
                   className={cn(
                     "flex-1 rounded-xl border py-3 text-sm font-medium",
-                    isDark ? "border-white/[0.08] text-[#F5F5F5] hover:bg-white/[0.08]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]",
+                    isDark ? "border-white/[0.08] text-[var(--bm-text-primary)] hover:bg-white/[0.08]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]",
                   )}
                 >
                   {t("cancel")}
@@ -4520,7 +4531,7 @@ export default function ChatPage() {
                 <button
                   type="submit"
                   disabled={!renameTitle.trim()}
-                  className="flex-1 rounded-xl bg-[#193B68] py-3 text-sm font-medium text-white disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-[var(--bm-primary)] py-3 text-sm font-medium text-white disabled:opacity-50"
                   data-testid="rename-chat-save"
                 >
                   {t("save")}
@@ -4556,7 +4567,7 @@ export default function ChatPage() {
               <button
                 type="button"
                 onClick={() => setSelectedImage(null)}
-                className="absolute -right-3 -top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#111827] shadow-lg"
+                className="absolute -right-3 -top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--bm-text-primary)] shadow-lg"
                 aria-label={t("close")}
               >
                 <X className="h-4 w-4" />
@@ -4590,11 +4601,11 @@ export default function ChatPage() {
               transition={{ duration: 0.18 }}
               className={cn(
                 "relative z-10 w-full max-w-sm rounded-[28px] border p-5 shadow-2xl",
-                isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-white bg-white text-[#111827]"
+                isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-white bg-white text-[var(--bm-text-primary)]"
               )}
             >
               <h3 className="text-base font-bold tracking-tight">Ask AI?</h3>
-              <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[#CFCFCF]" : "text-[#64748B]")}>
+              <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
                 {searchConfirm.item
                   ? `Would you like AI to help you learn more about ${searchConfirm.item.title}?`
                   : `Would you like AI to help you find something that is not listed in ${searchConfirm.category.title}?`}
@@ -4605,7 +4616,7 @@ export default function ChatPage() {
                   onClick={() => setSearchConfirm(null)}
                   className={cn(
                     "h-11 rounded-2xl text-sm font-bold",
-                    isDark ? "bg-white/[0.08] text-white hover:bg-white/[0.12]" : "bg-[#EEF2F7] text-[#111827] hover:bg-[#E2E8F0]"
+                    isDark ? "bg-white/[0.08] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)] hover:bg-[var(--bm-active-bg)]"
                   )}
                 >
                   Cancel
@@ -4613,7 +4624,7 @@ export default function ChatPage() {
                 <button
                   type="button"
                   onClick={() => void continueSearchWithAi()}
-                  className="h-11 rounded-2xl bg-[#193B68] text-sm font-bold text-white hover:opacity-95"
+                  className="h-11 rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white hover:opacity-95"
                 >
                   Continue
                 </button>
@@ -4661,20 +4672,20 @@ export default function ChatPage() {
         <header
           className={cn(
             "sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3.5 sm:px-6",
-            isDark ? "border-white/[0.08] bg-[#1a1a1a]" : "border-[#E5E7EB] bg-[#FAFBFC]",
+            isDark ? "border-white/[0.08] bg-[var(--bm-bg-app)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-app)]",
           )}
         >
           <div className="flex items-center gap-3">
             {renderResponseModeSelector()}
             {chatSessionMode === "private" && activePrivateSpace && (
-              <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[#E8F1FF] text-[#193B68]")}>
+              <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
                 <Lock className="h-3.5 w-3.5" />
                 <span>{activePrivateSpace.name} Chat</span>
                 <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitPrivateSpace}>Exit Private Chat</button>
               </div>
             )}
             {chatSessionMode === "hidden" && (
-              <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[#F1F5F9] text-[#111827]")}>
+              <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
                 <Glasses className="h-3.5 w-3.5" />
                 <span>Hidden Mode</span>
                 <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitHiddenMode}>Exit Hidden Chat</button>
@@ -4686,8 +4697,8 @@ export default function ChatPage() {
             className={cn(
               "w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-pointer",
               isDark
-                ? "text-[#999] hover:text-white hover:bg-[#333]"
-                : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]",
+                ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]"
+                : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
             )}
             data-testid="header-new-chat"
           >
@@ -4709,7 +4720,7 @@ export default function ChatPage() {
                     iconClassName="h-6 w-6 sm:h-8 sm:w-8"
                     textClassName={cn(
                       "max-w-4xl text-center text-[21px] font-semibold leading-tight tracking-tight sm:text-3xl",
-                      isDark ? "text-white" : "text-[#111827]",
+                      isDark ? "text-white" : "text-[var(--bm-text-primary)]",
                     )}
                   />
                 </div>
@@ -4719,10 +4730,10 @@ export default function ChatPage() {
                   animate={{ opacity: 1, y: 0 }}
                   className={cn("text-center", activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "mb-6" : "mb-7")}
                 >
-                  <h2 className={cn("mb-2 text-2xl font-semibold tracking-tight sm:text-3xl", isDark ? "text-white" : "text-[#111827]")}>
+                  <h2 className={cn("mb-2 text-2xl font-semibold tracking-tight sm:text-3xl", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
                     {activeMode === "create_image" ? t("whatShouldWeCreate") : activeMode === "web_search" ? t("whereShouldWeSearch") : activeMode === "write_edit" ? t("whatShouldWeProduce") : t("readyWhenYouAre")}
                   </h2>
-                  <p className={cn("text-sm", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>
+                  <p className={cn("text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>
                     {isHistoryLoading ? t("loadingConversation") : activeMode === "create_image" ? t("describeImageOrStartIdea") : activeMode === "web_search" ? t("pickWebsiteOrAskSearch") : activeMode === "write_edit" ? t("chooseTemplateUploadOrPaste") : t("askMeAnything")}
                   </p>
                 </motion.div>
@@ -4765,7 +4776,7 @@ export default function ChatPage() {
           <div
             className={cn(
               "px-3 pb-5 pt-2 sm:px-6 sm:pb-6",
-              isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]",
+              isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]",
             )}
           >
             <div className="mx-auto max-w-5xl">{renderInput("bottom")}</div>
@@ -4782,7 +4793,7 @@ export default function ChatPage() {
               exit={{ opacity: 0, y: 8, scale: 0.94 }}
               className={cn(
                 "fixed left-1/2 z-50 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl transition-colors",
-                isDark ? "border-white/[0.12] bg-[#242424]/90 text-white hover:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[#193B68] hover:bg-white"
+                isDark ? "border-white/[0.12] bg-[var(--bm-bg-elevated)]/90 text-white hover:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[var(--bm-primary)] hover:bg-white"
               )}
               style={{ bottom: "8.5rem" }}
               aria-label="Scroll to bottom"

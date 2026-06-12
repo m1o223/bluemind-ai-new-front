@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Camera, FileText, Image, PenLine, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { iconClasses, interactionClasses, motionTokens, typeClasses } from "@/lib/interactions";
 
 export default function BlueMindMediaPicker({
   open,
@@ -19,16 +20,13 @@ export default function BlueMindMediaPicker({
   const isMobile = variant === "mobile";
   const backdrop = isDark ? "bg-black/45" : "bg-slate-900/20";
   const panelClass = isDark
-    ? "border-white/[0.1] bg-[#171717]/[0.96] text-white"
-    : "border-black/[0.08] bg-white/[0.96] text-[#111827]";
-  const mutedText = isDark ? "text-[#BDBDBD]" : "text-[#64748B]";
-  const divider = isDark ? "bg-white/[0.1]" : "bg-[#D6DEE9]";
-  const rowClass = isDark
-    ? "active:bg-white/[0.08]"
-    : "active:bg-[#EEF2F7] hover:bg-[#F8FAFC]";
+    ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.96] text-white"
+    : "border-black/[0.08] bg-white/[0.96] text-[var(--bm-text-primary)]";
+  const mutedText = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
+  const divider = isDark ? "bg-white/[0.1]" : "bg-[var(--bm-border)]";
   const actionCardClass = isDark
-    ? "border-white/[0.12] bg-white/[0.075] text-white active:bg-white/[0.11]"
-    : "border-[#D6DEE9] bg-[#F8FAFC] text-[#193B68] active:bg-[#EEF2F7]";
+    ? "border-white/[0.12] bg-white/[0.075] text-white"
+    : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] text-[var(--bm-primary)]";
 
   const topActions = [
     {
@@ -82,7 +80,7 @@ export default function BlueMindMediaPicker({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={motionTokens.transition}
           />
 
           <motion.section
@@ -97,7 +95,7 @@ export default function BlueMindMediaPicker({
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={motionTokens.cardTransition}
             drag="y"
             dragConstraints={{ top: 0, bottom: 180 }}
             dragElastic={0.12}
@@ -106,10 +104,10 @@ export default function BlueMindMediaPicker({
             }}
             data-testid="bluemind-media-picker"
           >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[#9CA3AF]/55" />
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/55" />
 
             <div className="mb-4 flex items-center justify-center">
-              <h2 className="text-[17px] font-extrabold tracking-tight">BlueMind AI</h2>
+              <h2 className={cn("font-extrabold tracking-tight", typeClasses.cardTitle)}>BlueMind AI</h2>
             </div>
 
             <div className="grid grid-cols-3 gap-2 pb-4">
@@ -118,11 +116,14 @@ export default function BlueMindMediaPicker({
                   <label
                     key={item.label}
                     className={cn(
-                      "relative flex aspect-square min-h-[92px] cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-[24px] border text-sm font-extrabold shadow-sm transition-transform active:scale-[0.98]",
+                      "relative flex aspect-square min-h-[92px] flex-col items-center justify-center overflow-hidden rounded-[24px] border font-extrabold shadow-sm",
+                      iconClasses.iconText,
+                      typeClasses.small,
                       actionCardClass,
+                      interactionClasses.card,
                     )}
                   >
-                    <item.icon className="h-7 w-7" />
+                    <item.icon className={iconClasses.card} />
                     <span>{item.label}</span>
                     <input
                       {...photosInputProps}
@@ -156,11 +157,14 @@ export default function BlueMindMediaPicker({
                   type="button"
                   onClick={item.action}
                   className={cn(
-                    "flex aspect-square min-h-[92px] flex-col items-center justify-center gap-2 rounded-[24px] border text-sm font-extrabold shadow-sm transition-transform active:scale-[0.98]",
+                    "flex aspect-square min-h-[92px] flex-col items-center justify-center rounded-[24px] border font-extrabold shadow-sm",
+                    iconClasses.iconText,
+                    typeClasses.small,
                     actionCardClass,
+                    interactionClasses.card,
                   )}
                 >
-                  <item.icon className="h-7 w-7" />
+                  <item.icon className={iconClasses.card} />
                   <span>{item.label}</span>
                 </button>
                 )
@@ -175,12 +179,12 @@ export default function BlueMindMediaPicker({
                   key={tool.label}
                   type="button"
                   onClick={tool.action}
-                  className={cn("flex min-h-[64px] w-full items-center gap-3 rounded-[20px] px-2.5 text-left transition-colors", rowClass)}
+                  className={cn("flex min-h-[64px] w-full items-center rounded-[20px] px-2.5 text-left", iconClasses.iconText, interactionClasses.menuItem)}
                 >
-                  <tool.icon className="h-5 w-5 shrink-0" />
+                  <tool.icon className={cn("shrink-0", iconClasses.button)} />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-extrabold">{tool.label}</span>
-                    <span className={cn("mt-0.5 block text-xs font-semibold leading-5", mutedText)}>
+                    <span className={cn("block font-extrabold", typeClasses.cardTitle)}>{tool.label}</span>
+                    <span className={cn("mt-0.5 block font-semibold", typeClasses.small, mutedText)}>
                       {tool.description}
                     </span>
                   </span>

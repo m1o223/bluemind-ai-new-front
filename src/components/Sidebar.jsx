@@ -19,7 +19,7 @@ export default function Sidebar() {
 
   return (
     <aside 
-      className="fixed left-0 top-0 h-screen w-16 flex flex-col items-center py-4 border-r border-[#4a4a4a] bg-[#212121]"
+      className="fixed left-0 top-0 h-screen w-16 flex flex-col items-center py-4 border-r border-[var(--bm-border-strong)] bg-[var(--bm-bg-app)]"
       data-testid="sidebar"
     >
       {/* Logo */}
@@ -33,7 +33,7 @@ export default function Sidebar() {
             <BrandLogo forceTheme="dark" showName={false} small logoClassName="w-11 h-11" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" className="bg-[#2f2f2f] text-white border-[#4a4a4a]">
+        <TooltipContent side="right" className="bg-[var(--bm-bg-card)] text-white border-[var(--bm-border-strong)]">
           {APP_NAME}
         </TooltipContent>
       </Tooltip>
@@ -48,15 +48,15 @@ export default function Sidebar() {
                 data-testid={`nav-${item.testId}`}
                 className={({ isActive }) =>
                   cn(
-                    "w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-[#b4b4b4] hover:text-white hover:bg-[#303030]",
-                    isActive && "text-white bg-[#303030]"
+                    "w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-[var(--bm-text-secondary)] hover:text-white hover:bg-[var(--bm-bg-elevated)]",
+                    isActive && "text-white bg-[var(--bm-bg-elevated)]"
                   )
                 }
               >
                 <item.icon className="w-5 h-5" />
               </NavLink>
             </TooltipTrigger>
-            <TooltipContent side="right" className="bg-[#2f2f2f] text-white border-[#4a4a4a]">
+            <TooltipContent side="right" className="bg-[var(--bm-bg-card)] text-white border-[var(--bm-border-strong)]">
               {t(item.labelKey)}
             </TooltipContent>
           </Tooltip>
@@ -68,13 +68,13 @@ export default function Sidebar() {
         <TooltipTrigger asChild>
           <button
             onClick={() => navigate("/")}
-            className="w-10 h-10 flex items-center justify-center rounded-lg text-[#b4b4b4] hover:text-white hover:bg-[#303030] transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-lg text-[var(--bm-text-secondary)] hover:text-white hover:bg-[var(--bm-bg-elevated)] transition-colors"
             data-testid="logout-button"
           >
             <LogOut className="w-5 h-5" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" className="bg-[#2f2f2f] text-white border-[#4a4a4a]">
+        <TooltipContent side="right" className="bg-[var(--bm-bg-card)] text-white border-[var(--bm-border-strong)]">
           {t("logout")}
         </TooltipContent>
       </Tooltip>

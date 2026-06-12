@@ -11,6 +11,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
+
 // Shared source of truth for Write/Edit templates. Desktop and mobile may only
 // adapt layout; titles, prompts, upload options, and workflow metadata stay here.
 export const WRITE_EDIT_UPLOAD_OPTIONS = [
@@ -217,7 +219,7 @@ export const QUICK_WRITE_TEMPLATES = [
     description: "Draft a polished message with the right tone.",
     icon: Mail,
     prompt: "Write a professional email about ",
-    artwork: { category: "Writing", from: "#3767D8", via: "#75A7FF", to: "#D8E8FF", accent: "#FFFFFF" },
+    artwork: WRITE_EDIT_ARTWORK_COLORS.writing,
   },
   {
     id: "cv-builder",
@@ -225,7 +227,7 @@ export const QUICK_WRITE_TEMPLATES = [
     description: "Shape experience into a clean professional CV.",
     icon: FileCheck2,
     prompt: "Build a professional CV for ",
-    artwork: { category: "Career", from: "#193B68", via: "#3D7EC8", to: "#B9D7F6", accent: "#FFFFFF" },
+    artwork: WRITE_EDIT_ARTWORK_COLORS.careerBlue,
   },
   {
     id: "essay-writer",
@@ -233,7 +235,7 @@ export const QUICK_WRITE_TEMPLATES = [
     description: "Create structured essays and school reports.",
     icon: GraduationCap,
     prompt: "Write a structured essay about ",
-    artwork: { category: "Study", from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF", accent: "#FFFFFF" },
+    artwork: WRITE_EDIT_ARTWORK_COLORS.study,
   },
   {
     id: "business-proposal",
@@ -241,7 +243,7 @@ export const QUICK_WRITE_TEMPLATES = [
     description: "Build a clear proposal with strong structure.",
     icon: BriefcaseBusiness,
     prompt: "Create a business proposal for ",
-    artwork: { category: "Business", from: "#0F766E", via: "#34C3AA", to: "#C8F7EC", accent: "#FFFFFF" },
+    artwork: WRITE_EDIT_ARTWORK_COLORS.business,
   },
   {
     id: "cover-letter",
@@ -249,7 +251,7 @@ export const QUICK_WRITE_TEMPLATES = [
     description: "Draft a tailored cover letter for a role.",
     icon: PenLine,
     prompt: "Write a cover letter for ",
-    artwork: { category: "Career", from: "#A855F7", via: "#D18BFF", to: "#F1D9FF", accent: "#FFFFFF" },
+    artwork: WRITE_EDIT_ARTWORK_COLORS.careerPurple,
   },
   {
     id: "social-media-post",
@@ -257,7 +259,7 @@ export const QUICK_WRITE_TEMPLATES = [
     description: "Create posts for social platforms.",
     icon: BadgeCheck,
     prompt: "Create a social media post about ",
-    artwork: { category: "Social", from: "#EA580C", via: "#FDBA74", to: "#FFEDD5", accent: "#FFFFFF" },
+    artwork: WRITE_EDIT_ARTWORK_COLORS.social,
   },
   {
     id: "product-description",
@@ -265,7 +267,7 @@ export const QUICK_WRITE_TEMPLATES = [
     description: "Describe products clearly and persuasively.",
     icon: ClipboardList,
     prompt: "Write a product description for ",
-    artwork: { category: "Product", from: "#BE123C", via: "#FB7185", to: "#FFE4E6", accent: "#FFFFFF" },
+    artwork: WRITE_EDIT_ARTWORK_COLORS.product,
   },
 ];
 

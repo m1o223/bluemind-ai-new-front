@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "../lib/utils";
+import { inputClasses, typeClasses } from "@/lib/interactions";
 import { toast } from "sonner";
 import { useApp } from "../context/AppContext";
 import LanguageSelector from "../components/ui/LanguageSelector";
@@ -32,20 +33,16 @@ import {
   logoutUser,
   requestEmailChange,
 } from "../services/authService";
+import { COLOR_OPTIONS } from "@/theme/colors";
 
-const chatColors = [
-  { id: "#193B68", label: "Blue" },
-  { id: "#10B37F", label: "Green" },
-  { id: "#DC2626", label: "Red" },
-  { id: "#7C3AED", label: "Purple" },
-];
+const getProfileColorOptions = (labels) =>
+  COLOR_OPTIONS.filter((color) => labels.includes(color.label)).map((color) => ({
+    id: color.value,
+    label: color.label,
+  }));
 
-const accentColors = [
-  { id: "#193B68", label: "Blue" },
-  { id: "#00C4B8", label: "Teal" },
-  { id: "#4F46E5", label: "Indigo" },
-  { id: "#E11D48", label: "Rose" },
-];
+const chatColors = getProfileColorOptions(["Blue", "Green", "Red", "Purple"]);
+const accentColors = getProfileColorOptions(["Blue", "Teal", "Indigo", "Rose"]);
 
 export default function ProfilePage({ mobile = false, settingsMode = false }) {
   const navigate = useNavigate();
@@ -249,7 +246,7 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
       className={cn(
         "flex flex-col",
         mobile ? "min-h-[100dvh]" : "min-h-screen",
-        isDark ? "bg-[#1a1a1a]" : "bg-[#FAFBFC]",
+        isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]",
       )}
       data-testid={mobile ? "mobile-profile-page" : "profile-page"}
     >
@@ -259,8 +256,8 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
           "border-b px-4 sm:px-6",
           mobile ? "sticky top-0 z-20 pb-3 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-xl" : "py-4",
           isDark
-            ? mobile ? "bg-[#1a1a1a]/92 border-[#333]" : "bg-[#222] border-[#333]"
-            : mobile ? "bg-[#FAFBFC]/92 border-[#E5E7EB]" : "bg-white border-[#E5E7EB]",
+            ? mobile ? "bg-[var(--bm-bg-app)]/92 border-[var(--bm-bg-elevated)]" : "bg-[var(--bm-bg-card)] border-[var(--bm-bg-elevated)]"
+            : mobile ? "bg-[var(--bm-bg-app)]/92 border-[var(--bm-border)]" : "bg-white border-[var(--bm-border)]",
         )}
       >
         <div className={cn("mx-auto flex min-w-0 items-center gap-2 sm:gap-3", mobile ? "max-w-[430px]" : "max-w-2xl")}>
@@ -269,7 +266,7 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
             className={cn(
               "flex items-center justify-center transition-colors cursor-pointer",
               mobile ? "h-10 w-10 rounded-full" : "w-9 h-9 rounded-lg",
-              isDark ? "text-[#999] hover:text-white hover:bg-[#333]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]",
+              isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
             )}
             data-testid="back-button"
           >
@@ -277,10 +274,10 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
           </button>
           <BrandLogo
             logoClassName="w-8 h-8"
-            textClassName={cn("hidden min-[390px]:inline text-sm sm:text-base", isDark ? "text-white" : "text-[#111827]")}
+            textClassName={cn("hidden min-[390px]:inline text-sm sm:text-base", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}
           />
-          <h1 className={cn("min-w-0 truncate text-base font-semibold sm:text-lg", isDark ? "text-white" : "text-[#111827]")}>{settingsMode ? t("settings") : t("profile")}</h1>
-          <span className={cn("ml-auto max-w-[34vw] truncate text-xs", saveStatus === "error" ? "text-red-500" : isDark ? "text-[#888]" : "text-[#6B7280]")}>
+          <h1 className={cn("min-w-0 truncate text-base font-semibold sm:text-lg", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{settingsMode ? t("settings") : t("profile")}</h1>
+          <span className={cn("ml-auto max-w-[34vw] truncate text-xs", saveStatus === "error" ? "text-red-500" : isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
             {isLoading ? t("loadingSettings") : saveStatus === "saving" ? t("saving") : saveStatus === "saved" ? t("saved") : saveStatus === "error" ? t("saveFailed") : ""}
           </span>
         </div>
@@ -307,7 +304,7 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                 href={`#${section.id}`}
                 className={cn(
                   "shrink-0 rounded-full border px-3 py-2 text-xs font-bold transition-colors",
-                  isDark ? "border-white/[0.08] bg-white/[0.05] text-[#E5E7EB] hover:bg-white/[0.09]" : "border-[#E5E7EB] bg-white text-[#193B68] hover:bg-[#F8FAFC]",
+                  isDark ? "border-white/[0.08] bg-white/[0.05] text-[var(--bm-border)] hover:bg-white/[0.09]" : "border-[var(--bm-border)] bg-white text-[var(--bm-primary)] hover:bg-[var(--bm-bg-elevated)]",
                 )}
               >
                 {section.label}
@@ -317,12 +314,12 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
         )}
 
         {/* User Info */}
-        <section id="settings-profile" className={cn("order-1 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+        <section id="settings-profile" className={cn("order-1 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
           {settingsMode && (
-            <h2 className={cn("mb-4 text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("profile")}</h2>
+            <h2 className={cn("mb-4 text-base font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("profile")}</h2>
           )}
           <div className="flex items-center gap-3">
-            <div className={cn("w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden", isDark ? "bg-[#333]" : "bg-[#EEF2FF] border border-[#E0E7FF]")}>
+            <div className={cn("w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)] border border-[var(--bm-active-bg)]")}>
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -330,27 +327,27 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
               )}
             </div>
             <div className="min-w-0">
-              <p className={cn("text-xs mb-0.5", isDark ? "text-[#888]" : "text-[#9CA3AF]")}>{user?.name || t("email")}</p>
-              <p className={cn("text-sm font-medium truncate", isDark ? "text-white" : "text-[#111827]")}>{user?.email}</p>
+              <p className={cn("text-xs mb-0.5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>{user?.name || t("email")}</p>
+              <p className={cn("text-sm font-medium truncate", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{user?.email}</p>
             </div>
           </div>
         </section>
 
         {/* Appearance */}
-        <section id="settings-appearance" className={cn("order-4 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
-          <h2 className={cn("text-base font-semibold mb-5", isDark ? "text-white" : "text-[#111827]")}>{t("appearance")}</h2>
+        <section id="settings-appearance" className={cn("order-4 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
+          <h2 className={cn("text-base font-semibold mb-5", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("appearance")}</h2>
 
           {/* Theme */}
           <div className="mb-6">
-            <p className={cn("text-sm font-medium mb-3", isDark ? "text-[#ccc]" : "text-[#374151]")}>{t("theme")}</p>
-            <div className={cn("grid grid-cols-1 gap-2 rounded-xl p-1 min-[420px]:grid-cols-3", isDark ? "bg-[#1a1a1a]" : "bg-[#F3F4F6]")}>
+            <p className={cn("text-sm font-medium mb-3", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{t("theme")}</p>
+            <div className={cn("grid grid-cols-1 gap-2 rounded-xl p-1 min-[420px]:grid-cols-3", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-hover-bg)]")}>
               <button
                 onClick={() => handleUpdate("theme", "light")}
                 className={cn(
                   "flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 cursor-pointer",
                   prefs.theme === "light"
-                    ? (isDark ? "bg-[#333] text-white shadow-sm" : "bg-white text-[#111827] shadow-sm")
-                    : (isDark ? "text-[#888]" : "text-[#6B7280]")
+                    ? (isDark ? "bg-[var(--bm-bg-elevated)] text-white shadow-sm" : "bg-white text-[var(--bm-text-primary)] shadow-sm")
+                    : (isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")
                 )}
                 data-testid="theme-light"
               >
@@ -362,8 +359,8 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                 className={cn(
                   "flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 cursor-pointer",
                   prefs.theme === "dark"
-                    ? (isDark ? "bg-[#333] text-white shadow-sm" : "bg-white text-[#111827] shadow-sm")
-                    : (isDark ? "text-[#888]" : "text-[#6B7280]")
+                    ? (isDark ? "bg-[var(--bm-bg-elevated)] text-white shadow-sm" : "bg-white text-[var(--bm-text-primary)] shadow-sm")
+                    : (isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")
                 )}
                 data-testid="theme-dark"
               >
@@ -375,8 +372,8 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                 className={cn(
                   "flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 cursor-pointer",
                   prefs.theme === "system"
-                    ? (isDark ? "bg-[#333] text-white shadow-sm" : "bg-white text-[#111827] shadow-sm")
-                    : (isDark ? "text-[#888]" : "text-[#6B7280]")
+                    ? (isDark ? "bg-[var(--bm-bg-elevated)] text-white shadow-sm" : "bg-white text-[var(--bm-text-primary)] shadow-sm")
+                    : (isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")
                 )}
                 data-testid="theme-system"
               >
@@ -388,7 +385,7 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
 
           {/* Chat Color */}
           <div className="mb-6">
-            <p className={cn("text-sm font-medium mb-3", isDark ? "text-[#ccc]" : "text-[#374151]")}>{t("chatColor")}</p>
+            <p className={cn("text-sm font-medium mb-3", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{t("chatColor")}</p>
             <div className="flex items-center gap-3">
               {chatColors.map((color) => (
                 <button
@@ -396,8 +393,8 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                   onClick={() => handleUpdate("chatColor", color.id)}
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ring-2 ring-offset-2",
-                    prefs.chatColor === color.id ? "ring-[#111827]" : "ring-transparent",
-                    isDark && "ring-offset-[#252525]"
+                    prefs.chatColor === color.id ? "ring-[var(--bm-text-primary)]" : "ring-transparent",
+                    isDark && "ring-offset-[var(--bm-bg-elevated)]"
                   )}
                   style={{ backgroundColor: color.id }}
                   data-testid={`chat-color-${color.label.toLowerCase()}`}
@@ -411,8 +408,8 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
           {/* Accent Color */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Palette className={cn("w-4 h-4", isDark ? "text-[#888]" : "text-[#6B7280]")} />
-              <p className={cn("text-sm font-medium", isDark ? "text-[#ccc]" : "text-[#374151]")}>{t("appColor")}</p>
+              <Palette className={cn("w-4 h-4", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")} />
+              <p className={cn("text-sm font-medium", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{t("appColor")}</p>
             </div>
             <div className="flex items-center gap-3">
               {accentColors.map((color) => (
@@ -421,8 +418,8 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                   onClick={() => handleUpdate("appColor", color.id)}
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ring-2 ring-offset-2",
-                    prefs.appColor === color.id ? "ring-[#111827]" : "ring-transparent",
-                    isDark && "ring-offset-[#252525]"
+                    prefs.appColor === color.id ? "ring-[var(--bm-text-primary)]" : "ring-transparent",
+                    isDark && "ring-offset-[var(--bm-bg-elevated)]"
                   )}
                   style={{ backgroundColor: color.id }}
                   data-testid={`accent-color-${color.label.toLowerCase()}`}
@@ -433,15 +430,15 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
             </div>
           </div>
 
-          <div className={cn("mt-6 rounded-xl border p-4", isDark ? "border-[#333] bg-[#1f1f1f]" : "border-[#E5E7EB] bg-[#F9FAFB]")}>
+          <div className={cn("mt-6 rounded-xl border p-4", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
-                <div className={cn("mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg", isDark ? "bg-[#333]" : "bg-white")}>
+                <div className={cn("mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-white")}>
                   <MessageSquare className="h-4 w-4" style={{ color: prefs.appColor }} />
                 </div>
                 <div>
-                  <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("openAppDirectlyToChat")}</p>
-                  <p className={cn("mt-1 text-xs leading-5", isDark ? "text-[#999]" : "text-[#6B7280]")}>{t("openAppDirectlyToChatHint")}</p>
+                  <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("openAppDirectlyToChat")}</p>
+                  <p className={cn("mt-1 text-xs leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("openAppDirectlyToChatHint")}</p>
                 </div>
               </div>
               <button
@@ -453,9 +450,9 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                   "relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-200",
                   prefs.openAppDirectlyToChat
                     ? "border-transparent"
-                    : isDark ? "border-[#444] bg-[#2a2a2a]" : "border-[#D1D5DB] bg-white",
+                    : isDark ? "border-[var(--bm-border-strong)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] bg-white",
                 )}
-                style={prefs.openAppDirectlyToChat ? { backgroundColor: prefs.appColor || "#193B68" } : undefined}
+                style={prefs.openAppDirectlyToChat ? { backgroundColor: prefs.appColor || "var(--bm-primary)" } : undefined}
                 data-testid="open-direct-chat-toggle"
               >
                 <span
@@ -470,8 +467,8 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
         </section>
 
         {/* Language */}
-        <section id="settings-language" className={cn("order-5 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
-          <h2 className={cn("text-base font-semibold mb-4", isDark ? "text-white" : "text-[#111827]")}>{t("appLanguage")}</h2>
+        <section id="settings-language" className={cn("order-5 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
+          <h2 className={cn("text-base font-semibold mb-4", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("appLanguage")}</h2>
           <LanguageSelector
             currentLang={prefs.appLanguage || prefs.language}
             onSelect={handleLanguageSelect}
@@ -480,17 +477,17 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
         </section>
 
         {/* Security */}
-        <section id="settings-account" className={cn("order-2 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
+        <section id="settings-account" className={cn("order-2 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
           <div className="flex items-center gap-2 mb-4">
-            <ShieldCheck className={cn("w-4 h-4", isDark ? "text-[#888]" : "text-[#6B7280]")} />
-            <h2 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{settingsMode ? (t("account") || "Account") : t("security")}</h2>
+            <ShieldCheck className={cn("w-4 h-4", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")} />
+            <h2 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{settingsMode ? (t("account") || "Account") : t("security")}</h2>
           </div>
 
-          <div className={cn("overflow-hidden rounded-xl border", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
+          <div className={cn("overflow-hidden rounded-xl border", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
             <button
               type="button"
               onClick={() => toggleSecuritySection("email")}
-              className={cn("flex w-full items-center justify-between px-4 py-3 text-sm font-medium", isDark ? "text-white hover:bg-[#2a2a2a]" : "text-[#111827] hover:bg-[#F9FAFB]")}
+              className={cn("flex w-full items-center justify-between px-4 py-3 text-sm font-medium", isDark ? "text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]")}
               data-testid="change-email-toggle"
             >
               {t("changeEmail")}
@@ -498,14 +495,14 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
             </button>
 
             {openSecuritySection === "email" && (
-              <div className={cn("border-t p-4", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
+              <div className={cn("border-t p-4", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
                 <form onSubmit={handleRequestEmailChange} className="space-y-3">
                   <input
                     type="password"
                     value={emailChange.currentPassword}
                     onChange={(event) => setEmailChange({ ...emailChange, currentPassword: event.target.value })}
                     placeholder={t("currentPassword")}
-                    className={cn("w-full px-4 py-3 rounded-xl border text-sm outline-none", isDark ? "bg-[#1a1a1a] border-[#333] text-white placeholder-[#888]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+                    className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
                     data-testid="change-email-current-password"
                   />
                   <input
@@ -513,13 +510,13 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                     value={emailChange.newEmail}
                     onChange={(event) => setEmailChange({ ...emailChange, newEmail: event.target.value })}
                     placeholder={t("newEmail")}
-                    className={cn("w-full px-4 py-3 rounded-xl border text-sm outline-none", isDark ? "bg-[#1a1a1a] border-[#333] text-white placeholder-[#888]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+                    className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
                     data-testid="change-email-new-email"
                   />
                   <button
                     type="submit"
                     disabled={!emailChange.currentPassword || !emailChange.newEmail || securityLoading === "email"}
-                    className="w-full py-3 rounded-xl text-sm font-medium bg-[#193B68] text-white disabled:opacity-50"
+                    className="w-full py-3 rounded-xl text-sm font-medium bg-[var(--bm-primary)] text-white disabled:opacity-50"
                     data-testid="change-email-request-button"
                   >
                     {securityLoading === "email" ? t("sending") : t("sendVerificationCode")}
@@ -531,13 +528,13 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
 
           {emailChange.pendingEmail && (
             <form onSubmit={handleConfirmEmailChange} className="space-y-3 mb-5">
-              <p className={cn("text-xs", isDark ? "text-[#888]" : "text-[#6B7280]")}>{t("codeSentTo", { email: emailChange.pendingEmail })}</p>
+              <p className={cn("text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("codeSentTo", { email: emailChange.pendingEmail })}</p>
               <input
                 value={emailChange.code}
                 onChange={(event) => setEmailChange({ ...emailChange, code: event.target.value.replace(/\D/g, "").slice(0, 6) })}
                 placeholder={t("verificationCode")}
                 inputMode="numeric"
-                className={cn("w-full px-4 py-3 rounded-xl border text-sm outline-none tracking-[0.25em]", isDark ? "bg-[#1a1a1a] border-[#333] text-white placeholder-[#666]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+                className={cn(inputClasses.field, typeClasses.body, "font-semibold tracking-[0.25em]")}
                 data-testid="change-email-code"
               />
               <button
@@ -551,11 +548,11 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
             </form>
           )}
 
-          <div className={cn("mt-3 overflow-hidden rounded-xl border", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
+          <div className={cn("mt-3 overflow-hidden rounded-xl border", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
             <button
               type="button"
               onClick={() => toggleSecuritySection("password")}
-              className={cn("flex w-full items-center justify-between px-4 py-3 text-sm font-medium", isDark ? "text-white hover:bg-[#2a2a2a]" : "text-[#111827] hover:bg-[#F9FAFB]")}
+              className={cn("flex w-full items-center justify-between px-4 py-3 text-sm font-medium", isDark ? "text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]")}
               data-testid="change-password-toggle"
             >
               {t("changePassword")}
@@ -563,14 +560,14 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
             </button>
 
             {openSecuritySection === "password" && (
-              <div className={cn("border-t p-4", isDark ? "border-[#333]" : "border-[#E5E7EB]")}>
+              <div className={cn("border-t p-4", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
                 <form onSubmit={handleChangePassword} className="space-y-3">
                   <input
                     type="password"
                     value={passwordChange.currentPassword}
                     onChange={(event) => setPasswordChange({ ...passwordChange, currentPassword: event.target.value })}
                     placeholder={t("currentPassword")}
-                    className={cn("w-full px-4 py-3 rounded-xl border text-sm outline-none", isDark ? "bg-[#1a1a1a] border-[#333] text-white placeholder-[#888]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+                    className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
                     data-testid="change-password-current"
                   />
                   <input
@@ -578,7 +575,7 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                     value={passwordChange.newPassword}
                     onChange={(event) => setPasswordChange({ ...passwordChange, newPassword: event.target.value })}
                     placeholder={t("newPassword")}
-                    className={cn("w-full px-4 py-3 rounded-xl border text-sm outline-none", isDark ? "bg-[#1a1a1a] border-[#333] text-white placeholder-[#888]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+                    className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
                     data-testid="change-password-new"
                   />
                   <input
@@ -586,13 +583,13 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                     value={passwordChange.confirmPassword}
                     onChange={(event) => setPasswordChange({ ...passwordChange, confirmPassword: event.target.value })}
                     placeholder={t("confirmNewPassword")}
-                    className={cn("w-full px-4 py-3 rounded-xl border text-sm outline-none", isDark ? "bg-[#1a1a1a] border-[#333] text-white placeholder-[#888]" : "bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]")}
+                    className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
                     data-testid="change-password-confirm"
                   />
                   <button
                     type="submit"
                     disabled={!passwordChange.currentPassword || !passwordChange.newPassword || passwordChange.newPassword !== passwordChange.confirmPassword || securityLoading === "password"}
-                    className="w-full py-3 rounded-xl text-sm font-medium bg-[#193B68] text-white disabled:opacity-50"
+                    className="w-full py-3 rounded-xl text-sm font-medium bg-[var(--bm-primary)] text-white disabled:opacity-50"
                     data-testid="change-password-button"
                   >
                     {securityLoading === "password" ? t("updating") : t("updatePassword")}
@@ -603,30 +600,30 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
           </div>
         </section>
 
-        <section id="settings-notifications" className={cn("order-3 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
-          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[#111827]")}>{t("notifications") || "Notifications"}</h2>
-          <p className={cn("text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+        <section id="settings-notifications" className={cn("order-3 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
+          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("notifications") || "Notifications"}</h2>
+          <p className={cn("text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
             Notification preferences use the same reminder and push notification system across desktop and mobile.
           </p>
         </section>
 
-        <section id="settings-privacy" className={cn("order-6 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
-          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[#111827]")}>{t("privacy") || "Privacy"}</h2>
-          <p className={cn("text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+        <section id="settings-privacy" className={cn("order-6 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
+          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("privacy") || "Privacy"}</h2>
+          <p className={cn("text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
             Profile, account, and preference data are shared from one authenticated BlueMind account.
           </p>
         </section>
 
-        <section id="settings-about" className={cn("order-7 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
-          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[#111827]")}>{t("about") || "About"}</h2>
-          <p className={cn("text-sm leading-6", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>
+        <section id="settings-about" className={cn("order-7 scroll-mt-24 rounded-xl border p-5 mb-6", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
+          <h2 className={cn("text-base font-semibold mb-2", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("about") || "About"}</h2>
+          <p className={cn("text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
             {APP_NAME}
           </p>
         </section>
 
         {/* Actions */}
-        <section className={cn("order-8 rounded-xl border p-5", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")}>
-          <h2 className={cn("text-base font-semibold mb-4", isDark ? "text-white" : "text-[#111827]")}>{t("actions")}</h2>
+        <section className={cn("order-8 rounded-xl border p-5", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")}>
+          <h2 className={cn("text-base font-semibold mb-4", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("actions")}</h2>
           <div className="space-y-3">
             <button
               onClick={() => setShowLogoutConfirm(true)}
@@ -645,14 +642,14 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/40" onClick={() => setShowLogoutConfirm(false)} />
-          <div className={cn("relative z-10 w-full max-w-sm rounded-2xl border p-5 shadow-xl", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")} data-testid="logout-confirm-modal">
-            <h2 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("logoutConfirmTitle")}</h2>
-            <p className={cn("mt-2 text-sm", isDark ? "text-[#aaa]" : "text-[#6B7280]")}>{t("logoutConfirmBody")}</p>
+          <div className={cn("relative z-10 w-full max-w-sm rounded-2xl border p-5 shadow-xl", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")} data-testid="logout-confirm-modal">
+            <h2 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("logoutConfirmTitle")}</h2>
+            <p className={cn("mt-2 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("logoutConfirmBody")}</p>
             <div className="mt-5 flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(false)}
-                className={cn("flex-1 rounded-xl border py-3 text-sm font-medium", isDark ? "border-[#333] text-[#ddd] hover:bg-[#2a2a2a]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]")}
+                className={cn("flex-1 rounded-xl border py-3 text-sm font-medium", isDark ? "border-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]")}
               >
                 {t("cancel")}
               </button>
@@ -672,33 +669,33 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
       {languagePrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/40" onClick={() => setLanguagePrompt(null)} />
-          <div className={cn("relative z-10 w-full max-w-sm rounded-2xl border p-5 shadow-xl", isDark ? "bg-[#252525] border-[#333]" : "bg-white border-[#E5E7EB]")} data-testid="ai-language-modal">
-            <h2 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[#111827]")}>{t("aiLanguageQuestion")}</h2>
-            <label className={cn("mt-4 flex items-start gap-3 rounded-xl border p-3 text-sm cursor-pointer", isDark ? "border-[#333] text-[#ddd] bg-[#1f1f1f]" : "border-[#E5E7EB] text-[#374151] bg-[#F9FAFB]")}>
+          <div className={cn("relative z-10 w-full max-w-sm rounded-2xl border p-5 shadow-xl", isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]")} data-testid="ai-language-modal">
+            <h2 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("aiLanguageQuestion")}</h2>
+            <label className={cn("mt-4 flex items-start gap-3 rounded-xl border p-3 text-sm cursor-pointer", isDark ? "border-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)] bg-[var(--bm-bg-elevated)]")}>
               <input
                 type="checkbox"
                 checked={matchAiLanguage}
                 onChange={(event) => setMatchAiLanguage(event.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-[#193B68]"
+                className="mt-0.5 h-4 w-4 accent-[var(--bm-primary)]"
                 data-testid="match-ai-language-checkbox"
               />
               <span>
                 <span className="block font-medium">{t("matchAiLanguage")}</span>
-                <span className={cn("mt-1 block text-xs", isDark ? "text-[#999]" : "text-[#6B7280]")}>{t("aiLanguageAutoHint")}</span>
+                <span className={cn("mt-1 block text-xs", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("aiLanguageAutoHint")}</span>
               </span>
             </label>
             <div className="mt-5 flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setLanguagePrompt(null)}
-                className={cn("flex-1 rounded-xl border py-3 text-sm font-medium", isDark ? "border-[#333] text-[#ddd] hover:bg-[#2a2a2a]" : "border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]")}
+                className={cn("flex-1 rounded-xl border py-3 text-sm font-medium", isDark ? "border-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]")}
               >
                 {t("cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleSaveLanguagePreference}
-                className="flex-1 rounded-xl bg-[#193B68] py-3 text-sm font-medium text-white hover:bg-[#142f54]"
+                className="flex-1 rounded-xl bg-[var(--bm-primary)] py-3 text-sm font-medium text-white hover:bg-[var(--bm-primary-hover)]"
                 data-testid="save-language-preference"
               >
                 {t("save")}

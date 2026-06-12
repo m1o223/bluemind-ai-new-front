@@ -27,6 +27,7 @@ import {
 
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
+import { inputClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
 import {
   changePassword,
@@ -87,7 +88,7 @@ function ComingSoonBadge({ isDark }) {
   return (
     <span className={cn(
       "rounded-full px-2.5 py-1 text-[11px] font-extrabold",
-      isDark ? "bg-white/[0.08] text-[#CFCFCF]" : "bg-[#EEF2F7] text-[#64748B]",
+      isDark ? "bg-white/[0.08] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]",
     )}>
       Coming Soon
     </span>
@@ -100,14 +101,14 @@ function Section({ title, icon: Icon, children, danger = false, isDark }) {
       "rounded-[22px] border p-4 shadow-sm",
       danger
         ? isDark ? "border-red-500/30 bg-red-500/10" : "border-red-200 bg-red-50/70"
-        : isDark ? "border-white/[0.08] bg-[#252525]" : "border-[#E5E7EB] bg-white",
+        : isDark ? "border-white/[0.08] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white",
     )}>
       <div className="mb-4 flex items-center gap-3">
         <span className={cn(
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
           danger
             ? "bg-red-500/12 text-red-500"
-            : isDark ? "bg-white/[0.07] text-white" : "bg-[#EEF2FF] text-[#193B68]",
+            : isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]",
         )}>
           <Icon className="h-5 w-5" />
         </span>
@@ -120,11 +121,11 @@ function Section({ title, icon: Icon, children, danger = false, isDark }) {
 
 function InfoRow({ label, value, icon: Icon, isDark, action, children }) {
   return (
-    <div className={cn("flex items-center gap-3 border-t py-3 first:border-t-0", isDark ? "border-white/[0.08]" : "border-[#E5E7EB]")}>
-      {Icon && <Icon className={cn("h-4 w-4 shrink-0", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")} />}
+    <div className={cn("flex items-center gap-3 border-t py-3 first:border-t-0", isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]")}>
+      {Icon && <Icon className={cn("h-4 w-4 shrink-0", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")} />}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-extrabold">{label}</p>
-        {value && <p className={cn("mt-1 truncate text-sm font-semibold", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{value}</p>}
+        {value && <p className={cn("mt-1 truncate text-sm font-semibold", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{value}</p>}
         {children}
       </div>
       {action}
@@ -137,10 +138,9 @@ function TextInput({ isDark, ...props }) {
     <input
       {...props}
       className={cn(
-        "min-h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none transition-colors",
-        isDark
-          ? "border-white/[0.10] bg-[#1a1a1a] text-white placeholder:text-[#777] focus:border-white/30"
-          : "border-[#CBD5E1] bg-[#F8FAFC] text-[#111827] placeholder:text-[#94A3B8] focus:border-[#193B68]",
+        inputClasses.field,
+        typeClasses.body,
+        "font-semibold",
         props.className,
       )}
     />
@@ -155,10 +155,10 @@ function ActionButton({ children, isDark, danger = false, primary = false, ...pr
       className={cn(
         "min-h-11 rounded-2xl px-4 text-sm font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         primary
-          ? "bg-[#193B68] text-white hover:bg-[#142f54]"
+          ? "bg-[var(--bm-primary)] text-white hover:bg-[var(--bm-primary-hover)]"
           : danger
             ? "bg-red-600 text-white hover:bg-red-700"
-            : isDark ? "border border-white/[0.10] bg-white/[0.06] text-white hover:bg-white/[0.10]" : "border border-[#E5E7EB] bg-white text-[#111827] hover:bg-[#F8FAFC]",
+            : isDark ? "border border-white/[0.10] bg-white/[0.06] text-white hover:bg-white/[0.10]" : "border border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]",
         props.className,
       )}
     >
@@ -169,18 +169,18 @@ function ActionButton({ children, isDark, danger = false, primary = false, ...pr
 
 function CollapsiblePanel({ title, icon: Icon, open, onToggle, children, isDark, badge }) {
   return (
-    <div className={cn("overflow-hidden rounded-[20px] border", isDark ? "border-white/[0.08]" : "border-[#E5E7EB]")}>
+    <div className={cn("overflow-hidden rounded-[20px] border", isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]")}>
       <button
         type="button"
         onClick={onToggle}
-        className={cn("flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors", isDark ? "hover:bg-white/[0.05]" : "hover:bg-[#F8FAFC]")}
+        className={cn("flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors", isDark ? "hover:bg-white/[0.05]" : "hover:bg-[var(--bm-bg-elevated)]")}
       >
-        <Icon className={cn("h-5 w-5 shrink-0", isDark ? "text-[#CFCFCF]" : "text-[#193B68]")} />
+        <Icon className={cn("h-5 w-5 shrink-0", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]")} />
         <span className="flex-1 text-sm font-extrabold">{title}</span>
         {badge}
         <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
       </button>
-      {open && <div className={cn("border-t p-4", isDark ? "border-white/[0.08]" : "border-[#E5E7EB]")}>{children}</div>}
+      {open && <div className={cn("border-t p-4", isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]")}>{children}</div>}
     </div>
   );
 }
@@ -341,8 +341,8 @@ export default function AccountSettingsSection({ mobile = false, isDark = false 
     }
   };
 
-  const muted = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
-  const subtlePanel = isDark ? "border-white/[0.08] bg-white/[0.04]" : "border-[#E5E7EB] bg-[#F8FAFC]";
+  const muted = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
+  const subtlePanel = isDark ? "border-white/[0.08] bg-white/[0.04]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]";
 
   return (
     <section className={cn("mx-auto w-full space-y-4", mobile ? "max-w-[430px]" : "max-w-2xl")} data-testid="account-settings-section">
@@ -543,8 +543,9 @@ export default function AccountSettingsSection({ mobile = false, isDark = false 
               value={aiPatch.aiLanguageMode}
               onChange={(event) => setAiPatch({ ...aiPatch, aiLanguageMode: event.target.value })}
               className={cn(
-                "min-h-12 w-full rounded-2xl border px-4 text-sm font-bold outline-none",
-                isDark ? "border-white/[0.10] bg-[#1a1a1a] text-white" : "border-[#CBD5E1] bg-[#F8FAFC] text-[#111827]",
+                inputClasses.field,
+                typeClasses.body,
+                "font-bold",
               )}
               data-testid="account-ai-language-mode"
             >

@@ -9,21 +9,21 @@ export default function AuthSelectionPage() {
   const navigate = useNavigate();
   const { t, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
-  const primaryText = isDark ? "text-white" : "text-[#111827]";
-  const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#6B7280]";
+  const primaryText = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
+  const mutedText = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`min-h-screen flex items-center justify-center p-6 ${isDark ? "bg-[#1a1a1a] text-white" : "bg-white text-[#111827]"}`}
+      className={`min-h-screen flex items-center justify-center p-6 ${isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-white text-[var(--bm-text-primary)]"}`}
       data-testid="auth-selection-page"
     >
       <Button
         onClick={() => navigate("/")}
         variant="ghost"
-        className={`fixed top-6 left-6 ${isDark ? "text-[#A7A7A7] hover:text-white hover:bg-white/[0.08]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F5F7FA]"}`}
+        className={`fixed top-6 left-6 ${isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-white/[0.08]" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"}`}
         data-testid="back-button"
       >
         <ArrowLeft className="w-5 h-5 mr-2" />
@@ -43,7 +43,7 @@ export default function AuthSelectionPage() {
 
         <Button
           onClick={() => navigate("/auth/register")}
-          className="w-full py-6 text-base bg-[#193B68] hover:bg-[#142f54] text-white rounded-xl"
+          className="w-full py-6 text-base bg-[var(--bm-primary)] hover:bg-[var(--bm-primary-hover)] text-white rounded-xl"
           data-testid="register-option-button"
         >
           <UserPlus className="w-5 h-5 mr-2" />
@@ -53,7 +53,7 @@ export default function AuthSelectionPage() {
         <Button
           onClick={() => navigate("/auth/login")}
           variant="ghost"
-          className={`w-full mt-3 ${isDark ? "text-[#A7A7A7] hover:text-white hover:bg-white/[0.08]" : "text-[#6B7280] hover:text-[#111827] hover:bg-[#F5F7FA]"}`}
+          className={`w-full mt-3 ${isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-white/[0.08]" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"}`}
           data-testid="signin-option-button"
         >
           {t("signInInstead")}

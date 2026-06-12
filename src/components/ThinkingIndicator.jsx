@@ -24,13 +24,13 @@ export default function ThinkingIndicator({ responseMode = "general", className 
       transition={{ duration: 0.18 }}
       className={cn("mb-8 flex w-full items-start", className)}
     >
-      <div className={cn("flex min-h-8 items-center gap-2 text-sm font-medium", isDark ? "text-[#D1D5DB]" : "text-[#4B5563]")}>
-        <span className={cn("h-2 w-2 rounded-full", isDark ? "bg-white/55" : "bg-[#193B68]/55")} />
+      <div className={cn("flex min-h-8 items-center gap-2 text-sm font-medium", isDark ? "text-[var(--bm-border-strong)]" : "text-[var(--bm-text-secondary)]")}>
+        <span className={cn("h-2 w-2 rounded-full", isDark ? "bg-white/55" : "bg-[var(--bm-primary)]/55")} />
         <span>{mode.status || (isLongThinking ? t("blueMindThinking") : t("thinking")) || "Analyzing request..."}</span>
         <motion.span
           animate={{ opacity: [0.35, 1, 0.35], scale: [0.92, 1.08, 0.92] }}
           transition={{ duration: 1.15, repeat: Infinity, ease: "easeInOut" }}
-          className={cn("h-1.5 w-1.5 rounded-full", isDark ? "bg-[#E5E7EB]" : "bg-[#193B68]")}
+          className={cn("h-1.5 w-1.5 rounded-full", isDark ? "bg-[var(--bm-border)]" : "bg-[var(--bm-primary)]")}
         />
         {isLongThinking && (
           <span className="flex items-center gap-0.5">

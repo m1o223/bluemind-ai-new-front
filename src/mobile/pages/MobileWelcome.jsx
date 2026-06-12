@@ -8,7 +8,7 @@ import { startMobileGuestSession } from "@/mobile/mobileGuestSession";
 import { getApiErrorMessage } from "@/services/api";
 import { getGoogleSignInErrorMessage, loginGuestUser, signInWithGoogle } from "@/services/authService";
 
-const BLUE_PRIMARY = "#193B68";
+const BLUE_PRIMARY = "var(--bm-primary)";
 
 function GoogleIcon() {
   return (
@@ -33,13 +33,13 @@ export default function MobileWelcome() {
   const isDark = resolvedTheme === "dark";
 
   const surfaceClass = isDark
-    ? "bg-[#1a1a1a] text-white"
-    : "bg-[#FAFBFC] text-[#111827]";
-  const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
-  const mutedText = isDark ? "text-[#D7D7D7]" : "text-[#475569]";
+    ? "bg-[var(--bm-bg-app)] text-white"
+    : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]";
+  const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
+  const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
   const googleButtonClass = isDark
     ? "border-white/[0.12] bg-white/[0.075] text-white shadow-[0_14px_34px_rgba(0,0,0,0.18)] active:bg-white/[0.11]"
-    : "border-[#E1E7F0] bg-white/90 text-[#111827] shadow-[0_14px_34px_rgba(15,23,42,0.08)] active:bg-[#F3F6FA]";
+    : "border-[var(--bm-border)] bg-white/90 text-[var(--bm-text-primary)] shadow-[0_14px_34px_rgba(15,23,42,0.08)] active:bg-[var(--bm-hover-bg)]";
   const emailButtonClass = "border-transparent text-white shadow-[0_16px_36px_rgba(25,59,104,0.24)] active:brightness-95";
 
   const handleGoogleLogin = async () => {
@@ -119,7 +119,7 @@ export default function MobileWelcome() {
                 }
               }}
               className="inline-flex items-center justify-center gap-1 text-[15px] font-semibold transition-opacity active:opacity-70"
-              style={{ color: isDark ? "#D7D7D7" : `var(--bluemind-app-color, ${BLUE_PRIMARY})` }}
+              style={{ color: isDark ? "var(--bm-text-secondary)" : `var(--bluemind-app-color, ${BLUE_PRIMARY})` }}
             >
               {isGuestLoading ? (
                 <LoadingSpinner />

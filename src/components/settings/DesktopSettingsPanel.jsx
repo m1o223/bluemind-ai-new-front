@@ -28,6 +28,7 @@ import {
 
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
+import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
 import {
   changePassword,
@@ -39,36 +40,10 @@ import {
 import { getProfile, updatePreferences } from "@/services/profileService";
 import { readStoredUser } from "@/services/storageKeys";
 import { reportIssue } from "@/services/supportService";
+import { AVATAR_COLORS, COLOR_OPTIONS } from "@/theme/colors";
 
 const SUPPORT_EMAIL = "supportbluemindai@gmail.com";
 const APP_VERSION = process.env.REACT_APP_VERSION || "0.1.0";
-const AVATAR_COLORS = ["#193B68", "#2563EB", "#059669", "#EA580C", "#DC2626", "#7C3AED", "#0891B2", "#BE123C"];
-const COLOR_OPTIONS = [
-  { label: "Blue", value: "#193B68" },
-  { label: "Sky", value: "#0284C7" },
-  { label: "Cyan", value: "#0891B2" },
-  { label: "Teal", value: "#0F766E" },
-  { label: "Emerald", value: "#059669" },
-  { label: "Green", value: "#16A34A" },
-  { label: "Lime", value: "#65A30D" },
-  { label: "Yellow", value: "#CA8A04" },
-  { label: "Amber", value: "#D97706" },
-  { label: "Orange", value: "#EA580C" },
-  { label: "Red", value: "#DC2626" },
-  { label: "Rose", value: "#E11D48" },
-  { label: "Pink", value: "#DB2777" },
-  { label: "Fuchsia", value: "#C026D3" },
-  { label: "Purple", value: "#9333EA" },
-  { label: "Violet", value: "#7C3AED" },
-  { label: "Indigo", value: "#4F46E5" },
-  { label: "Slate", value: "#475569" },
-  { label: "Stone", value: "#57534E" },
-  { label: "Zinc", value: "#52525B" },
-  { label: "Mint", value: "#10B981" },
-  { label: "Ocean", value: "#2563EB" },
-  { label: "Berry", value: "#BE123C" },
-  { label: "Copper", value: "#B45309" },
-];
 const LANGUAGE_OPTIONS = [
   { label: "English", value: "en" },
   { label: "العربية", value: "ar" },
@@ -193,7 +168,7 @@ function Toggle({ checked, disabled, isDark, onChange }) {
       onClick={() => onChange(!checked)}
       className={cn(
         "relative h-7 w-12 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "border-transparent bg-[#193B68]" : isDark ? "border-white/[0.12] bg-white/[0.08]" : "border-[#CBD5E1] bg-[#E2E8F0]",
+        checked ? "border-transparent bg-[var(--bm-primary)]" : isDark ? "border-white/[0.12] bg-white/[0.08]" : "border-[var(--bm-border-strong)] bg-[var(--bm-active-bg)]",
       )}
     >
       <span className={cn("absolute left-0 top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform", checked ? "translate-x-5" : "translate-x-0.5")} />
@@ -206,10 +181,9 @@ function TextInput({ isDark, className, ...props }) {
     <input
       {...props}
       className={cn(
-        "min-h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none transition-colors",
-        isDark
-          ? "border-white/[0.10] bg-[#171717] text-white placeholder:text-[#777] focus:border-white/30"
-          : "border-[#CBD5E1] bg-[#F8FAFC] text-[#111827] placeholder:text-[#94A3B8] focus:border-[#193B68]",
+        inputClasses.field,
+        "font-semibold",
+        typeClasses.body,
         className,
       )}
     />
@@ -221,7 +195,7 @@ function PrimaryButton({ children, loading, className, ...props }) {
     <button
       type="button"
       {...props}
-      className={cn("min-h-11 rounded-2xl bg-[#193B68] px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#142f54] disabled:cursor-not-allowed disabled:opacity-50", className)}
+      className={cn("min-h-11 rounded-2xl bg-[var(--bm-primary)] px-4 font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-50", typeClasses.small, interactionClasses.control, className)}
     >
       {loading ? "Saving..." : children}
     </button>
@@ -230,7 +204,7 @@ function PrimaryButton({ children, loading, className, ...props }) {
 
 function SettingCard({ isDark, children, className }) {
   return (
-    <div className={cn("overflow-hidden rounded-[24px] border shadow-sm", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white", className)}>
+    <div className={cn("overflow-hidden rounded-[24px] border shadow-sm", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-white", className)}>
       {children}
     </div>
   );
@@ -242,19 +216,21 @@ function Row({ icon: Icon, title, description, value, trailing, onClick, isDark 
       type="button"
       onClick={onClick}
       className={cn(
-        "flex min-h-[72px] w-full items-center gap-3 border-b px-5 text-left last:border-b-0",
-        isDark ? "border-white/[0.07] hover:bg-white/[0.055]" : "border-[#E5E7EB] hover:bg-[#F8FAFC]",
+        "flex min-h-[72px] w-full items-center border-b px-5 text-left last:border-b-0",
+        iconClasses.iconText,
+        onClick && interactionClasses.menuItem,
+        isDark ? "border-white/[0.07]" : "border-[var(--bm-border)]",
         !onClick && "cursor-default",
       )}
     >
-      {Icon && <Icon className={cn("h-5 w-5 shrink-0", isDark ? "text-[#D8D8D8]" : "text-[#475569]")} />}
+      {Icon && <Icon className={cn("shrink-0", iconClasses.sidebar, isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />}
       <span className="min-w-0 flex-1">
-        <span className={cn("block text-sm font-extrabold", isDark ? "text-white" : "text-[#111827]")}>{title}</span>
-        {description && <span className={cn("mt-1 block text-xs font-semibold leading-5", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{description}</span>}
+        <span className={cn("block font-extrabold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{title}</span>
+        {description && <span className={cn("mt-1 block font-semibold", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{description}</span>}
       </span>
-      {value && <span className={cn("max-w-[220px] truncate text-sm font-semibold", isDark ? "text-[#A7A7A7]" : "text-[#64748B]")}>{value}</span>}
+      {value && <span className={cn("max-w-[220px] truncate font-semibold", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{value}</span>}
       {trailing}
-      {onClick && !trailing && <ChevronRight className={cn("h-4 w-4 shrink-0", isDark ? "text-[#8C8C8C]" : "text-[#94A3B8]")} />}
+      {onClick && !trailing && <ChevronRight className={cn("shrink-0", iconClasses.button, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")} />}
     </button>
   );
 }
@@ -292,12 +268,12 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
   const plan = user?.authProvider === "guest" ? "Guest" : "Free";
   const currentLanguage = LANGUAGE_OPTIONS.find((item) => item.value === (prefs.appLanguage || prefs.language)) || LANGUAGE_OPTIONS[0];
   const currentTheme = prefs.theme || "system";
-  const currentAccent = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "#193B68").toLowerCase()) || COLOR_OPTIONS[0];
-  const currentMessageColor = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.messageColor || prefs.chatColor || "#193B68").toLowerCase()) || COLOR_OPTIONS[0];
+  const currentAccent = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "var(--bm-primary)").toLowerCase()) || COLOR_OPTIONS[0];
+  const currentMessageColor = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.messageColor || prefs.chatColor || "var(--bm-primary)").toLowerCase()) || COLOR_OPTIONS[0];
   const avatarColor = useMemo(() => avatarColorFor(user), [user]);
-  const panelBg = isDark ? "border-white/[0.08] bg-[#202020]" : "border-white/80 bg-[#FAFBFC]";
-  const sidebarBg = isDark ? "border-white/[0.08] bg-[#181818]" : "border-[#E5E7EB] bg-white";
-  const muted = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
+  const panelBg = isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-white/80 bg-[var(--bm-bg-app)]";
+  const sidebarBg = isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white";
+  const muted = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
   const closeSettings = onClose || (() => navigate("/chat"));
 
   useEffect(() => {
@@ -488,7 +464,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
     if (accountPane === "change-email") {
       return (
         <div className="max-w-2xl space-y-5">
-          <button type="button" onClick={() => setAccountPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to Account</button>
+          <button type="button" onClick={() => setAccountPane("")} className="text-sm font-extrabold text-[var(--bm-primary)]">Back to Account</button>
           <form onSubmit={handleRequestEmailChange} className="space-y-4">
             <TextInput isDark={isDark} type="email" value={email} readOnly />
             <TextInput isDark={isDark} type="email" value={emailChange.newEmail} onChange={(event) => setEmailChange({ ...emailChange, newEmail: event.target.value })} placeholder="New Email" autoComplete="email" />
@@ -496,7 +472,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
             <PrimaryButton type="submit" loading={saving === "email"} disabled={!emailChange.currentPassword || !emailChange.newEmail || saving === "email"}>Continue</PrimaryButton>
           </form>
           {emailChange.pendingEmail && (
-            <form onSubmit={handleConfirmEmailChange} className={cn("space-y-4 rounded-[24px] border p-4", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white")}>
+            <form onSubmit={handleConfirmEmailChange} className={cn("space-y-4 rounded-[24px] border p-4", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-white")}>
               <p className={cn("text-sm font-semibold", muted)}>Enter the 6-digit code sent to {emailChange.pendingEmail}.</p>
               <TextInput isDark={isDark} value={emailChange.code} inputMode="numeric" onChange={(event) => setEmailChange({ ...emailChange, code: event.target.value.replace(/\D/g, "").slice(0, 6) })} placeholder="000000" />
               <PrimaryButton type="submit" loading={saving === "email-code"} disabled={!/^\d{6}$/.test(emailChange.code) || saving === "email-code"}>Confirm Email</PrimaryButton>
@@ -509,14 +485,14 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
     if (accountPane === "change-password") {
       return (
         <div className="max-w-2xl space-y-5">
-          <button type="button" onClick={() => setAccountPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to Account</button>
+          <button type="button" onClick={() => setAccountPane("")} className="text-sm font-extrabold text-[var(--bm-primary)]">Back to Account</button>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <TextInput isDark={isDark} type="password" value={passwordChange.currentPassword} onChange={(event) => setPasswordChange({ ...passwordChange, currentPassword: event.target.value })} placeholder="Current Password" autoComplete="current-password" />
             <TextInput isDark={isDark} type="password" value={passwordChange.newPassword} onChange={(event) => setPasswordChange({ ...passwordChange, newPassword: event.target.value })} placeholder="New Password" autoComplete="new-password" />
             <TextInput isDark={isDark} type="password" value={passwordChange.confirmPassword} onChange={(event) => setPasswordChange({ ...passwordChange, confirmPassword: event.target.value })} placeholder="Confirm Password" autoComplete="new-password" />
             <PrimaryButton type="submit" loading={saving === "password"} disabled={!passwordChange.currentPassword || !passwordChange.newPassword || passwordChange.newPassword !== passwordChange.confirmPassword || saving === "password"}>Save</PrimaryButton>
           </form>
-          <button type="button" onClick={() => setAccountPane("forgot-password")} className="text-sm font-bold text-[#4C8DFF]">Forgot Password?</button>
+          <button type="button" onClick={() => setAccountPane("forgot-password")} className="text-sm font-bold text-[var(--bm-primary)]">Forgot Password?</button>
         </div>
       );
     }
@@ -524,7 +500,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
     if (accountPane === "forgot-password") {
       return (
         <div className="max-w-2xl space-y-5">
-          <button type="button" onClick={() => setAccountPane("change-password")} className="text-sm font-extrabold text-[#4C8DFF]">Back to Change Password</button>
+          <button type="button" onClick={() => setAccountPane("change-password")} className="text-sm font-extrabold text-[var(--bm-primary)]">Back to Change Password</button>
           <form onSubmit={handleRequestPasswordReset} className="space-y-4">
             <TextInput isDark={isDark} type="email" value={passwordRecovery.email} onChange={(event) => setPasswordRecovery({ email: event.target.value, sent: false })} placeholder={email || "account@email.com"} autoComplete="email" />
             <PrimaryButton type="submit" loading={saving === "forgot-password"} disabled={!passwordRecovery.email.trim() || saving === "forgot-password"}>Send Recovery Email</PrimaryButton>
@@ -546,7 +522,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
 
   const renderColorSelector = ({ title, description, activeColor, onSelect }) => (
     <div className="max-w-4xl space-y-5">
-      <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to General</button>
+      <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[var(--bm-primary)]">Back to General</button>
       <div>
         <h3 className="text-xl font-extrabold">{title}</h3>
         <p className={cn("mt-1 text-sm font-semibold", muted)}>{description}</p>
@@ -557,11 +533,11 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
             key={color.value}
             type="button"
             onClick={() => onSelect(color)}
-            className={cn("flex min-h-[64px] items-center gap-3 rounded-[20px] border px-4 transition-colors", activeColor.value === color.value ? "border-[#193B68] bg-[#193B68]/10" : isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-white")}
+            className={cn("flex min-h-[64px] items-center gap-3 rounded-[20px] border px-4 transition-colors", activeColor.value === color.value ? "border-[var(--bm-primary)] bg-[var(--bm-primary)]/10" : isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-white")}
           >
             <span className="h-6 w-6 rounded-full shadow-sm" style={{ backgroundColor: color.value }} />
             <span className="min-w-0 flex-1 truncate text-sm font-extrabold">{color.label}</span>
-            {activeColor.value === color.value && <Check className="h-4 w-4 text-[#4C8DFF]" />}
+            {activeColor.value === color.value && <Check className="h-4 w-4 text-[var(--bm-primary)]" />}
           </button>
         ))}
       </div>
@@ -572,7 +548,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
     if (generalPane === "language") {
       return (
         <div className="max-w-3xl space-y-5">
-          <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to General</button>
+          <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[var(--bm-primary)]">Back to General</button>
           <SettingCard isDark={isDark}>
             {LANGUAGE_OPTIONS.map((language) => (
               <Row
@@ -580,7 +556,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
                 isDark={isDark}
                 icon={Globe2}
                 title={language.label}
-                trailing={currentLanguage.value === language.value ? <Check className="h-5 w-5 text-[#4C8DFF]" /> : null}
+                trailing={currentLanguage.value === language.value ? <Check className="h-5 w-5 text-[var(--bm-primary)]" /> : null}
                 onClick={() => savePreference({ appLanguage: language.value, language: language.value })}
               />
             ))}
@@ -592,7 +568,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
     if (generalPane === "appearance") {
       return (
         <div className="max-w-3xl space-y-5">
-          <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to General</button>
+          <button type="button" onClick={() => setGeneralPane("")} className="text-sm font-extrabold text-[var(--bm-primary)]">Back to General</button>
           <SettingCard isDark={isDark}>
             {["system", "dark", "light"].map((theme) => (
               <Row
@@ -600,7 +576,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
                 isDark={isDark}
                 icon={Moon}
                 title={theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light"}
-                trailing={currentTheme === theme ? <Check className="h-5 w-5 text-[#4C8DFF]" /> : null}
+                trailing={currentTheme === theme ? <Check className="h-5 w-5 text-[var(--bm-primary)]" /> : null}
                 onClick={() => savePreference({ theme })}
               />
             ))}
@@ -667,7 +643,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
           onChange={(event) => setIssueReport((current) => ({ ...current, description: event.target.value }))}
           placeholder="Describe what happened and what you expected."
           rows={8}
-          className={cn("w-full resize-none rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 outline-none", isDark ? "border-white/[0.10] bg-[#171717] text-white placeholder:text-[#777]" : "border-[#CBD5E1] bg-[#F8FAFC] text-[#111827] placeholder:text-[#94A3B8]")}
+          className={cn(inputClasses.textarea, "resize-none font-semibold", typeClasses.body)}
         />
       </label>
       <SettingCard isDark={isDark} className="p-4">
@@ -678,7 +654,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
             ["Photos", FileUp, () => issuePhotosInputRef.current?.click()],
             ["Files", FileUp, () => issueFilesInputRef.current?.click()],
           ].map(([label, Icon, action]) => (
-            <button key={label} type="button" onClick={action} className={cn("flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border text-sm font-extrabold", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[#E5E7EB] bg-[#F8FAFC]")}>
+            <button key={label} type="button" onClick={action} className={cn("flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border text-sm font-extrabold", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
               <Icon className="h-5 w-5" />
               {label}
             </button>
@@ -687,7 +663,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
         {issueReport.attachments.length > 0 && (
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             {issueReport.attachments.map((attachment, index) => (
-              <div key={`${attachment.name}-${index}`} className={cn("relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border", isDark ? "border-white/[0.08] bg-black/20" : "border-[#E5E7EB] bg-white")}>
+              <div key={`${attachment.name}-${index}`} className={cn("relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border", isDark ? "border-white/[0.08] bg-black/20" : "border-[var(--bm-border)] bg-white")}>
                 {attachment.type.startsWith("image/") ? <img src={attachment.dataUrl} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-bold">{attachment.name}</div>}
                 <button type="button" onClick={() => setIssueReport((current) => ({ ...current, attachments: current.attachments.filter((_, itemIndex) => itemIndex !== index) }))} className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white">
                   <X className="h-3.5 w-3.5" />
@@ -709,7 +685,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
       {HELP_TOPICS.map((topic) => {
         const open = openHelpTopic === topic.title;
         return (
-          <button key={topic.title} type="button" onClick={() => setOpenHelpTopic(open ? "" : topic.title)} className={cn("w-full rounded-[22px] border p-5 text-left transition-colors", isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.07]" : "border-[#E5E7EB] bg-white hover:bg-[#F8FAFC]")}>
+          <button key={topic.title} type="button" onClick={() => setOpenHelpTopic(open ? "" : topic.title)} className={cn("w-full rounded-[22px] border p-5 text-left transition-colors", isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-white hover:bg-[var(--bm-bg-elevated)]")}>
             <span className="flex items-center gap-3 text-base font-extrabold">
               <HelpCircle className="h-5 w-5" />
               <span className="flex-1">{topic.title}</span>
@@ -732,7 +708,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
     if (aboutPane === "privacy") {
       return (
         <div className="max-w-3xl space-y-4">
-          <button type="button" onClick={() => setAboutPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to About</button>
+          <button type="button" onClick={() => setAboutPane("")} className="text-sm font-extrabold text-[var(--bm-primary)]">Back to About</button>
           <SettingCard isDark={isDark} className="p-6">
             <h3 className="text-xl font-extrabold">Privacy Policy</h3>
             <p className={cn("mt-3 text-sm font-semibold leading-7", muted)}>BlueMind AI uses your account data, chat content, uploaded files, reminders, profile details, and settings to provide the app experience you request. Profile and preference data stays connected to your authenticated account so desktop and mobile stay in sync.</p>
@@ -743,7 +719,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
     if (aboutPane === "terms") {
       return (
         <div className="max-w-3xl space-y-4">
-          <button type="button" onClick={() => setAboutPane("")} className="text-sm font-extrabold text-[#4C8DFF]">Back to About</button>
+          <button type="button" onClick={() => setAboutPane("")} className="text-sm font-extrabold text-[var(--bm-primary)]">Back to About</button>
           <SettingCard isDark={isDark} className="p-6">
             <h3 className="text-xl font-extrabold">Terms of Service</h3>
             <p className={cn("mt-3 text-sm font-semibold leading-7", muted)}>Use BlueMind AI for lawful learning, productivity, research, writing, planning, and creative work. Review AI-generated content before relying on it, submitting it, or sharing it.</p>
@@ -805,8 +781,8 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
                   className={cn(
                     "flex min-h-[46px] w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-extrabold transition-colors",
                     active
-                      ? isDark ? "bg-white/[0.10] text-white" : "bg-[#193B68]/10 text-[#193B68]"
-                      : isDark ? "text-[#D8D8D8] hover:bg-white/[0.06] hover:text-white" : "text-[#334155] hover:bg-[#EEF2F7] hover:text-[#111827]",
+                      ? isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]"
+                      : isDark ? "text-[var(--bm-text-secondary)] hover:bg-white/[0.06] hover:text-white" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
                   )}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
@@ -829,12 +805,12 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
         </aside>
 
         <div className="flex min-h-0 flex-col">
-          <header className={cn("flex h-20 shrink-0 items-center justify-between border-b px-8", isDark ? "border-white/[0.08]" : "border-[#E5E7EB]")}>
+          <header className={cn("flex h-20 shrink-0 items-center justify-between border-b px-8", isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]")}>
             <div>
               <h1 className="text-xl font-extrabold tracking-tight">{pageTitle}</h1>
               <p className={cn("mt-1 text-sm font-semibold", muted)}>Use the sidebar to switch settings sections.</p>
             </div>
-            <button type="button" onClick={closeSettings} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors", isDark ? "text-white hover:bg-white/[0.08]" : "text-[#111827] hover:bg-[#EEF2F7]")} aria-label="Close settings">
+            <button type="button" onClick={closeSettings} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors", isDark ? "text-white hover:bg-white/[0.08]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]")} aria-label="Close settings">
               <X className="h-5 w-5" />
             </button>
           </header>
@@ -859,12 +835,12 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
                 initial={{ y: 14, opacity: 0, scale: 0.98 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: 14, opacity: 0, scale: 0.98 }}
-                className={cn("w-full max-w-md rounded-[28px] p-6 ring-1", isDark ? "bg-[#262626] ring-white/[0.08]" : "bg-white ring-black/[0.08]")}
+                className={cn("w-full max-w-md rounded-[28px] p-6 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.08]" : "bg-white ring-black/[0.08]")}
               >
-                <p className={cn("text-lg font-extrabold", isDark ? "text-white" : "text-[#111827]")}>Log out?</p>
+                <p className={cn("text-lg font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Log out?</p>
                 <p className={cn("mt-2 text-sm font-medium leading-6", muted)}>You will need to sign in again to use BlueMind AI.</p>
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => setLogoutConfirmOpen(false)} className={cn("min-h-12 rounded-2xl text-sm font-bold", isDark ? "bg-white/[0.08] text-white" : "bg-[#EEF2F7] text-[#111827]")}>
+                  <button type="button" onClick={() => setLogoutConfirmOpen(false)} className={cn("min-h-12 rounded-2xl text-sm font-bold", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
                     Cancel
                   </button>
                   <button type="button" onClick={handleLogout} className="min-h-12 rounded-2xl bg-red-600 text-sm font-bold text-white">
@@ -905,7 +881,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
   }
 
   return (
-    <main className={cn("flex min-h-screen items-center justify-center p-6", isDark ? "bg-[#151515] text-white" : "bg-[#EEF2F7] text-[#111827]")}>
+    <main className={cn("flex min-h-screen items-center justify-center p-6", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
       {panel}
     </main>
   );

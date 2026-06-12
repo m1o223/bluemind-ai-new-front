@@ -1,13 +1,6 @@
-export const SEARCH_ARTWORK_PALETTES = [
-  { from: "#193B68", via: "#3D7EC8", to: "#B9D7F6" },
-  { from: "#0E7490", via: "#67E8F9", to: "#CFFAFE" },
-  { from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF" },
-  { from: "#0F766E", via: "#34C3AA", to: "#C8F7EC" },
-  { from: "#A855F7", via: "#D18BFF", to: "#F1D9FF" },
-  { from: "#EA580C", via: "#FDBA74", to: "#FFEDD5" },
-  { from: "#BE123C", via: "#FB7185", to: "#FFE4E6" },
-  { from: "#1D4ED8", via: "#60A5FA", to: "#DBEAFE" },
-];
+import { SEARCH_ARTWORK_COLORS } from "@/theme/colors";
+
+export const SEARCH_ARTWORK_PALETTES = SEARCH_ARTWORK_COLORS;
 
 export const SEARCH_DISCOVERY_CATEGORIES = [
   { id: "books", title: "Books", description: "Find books, school books, academic sources, and reading material." },

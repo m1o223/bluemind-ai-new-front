@@ -14,12 +14,13 @@ import {
 } from "@/services/storageKeys";
 import { ensureUiLanguage } from "@/services/translationService";
 import { normalizeAiModeId } from "@/data/aiModes";
+import { BLUE_MIND_COLORS } from "@/theme/colors";
 
 const defaultPrefs = {
   theme: "system",
-  appColor: "#193B68",
-  accentColor: "#193B68",
-  chatColor: "#193B68",
+  appColor: BLUE_MIND_COLORS.primary,
+  accentColor: BLUE_MIND_COLORS.primary,
+  chatColor: BLUE_MIND_COLORS.primary,
   appLanguage: "en",
   language: "en",
   aiLanguageMode: "auto",

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 import MessageResponse from "@/components/MessageResponse";
 import { useApp } from "@/context/AppContext";
+import { interactionClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
 import { streamChatMessage } from "@/services/chatService";
 
@@ -24,11 +25,11 @@ export default function MobileSearch() {
   const [error, setError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
-  const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
-  const panelColor = isDark ? "#202020" : "#FFFFFF";
-  const textColor = isDark ? "text-white" : "text-[#111827]";
-  const borderColor = isDark ? "border-white/[0.08]" : "border-[#E5E7EB]";
-  const mutedText = isDark ? "text-[#D7D7D7]" : "text-[#64748B]";
+  const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
+  const panelColor = isDark ? "var(--bm-bg-card)" : "#FFFFFF";
+  const textColor = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
+  const borderColor = isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]";
+  const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -79,7 +80,7 @@ export default function MobileSearch() {
         <button
           type="button"
           onClick={() => navigate("/mobile/chat")}
-          className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+          className={isDark ? `flex h-11 w-11 items-center justify-center rounded-full text-white ${interactionClasses.iconButton}` : `flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] ${interactionClasses.iconButton}`}
           aria-label="Back"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -110,8 +111,8 @@ export default function MobileSearch() {
                 onClick={() => setQuery(item)}
                 className={
                   isDark
-                    ? "snap-start whitespace-nowrap rounded-full border border-white/[0.08] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-[#D7D7D7] active:bg-white/[0.09]"
-                    : "snap-start whitespace-nowrap rounded-full border border-black/[0.05] bg-white/75 px-4 py-2 text-sm font-semibold text-[#475569] shadow-sm active:bg-white"
+                    ? `snap-start whitespace-nowrap rounded-full border border-white/[0.08] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-[var(--bm-text-secondary)] ${interactionClasses.menuItem}`
+                    : `snap-start whitespace-nowrap rounded-full border border-black/[0.05] bg-white/75 px-4 py-2 text-sm font-semibold text-[var(--bm-text-secondary)] shadow-sm ${interactionClasses.menuItem}`
                 }
               >
                 {item}
@@ -149,13 +150,13 @@ export default function MobileSearch() {
             onChange={(event) => setQuery(event.target.value)}
             rows={1}
             placeholder="Search anything..."
-            className={`max-h-28 min-h-11 flex-1 resize-none bg-transparent px-1 py-3 text-[16px] leading-5 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+            className={`bm-composer-input max-h-28 min-h-11 flex-1 resize-none bg-transparent px-1 py-3 text-[16px] leading-5 outline-none placeholder:text-[var(--bm-text-muted)] ${textColor}`}
           />
           <button
             type="submit"
             disabled={!query.trim() || isSearching}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-45"
-            style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-45 ${interactionClasses.iconButton}`}
+            style={{ backgroundColor: "var(--bluemind-app-color, var(--bm-primary))" }}
             aria-label="Send search"
           >
             {isSearching ? (

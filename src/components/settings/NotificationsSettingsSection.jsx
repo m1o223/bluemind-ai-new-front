@@ -220,7 +220,7 @@ function CategoryBadge({ supported, isDark }) {
   return (
     <span className={cn(
       "rounded-full px-2.5 py-1 text-[11px] font-extrabold",
-      isDark ? "bg-white/[0.08] text-[#CFCFCF]" : "bg-[#EEF2F7] text-[#64748B]",
+      isDark ? "bg-white/[0.08] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]",
     )}>
       Coming Soon
     </span>
@@ -237,7 +237,7 @@ function SwitchControl({ checked, disabled, onChange, isDark }) {
       onClick={() => onChange(!checked)}
       className={cn(
         "relative h-8 w-14 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "border-transparent bg-[#193B68]" : isDark ? "border-white/[0.10] bg-white/[0.08]" : "border-[#CBD5E1] bg-[#E2E8F0]",
+        checked ? "border-transparent bg-[var(--bm-primary)]" : isDark ? "border-white/[0.10] bg-white/[0.08]" : "border-[var(--bm-border-strong)] bg-[var(--bm-active-bg)]",
       )}
     >
       <span className={cn(
@@ -386,8 +386,8 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
   };
 
   const pageWidth = mobile ? "max-w-[430px]" : "max-w-2xl";
-  const panelClass = isDark ? "border-white/[0.08] bg-[#252525]" : "border-[#E5E7EB] bg-white";
-  const muted = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
+  const panelClass = isDark ? "border-white/[0.08] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white";
+  const muted = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
 
   if (selectedCategory) {
     const Icon = selectedCategory.icon;
@@ -397,7 +397,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
         <button
           type="button"
           onClick={() => navigate(`${basePath}/notifications`)}
-          className={cn("mb-1 inline-flex items-center gap-2 rounded-full px-1 py-2 text-sm font-extrabold", isDark ? "text-white" : "text-[#111827]")}
+          className={cn("mb-1 inline-flex items-center gap-2 rounded-full px-1 py-2 text-sm font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}
         >
           <ArrowLeft className="h-4 w-4" />
           Notifications
@@ -405,7 +405,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
 
         <div className={cn("rounded-[22px] border p-4 shadow-sm", panelClass)}>
           <div className="mb-4 flex items-center gap-3">
-            <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF2FF] text-[#193B68]")}>
+            <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
               <Icon className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
@@ -420,7 +420,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
               const disabled = !supported || loading === "save";
 
               return (
-                <div key={key} className={cn("flex items-center gap-3 rounded-[18px] border p-3", isDark ? "border-white/[0.08] bg-white/[0.04]" : "border-[#E5E7EB] bg-[#F8FAFC]")}>
+                <div key={key} className={cn("flex items-center gap-3 rounded-[18px] border p-3", isDark ? "border-white/[0.08] bg-white/[0.04]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-extrabold">{label}</p>
@@ -445,7 +445,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
                 type="button"
                 onClick={handleEnablePush}
                 disabled={loading === "push"}
-                className="min-h-12 rounded-2xl bg-[#193B68] px-4 text-sm font-extrabold text-white disabled:opacity-50"
+                className="min-h-12 rounded-2xl bg-[var(--bm-primary)] px-4 text-sm font-extrabold text-white disabled:opacity-50"
                 data-testid="enable-push-notifications"
               >
                 {loading === "push" ? "Checking..." : "Enable Push Notifications"}
@@ -454,7 +454,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
                 type="button"
                 onClick={handleSendTest}
                 disabled={loading === "test" || !preferences.channels.push || !notificationsEnabled}
-                className={cn("min-h-12 rounded-2xl border px-4 text-sm font-extrabold disabled:opacity-50", isDark ? "border-white/[0.10] text-white" : "border-[#E5E7EB] text-[#111827]")}
+                className={cn("min-h-12 rounded-2xl border px-4 text-sm font-extrabold disabled:opacity-50", isDark ? "border-white/[0.10] text-white" : "border-[var(--bm-border)] text-[var(--bm-text-primary)]")}
                 data-testid="send-test-notification"
               >
                 {loading === "test" ? "Sending..." : "Send Test Notification"}
@@ -466,7 +466,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
         {selectedCategory.id === "channels" && (
           <div className={cn("rounded-[22px] border p-4 text-sm font-semibold shadow-sm", panelClass)}>
             <p className="font-extrabold">Diagnostics</p>
-            <pre className={cn("mt-3 max-h-72 overflow-auto rounded-2xl p-3 text-xs leading-5", isDark ? "bg-black/25 text-[#E5E7EB]" : "bg-[#F8FAFC] text-[#334155]")}>
+            <pre className={cn("mt-3 max-h-72 overflow-auto rounded-2xl p-3 text-xs leading-5", isDark ? "bg-black/25 text-[var(--bm-border)]" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]")}>
               {JSON.stringify({
                 permission: diagnostics?.permission,
                 serviceWorkerRegistered: diagnostics?.serviceWorkerRegistered,
@@ -486,7 +486,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
     <section className={cn("mx-auto w-full space-y-4", pageWidth)} data-testid="notifications-settings-section">
       <div className={cn("rounded-[22px] border p-4 shadow-sm", panelClass)}>
         <div className="flex items-center gap-3">
-          <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF2FF] text-[#193B68]")}>
+          <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
             <ToggleLeft className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
@@ -512,10 +512,10 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
               key={category.id}
               type="button"
               onClick={() => navigate(`${basePath}/notifications/${category.id}`)}
-              className={cn("flex w-full items-center gap-3 rounded-[22px] border p-3 text-left shadow-sm transition-colors", panelClass, isDark ? "hover:bg-[#292929]" : "hover:bg-[#F8FAFC]")}
+              className={cn("flex w-full items-center gap-3 rounded-[22px] border p-3 text-left shadow-sm transition-colors", panelClass, isDark ? "hover:bg-[#292929]" : "hover:bg-[var(--bm-bg-elevated)]")}
               data-testid={`notification-category-link-${category.id}`}
             >
-              <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-[#EEF2FF] text-[#193B68]")}>
+              <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
                 <Icon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">

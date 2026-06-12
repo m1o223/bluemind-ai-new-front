@@ -23,7 +23,7 @@ function GoogleIcon() {
   );
 }
 
-function LoadingSpinner({ className = "border-[#9CA3AF]/30 border-t-[#193B68]" }) {
+function LoadingSpinner({ className = "border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" }) {
   return <span className={`h-4 w-4 animate-spin rounded-full border-2 ${className}`} />;
 }
 
@@ -51,12 +51,10 @@ export default function MobileRegister() {
     formData.fullName.trim() &&
     formData.email.trim() &&
     formData.password.length >= 8;
-  const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
-  const textColor = isDark ? "text-white" : "text-[#111827]";
-  const mutedText = isDark ? "text-[#D7D7D7]" : "text-[#6B7280]";
-  const inputClass = isDark
-    ? "border-white/[0.1] bg-white/[0.06] text-white placeholder:text-white/35 focus:border-[#193B68] focus:ring-1 focus:ring-[#193B68]"
-    : "border-[#E5E7EB] bg-white text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#193B68] focus:ring-1 focus:ring-[#193B68]";
+  const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
+  const textColor = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
+  const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
+  const inputClass = "font-semibold";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -113,7 +111,7 @@ export default function MobileRegister() {
           type="button"
           onClick={() => navigate("/mobile/email")}
           className={`mb-6 inline-flex h-11 items-center gap-2 self-start rounded-full px-3 text-sm font-semibold transition-colors ${
-            isDark ? "bg-white/[0.06] text-white" : "bg-white text-[#111827] shadow-sm"
+            isDark ? "bg-white/[0.06] text-white" : "bg-white text-[var(--bm-text-primary)] shadow-sm"
           }`}
           aria-label={t("back")}
         >
@@ -131,7 +129,7 @@ export default function MobileRegister() {
           <div>
             <label className="mb-1.5 block text-sm font-semibold">{t("fullName")}</label>
             <div className="relative">
-              <User className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#9CA3AF]" />
+              <User className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
               <Input
                 type="text"
                 value={formData.fullName}
@@ -146,7 +144,7 @@ export default function MobileRegister() {
           <div>
             <label className="mb-1.5 block text-sm font-semibold">{t("email")}</label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#9CA3AF]" />
+              <Mail className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
               <Input
                 type="email"
                 value={formData.email}
@@ -161,7 +159,7 @@ export default function MobileRegister() {
           <div>
             <label className="mb-1.5 block text-sm font-semibold">{t("password")}</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#9CA3AF]" />
+              <Lock className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
               <Input
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
@@ -173,7 +171,7 @@ export default function MobileRegister() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--bm-text-muted)]"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
@@ -186,7 +184,7 @@ export default function MobileRegister() {
                   <div
                     className={cn(
                       "flex h-3.5 w-3.5 items-center justify-center rounded-full border transition-colors",
-                      requirement.met ? "border-[#193B68] bg-[#193B68]" : "border-[#D1D5DB]"
+                      requirement.met ? "border-[var(--bm-primary)] bg-[var(--bm-primary)]" : "border-[var(--bm-border-strong)]"
                     )}
                   >
                     {requirement.met && <Check className="h-2 w-2 text-white" />}
@@ -203,7 +201,7 @@ export default function MobileRegister() {
             type="submit"
             disabled={!isFormValid || isLoading}
             className="h-[52px] w-full rounded-2xl text-[15px] font-semibold text-white disabled:opacity-50"
-            style={{ backgroundColor: "var(--bluemind-app-color, #193B68)" }}
+            style={{ backgroundColor: "var(--bluemind-app-color, var(--bm-primary))" }}
             data-testid="mobile-register-submit-button"
           >
             {isLoading ? <LoadingSpinner className="border-white/30 border-t-white" /> : t("createAccountButton")}
@@ -217,9 +215,9 @@ export default function MobileRegister() {
         </form>
 
         <div className="my-6 flex items-center gap-3">
-          <div className={isDark ? "h-px flex-1 bg-white/[0.1]" : "h-px flex-1 bg-[#E5E7EB]"} />
-          <span className="text-xs font-medium text-[#9CA3AF]">{t("orContinueWith")}</span>
-          <div className={isDark ? "h-px flex-1 bg-white/[0.1]" : "h-px flex-1 bg-[#E5E7EB]"} />
+          <div className={isDark ? "h-px flex-1 bg-white/[0.1]" : "h-px flex-1 bg-[var(--bm-border)]"} />
+          <span className="text-xs font-medium text-[var(--bm-text-muted)]">{t("orContinueWith")}</span>
+          <div className={isDark ? "h-px flex-1 bg-white/[0.1]" : "h-px flex-1 bg-[var(--bm-border)]"} />
         </div>
 
         <div className="grid grid-cols-1 gap-3">
@@ -227,7 +225,7 @@ export default function MobileRegister() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={Boolean(socialLoading)}
-            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl border border-[#E1E7F0] bg-white text-[15px] font-semibold text-[#111827] shadow-sm transition-colors disabled:opacity-70"
+            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl border border-[var(--bm-border)] bg-white text-[15px] font-semibold text-[var(--bm-text-primary)] shadow-sm transition-colors disabled:opacity-70"
             data-testid="mobile-register-google-login"
           >
             {socialLoading === "google" ? <LoadingSpinner /> : <GoogleIcon />}
@@ -237,7 +235,7 @@ export default function MobileRegister() {
 
         <p className={`mt-7 text-center text-sm ${mutedText}`}>
           {t("alreadyHaveAccount")}{" "}
-          <button type="button" onClick={() => navigate("/mobile/email")} className="font-semibold text-[#193B68]">
+          <button type="button" onClick={() => navigate("/mobile/email")} className="font-semibold text-[var(--bm-primary)]">
             {t("signIn")}
           </button>
         </p>

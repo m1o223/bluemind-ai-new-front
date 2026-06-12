@@ -18,12 +18,10 @@ export default function ForgotPasswordPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const { t, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
-  const pageClass = isDark ? "bg-[#1a1a1a] text-white" : "bg-white text-[#111827]";
-  const primaryText = isDark ? "text-white" : "text-[#111827]";
-  const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#6B7280]";
-  const inputClass = isDark
-    ? "bg-[#202020] border-white/[0.10] text-white placeholder:text-[#777] focus:border-[#4C8DFF]"
-    : "bg-white border-[#E5E7EB] text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#193B68]";
+  const pageClass = isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-white text-[var(--bm-text-primary)]";
+  const primaryText = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
+  const mutedText = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
+  const inputClass = "font-semibold";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -47,7 +45,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`min-h-screen flex items-center justify-center px-4 py-10 ${pageClass}`} data-testid="forgot-password-page">
-      <button onClick={() => navigate("/auth/login")} className={`absolute top-5 left-5 flex items-center gap-1.5 transition-colors cursor-pointer ${isDark ? "text-[#A7A7A7] hover:text-white" : "text-[#6B7280] hover:text-[#111827]"}`}>
+      <button onClick={() => navigate("/auth/login")} className={`absolute top-5 left-5 flex items-center gap-1.5 transition-colors cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}>
         <ArrowLeft className="w-4 h-4" />
         <span className="text-sm font-medium">{t("back")}</span>
       </button>
@@ -65,7 +63,7 @@ export default function ForgotPasswordPage() {
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("enterEmail")} className={`py-5 rounded-xl ${inputClass}`} data-testid="forgot-email-input" />
           </div>
 
-          <Button type="submit" disabled={!email.trim() || isLoading} className="w-full py-5 text-sm bg-[#193B68] hover:bg-[#142f54] text-white rounded-xl font-medium disabled:opacity-50" data-testid="forgot-submit-button">
+          <Button type="submit" disabled={!email.trim() || isLoading} className="w-full py-5 text-sm bg-[var(--bm-primary)] hover:bg-[var(--bm-primary-hover)] text-white rounded-xl font-medium disabled:opacity-50" data-testid="forgot-submit-button">
             {isLoading ? t("sending") : t("sendResetCode")}
           </Button>
 

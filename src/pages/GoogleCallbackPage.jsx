@@ -31,8 +31,8 @@ export default function GoogleCallbackPage() {
       data-testid="google-callback-page"
     >
       <div className="text-center">
-        <BrandLogo forceTheme="light" className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName="text-lg text-[#111827]" />
-        <p className="text-sm text-[#6B7280]">{t("finishingGoogleSignIn")}</p>
+        <BrandLogo forceTheme="light" className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName="text-lg text-[var(--bm-text-primary)]" />
+        <p className="text-sm text-[var(--bm-text-secondary)]">{t("finishingGoogleSignIn")}</p>
       </div>
     </motion.div>
   );

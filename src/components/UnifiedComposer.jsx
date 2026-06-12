@@ -1,6 +1,7 @@
 import { useLayoutEffect } from "react";
 import { ArrowUp, FileText, Mic, Plus, Square, X } from "lucide-react";
 
+import { inputClasses } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
 
 function getAttachmentPreview(attachment) {
@@ -35,7 +36,7 @@ export default function UnifiedComposer({
   sendLabel = "Send",
   stopLabel = "Stop generating",
   isDark = false,
-  appColor = "#193B68",
+  appColor = "var(--bm-primary)",
   variant = "desktop",
   minRows = 1,
   maxTextHeight = 180,
@@ -60,8 +61,8 @@ export default function UnifiedComposer({
         "flex shrink-0 items-center justify-center rounded-full transition-colors duration-200",
         isMobile ? "h-10 w-10" : "h-11 w-11",
         isToolMode
-          ? isDark ? "text-[#D4D4D4] hover:bg-white/[0.08] hover:text-white" : "text-[#193B68] hover:bg-[#F3F4F6] hover:text-[#111827]"
-          : isDark ? "bg-[#202020]/[0.92] text-[#D4D4D4] shadow-sm ring-1 ring-white/[0.08] hover:text-white" : "bg-white/90 text-[#193B68] shadow-sm ring-1 ring-[#E5E7EB] hover:bg-[#F3F4F6] hover:text-[#111827]",
+          ? isDark ? "text-[var(--bm-text-secondary)] hover:bg-white/[0.08] hover:text-white" : "text-[var(--bm-primary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]"
+          : isDark ? "bg-[var(--bm-bg-card)]/[0.92] text-[var(--bm-text-secondary)] shadow-sm ring-1 ring-white/[0.08] hover:text-white" : "bg-white/90 text-[var(--bm-primary)] shadow-sm ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
       )}
       style={{
         backdropFilter: "blur(18px)",
@@ -97,7 +98,7 @@ export default function UnifiedComposer({
               onClick={modePill.onClear}
               className={cn(
                 "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
-                isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[#EEF2FF] text-[#193B68] active:bg-[#E0E7FF]",
+                isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]",
               )}
               aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
               data-testid="composer-mode-pill"
@@ -120,8 +121,8 @@ export default function UnifiedComposer({
                 ? "rounded-[30px] px-4 py-3 sm:px-5"
                 : "rounded-[31px] px-4 py-2.5 sm:px-5",
             isDark
-              ? "border-white/[0.08] bg-[#202020]/[0.92] focus-within:bg-[#242424]"
-              : "border-[#E5E7EB] bg-white/90 focus-within:border-[#D6DEE9] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
+              ? "border-white/[0.08] bg-[var(--bm-bg-card)]/[0.92] focus-within:bg-[var(--bm-bg-elevated)]"
+              : "border-[var(--bm-border)] bg-white/90 focus-within:border-[var(--bm-border)] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
           )}
           style={{
             backdropFilter: "blur(18px)",
@@ -148,7 +149,7 @@ export default function UnifiedComposer({
                   className={cn(
                     "relative shrink-0 overflow-hidden rounded-[14px] border shadow-sm",
                     isMobile ? "h-12 w-12" : "h-14 w-14",
-                    isDark ? "border-white/10 bg-white/[0.08]" : "border-[#D6DEE9] bg-[#EEF2FF]/90",
+                    isDark ? "border-white/10 bg-white/[0.08]" : "border-[var(--bm-border)] bg-[var(--bm-active-bg)]/90",
                   )}
                   title={label}
                 >
@@ -161,7 +162,7 @@ export default function UnifiedComposer({
                       loading="lazy"
                     />
                   ) : (
-                    <div className={cn("flex h-full w-full items-center justify-center px-1", isDark ? "text-white" : "text-[#193B68]")}>
+                    <div className={cn("flex h-full w-full items-center justify-center px-1", isDark ? "text-white" : "text-[var(--bm-primary)]")}>
                       <FileText className="h-4 w-4" />
                     </div>
                   )}
@@ -184,10 +185,10 @@ export default function UnifiedComposer({
                 className={cn(
                   "flex shrink-0 items-center justify-center rounded-[14px] border",
                   isMobile ? "h-12 w-12" : "h-14 w-14",
-                  isDark ? "border-white/10 bg-white/[0.06]" : "border-[#E5E7EB] bg-white/85",
+                  isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85",
                 )}
               >
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#9CA3AF]/30 border-t-[#193B68]" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
               </div>
             )}
           </div>
@@ -202,18 +203,19 @@ export default function UnifiedComposer({
           rows={1}
           placeholder={placeholder}
           className={cn(
+            inputClasses.composer,
             "block w-full resize-none bg-transparent font-medium outline-none",
             isMobile
               ? "max-h-[180px] min-h-[44px] text-[16px] leading-6"
               : hasTallContent
                 ? "max-h-[220px] min-h-[42px] text-[16px] leading-6"
                 : "max-h-40 min-h-8 text-[17px] leading-8",
-            isDark ? "text-white placeholder:text-[#A7A7A7]/80" : "text-[#111827] placeholder:text-[#64748B]/85",
+            isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
           )}
           style={{
             ...inputDirectionStyle,
             letterSpacing: "0",
-            caretColor: isDark ? "#FFFFFF" : "#111827",
+            caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
             maxHeight: `${maxTextHeight}px`,
             minHeight: `${textareaMinHeight}px`,
           }}
@@ -234,8 +236,8 @@ export default function UnifiedComposer({
               isListening
                 ? "text-white"
                 : isDark
-                  ? "text-[#D4D4D4] hover:text-white"
-                  : "text-[#4B5563] hover:text-[#111827]",
+                  ? "text-[var(--bm-text-secondary)] hover:text-white"
+                  : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]",
             )}
             style={isListening ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : undefined}
             aria-label={voiceLabel}
@@ -252,7 +254,7 @@ export default function UnifiedComposer({
               isMobile ? "h-8 w-8" : "h-[42px] w-[42px]",
               isBusy || canSend
                 ? "hover:opacity-95"
-                : isDark ? "bg-[#4B5563]" : "bg-[#9CA3AF]",
+                : isDark ? "bg-[var(--bm-text-secondary)]" : "bg-[var(--bm-text-muted)]",
             )}
             style={isBusy || canSend ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : undefined}
             aria-label={isBusy ? stopLabel : sendLabel}

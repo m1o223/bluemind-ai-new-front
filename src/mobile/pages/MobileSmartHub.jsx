@@ -9,9 +9,10 @@ import { useNavigate } from "react-router-dom";
 
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
+import { iconClasses, interactionClasses, motionTokens, spacingClasses, typeClasses } from "@/lib/interactions";
 
 function getTextOnColor(hex) {
-  const normalized = String(hex || "#193B68").replace("#", "");
+  const normalized = String(hex || "var(--bm-primary)").replace("#", "");
   const value = normalized.length === 3
     ? normalized.split("").map((char) => char + char).join("")
     : normalized.padEnd(6, "0").slice(0, 6);
@@ -23,7 +24,7 @@ function getTextOnColor(hex) {
     .map((channel) => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
     .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
 
-  return luminance > 0.52 ? "#111827" : "#FFFFFF";
+  return luminance > 0.52 ? "var(--bm-text-primary)" : "#FFFFFF";
 }
 
 function HubCard({ item, index, isDark, appColor, accentText }) {
@@ -36,24 +37,27 @@ function HubCard({ item, index, isDark, appColor, accentText }) {
       onClick={() => navigate(item.path)}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.045, duration: 0.22 }}
-      whileTap={{ scale: 0.97 }}
+      transition={{ ...motionTokens.transition, delay: index * 0.045 }}
+      whileHover={motionTokens.hover}
+      whileTap={motionTokens.tap}
       className={cn(
-        "flex min-h-[162px] flex-col justify-between rounded-[24px] border p-4 text-left shadow-sm transition-all duration-200",
+        "flex min-h-[162px] flex-col justify-between rounded-[24px] border text-left shadow-sm",
+        spacingClasses.card,
+        interactionClasses.card,
         isDark
-          ? "border-white/[0.08] bg-[#252525] shadow-black/20 active:bg-[#2b2b2b]"
-          : "border-[#E5E7EB] bg-white shadow-slate-200/80 active:bg-[#F8FAFC]",
+          ? "border-white/[0.08] bg-[var(--bm-bg-elevated)] shadow-black/20"
+          : "border-[var(--bm-border)] bg-white shadow-slate-200/80",
       )}
     >
       <div
         className="flex h-12 w-12 items-center justify-center rounded-2xl"
         style={{ backgroundColor: appColor, color: accentText }}
       >
-        <Icon className="h-6 w-6" />
+        <Icon className={iconClasses.card} />
       </div>
       <div>
-        <h2 className={cn("text-lg font-extrabold tracking-tight", isDark ? "text-white" : "text-[#111827]")}>{item.title}</h2>
-        <p className={cn("mt-2 text-[13px] font-semibold leading-5", isDark ? "text-[#B8B8B8]" : "text-[#64748B]")}>{item.description}</p>
+        <h2 className={cn("font-extrabold tracking-tight", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{item.title}</h2>
+        <p className={cn("mt-2 font-semibold", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{item.description}</p>
       </div>
     </motion.button>
   );
@@ -62,7 +66,7 @@ function HubCard({ item, index, isDark, appColor, accentText }) {
 export default function MobileSmartHub() {
   const { prefs, resolvedTheme, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
-  const appColor = prefs.appColor || prefs.accentColor || "#193B68";
+  const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
   const isRTL = /^(ar|fa|he|ur|ku)/i.test(uiLanguage);
   const welcomeTitle = isRTL ? "مرحباً" : "Welcome back";
@@ -101,16 +105,16 @@ export default function MobileSmartHub() {
 
   return (
     <main
-      className={cn("min-h-[100dvh] px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(22px+env(safe-area-inset-top))]", isDark ? "bg-[#1a1a1a] text-white" : "bg-[#FAFBFC] text-[#111827]")}
+      className={cn("min-h-[100dvh] px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(22px+env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")}
       dir={isRTL ? "rtl" : "ltr"}
       data-testid="mobile-smart-hub"
     >
       <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <h1 className="text-[28px] font-extrabold tracking-tight">{welcomeTitle}</h1>
-        <p className={cn("mt-2 text-[15px] font-semibold leading-6", isDark ? "text-[#AFAFAF]" : "text-[#64748B]")}>{welcomeSubtitle}</p>
+        <h1 className={cn("font-extrabold tracking-tight", typeClasses.pageTitle)}>{welcomeTitle}</h1>
+        <p className={cn("mt-2 font-semibold", typeClasses.body, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{welcomeSubtitle}</p>
       </motion.section>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className={cn("grid grid-cols-2", spacingClasses.cardGap)}>
         {items.map((item, index) => (
           <HubCard
             key={item.key}

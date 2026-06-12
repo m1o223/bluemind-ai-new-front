@@ -43,6 +43,7 @@ import UnifiedComposer from "@/components/UnifiedComposer";
 import BlueMindMediaPicker from "@/components/BlueMindMediaPicker";
 import SettingsSheet from "@/components/settings/SettingsSheet";
 import { useApp } from "@/context/AppContext";
+import { iconClasses, typeClasses } from "@/lib/interactions";
 import {
   buildWriteEditMessage,
   createWriteEditTask,
@@ -77,25 +78,26 @@ import {
 import { AUTH_SESSION_CLEARED_EVENT } from "@/services/storageKeys";
 import { updatePreferences } from "@/services/profileService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
+import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 
 const MAX_IMAGE_ATTACHMENTS = 6;
 
 const WRITE_EDIT_ARTWORK_PALETTES = [
-  { from: "#3767D8", via: "#75A7FF", to: "#D8E8FF" },
-  { from: "#193B68", via: "#3D7EC8", to: "#B9D7F6" },
-  { from: "#6B5DD3", via: "#9C8CFF", to: "#E6DFFF" },
-  { from: "#0F766E", via: "#34C3AA", to: "#C8F7EC" },
-  { from: "#A855F7", via: "#D18BFF", to: "#F1D9FF" },
-  { from: "#EA580C", via: "#FDBA74", to: "#FFEDD5" },
-  { from: "#BE123C", via: "#FB7185", to: "#FFE4E6" },
-  { from: "#0E7490", via: "#67E8F9", to: "#CFFAFE" },
+  WRITE_EDIT_ARTWORK_COLORS.writing,
+  WRITE_EDIT_ARTWORK_COLORS.careerBlue,
+  WRITE_EDIT_ARTWORK_COLORS.study,
+  WRITE_EDIT_ARTWORK_COLORS.business,
+  WRITE_EDIT_ARTWORK_COLORS.careerPurple,
+  WRITE_EDIT_ARTWORK_COLORS.social,
+  WRITE_EDIT_ARTWORK_COLORS.product,
+  SEARCH_ARTWORK_COLORS[1],
 ];
 
 function WriteTemplateArtwork({ template, index = 0 }) {
   const artwork = template.artwork || WRITE_EDIT_ARTWORK_PALETTES[index % WRITE_EDIT_ARTWORK_PALETTES.length];
-  const from = artwork.from || "#193B68";
-  const via = artwork.via || "#4E8EDB";
-  const to = artwork.to || "#D8E8FF";
+  const from = artwork.from || "var(--bm-primary)";
+  const via = artwork.via || WRITE_EDIT_ARTWORK_COLORS.careerBlue.via;
+  const to = artwork.to || WRITE_EDIT_ARTWORK_COLORS.writing.to;
 
   return (
     <div
@@ -158,7 +160,7 @@ const IMAGE_TEMPLATES = [
     category: "Workspace",
     requiresImage: true,
     prompt: "Analyze the uploaded desk or workspace photo, then create a polished upgraded desk setup concept. Keep the real room constraints in mind, improve lighting, cable management, ergonomics, monitor placement, storage, decor, and color harmony. Generate a realistic premium workspace visualization with practical improvements, natural materials, clean organization, and a calm BlueMind-inspired modern atmosphere.",
-    gradient: "from-[#193B68] via-[#315F9C] to-[#8FB7FF]",
+    gradient: "from-[var(--bm-primary)] via-[#315F9C] to-[#8FB7FF]",
   },
   {
     id: "modern-logo",
@@ -309,7 +311,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "People",
     description: "Generate a refined studio portrait.",
     prompt: "Create a refined professional portrait with soft studio lighting, realistic skin texture, sharp details, and a minimal background.",
-    thumbnail: createIdeaThumbnail("portrait", "#0F172A", "#475569", "#D8B4FE"),
+    thumbnail: createIdeaThumbnail("portrait", "var(--bm-text-primary)", "var(--bm-text-secondary)", "#D8B4FE"),
   },
   {
     id: "mini-me",
@@ -325,7 +327,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Knowledge",
     description: "Visualize notes, data, and discoveries.",
     prompt: "Create a futuristic research board visual with notes, diagrams, data cards, and a calm blue glassmorphism interface.",
-    thumbnail: createIdeaThumbnail("research", "#193B68", "#2563EB", "#22D3EE"),
+    thumbnail: createIdeaThumbnail("research", "var(--bm-primary)", "#2563EB", "#22D3EE"),
   },
   {
     id: "recipe",
@@ -357,7 +359,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Photography",
     description: "Make a natural, camera-real image.",
     prompt: "Create a realistic photo with natural light, believable details, true-to-life textures, shallow depth of field, and professional composition.",
-    thumbnail: createIdeaThumbnail("realistic-photo", "#334155", "#64748B", "#F8FAFC"),
+    thumbnail: createIdeaThumbnail("realistic-photo", "var(--bm-text-secondary)", "var(--bm-text-secondary)", "var(--bm-bg-elevated)"),
   },
   {
     id: "cartoon",
@@ -365,7 +367,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Illustration",
     description: "Make a friendly polished cartoon.",
     prompt: "Create a friendly cartoon character with expressive features, modern colors, clean outlines, and a polished app-style finish.",
-    thumbnail: createIdeaThumbnail("cartoon", "#F97316", "#F59E0B", "#38BDF8"),
+    thumbnail: createIdeaThumbnail("cartoon", "var(--bm-warning)", "var(--bm-warning)", "#38BDF8"),
   },
   {
     id: "logo",
@@ -373,7 +375,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Branding",
     description: "Explore a clean brand mark concept.",
     prompt: "Create a clean modern logo concept with a premium AI brand feeling, simple geometry, blue accent color, and strong scalability.",
-    thumbnail: createIdeaThumbnail("logo", "#111827", "#193B68", "#E0F2FE"),
+    thumbnail: createIdeaThumbnail("logo", "var(--bm-text-primary)", "var(--bm-primary)", "#E0F2FE"),
   },
   {
     id: "architecture",
@@ -381,7 +383,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Spaces",
     description: "Imagine a premium building or interior.",
     prompt: "Create a modern architectural concept with elegant structure, warm interior lighting, clean materials, dramatic scale, and magazine-quality composition.",
-    thumbnail: createIdeaThumbnail("architecture", "#44403C", "#78716C", "#FDE68A"),
+    thumbnail: createIdeaThumbnail("architecture", "var(--bm-border-strong)03C", "#78716C", "#FDE68A"),
   },
   {
     id: "product-mockup",
@@ -397,7 +399,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Landscape",
     description: "Generate cinematic natural scenery.",
     prompt: "Create a cinematic nature scene with rich atmosphere, detailed plants, natural light, depth, and a peaceful high-resolution landscape feel.",
-    thumbnail: createIdeaThumbnail("nature", "#14532D", "#16A34A", "#BAE6FD"),
+    thumbnail: createIdeaThumbnail("nature", "#14532D", "var(--bm-success)", "#BAE6FD"),
   },
   {
     id: "character-design",
@@ -571,11 +573,11 @@ export default function MobileChat() {
   const loadedConversationRef = useRef(null);
 
   const activeConversationId = searchParams.get("conversation");
-  const surfaceColor = isDark ? "#1a1a1a" : "#FAFBFC";
-  const panelColor = isDark ? "#202020" : "#FFFFFF";
-  const borderColor = isDark ? "border-white/[0.08]" : "border-[#E5E7EB]";
-  const mutedText = isDark ? "text-[#D7D7D7]" : "text-[#64748B]";
-  const textColor = isDark ? "text-white" : "text-[#111827]";
+  const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
+  const panelColor = isDark ? "var(--bm-bg-card)" : "#FFFFFF";
+  const borderColor = isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]";
+  const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
+  const textColor = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
 
   const bluemindMenuItems = [
     { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
@@ -2167,7 +2169,7 @@ export default function MobileChat() {
         <div className={centered ? "mb-4 h-[60px] overflow-hidden text-center" : "hidden"}>
           <RotatingChatSuggestion
             iconClassName="h-[18px] w-[18px]"
-            textClassName={`max-w-[360px] text-center text-[17px] font-semibold leading-6 tracking-tight ${isDark ? "text-white" : "text-[#111827]"}`}
+            textClassName={`max-w-[360px] text-center text-[17px] font-semibold leading-6 tracking-tight ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}
           />
         </div>
       )}
@@ -2176,7 +2178,7 @@ export default function MobileChat() {
         <div className={`mb-2 rounded-2xl px-3 py-2 text-xs font-bold ${
           imageModeError
             ? isDark ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-600"
-            : isDark ? "bg-white/[0.06] text-[#D7D7D7]" : "bg-[#EEF2F7] text-[#193B68]"
+            : isDark ? "bg-white/[0.06] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"
         }`}>
           {imageModeError || imageModeStatus}
         </div>
@@ -2189,20 +2191,20 @@ export default function MobileChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
             className={`mx-auto mb-3 w-full max-w-[360px] rounded-[26px] border p-3 text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-xl ${
-              isDark ? "border-white/[0.1] bg-[#202020]/[0.92] text-white" : "border-white/70 bg-white/[0.88] text-[#111827]"
+              isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.92] text-white" : "border-white/70 bg-white/[0.88] text-[var(--bm-text-primary)]"
             }`}
           >
             <div className="mb-3 flex items-start justify-between gap-3 text-left">
               <div>
                 <p className="text-sm font-bold">{pendingWriteTemplate.title}</p>
-                <p className={`mt-1 text-xs font-semibold leading-5 ${isDark ? "text-[#CFCFCF]" : "text-[#64748B]"}`}>
+                <p className={`mt-1 text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
                   Choose an optional attachment or continue manually.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={continueWriteTaskWithoutAttachment}
-                className={isDark ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                className={isDark ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 aria-label="Continue without attachment"
               >
                 <X className="h-4 w-4" />
@@ -2214,7 +2216,7 @@ export default function MobileChat() {
                   key={option.id}
                   type="button"
                   onClick={() => openWriteAttachmentInput(option.id)}
-                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#193B68] active:bg-[#E2E8F0]"}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]"}
                 >
                   {option.label}
                 </button>
@@ -2282,7 +2284,7 @@ export default function MobileChat() {
                 }
                 setAttachmentSheetOpen(true);
               }}
-              className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+              className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[var(--bm-primary)] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[var(--bm-border)] active:bg-[var(--bm-hover-bg)]"}
               style={{
                 backgroundColor: isDark ? "rgba(32,32,32,0.82)" : "rgba(255,255,255,0.85)",
                 backdropFilter: "blur(12px)",
@@ -2301,7 +2303,7 @@ export default function MobileChat() {
                 WebkitBackdropFilter: "blur(16px)",
               }}
             >
-              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: isDark ? "#FFFFFF" : "var(--bluemind-app-color, #193B68)", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold" style={{ color: isDark ? "#FFFFFF" : "var(--bluemind-app-color, var(--bm-primary))", backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(25,59,104,0.08)" }}>
                 <span>{isImageMode ? "Image" : "Write/Edit"}</span>
                 <button
                   type="button"
@@ -2365,12 +2367,12 @@ export default function MobileChat() {
                   {writeAttachments.map((file) => (
                     <span
                       key={file.id}
-                      className={isDark ? "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/[0.07] px-2.5 py-1.5 text-xs font-bold text-white" : "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/85 px-2.5 py-1.5 text-xs font-bold text-[#111827]"}
+                      className={isDark ? "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/[0.07] px-2.5 py-1.5 text-xs font-bold text-white" : "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/85 px-2.5 py-1.5 text-xs font-bold text-[var(--bm-text-primary)]"}
                     >
                       {file.type === "image" && file.previewUrl ? (
                         <img src={file.previewUrl} alt="" className="h-7 w-7 rounded-lg object-cover" />
                       ) : (
-                        <FileText className={isDark ? "h-4 w-4 text-[#D7D7D7]" : "h-4 w-4 text-[#193B68]"} />
+                        <FileText className={isDark ? "h-4 w-4 text-[var(--bm-text-secondary)]" : "h-4 w-4 text-[var(--bm-primary)]"} />
                       )}
                       <span className="truncate">{getWriteEditAttachmentLabel(file)}</span>
                     </span>
@@ -2384,14 +2386,14 @@ export default function MobileChat() {
                 onChange={(event) => setMessage(event.target.value)}
                 rows={3}
                 placeholder={isImageMode ? "Describe an image..." : "Write, paste, or choose a productivity tool..."}
-                className={`max-h-[180px] min-h-[86px] w-full resize-none bg-transparent text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-                style={{ caretColor: isDark ? "#FFFFFF" : "#111827" }}
+                className={`bm-composer-input max-h-[180px] min-h-[86px] w-full resize-none bg-transparent text-[16px] font-medium leading-6 outline-none placeholder:text-[var(--bm-text-muted)] ${textColor}`}
+                style={{ caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)" }}
               />
 
               <div className="mt-1 flex items-center justify-end gap-1.5">
                 <button
                   type="button"
-                  className={isDark ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--bm-text-secondary)] active:bg-white/[0.08]" : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]"}
                   aria-label="Voice"
                 >
                   <Mic className="h-5 w-5" />
@@ -2402,8 +2404,8 @@ export default function MobileChat() {
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-[0_8px_18px_rgba(25,59,104,0.18)] transition-colors duration-200 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: hasComposerContent || isGeneratingImage || isChatSending
-                    ? "var(--bluemind-app-color, #193B68)"
-                    : isDark ? "#4B5563" : "#9CA3AF",
+                    ? "var(--bluemind-app-color, var(--bm-primary))"
+                    : isDark ? "var(--bm-text-secondary)" : "var(--bm-text-muted)",
                 }}
                 disabled={!hasComposerContent || isGeneratingImage || isChatSending}
                 aria-label="Send"
@@ -2454,7 +2456,7 @@ export default function MobileChat() {
                 layoutId="mobile-composer-plus"
                 type="button"
                 onClick={() => setAttachmentSheetOpen(true)}
-                className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#193B68] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+                className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] active:bg-white/[0.12]" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[var(--bm-primary)] shadow-[0_10px_24px_rgba(15,23,42,0.10)] ring-1 ring-[var(--bm-border)] active:bg-[var(--bm-hover-bg)]"}
                 aria-label="Attach"
               >
                 <Plus className="h-5 w-5" />
@@ -2479,7 +2481,7 @@ export default function MobileChat() {
                   <button
                     type="button"
                     onClick={clearWriteTask}
-                    className={isDark ? "inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-xs font-bold text-white" : "inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-xs font-bold text-[#193B68]"}
+                    className={isDark ? "inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-xs font-bold text-white" : "inline-flex items-center gap-1.5 rounded-full bg-[var(--bm-active-bg)] px-2.5 py-1 text-xs font-bold text-[var(--bm-primary)]"}
                   >
                     <span>Write/Edit</span>
                     <X className="h-3.5 w-3.5" />
@@ -2489,12 +2491,12 @@ export default function MobileChat() {
                       {writeAttachments.map((file) => (
                         <span
                           key={file.id}
-                          className={isDark ? "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/[0.07] px-2.5 py-1.5 text-xs font-bold text-white" : "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/85 px-2.5 py-1.5 text-xs font-bold text-[#111827]"}
+                          className={isDark ? "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/[0.07] px-2.5 py-1.5 text-xs font-bold text-white" : "inline-flex max-w-[180px] shrink-0 items-center gap-2 rounded-2xl bg-white/85 px-2.5 py-1.5 text-xs font-bold text-[var(--bm-text-primary)]"}
                         >
                           {file.type === "image" && file.previewUrl ? (
                             <img src={file.previewUrl} alt="" className="h-7 w-7 rounded-lg object-cover" />
                           ) : (
-                            <FileText className={isDark ? "h-4 w-4 text-[#D7D7D7]" : "h-4 w-4 text-[#193B68]"} />
+                            <FileText className={isDark ? "h-4 w-4 text-[var(--bm-text-secondary)]" : "h-4 w-4 text-[var(--bm-primary)]"} />
                           )}
                           <span className="truncate">{getWriteEditAttachmentLabel(file)}</span>
                         </span>
@@ -2510,7 +2512,7 @@ export default function MobileChat() {
                     layoutId="mobile-composer-plus"
                     type="button"
                     onClick={() => setAttachmentSheetOpen(true)}
-                    className={isDark ? "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.10]" : "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#193B68] active:bg-[#EEF2F7]"}
+                    className={isDark ? "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.10]" : "mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--bm-primary)] active:bg-[var(--bm-hover-bg)]"}
                     aria-label="Attach"
                   >
                     <Plus className="h-[18px] w-[18px]" />
@@ -2527,13 +2529,13 @@ export default function MobileChat() {
                   onInput={(event) => resizeChatComposer(event.currentTarget)}
                   rows={1}
                   placeholder={activeWriteTask ? activeWriteTask.prompt : "Ask anything..."}
-                  className={`max-h-[128px] min-h-[50px] flex-1 resize-none bg-transparent py-[13px] text-[16px] font-medium leading-6 outline-none placeholder:text-[#9CA3AF] ${textColor}`}
-                  style={{ caretColor: isDark ? "#FFFFFF" : "#111827" }}
+                  className={`bm-composer-input max-h-[128px] min-h-[50px] flex-1 resize-none bg-transparent py-[13px] text-[16px] font-medium leading-6 outline-none placeholder:text-[var(--bm-text-muted)] ${textColor}`}
+                  style={{ caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)" }}
                 />
 
                 <button
                   type="button"
-                  className={isDark ? "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[var(--bm-text-secondary)] active:bg-white/[0.08]" : "flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]"}
                   aria-label="Voice"
                 >
                   <Mic className="h-5 w-5" />
@@ -2545,8 +2547,8 @@ export default function MobileChat() {
                   className="ml-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] transition-colors duration-200 disabled:cursor-not-allowed"
                   style={{
                     backgroundColor: hasComposerContent || isChatSending
-                      ? "var(--bluemind-app-color, #193B68)"
-                      : isDark ? "#4B5563" : "#9CA3AF",
+                      ? "var(--bluemind-app-color, var(--bm-primary))"
+                      : isDark ? "var(--bm-text-secondary)" : "var(--bm-text-muted)",
                   }}
                   disabled={(!hasComposerContent && !isChatSending) || isGeneratingImage}
                   aria-label={isChatSending ? "Stop generating" : "Send"}
@@ -2575,20 +2577,20 @@ export default function MobileChat() {
     return (
       <div
         key={menuId}
-        className={`relative border-b py-3 last:border-b-0 ${isDark ? "border-white/[0.06]" : "border-[#E5E7EB]"}`}
+        className={`relative border-b py-3 last:border-b-0 ${isDark ? "border-white/[0.06]" : "border-[var(--bm-border)]"}`}
       >
         <button
           type="button"
           onClick={() => openConversation(item.conversationId)}
-          className="flex w-full min-w-0 items-start gap-3 pr-10 text-left"
+          className={`flex w-full min-w-0 items-start pr-10 text-left ${iconClasses.iconText}`}
           data-testid={`mobile-chat-row-${item.conversationId}`}
         >
-          <MessageSquare className={`mt-0.5 h-5 w-5 shrink-0 ${isActive ? isDark ? "text-white" : "text-[#193B68]" : isDark ? "text-[#D7D7D7]" : "text-[#64748B]"}`} />
+          <MessageSquare className={`mt-0.5 shrink-0 ${iconClasses.sidebar} ${isActive ? isDark ? "text-white" : "text-[var(--bm-primary)]" : isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`} />
           <span className="min-w-0 flex-1">
-            <span className={`block truncate text-[15px] font-semibold ${isActive ? isDark ? "text-white" : "text-[#193B68]" : textColor}`}>
+            <span className={`block truncate font-semibold ${typeClasses.body} ${isActive ? isDark ? "text-white" : "text-[var(--bm-primary)]" : textColor}`}>
               {item.title || t("newChat")}
             </span>
-            <span className={`mt-1 block truncate text-xs font-medium ${isDark ? "text-[#9CA3AF]" : "text-[#64748B]"}`}>
+            <span className={`mt-1 block truncate font-medium ${typeClasses.small} ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
               {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
             </span>
           </span>
@@ -2600,11 +2602,11 @@ export default function MobileChat() {
             event.stopPropagation();
             setChatMenuTarget((current) => current === menuId ? null : menuId);
           }}
-          className={isDark ? "absolute right-0 top-3 flex h-9 w-9 items-center justify-center rounded-full text-[#D7D7D7] active:bg-white/[0.08]" : "absolute right-0 top-3 flex h-9 w-9 items-center justify-center rounded-full text-[#64748B] active:bg-[#EEF2F7]"}
+          className={isDark ? "absolute right-0 top-3 flex h-9 w-9 items-center justify-center rounded-full text-[var(--bm-text-secondary)] active:bg-white/[0.08]" : "absolute right-0 top-3 flex h-9 w-9 items-center justify-center rounded-full text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]"}
           aria-label="Conversation actions"
           data-testid={`mobile-chat-menu-${item.conversationId}`}
         >
-          <MoreVertical className="h-5 w-5" />
+          <MoreVertical className={iconClasses.button} />
         </button>
 
         <AnimatePresence>
@@ -2621,22 +2623,22 @@ export default function MobileChat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.96 }}
                 transition={{ duration: 0.16 }}
-                className={`absolute right-0 top-12 z-[95] w-40 overflow-hidden rounded-2xl border py-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[#242424] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}
+                className={`absolute right-0 top-12 z-[95] w-40 overflow-hidden rounded-2xl border py-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[var(--bm-bg-elevated)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
               >
                 <button
                   type="button"
                   onClick={() => openRenameDialog(item)}
-                  className={isDark ? "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold active:bg-white/[0.08]" : "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold active:bg-[#EEF2F7]"}
+                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className={iconClasses.button} />
                   Rename
                 </button>
                 <button
                   type="button"
                   onClick={() => handleShareConversation(item)}
-                  className={isDark ? "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold active:bg-white/[0.08]" : "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold active:bg-[#EEF2F7]"}
+                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
                 >
-                  <Share2 className="h-4 w-4" />
+                  <Share2 className={iconClasses.button} />
                   Share
                 </button>
                 <button
@@ -2645,9 +2647,9 @@ export default function MobileChat() {
                     setChatMenuTarget(null);
                     setDeleteTarget(item);
                   }}
-                  className={isDark ? "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold text-red-300 active:bg-red-950/30" : "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold text-red-500 active:bg-red-50"}
+                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold text-red-300 active:bg-red-950/30 ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold text-red-500 active:bg-red-50 ${typeClasses.small} ${iconClasses.iconText}`}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className={iconClasses.button} />
                   Delete
                 </button>
               </motion.div>
@@ -2676,7 +2678,7 @@ export default function MobileChat() {
           <button
             type="button"
             onClick={openMenu}
-            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
             aria-label="Open menu"
           >
             <span className="flex h-5 w-6 flex-col items-center justify-center gap-[4px]" aria-hidden="true">
@@ -2689,7 +2691,7 @@ export default function MobileChat() {
           <button
             type="button"
             onClick={() => setResponseModeMenuOpen((open) => !open)}
-            className={isDark ? "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold capitalize text-[#111827] active:bg-[#EEF2F7]"}
+            className={isDark ? "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold capitalize text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen}
           >
@@ -2710,7 +2712,7 @@ export default function MobileChat() {
                 transition={{ duration: 0.16 }}
                 className={`absolute left-12 top-12 z-50 w-[292px] overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
                   isDark
-                    ? "border-white/[0.12] bg-[#202020]/95"
+                    ? "border-white/[0.12] bg-[var(--bm-bg-card)]/95"
                     : "border-black/[0.06] bg-white/90"
                 }`}
               >
@@ -2725,19 +2727,19 @@ export default function MobileChat() {
                         responseMode === mode.id
                           ? isDark
                             ? "bg-white/[0.11] text-white"
-                            : "bg-[#F8FAFC] text-[#111827]"
+                            : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]"
                           : isDark
                             ? "text-white active:bg-white/[0.075]"
-                            : "text-[#1F2937] active:bg-[#F8FAFC]"
+                            : "text-[var(--bm-text-primary)] active:bg-[var(--bm-bg-elevated)]"
                       }`}
                     >
                       <span className="flex min-w-0 flex-1 items-center gap-3">
-                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isDark ? "bg-white/[0.08] text-white" : "bg-[#193B68]/[0.075] text-[#193B68]"}`}>
+                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/[0.075] text-[var(--bm-primary)]"}`}>
                           <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
                         </span>
                         <span className="min-w-0">
                           <span className="block text-[15px] font-bold leading-5">{mode.title}</span>
-                          <span className={`mt-1 block text-xs font-semibold leading-4 ${isDark ? "text-[#F1F5F9]" : "text-[#475569]"}`}>
+                          <span className={`mt-1 block text-xs font-semibold leading-4 ${isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-secondary)]"}`}>
                             {mode.description}
                           </span>
                         </span>
@@ -2754,7 +2756,7 @@ export default function MobileChat() {
         <button
           type="button"
           onClick={startNewChat}
-          className={isDark ? "ml-auto flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "ml-auto flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+          className={isDark ? "ml-auto flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "ml-auto flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
           aria-label="New chat"
         >
           <PenLine className="h-5 w-5" />
@@ -2767,7 +2769,7 @@ export default function MobileChat() {
             {chatSessionMode === "private" ? <Lock className="h-4 w-4" /> : <Glasses className="h-4 w-4" />}
             {chatSessionMode === "private" ? `${activePrivateSpace?.name || "Private"} Chat` : "Hidden Mode"}
           </span>
-          <button type="button" className={isDark ? "text-[#A7C7FF]" : "text-[#193B68]"} onClick={chatSessionMode === "private" ? exitPrivateSpace : exitHiddenMode}>
+          <button type="button" className={isDark ? "text-[var(--bm-primary)]" : "text-[var(--bm-primary)]"} onClick={chatSessionMode === "private" ? exitPrivateSpace : exitHiddenMode}>
             {chatSessionMode === "private" ? "Exit Private Chat" : "Exit Hidden Chat"}
           </button>
         </div>
@@ -2810,7 +2812,7 @@ export default function MobileChat() {
               <button
                 type="button"
                 onClick={exitImageMode}
-                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 aria-label="Exit create image mode"
               >
                 <X className="h-5 w-5" />
@@ -2824,7 +2826,7 @@ export default function MobileChat() {
               <button
                 type="button"
                 onClick={exitWriteEditMode}
-                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 aria-label="Exit write edit mode"
               >
                 <X className="h-5 w-5" />
@@ -2841,14 +2843,14 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={exitSearchMode}
-                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                   aria-label="Exit search mode"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
               {!selectedSearchCategory && (
-                <p className={`mt-1 max-w-[330px] text-xs font-semibold leading-5 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                <p className={`mt-1 max-w-[330px] text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
                   Find what you need here. If you can&apos;t find it, Ask AI can help you find it.
                 </p>
               )}
@@ -2867,8 +2869,8 @@ export default function MobileChat() {
                     transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                     className={`mx-auto mb-4 w-full rounded-[26px] border p-4 text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-xl ${
                       isDark
-                        ? "border-white/[0.1] bg-[#202020]/[0.88] text-white"
-                        : "border-white/70 bg-white/[0.78] text-[#111827]"
+                        ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.88] text-white"
+                        : "border-white/70 bg-white/[0.78] text-[var(--bm-text-primary)]"
                     }`}
                     style={{
                       backdropFilter: "blur(18px)",
@@ -2876,14 +2878,14 @@ export default function MobileChat() {
                     }}
                   >
                     <h3 className="text-base font-bold tracking-tight">{pendingImageTemplate.title}</h3>
-                    <p className={`mx-auto mt-1 max-w-[260px] text-xs font-semibold leading-5 ${isDark ? "text-[#CFCFCF]" : "text-[#64748B]"}`}>
+                    <p className={`mx-auto mt-1 max-w-[260px] text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
                       {pendingImageTemplate.description || "Create polished image artwork from your photo."}
                     </p>
                     <div className="mt-4 grid gap-2">
                       <button
                         type="button"
                         onClick={() => openTemplateImageInput(imageInputRef)}
-                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#193B68] active:bg-[#E2E8F0]"}
+                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]"}
                       >
                         <Image className="h-[18px] w-[18px]" />
                         <span>Upload Image</span>
@@ -2891,7 +2893,7 @@ export default function MobileChat() {
                       <button
                         type="button"
                         onClick={() => openTemplateImageInput(cameraInputRef)}
-                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#193B68] active:bg-[#E2E8F0]"}
+                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]"}
                       >
                         <Camera className="h-[18px] w-[18px]" />
                         <span>Take Photo</span>
@@ -2931,10 +2933,10 @@ export default function MobileChat() {
                       </span>
                     </div>
                     <div className="p-3">
-                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[#111827]"}`}>
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
                         {item.title}
                       </span>
-                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
                         {item.description}
                       </span>
                     </div>
@@ -2965,10 +2967,10 @@ export default function MobileChat() {
                   >
                     <WriteTemplateArtwork template={template} index={index} />
                     <div className="p-3">
-                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[#111827]"}`}>
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
                         {template.title}
                       </span>
-                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
                         {template.description}
                       </span>
                     </div>
@@ -3002,10 +3004,10 @@ export default function MobileChat() {
                 >
                   <WriteTemplateArtwork template={category} index={index} />
                   <div className="p-3">
-                    <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[#111827]"}`}>
+                    <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
                       {category.title}
                     </span>
-                    <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                    <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
                       {category.description}
                     </span>
                   </div>
@@ -3024,7 +3026,7 @@ export default function MobileChat() {
                     category: selectedSearchCategory,
                     intent: "item_not_found",
                   })}
-                  className="mt-3 h-11 w-full rounded-2xl bg-[#193B68] text-sm font-bold text-white active:opacity-90"
+                  className="mt-3 h-11 w-full rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white active:opacity-90"
                 >
                   Ask AI
                 </button>
@@ -3054,21 +3056,21 @@ export default function MobileChat() {
                     </button>
 
                     {openSearchMenuItemId === item.id && (
-                      <div className={`absolute right-2 top-11 z-10 w-36 overflow-hidden rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}>
+                      <div className={`absolute right-2 top-11 z-10 w-36 overflow-hidden rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}>
                         <button
                           type="button"
                           onClick={() => {
                             setExpandedSearchItemId((current) => current === item.id ? null : item.id);
                             setOpenSearchMenuItemId(null);
                           }}
-                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
                         >
                           Learn More
                         </button>
                         <button
                           type="button"
                           onClick={() => copySearchItemName(item)}
-                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
                         >
                           Copy Name
                         </button>
@@ -3079,7 +3081,7 @@ export default function MobileChat() {
                             item,
                             intent: "learn_more_about_selected_item",
                           })}
-                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[#EEF2F7]"}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
                         >
                           Ask AI
                         </button>
@@ -3087,14 +3089,14 @@ export default function MobileChat() {
                     )}
 
                     <div className="p-3">
-                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[#111827]"}`}>
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
                         {item.title}
                       </span>
-                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[#A7A7A7]" : "text-[#64748B]"}`}>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
                         {item.description}
                       </span>
                       {expandedSearchItemId === item.id && (
-                        <div className={`mt-3 rounded-2xl px-3 py-2 text-[11px] font-semibold leading-4 ${isDark ? "bg-white/[0.07] text-[#D7D7D7]" : "bg-[#EEF2F7] text-[#475569]"}`}>
+                        <div className={`mt-3 rounded-2xl px-3 py-2 text-[11px] font-semibold leading-4 ${isDark ? "bg-white/[0.07] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]"}`}>
                           {item.details || `More useful details about ${item.title} will appear here as search data is connected.`}
                         </div>
                       )}
@@ -3119,9 +3121,9 @@ export default function MobileChat() {
                         ? "inline-block w-fit max-w-[78%] whitespace-pre-wrap rounded-[22px] px-4 py-3 text-white"
                         : isDark
                           ? "w-full px-1 py-1 text-white"
-                          : "w-full px-1 py-1 text-[#111827]"
+                          : "w-full px-1 py-1 text-[var(--bm-text-primary)]"
                     }`}
-                    style={item.role === "user" ? { backgroundColor: "var(--bluemind-chat-color, #193B68)" } : undefined}
+                    style={item.role === "user" ? { backgroundColor: "var(--bluemind-chat-color, var(--bm-primary))" } : undefined}
                   >
                     {item.role === "user" ? (
                       <>
@@ -3143,7 +3145,7 @@ export default function MobileChat() {
                     <motion.div
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`mt-2 flex flex-wrap items-center gap-1 px-1 transition-opacity duration-200 ${isDark ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                      className={`mt-2 flex flex-wrap items-center gap-1 px-1 transition-opacity duration-200 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}
                       data-testid={`message-actions-${item.id}`}
                     >
                       {[
@@ -3161,8 +3163,8 @@ export default function MobileChat() {
                           onClick={action.onClick}
                           className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-all duration-200 active:scale-[0.97] ${
                             action.active
-                              ? isDark ? "bg-white/10 text-white" : "bg-[#EEF2FF] text-[#193B68]"
-                              : isDark ? "active:bg-white/10 active:text-white" : "active:bg-[#F3F4F6] active:text-[#111827]"
+                              ? isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                              : isDark ? "active:bg-white/10 active:text-white" : "active:bg-[var(--bm-hover-bg)] active:text-[var(--bm-text-primary)]"
                           }`}
                           title={action.label}
                           aria-label={action.label}
@@ -3198,7 +3200,7 @@ export default function MobileChat() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.94 }}
               className={`fixed left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl ${
-                isDark ? "border-white/[0.12] bg-[#242424]/90 text-white active:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[#193B68] active:bg-white"
+                isDark ? "border-white/[0.12] bg-[var(--bm-bg-elevated)]/90 text-white active:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[var(--bm-primary)] active:bg-white"
               }`}
               style={{ bottom: "calc(env(safe-area-inset-bottom) + 128px)" }}
               aria-label="Scroll to bottom"
@@ -3253,10 +3255,10 @@ export default function MobileChat() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.96 }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className={`relative z-10 w-full max-w-[340px] rounded-[28px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-white bg-white text-[#111827]"}`}
+              className={`relative z-10 w-full max-w-[340px] rounded-[28px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-white bg-white text-[var(--bm-text-primary)]"}`}
             >
               <h3 className="text-base font-bold tracking-tight">Ask AI?</h3>
-              <p className={`mt-2 text-sm font-semibold leading-6 ${isDark ? "text-[#D7D7D7]" : "text-[#64748B]"}`}>
+              <p className={`mt-2 text-sm font-semibold leading-6 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
                 {searchConfirm.intent === "learn_more_about_selected_item" && searchConfirm.item
                   ? `Would you like BlueMind AI to help you learn more about ${searchConfirm.item.title}?`
                   : `Would you like BlueMind AI to help you find something that is not listed in ${searchConfirm.category.title}?`}
@@ -3265,14 +3267,14 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={() => setSearchConfirm(null)}
-                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#111827] active:bg-[#E2E8F0]"}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => void continueSearchWithAi()}
-                  className="h-11 rounded-2xl bg-[#193B68] text-sm font-bold text-white active:opacity-90"
+                  className="h-11 rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white active:opacity-90"
                 >
                   Continue
                 </button>
@@ -3327,15 +3329,15 @@ export default function MobileChat() {
               onTouchEnd={handleSheetTouchEnd}
               data-testid="mobile-attachment-sheet"
             >
-              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[#9CA3AF]/55" />
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/55" />
 
               <div className="grid gap-2">
                 <button
                   type="button"
                   onClick={enterImageMode}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
                     <Image className="h-5 w-5" />
                   </span>
                   <span>Create Image</span>
@@ -3344,9 +3346,9 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={enterWriteEditMode}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
                     <PenLine className="h-5 w-5" />
                   </span>
                   <span>Write /Edit</span>
@@ -3355,15 +3357,15 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={enterSearchMode}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
                     <Search className="h-5 w-5" />
                   </span>
                   <span>Search</span>
                 </button>
 
-                <div className={`my-2 h-px ${isDark ? "bg-white/[0.08]" : "bg-[#E5E7EB]"}`} />
+                <div className={`my-2 h-px ${isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]"}`} />
 
                 <button
                   type="button"
@@ -3371,9 +3373,9 @@ export default function MobileChat() {
                     enterImageMode();
                     openFileInput(cameraInputRef);
                   }}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
                     <Camera className="h-5 w-5" />
                   </span>
                   <span>Camera</span>
@@ -3386,9 +3388,9 @@ export default function MobileChat() {
                     closeAttachmentSheet();
                     setImageSourceSheetOpen(true);
                   }}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
                     <Image className="h-5 w-5" />
                   </span>
                   <span>Upload Image</span>
@@ -3397,9 +3399,9 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={() => openFileInput(fileInputRef)}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
                     <FileText className="h-5 w-5" />
                   </span>
                   <span>Upload File / PDF</span>
@@ -3437,7 +3439,7 @@ export default function MobileChat() {
               onTouchEnd={handleSheetTouchEnd}
               data-testid="mobile-image-source-sheet"
             >
-              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[#9CA3AF]/55" />
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/55" />
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-base font-bold">Add image</p>
@@ -3446,7 +3448,7 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={closeImageSourceSheet}
-                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                   aria-label="Close image source"
                 >
                   <X className="h-5 w-5" />
@@ -3457,9 +3459,9 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={() => openFileInput(imageInputRef)}
-                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 >
-                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
                     <Image className="h-5 w-5" />
                   </span>
                   <span>Choose Photo</span>
@@ -3468,9 +3470,9 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={() => openFileInput(cameraInputRef)}
-                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 >
-                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2F7] text-[#193B68]"}>
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
                     <Camera className="h-5 w-5" />
                   </span>
                   <span>Take Photo</span>
@@ -3489,14 +3491,14 @@ export default function MobileChat() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               className={`absolute left-1/2 top-1/2 w-[min(92vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border p-3 shadow-2xl backdrop-blur-xl ${
-                isDark ? "border-white/10 bg-[#202020]/95 text-white" : "border-[#E5E7EB] bg-white/95 text-[#111827]"
+                isDark ? "border-white/10 bg-[var(--bm-bg-card)]/95 text-white" : "border-[var(--bm-border)] bg-white/95 text-[var(--bm-text-primary)]"
               }`}
               onClick={(event) => event.stopPropagation()}
               data-testid={`dislike-feedback-${dislikeTarget.id}`}
             >
               <div className="px-2 pb-2 pt-1">
                 <p className="text-sm font-semibold">{t("tellUsMore")}</p>
-                <p className={`mt-1 text-xs ${isDark ? "text-[#aaa]" : "text-[#6B7280]"}`}>{t("feedbackHelps")}</p>
+                <p className={`mt-1 text-xs ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>{t("feedbackHelps")}</p>
               </div>
               <div className="space-y-1">
                 {DISLIKE_REASONS.map((reason) => (
@@ -3505,11 +3507,11 @@ export default function MobileChat() {
                     type="button"
                     onClick={() => handleDislikeReason(reason)}
                     className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition-colors ${
-                      isDark ? "active:bg-white/10" : "active:bg-[#F3F4F6]"
+                      isDark ? "active:bg-white/10" : "active:bg-[var(--bm-hover-bg)]"
                     }`}
                   >
                     {t(reason)}
-                    <span className={`h-1.5 w-1.5 rounded-full ${isDark ? "bg-white/30" : "bg-[#CBD5E1]"}`} />
+                    <span className={`h-1.5 w-1.5 rounded-full ${isDark ? "bg-white/30" : "bg-[var(--bm-border-strong)]"}`} />
                   </button>
                 ))}
               </div>
@@ -3528,7 +3530,7 @@ export default function MobileChat() {
             onClick={() => setPrivateSpaceModalOpen(false)}
           >
             <motion.div
-              className={`max-h-[82dvh] w-full overflow-y-auto rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]"}`}
+              className={`max-h-[82dvh] w-full overflow-y-auto rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]"}`}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -3572,7 +3574,7 @@ export default function MobileChat() {
                         <MoreVertical className="h-5 w-5" />
                       </button>
                       {privateSpaceActionMenuId === space.privateSpaceId && (
-                        <div className={`absolute right-2 top-12 z-10 w-36 rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/10 bg-[#2A2A2A]" : "border-black/10 bg-white"}`}>
+                        <div className={`absolute right-2 top-12 z-10 w-36 rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/10 bg-[var(--bm-bg-elevated)]" : "border-black/10 bg-white"}`}>
                           {[
                             ["Rename", () => { setSelectedPrivateSpace(space); setPrivateSpaceRenameName(space.name); setPrivateSpaceStep("rename"); }],
                             ["Change PIN", () => { setSelectedPrivateSpace(space); setPrivateSpacePinForm({ currentPin: "", newPin: "", confirmNewPin: "" }); setPrivateSpaceStep("changePin"); }],
@@ -3586,37 +3588,37 @@ export default function MobileChat() {
                       )}
                     </div>
                   ))}
-                  <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white" onClick={startCreatePrivateSpace}>Create Private Chat</button>
+                  <button type="button" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white" onClick={startCreatePrivateSpace}>Create Private Chat</button>
                 </div>
               )}
               {privateSpaceStep === "create" && (
                 <form className="space-y-3" onSubmit={handleCreatePrivateSpace}>
-                  <button type="button" className={isDark ? "text-sm font-bold text-[#A7C7FF]" : "text-sm font-bold text-[#193B68]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
-                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="Chat Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
-                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="PIN" inputMode="numeric" type="password" value={privateSpaceForm.pin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "") }))} />
-                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="Confirm PIN" inputMode="numeric" type="password" value={privateSpaceForm.confirmPin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, confirmPin: event.target.value.replace(/\D/g, "") }))} />
-                  <button type="submit" disabled={isCreatingPrivateSpace} className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white disabled:opacity-70">{isCreatingPrivateSpace ? "Creating..." : "Create"}</button>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Chat Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="PIN" inputMode="numeric" type="password" value={privateSpaceForm.pin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "") }))} />
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Confirm PIN" inputMode="numeric" type="password" value={privateSpaceForm.confirmPin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, confirmPin: event.target.value.replace(/\D/g, "") }))} />
+                  <button type="submit" disabled={isCreatingPrivateSpace} className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white disabled:opacity-70">{isCreatingPrivateSpace ? "Creating..." : "Create"}</button>
                 </form>
               )}
               {privateSpaceStep === "rename" && selectedPrivateSpace && (
                 <form className="space-y-3" onSubmit={handleRenamePrivateSpace}>
-                  <button type="button" className={isDark ? "text-sm font-bold text-[#A7C7FF]" : "text-sm font-bold text-[#193B68]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
-                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="Chat Name" value={privateSpaceRenameName} onChange={(event) => setPrivateSpaceRenameName(event.target.value)} />
-                  <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white">Save</button>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Chat Name" value={privateSpaceRenameName} onChange={(event) => setPrivateSpaceRenameName(event.target.value)} />
+                  <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white">Save</button>
                 </form>
               )}
               {privateSpaceStep === "changePin" && selectedPrivateSpace && (
                 <form className="space-y-3" onSubmit={handleChangePrivateSpacePin}>
-                  <button type="button" className={isDark ? "text-sm font-bold text-[#A7C7FF]" : "text-sm font-bold text-[#193B68]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
-                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="Current PIN" inputMode="numeric" type="password" value={privateSpacePinForm.currentPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, currentPin: event.target.value.replace(/\D/g, "") }))} />
-                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.newPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, newPin: event.target.value.replace(/\D/g, "") }))} />
-                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="Confirm New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.confirmNewPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, confirmNewPin: event.target.value.replace(/\D/g, "") }))} />
-                  <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white">Change PIN</button>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Current PIN" inputMode="numeric" type="password" value={privateSpacePinForm.currentPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, currentPin: event.target.value.replace(/\D/g, "") }))} />
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.newPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, newPin: event.target.value.replace(/\D/g, "") }))} />
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Confirm New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.confirmNewPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, confirmNewPin: event.target.value.replace(/\D/g, "") }))} />
+                  <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white">Change PIN</button>
                 </form>
               )}
               {privateSpaceStep === "delete" && privateSpaceDeleteTarget && (
                 <div className="space-y-4">
-                  <button type="button" className={isDark ? "text-sm font-bold text-[#A7C7FF]" : "text-sm font-bold text-[#193B68]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
                   <p className="text-base font-bold">Delete this private chat?</p>
                   <p className={`text-sm leading-6 ${mutedText}`}>All conversations inside it will be permanently deleted.</p>
                   <button type="button" className="w-full rounded-2xl bg-red-600 px-4 py-3 text-sm font-bold text-white" onClick={handleDeletePrivateSpace}>Delete</button>
@@ -3624,10 +3626,10 @@ export default function MobileChat() {
               )}
               {privateSpaceStep === "pin" && selectedPrivateSpace && (
                 <form className="space-y-3" onSubmit={handleUnlockPrivateSpace}>
-                  <button type="button" className={isDark ? "text-sm font-bold text-[#A7C7FF]" : "text-sm font-bold text-[#193B68]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
                   <h3 className="text-base font-bold">Enter PIN for {selectedPrivateSpace.name}</h3>
-                  <input className={`w-full rounded-2xl border px-4 py-3 outline-none ${isDark ? "border-white/10 bg-white/5 text-white" : "border-black/10 bg-white text-[#111827]"}`} placeholder="PIN" inputMode="numeric" type="password" value={privatePinInput} onChange={(event) => setPrivatePinInput(event.target.value.replace(/\D/g, ""))} />
-                  <button type="submit" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white">Unlock</button>
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="PIN" inputMode="numeric" type="password" value={privatePinInput} onChange={(event) => setPrivatePinInput(event.target.value.replace(/\D/g, ""))} />
+                  <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white">Unlock</button>
                 </form>
               )}
             </motion.div>
@@ -3636,7 +3638,7 @@ export default function MobileChat() {
 
         {hiddenChatModalOpen && (
           <motion.div className="fixed inset-0 z-[90] flex items-end bg-black/45 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setHiddenChatModalOpen(false)}>
-            <motion.div className={`w-full rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[#111827]"}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} onClick={(event) => event.stopPropagation()}>
+            <motion.div className={`w-full rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]"}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} onClick={(event) => event.stopPropagation()}>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-bold">Hidden Chat</h2>
                 <button type="button" className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full bg-white/10" : "flex h-10 w-10 items-center justify-center rounded-full bg-black/5"} onClick={() => setHiddenChatModalOpen(false)}>
@@ -3648,7 +3650,7 @@ Messages are not saved.
 It does not appear in History.
 It does not appear in Search.
 Everything will be deleted when you leave.</p>
-              <button type="button" className="w-full rounded-2xl bg-[#193B68] px-4 py-3 text-sm font-bold text-white" onClick={startHiddenChat}>Start Hidden Chat</button>
+              <button type="button" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white" onClick={startHiddenChat}>Start Hidden Chat</button>
             </motion.div>
           </motion.div>
         )}
@@ -3680,67 +3682,67 @@ Everything will be deleted when you leave.</p>
             data-testid="mobile-full-screen-menu"
           >
             <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
-              <div className="flex items-center gap-2.5">
-                <BrandLogo showName={false} small logoClassName="h-10 w-10" />
-                <h2 className="text-[21px] font-extrabold leading-tight tracking-tight">BlueMind AI</h2>
+              <div className={`flex items-center ${iconClasses.iconText}`}>
+                <BrandLogo showName={false} small logoClassName={iconClasses.sidebarLogo} />
+                <h2 className={`${typeClasses.cardTitle} font-extrabold leading-tight tracking-tight`}>BlueMind AI</h2>
               </div>
               <button
                 type="button"
                 onClick={closeMenu}
-                className={isDark ? "flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#111827] shadow-sm ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+                className={isDark ? "flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-[var(--bm-border)] active:bg-[var(--bm-hover-bg)]"}
                 aria-label="Close menu"
               >
-                <X className="h-6 w-6" />
+                <X className={iconClasses.sidebar} />
               </button>
             </div>
 
             <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
               <section className="space-y-1 py-2">
-                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>CHAT</p>
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>CHAT</p>
                 <button
                   type="button"
                   onClick={startNewChat}
-                  className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-white active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
                 >
-                  <Pencil className="h-5 w-5 shrink-0" />
+                  <Pencil className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>{t("newChat")}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={openMenuSearch}
-                  className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-white active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
                 >
-                  <Search className="h-5 w-5 shrink-0" />
+                  <Search className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>{t("search")}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => document.getElementById("mobile-history-chats")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-white active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
                 >
-                  <Clock3 className="h-5 w-5 shrink-0" />
+                  <Clock3 className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Recent Chats</span>
                 </button>
               </section>
 
               <section className="mt-5 space-y-1">
-                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>CHAT MODES</p>
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>CHAT MODES</p>
                 <button
                   type="button"
                   onClick={selectNormalChat}
-                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[#111827] active:bg-[#EEF2F7]"} flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold ${chatSessionMode === "normal" ? (isDark ? "bg-white/[0.08]" : "bg-[#E8F1FF]") : ""}`}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "normal" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
                 >
-                  <MessageSquare className="h-5 w-5 shrink-0" />
+                  <MessageSquare className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Normal Chat</span>
                 </button>
                 <button
                   type="button"
                   onClick={openPrivateChatModal}
-                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[#111827] active:bg-[#EEF2F7]"} flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold ${chatSessionMode === "private" ? (isDark ? "bg-white/[0.08]" : "bg-[#E8F1FF]") : ""}`}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "private" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
                 >
-                  <Lock className="h-5 w-5 shrink-0" />
+                  <Lock className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Private Chat</span>
                 </button>
                 <button
@@ -3749,41 +3751,41 @@ Everything will be deleted when you leave.</p>
                     closeMenu();
                     setHiddenChatModalOpen(true);
                   }}
-                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[#111827] active:bg-[#EEF2F7]"} flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold ${chatSessionMode === "hidden" ? (isDark ? "bg-white/[0.08]" : "bg-[#E8F1FF]") : ""}`}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "hidden" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
                 >
-                  <Glasses className="h-5 w-5 shrink-0" />
+                  <Glasses className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Hidden Chat</span>
                 </button>
               </section>
 
               <section className="mt-5 space-y-1">
-                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>BLUEMIND</p>
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>BLUEMIND</p>
                 {bluemindMenuItems.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => runMenuAction(item)}
-                    className={isDark ? "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#F5F5F5] active:bg-white/[0.08]" : "flex min-h-[50px] w-full items-center gap-3 rounded-2xl text-left text-[15px] font-semibold text-[#111827] active:bg-[#EEF2F7]"}
+                    className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
                   >
-                    <item.icon className="h-5 w-5 shrink-0" />
+                    <item.icon className={`shrink-0 ${iconClasses.sidebar}`} />
                     <span>{item.label}</span>
                   </button>
                 ))}
               </section>
 
               <section id="mobile-history-chats" className="mt-6">
-                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>HISTORY</p>
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>HISTORY</p>
 
                 {isLoadingConversations && (
-                  <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("loadingConversation")}</div>
+                  <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("loadingConversation")}</div>
                 )}
 
                 {!isLoadingConversations && historyError && (
-                  <div className="py-3 text-sm font-medium text-red-500">{historyError}</div>
+                  <div className={`py-3 font-medium text-red-500 ${typeClasses.small}`}>{historyError}</div>
                 )}
 
                 {!isLoadingConversations && !historyError && conversations.length === 0 && (
-                  <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("noChatsFound")}</div>
+                  <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("noChatsFound")}</div>
                 )}
 
                 {conversations.slice(0, 18).map((item) => renderMobileConversationRow(item, "menu"))}
@@ -3820,35 +3822,35 @@ Everything will be deleted when you leave.</p>
               <button
                 type="button"
                 onClick={closeMenuSearch}
-                className={isDark ? "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}
+                className={isDark ? "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 aria-label="Back to menu"
               >
-                <ChevronDown className="h-5 w-5 rotate-90" />
+                <ChevronDown className={`rotate-90 ${iconClasses.button}`} />
               </button>
-              <h2 className="text-[22px] font-extrabold tracking-tight">Search</h2>
+              <h2 className={`${typeClasses.sectionTitle} font-extrabold tracking-tight`}>Search</h2>
               <button
                 type="button"
                 onClick={closeMenuSearch}
-                className={isDark ? "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#111827] shadow-sm ring-1 ring-[#E5E7EB] active:bg-[#EEF2F7]"}
+                className={isDark ? "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-[var(--bm-border)] active:bg-[var(--bm-hover-bg)]"}
                 aria-label="Close search"
               >
-                <X className="h-5 w-5" />
+                <X className={iconClasses.button} />
               </button>
             </div>
 
             <div className="shrink-0 px-5 pb-4">
-              <label className={`flex h-14 items-center gap-3 rounded-[24px] border px-4 shadow-sm ${isDark ? "border-white/[0.08] bg-white/[0.07]" : "border-[#E5E7EB] bg-white"}`}>
-                <Search className={isDark ? "h-5 w-5 shrink-0 text-white" : "h-5 w-5 shrink-0 text-[#193B68]"} />
+              <label className={`flex h-14 items-center rounded-[24px] border px-4 shadow-sm ${iconClasses.iconText} ${isDark ? "border-white/[0.08] bg-white/[0.07]" : "border-[var(--bm-border)] bg-white"}`}>
+                <Search className={isDark ? `shrink-0 text-white ${iconClasses.sidebar}` : `shrink-0 text-[var(--bm-primary)] ${iconClasses.sidebar}`} />
                 <input
                   ref={searchInputRef}
                   value={menuSearchQuery}
                   onChange={(event) => setMenuSearchQuery(event.target.value)}
                   placeholder={t("searchConversations")}
-                  className={`min-w-0 flex-1 bg-transparent text-[17px] font-semibold outline-none placeholder:text-[#9CA3AF] ${textColor}`}
+                  className={`min-w-0 flex-1 bg-transparent font-semibold outline-none placeholder:text-[var(--bm-text-muted)] ${typeClasses.body} ${textColor}`}
                 />
                 {menuSearchQuery && (
-                  <button type="button" onClick={() => setMenuSearchQuery("")} className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 items-center justify-center rounded-full text-[#111827] active:bg-[#EEF2F7]"}>
-                    <X className="h-4 w-4" />
+                  <button type="button" onClick={() => setMenuSearchQuery("")} className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}>
+                    <X className={iconClasses.button} />
                   </button>
                 )}
               </label>
@@ -3856,19 +3858,19 @@ Everything will be deleted when you leave.</p>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
               <section className="mb-6">
-                <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>Recent Chats</p>
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>Recent Chats</p>
                 {isSearching && menuSearchQuery.trim() && (
-                  <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("searching")}</div>
+                  <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("searching")}</div>
                 )}
                 {!isSearching && visibleConversations.length === 0 && (
-                  <div className={`py-3 text-sm font-medium ${mutedText}`}>{t("noChatsFound")}</div>
+                  <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("noChatsFound")}</div>
                 )}
                 {visibleConversations.slice(0, 24).map((item) => renderMobileConversationRow(item, "search-recent"))}
               </section>
 
               {!menuSearchQuery.trim() && pinnedConversations.length > 0 && (
                 <section>
-                  <p className={`pb-2 text-xs font-bold uppercase tracking-wide ${mutedText}`}>Pinned Chats</p>
+                  <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>Pinned Chats</p>
                   {pinnedConversations.map((item) => renderMobileConversationRow(item, "search-pinned"))}
                 </section>
               )}
@@ -3894,13 +3896,13 @@ Everything will be deleted when you leave.</p>
               initial={{ opacity: 0, y: 14, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.96 }}
-              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}
+              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
             >
               <h3 className="text-base font-bold">Rename chat</h3>
               <input
                 value={renameTitle}
                 onChange={(event) => setRenameTitle(event.target.value.slice(0, 120))}
-                className={`mt-4 h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none ${isDark ? "border-white/[0.1] bg-white/[0.06] text-white placeholder:text-[#9CA3AF]" : "border-[#E5E7EB] bg-white text-[#111827] placeholder:text-[#9CA3AF]"}`}
+                className="bm-field bm-input-interactive mt-4 font-semibold"
                 placeholder="Chat title"
                 autoFocus
                 data-testid="mobile-rename-chat-input"
@@ -3909,14 +3911,14 @@ Everything will be deleted when you leave.</p>
                 <button
                   type="button"
                   onClick={() => setRenameTarget(null)}
-                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#111827] active:bg-[#E2E8F0]"}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!renameTitle.trim()}
-                  className="h-11 rounded-2xl bg-[#193B68] text-sm font-bold text-white disabled:opacity-50"
+                  className="h-11 rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white disabled:opacity-50"
                 >
                   Save
                 </button>
@@ -3942,7 +3944,7 @@ Everything will be deleted when you leave.</p>
               initial={{ opacity: 0, y: 14, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.96 }}
-              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]"}`}
+              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
             >
               <h3 className="text-base font-bold">Delete chat?</h3>
               <p className={`mt-2 text-sm font-semibold leading-6 ${mutedText}`}>
@@ -3952,7 +3954,7 @@ Everything will be deleted when you leave.</p>
                 <button
                   type="button"
                   onClick={() => setDeleteTarget(null)}
-                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[#EEF2F7] text-sm font-bold text-[#111827] active:bg-[#E2E8F0]"}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
                 >
                   Cancel
                 </button>

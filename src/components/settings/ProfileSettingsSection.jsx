@@ -5,14 +5,15 @@ import { Camera, ImagePlus, Trash2 } from "lucide-react";
 import { getApiErrorMessage } from "@/services/api";
 import { getProfile, updateProfile } from "@/services/profileService";
 import { readStoredUser } from "@/services/storageKeys";
+import { inputClasses, typeClasses } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
 
 const AVATAR_COLORS = [
-  "#193B68",
+  "var(--bm-primary)",
   "#2563EB",
-  "#059669",
-  "#EA580C",
-  "#DC2626",
+  "var(--bm-success)",
+  "var(--bm-warning)",
+  "var(--bm-error)",
   "#7C3AED",
   "#0891B2",
   "#BE123C",
@@ -176,9 +177,9 @@ export default function ProfileSettingsSection({ mobile = false, isDark = false 
     }
   };
 
-  const pageText = isDark ? "text-white" : "text-[#111827]";
-  const mutedText = isDark ? "text-[#A7A7A7]" : "text-[#64748B]";
-  const rowBorder = isDark ? "border-white/[0.08]" : "border-[#E5E7EB]";
+  const pageText = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
+  const mutedText = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
+  const rowBorder = isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]";
   const fieldBg = isDark ? "bg-white/[0.05]" : "bg-white";
 
   return (
@@ -226,10 +227,9 @@ export default function ProfileSettingsSection({ mobile = false, isDark = false 
             onChange={handleBirthdayChange}
             disabled={savingBirthday}
             className={cn(
-              "min-h-11 rounded-xl border px-3 text-sm font-bold outline-none transition-colors",
-              isDark
-                ? "border-white/[0.12] bg-[#1f1f1f] text-white focus:border-white/30"
-                : "border-[#CBD5E1] bg-[#F8FAFC] text-[#111827] focus:border-[#193B68]",
+              inputClasses.compact,
+              typeClasses.small,
+              "font-bold",
             )}
             data-testid="profile-birthday-input"
           />
@@ -250,7 +250,7 @@ export default function ProfileSettingsSection({ mobile = false, isDark = false 
           <div
             className={cn(
               "w-full max-w-sm rounded-[26px] border p-4 shadow-2xl",
-              isDark ? "border-white/[0.10] bg-[#202020] text-white" : "border-[#E5E7EB] bg-white text-[#111827]",
+              isDark ? "border-white/[0.10] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]",
             )}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
@@ -262,7 +262,7 @@ export default function ProfileSettingsSection({ mobile = false, isDark = false 
                 type="button"
                 onClick={() => takePhotoRef.current?.click()}
                 disabled={savingAvatar}
-                className={cn("flex min-h-12 w-full items-center gap-3 rounded-2xl px-4 text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#F1F5F9]")}
+                className={cn("flex min-h-12 w-full items-center gap-3 rounded-2xl px-4 text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
               >
                 <Camera className="h-5 w-5" />
                 Take Photo
@@ -271,7 +271,7 @@ export default function ProfileSettingsSection({ mobile = false, isDark = false 
                 type="button"
                 onClick={() => choosePhotoRef.current?.click()}
                 disabled={savingAvatar}
-                className={cn("flex min-h-12 w-full items-center gap-3 rounded-2xl px-4 text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[#F1F5F9]")}
+                className={cn("flex min-h-12 w-full items-center gap-3 rounded-2xl px-4 text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
               >
                 <ImagePlus className="h-5 w-5" />
                 Choose Photo
