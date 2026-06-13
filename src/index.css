@@ -572,6 +572,29 @@ select:focus-visible {
   outline: none;
 }
 
+.bm-composer-input,
+.bm-composer-input:hover,
+.bm-composer-input:focus,
+.bm-composer-input:focus-visible {
+  appearance: none;
+  background: transparent !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.bm-composer-input {
+  color: var(--bm-text-primary);
+  caret-color: var(--bm-input-caret);
+}
+
+.bm-composer-input::placeholder {
+  color: var(--bm-input-placeholder);
+  opacity: 0.9;
+}
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
