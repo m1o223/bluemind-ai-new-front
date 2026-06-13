@@ -568,6 +568,8 @@ export default function MobileChat() {
   const streamAbortRef = useRef(null);
   const stopRequestedRef = useRef(false);
   const activeAiMessageRef = useRef(null);
+  const sendLockRef = useRef(false);
+  const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
   const speechRecognitionRef = useRef(null);
   const loadedConversationRef = useRef(null);
 
@@ -1599,21 +1601,6 @@ export default function MobileChat() {
     ].filter(Boolean).join("\n\n");
   };
 
-  const stopChatGeneration = () => {
-    stopRequestedRef.current = true;
-    streamAbortRef.current?.abort();
-    streamAbortRef.current = null;
-    activeAiMessageRef.current = null;
-    setIsChatSending(false);
-    setMessages((current) =>
-      current.map((item) =>
-        item.isStreaming
-          ? { ...item, isStreaming: false }
-          : item,
-      ),
-    );
-  };
-
   const stopVoiceInput = useCallback(() => {
     speechRecognitionRef.current?.stop?.();
     speechRecognitionRef.current = null;
@@ -1678,6 +1665,60 @@ export default function MobileChat() {
     recognition.start();
   }, [isListening, message, prefs?.language, resizeChatComposer, stopVoiceInput, uiLanguage]);
 
+  const appendAiDelta = useCallback((messageId, token) => {
+    setMessages((current) =>
+      current.map((item) =>
+        item.id === messageId
+          ? { ...item, content: `${item.content || ""}${token || ""}` }
+          : item,
+      ),
+    );
+  }, []);
+
+  const flushAiDelta = useCallback((messageId = activeAiMessageRef.current) => {
+    const buffered = streamBufferRef.current;
+    if (buffered.timer) {
+      window.clearTimeout(buffered.timer);
+    }
+
+    if (buffered.text && (buffered.messageId || messageId)) {
+      appendAiDelta(buffered.messageId || messageId, buffered.text);
+    }
+
+    streamBufferRef.current = { messageId: null, text: "", timer: null };
+  }, [appendAiDelta]);
+
+  const queueAiDelta = useCallback((messageId, token) => {
+    if (!token) return;
+
+    const buffered = streamBufferRef.current;
+    buffered.messageId = messageId;
+    buffered.text += token;
+
+    if (buffered.timer) return;
+
+    buffered.timer = window.setTimeout(() => {
+      flushAiDelta(messageId);
+    }, 90);
+  }, [flushAiDelta]);
+
+  const stopChatGeneration = useCallback(() => {
+    stopRequestedRef.current = true;
+    streamAbortRef.current?.abort();
+    flushAiDelta();
+    streamAbortRef.current = null;
+    activeAiMessageRef.current = null;
+    sendLockRef.current = false;
+    setIsChatSending(false);
+    setMessages((current) =>
+      current.map((item) =>
+        item.isStreaming
+          ? { ...item, isStreaming: false }
+          : item,
+      ),
+    );
+  }, [flushAiDelta]);
+
   const sendChatPrompt = useCallback(async ({
     prompt,
     keepComposer = false,
@@ -1693,12 +1734,18 @@ export default function MobileChat() {
       : visibleMessage;
     const isSearchHandoff = String(metadata?.source || metadata?.searchContext?.source || "").toLowerCase() === "search";
     const canStartFromContext = isSearchHandoff && metadata?.intent && (metadata?.category || metadata?.searchContext?.category);
-    if ((!currentMessage && !canStartFromContext) || isGeneratingImage || isChatSending) return;
+    if ((!currentMessage && !canStartFromContext) || isGeneratingImage || isChatSending || sendLockRef.current) return;
+    sendLockRef.current = true;
+    setIsChatSending(true);
     if (isListening) stopVoiceInput();
 
     const selectedMode = normalizeAiModeId(mode || responseMode);
     const authenticated = await ensureMobileChatAuth();
-    if (!authenticated) return;
+    if (!authenticated) {
+      sendLockRef.current = false;
+      setIsChatSending(false);
+      return;
+    }
     const userMessageId = crypto.randomUUID();
     const aiMessageId = crypto.randomUUID();
     const userMetadata = {
@@ -1740,7 +1787,6 @@ export default function MobileChat() {
       setSearchConfirm(null);
     }
 
-    setIsChatSending(true);
     setImageModeError("");
     stopRequestedRef.current = false;
     activeAiMessageRef.current = aiMessageId;
@@ -1774,16 +1820,10 @@ export default function MobileChat() {
           }
         },
         onDelta: (payload) => {
-          if (!payload?.token) return;
-          setMessages((current) =>
-            current.map((item) =>
-              item.id === aiMessageId
-                ? { ...item, content: `${item.content || ""}${payload.token}` }
-                : item,
-            ),
-          );
+          queueAiDelta(aiMessageId, payload?.token);
         },
         onComplete: (payload) => {
+          flushAiDelta(aiMessageId);
           if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
             setSearchParams({ conversation: payload.conversation.conversationId });
           }
@@ -1797,6 +1837,7 @@ export default function MobileChat() {
         },
       });
     } catch (error) {
+      flushAiDelta(aiMessageId);
       if (stopRequestedRef.current || error?.name === "AbortError" || controller.signal.aborted) {
         setMessages((current) =>
           current.map((item) =>
@@ -1824,8 +1865,9 @@ export default function MobileChat() {
       }
       stopRequestedRef.current = false;
       setIsChatSending(false);
+      sendLockRef.current = false;
     }
-  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, isChatSending, isGeneratingImage, isListening, privateSpaceAccessToken, responseMode, setSearchParams, stopVoiceInput, writeAttachments]);
+  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, isChatSending, isGeneratingImage, isListening, privateSpaceAccessToken, queueAiDelta, responseMode, setSearchParams, stopVoiceInput, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -3106,8 +3148,11 @@ export default function MobileChat() {
           {messages.length > 0 && (
             <div className="space-y-4 pb-4">
               {messages.map((item, index) => (
-                <div
+                <motion.div
                   key={item.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   className={item.role === "user" ? "flex justify-end" : "w-full"}
                 >
                   <div
@@ -3170,7 +3215,7 @@ export default function MobileChat() {
                       ))}
                     </motion.div>
                   )}
-                </div>
+                </motion.div>
               ))}
               <div ref={messagesEndRef} />
             </div>

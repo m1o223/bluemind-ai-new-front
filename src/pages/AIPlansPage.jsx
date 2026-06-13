@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 
 import { useApp } from "@/context/AppContext";
+import ThinkingIndicator from "@/components/ThinkingIndicator";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, motionTokens, spacingClasses, typeClasses } from "@/lib/interactions";
 import {
@@ -461,7 +462,10 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState(draftContext?.attachments || []);
   const [generating, setGenerating] = useState(false);
+  const [isPlanningAiThinking, setIsPlanningAiThinking] = useState(false);
   const [generationStep, setGenerationStep] = useState(0);
+  const planningResponseTimerRef = useRef(null);
+  const planningSendLockRef = useRef(false);
   const enough = hasEnoughPlanContext(goal, answers);
 
   useEffect(() => {
@@ -472,25 +476,43 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
     return () => window.clearInterval(interval);
   }, [generating]);
 
+  useEffect(() => () => {
+    if (planningResponseTimerRef.current) {
+      window.clearTimeout(planningResponseTimerRef.current);
+    }
+  }, []);
+
   const submitAnswer = (nextInput = input) => {
     const clean = String(nextInput || "").trim();
-    if (!clean || generating) return;
+    if (!clean || generating || isPlanningAiThinking || planningSendLockRef.current) return;
+    planningSendLockRef.current = true;
     const nextAnswers = [...answers, { question: getPlanningQuestions(goal, answers), content: clean }];
     const nextQuestion = getPlanningQuestions(goal, nextAnswers);
-    const nextMessages = [...messages, { role: "user", content: clean }];
-    if (nextQuestion) {
-      nextMessages.push({ role: "ai", content: nextQuestion, suggestions: [] });
-    }
-    if (hasEnoughPlanContext(goal, nextAnswers)) {
-      nextMessages.push({ role: "ai", content: "I have enough information now. Would you like me to generate your plan?", suggestions: [] });
-    }
+    const nextMessages = [...messages, { role: "user", content: clean }, { role: "ai", content: "", isThinking: true }];
     setAnswers(nextAnswers);
     setMessages(nextMessages);
     setInput("");
+    setIsPlanningAiThinking(true);
+
+    planningResponseTimerRef.current = window.setTimeout(() => {
+      const aiMessages = [];
+    if (nextQuestion) {
+        aiMessages.push({ role: "ai", content: nextQuestion, suggestions: [] });
+    }
+    if (hasEnoughPlanContext(goal, nextAnswers)) {
+        aiMessages.push({ role: "ai", content: "I have enough information now. Would you like me to generate your plan?", suggestions: [] });
+    }
+      setMessages((current) => [
+        ...current.filter((message) => !message.isThinking),
+        ...aiMessages,
+      ]);
+      setIsPlanningAiThinking(false);
+      planningSendLockRef.current = false;
+    }, 220);
   };
 
   const generate = () => {
-    if (!enough || generating) return;
+    if (!enough || generating || isPlanningAiThinking) return;
     setGenerating(true);
     setGenerationStep(0);
     window.setTimeout(() => onCreate(createAIPlanFromConversation(goal, answers, {
@@ -514,7 +536,7 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
         <button
           type="button"
           onClick={generate}
-          disabled={!enough || generating}
+          disabled={!enough || generating || isPlanningAiThinking}
           className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-bold disabled:cursor-not-allowed disabled:opacity-55", iconClasses.iconText, typeClasses.small, interactionClasses.control, !enough && (isDark ? "bg-white/[0.07] text-[var(--bm-text-muted)]" : "bg-[var(--bm-border)] text-[var(--bm-text-secondary)]"))}
           style={enough ? { backgroundColor: appColor, color: accentText } : undefined}
         >
@@ -539,25 +561,31 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
                 key={`${message.role}-${index}-${message.content}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
               >
-                <div className={cn("max-w-[86%] font-semibold", typeClasses.body, message.role === "user" ? "rounded-3xl px-4 py-3 text-white" : "px-1 py-2 text-[var(--bm-text-primary)]")} style={message.role === "user" ? { backgroundColor: appColor, color: accentText } : undefined}>
-                  <p className="whitespace-pre-wrap leading-7">{message.content}</p>
-                  {message.suggestions?.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {message.suggestions.map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onClick={() => submitAnswer(suggestion)}
-                          className={cn("rounded-full border px-3 py-2 font-bold", typeClasses.small, interactionClasses.menuItem, isDark ? "border-white/[0.08] bg-white/[0.06]" : "border-[var(--bm-border)] bg-white")}
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {message.isThinking ? (
+                  <ThinkingIndicator className="mb-0" />
+                ) : (
+                  <div className={cn("max-w-[86%] font-semibold", typeClasses.body, message.role === "user" ? "rounded-3xl px-4 py-3 text-white" : "px-1 py-2 text-[var(--bm-text-primary)]")} style={message.role === "user" ? { backgroundColor: appColor, color: accentText } : undefined}>
+                    <p className="whitespace-pre-wrap leading-7">{message.content}</p>
+                    {message.suggestions?.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {message.suggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => submitAnswer(suggestion)}
+                            className={cn("rounded-full border px-3 py-2 font-bold", typeClasses.small, interactionClasses.menuItem, isDark ? "border-white/[0.08] bg-white/[0.06]" : "border-[var(--bm-border)] bg-white")}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </motion.div>
             ))}
           </AnimatePresence>
@@ -581,7 +609,7 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
             isDark={isDark}
             appColor={appColor}
             accentText={accentText}
-            disabled={generating}
+            disabled={generating || isPlanningAiThinking}
           />
         </div>
       </section>

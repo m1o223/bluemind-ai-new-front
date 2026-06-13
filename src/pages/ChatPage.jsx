@@ -1338,7 +1338,7 @@ const ChatMessage = memo(function ChatMessage({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={cn("group flex w-full mb-9", isUser ? "justify-end" : "justify-start")}
       data-testid={`chat-message-${message.role}`}
     >
@@ -1531,6 +1531,7 @@ export default function ChatPage() {
   const streamAbortRef = useRef(null);
   const speechRecognitionRef = useRef(null);
   const activeAiMessageRef = useRef(null);
+  const sendLockRef = useRef(false);
   const stopRequestedRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
   const { prefs, t, resolvedTheme } = useApp();
@@ -2375,7 +2376,7 @@ export default function ChatPage() {
 
     buffered.timer = window.setTimeout(() => {
       flushAiDelta(messageId);
-    }, 32);
+    }, 90);
   }, [flushAiDelta]);
 
   const handleStopStreaming = useCallback(() => {
@@ -2397,6 +2398,7 @@ export default function ChatPage() {
     }
 
     setIsAiTyping(false);
+    sendLockRef.current = false;
     streamAbortRef.current = null;
     activeAiMessageRef.current = null;
   }, [flushAiDelta, isAiTyping]);
@@ -2477,7 +2479,8 @@ export default function ChatPage() {
     const isSearchHandoff = String(requestMetadata?.source || requestMetadata?.searchContext?.source || "").toLowerCase() === "search";
     const canStartFromContext = isSearchHandoff && requestMetadata?.intent && (requestMetadata?.category || requestMetadata?.searchContext?.category);
 
-    if ((!currentInput && currentAttachments.length === 0 && !canStartFromContext) || isAiTyping) return;
+    if ((!currentInput && currentAttachments.length === 0 && !canStartFromContext) || isAiTyping || sendLockRef.current) return;
+    sendLockRef.current = true;
     if (isListening) stopVoiceInput();
 
     const imageIds = currentAttachments.map((item) => item.id);
@@ -2684,6 +2687,7 @@ export default function ChatPage() {
       );
     } finally {
       setIsAiTyping(false);
+      sendLockRef.current = false;
       streamAbortRef.current = null;
       activeAiMessageRef.current = null;
       stopRequestedRef.current = false;

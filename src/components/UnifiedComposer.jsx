@@ -1,4 +1,5 @@
 import { useLayoutEffect } from "react";
+import { motion } from "framer-motion";
 import { ArrowUp, FileText, Mic, Plus, Square, X } from "lucide-react";
 
 import { inputClasses } from "@/lib/interactions";
@@ -245,10 +246,12 @@ export default function UnifiedComposer({
             <Mic className={isMobile ? "h-5 w-5" : "h-[19px] w-[19px]"} />
           </button>
 
-          <button
+          <motion.button
             type={isBusy ? "button" : "submit"}
             onClick={onSendAction}
             disabled={!isBusy && !canSend}
+            whileTap={!isBusy && canSend ? { scale: 0.92 } : undefined}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
               "ml-1.5 flex shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] transition-colors duration-200 disabled:cursor-not-allowed",
               isMobile ? "h-8 w-8" : "h-[42px] w-[42px]",
@@ -264,7 +267,7 @@ export default function UnifiedComposer({
             ) : (
               <ArrowUp className={isMobile ? "h-[19px] w-[18px] -translate-y-[1px] scale-y-[1.06] stroke-[3]" : "h-[20px] w-[20px] -translate-y-[1px] scale-y-[1.08] stroke-[2.5]"} />
             )}
-          </button>
+          </motion.button>
         </div>
       </div>
       </div>
