@@ -441,6 +441,31 @@ function resolveMobileAttachmentPreview(attachment) {
   return "";
 }
 
+function splitMobileUserImageTextMessage(message) {
+  const attachments = Array.isArray(message?.attachments) ? message.attachments.filter((attachment) => resolveMobileAttachmentPreview(attachment)) : [];
+  const content = String(message?.content || "").trim();
+
+  if (message?.role !== "user" || !attachments.length || !content) {
+    return [message];
+  }
+
+  return [
+    {
+      ...message,
+      id: `${message.id}:images`,
+      content: "",
+      attachments,
+      metadata: { ...(message.metadata || {}), splitFromMessageId: message.id, splitKind: "images" },
+    },
+    {
+      ...message,
+      id: `${message.id}:text`,
+      attachments: [],
+      metadata: { ...(message.metadata || {}), splitFromMessageId: message.id, splitKind: "text" },
+    },
+  ];
+}
+
 function MobileMessageAttachments({ attachments = [] }) {
   const visibleAttachments = attachments.filter((attachment) => resolveMobileAttachmentPreview(attachment));
 
@@ -468,6 +493,9 @@ function MobileMessageAttachments({ attachments = [] }) {
               className="max-h-[210px] w-full object-cover"
               draggable="false"
               loading="lazy"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
             />
           </button>
         );
@@ -487,7 +515,7 @@ function mapMobileConversationMessages(conversation) {
       ...attachment,
       previewUrl: resolveMobileAttachmentPreview(attachment),
     })),
-  }));
+  })).flatMap(splitMobileUserImageTextMessage);
 }
 
 export default function MobileChat() {
@@ -1757,14 +1785,32 @@ export default function MobileChat() {
       chatMode: activeWriteTask ? "write_edit" : metadata.chatMode || "chat",
       writeEditTask: activeWriteTask || undefined,
     };
+    const userDisplayAttachments = displayAttachments.length ? displayAttachments : writeAttachments;
+    const userDisplayMessages = hideUserMessage
+      ? []
+      : [
+          ...(userDisplayAttachments.length ? [{
+            id: crypto.randomUUID(),
+            role: "user",
+            content: "",
+            attachments: userDisplayAttachments,
+            metadata: { ...userMetadata, splitKind: "images" },
+          }] : []),
+          ...(visibleMessage ? [{
+            id: userMessageId,
+            role: "user",
+            content: visibleMessage,
+            attachments: [],
+            metadata: { ...userMetadata, splitKind: "text" },
+          }] : []),
+        ];
 
     setMessages((current) => [
       ...current,
-      ...(!hideUserMessage && visibleMessage
-        ? [{ id: userMessageId, role: "user", content: visibleMessage, attachments: displayAttachments.length ? displayAttachments : writeAttachments, metadata: userMetadata }]
-        : []),
+      ...userDisplayMessages,
       { id: aiMessageId, role: "ai", content: "", isStreaming: true, metadata: { ...userMetadata, requestContent: visibleMessage } },
     ]);
+    window.requestAnimationFrame(() => scrollToBottom("smooth"));
 
     if (!keepComposer) {
       setMessage("");
@@ -1867,7 +1913,7 @@ export default function MobileChat() {
       setIsChatSending(false);
       sendLockRef.current = false;
     }
-  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, isChatSending, isGeneratingImage, isListening, privateSpaceAccessToken, queueAiDelta, responseMode, setSearchParams, stopVoiceInput, writeAttachments]);
+  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, isChatSending, isGeneratingImage, isListening, privateSpaceAccessToken, queueAiDelta, responseMode, scrollToBottom, setSearchParams, stopVoiceInput, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -2029,13 +2075,14 @@ export default function MobileChat() {
 
   const handleComposerSubmit = async (event) => {
     event.preventDefault();
-    if (!hasComposerContent || isGeneratingImage || isChatSending) return;
+    if (!hasComposerContent || isGeneratingImage || isChatSending || sendLockRef.current) return;
 
     if (!isImageMode) {
       const currentMessage = message.trim();
       if (!currentMessage && attachedImages.length === 0) return;
       const uploadedImages = [];
       if (attachedImages.length > 0) {
+        sendLockRef.current = true;
         setIsChatSending(true);
         try {
           for (const attachment of attachedImages) {
@@ -2048,11 +2095,13 @@ export default function MobileChat() {
             }
           }
         } catch (error) {
+          sendLockRef.current = false;
           setIsChatSending(false);
           toast.error(error.message || "Image upload failed");
           return;
         }
         setIsChatSending(false);
+        sendLockRef.current = false;
       }
       await sendChatPrompt({
         prompt: currentMessage || "Please analyze these images.",
@@ -3147,76 +3196,84 @@ export default function MobileChat() {
 
           {messages.length > 0 && (
             <div className="space-y-4 pb-4">
-              {messages.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className={item.role === "user" ? "flex justify-end" : "w-full"}
-                >
-                  <div
-                    dir="auto"
-                    className={`break-words text-sm font-medium leading-6 ${
-                      item.role === "user"
-                        ? "inline-block w-fit max-w-[78%] whitespace-pre-wrap rounded-[22px] px-4 py-3 text-white"
-                        : isDark
-                          ? "w-full px-1 py-1 text-white"
-                          : "w-full px-1 py-1 text-[var(--bm-text-primary)]"
-                    }`}
-                    style={item.role === "user" ? { backgroundColor: "var(--bluemind-chat-color, var(--bm-primary))" } : undefined}
-                  >
-                    {item.role === "user" ? (
-                      <>
-                        <MobileMessageAttachments attachments={item.attachments || []} />
-                        {item.content ? <div className="whitespace-pre-wrap">{item.content}</div> : null}
-                      </>
-                    ) : item.isStreaming && !item.content ? (
-                      <ThinkingIndicator responseMode={item.metadata?.aiMode || item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
-                    ) : (
-                      <MessageResponse
-                        message={item}
-                        previousUserContent={getPreviousUserContent(index)}
-                        className="text-[15px] leading-[1.85]"
-                      />
-                    )}
-                  </div>
+              {messages.map((item, index) => {
+                const hasAttachments = Array.isArray(item.attachments) && item.attachments.length > 0;
+                const hasText = Boolean(String(item.content || "").trim());
+                const isImageOnlyUser = item.role === "user" && hasAttachments && !hasText;
 
-                  {item.role !== "user" && !item.isStreaming && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`mt-2 flex flex-wrap items-center gap-1 px-1 transition-opacity duration-200 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}
-                      data-testid={`message-actions-${item.id}`}
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className={item.role === "user" ? "flex justify-end" : "w-full"}
+                  >
+                    <div
+                      dir="auto"
+                      className={`break-words text-sm font-medium leading-6 ${
+                        isImageOnlyUser
+                          ? "inline-block w-fit max-w-[78%]"
+                          : item.role === "user"
+                            ? "inline-block w-fit max-w-[78%] whitespace-pre-wrap rounded-[22px] px-4 py-3 text-white"
+                            : isDark
+                              ? "w-full px-1 py-1 text-white"
+                              : "w-full px-1 py-1 text-[var(--bm-text-primary)]"
+                      }`}
+                      style={item.role === "user" && !isImageOnlyUser ? { backgroundColor: "var(--bluemind-chat-color, var(--bm-primary))" } : undefined}
                     >
-                      {[
-                        { id: "copy", icon: messageFeedback[item.id]?.copied ? Check : Clipboard, label: t("copy"), onClick: () => handleCopyMessage(item) },
-                        { id: "like", icon: ThumbsUp, label: t("like"), onClick: () => handleLikeMessage(item), active: messageFeedback[item.id]?.rating === "like" },
-                        { id: "dislike", icon: ThumbsDown, label: t("dislike"), onClick: () => handleDislikeMessage(item), active: messageFeedback[item.id]?.rating === "dislike" },
-                        { id: "edit", icon: Edit3, label: t("edit"), onClick: () => handleEditMessage(item) },
-                        { id: "regenerate", icon: RotateCcw, label: t("regenerate"), onClick: () => handleRegenerateMessage(item) },
-                        { id: "share", icon: Share2, label: t("share"), onClick: () => handleShareMessage(item) },
-                        { id: "more", icon: MoreVertical, label: t("more"), onClick: handleMoreMessage },
-                      ].map((action) => (
-                        <button
-                          key={action.id}
-                          type="button"
-                          onClick={action.onClick}
-                          className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-all duration-200 active:scale-[0.97] ${
-                            action.active
-                              ? isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
-                              : isDark ? "active:bg-white/10 active:text-white" : "active:bg-[var(--bm-hover-bg)] active:text-[var(--bm-text-primary)]"
-                          }`}
-                          title={action.label}
-                          aria-label={action.label}
-                        >
-                          <action.icon className="h-4 w-4" />
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </motion.div>
-              ))}
+                      {item.role === "user" ? (
+                        <>
+                          <MobileMessageAttachments attachments={item.attachments || []} />
+                          {hasText ? <div className="whitespace-pre-wrap">{item.content}</div> : null}
+                        </>
+                      ) : item.isStreaming && !item.content ? (
+                        <ThinkingIndicator responseMode={item.metadata?.aiMode || item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
+                      ) : (
+                        <MessageResponse
+                          message={item}
+                          previousUserContent={getPreviousUserContent(index)}
+                          className="text-[15px] leading-[1.85]"
+                        />
+                      )}
+                    </div>
+
+                    {item.role !== "user" && !item.isStreaming && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`mt-2 flex flex-wrap items-center gap-1 px-1 transition-opacity duration-200 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}
+                        data-testid={`message-actions-${item.id}`}
+                      >
+                        {[
+                          { id: "copy", icon: messageFeedback[item.id]?.copied ? Check : Clipboard, label: t("copy"), onClick: () => handleCopyMessage(item) },
+                          { id: "like", icon: ThumbsUp, label: t("like"), onClick: () => handleLikeMessage(item), active: messageFeedback[item.id]?.rating === "like" },
+                          { id: "dislike", icon: ThumbsDown, label: t("dislike"), onClick: () => handleDislikeMessage(item), active: messageFeedback[item.id]?.rating === "dislike" },
+                          { id: "edit", icon: Edit3, label: t("edit"), onClick: () => handleEditMessage(item) },
+                          { id: "regenerate", icon: RotateCcw, label: t("regenerate"), onClick: () => handleRegenerateMessage(item) },
+                          { id: "share", icon: Share2, label: t("share"), onClick: () => handleShareMessage(item) },
+                          { id: "more", icon: MoreVertical, label: t("more"), onClick: handleMoreMessage },
+                        ].map((action) => (
+                          <button
+                            key={action.id}
+                            type="button"
+                            onClick={action.onClick}
+                            className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-all duration-200 active:scale-[0.97] ${
+                              action.active
+                                ? isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                                : isDark ? "active:bg-white/10 active:text-white" : "active:bg-[var(--bm-hover-bg)] active:text-[var(--bm-text-primary)]"
+                            }`}
+                            title={action.label}
+                            aria-label={action.label}
+                          >
+                            <action.icon className="h-4 w-4" />
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}

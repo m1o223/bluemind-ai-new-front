@@ -414,9 +414,37 @@ function isAbsoluteUrl(url) {
 function resolveAttachmentPreviewUrl(attachment) {
   if (!attachment) return "";
   if (attachment.previewUrl) return attachment.previewUrl;
-  if (attachment.id) return getImageUrl(attachment.id);
   if (isAbsoluteUrl(attachment.url)) return attachment.url;
+  if (attachment.thumbnail) return attachment.thumbnail;
+  if (attachment.src) return attachment.src;
+  if (attachment.imageId) return getImageUrl(attachment.imageId);
+  if (attachment.id) return getImageUrl(attachment.id);
   return attachment.url || "";
+}
+
+function splitUserImageTextMessage(message) {
+  const attachments = Array.isArray(message?.attachments) ? message.attachments.filter((attachment) => resolveAttachmentPreviewUrl(attachment)) : [];
+  const content = String(message?.content || "").trim();
+
+  if (message?.role !== "user" || !attachments.length || !content) {
+    return [message];
+  }
+
+  return [
+    {
+      ...message,
+      id: `${message.id}:images`,
+      content: "",
+      attachments,
+      metadata: { ...(message.metadata || {}), splitFromMessageId: message.id, splitKind: "images" },
+    },
+    {
+      ...message,
+      id: `${message.id}:text`,
+      attachments: [],
+      metadata: { ...(message.metadata || {}), splitFromMessageId: message.id, splitKind: "text" },
+    },
+  ];
 }
 
 function formatHistoryDate(value, language) {
@@ -1284,7 +1312,10 @@ function DislikeFeedbackPopover({ messageId, isDark, onSelect, onClose, t }) {
 
 function ChatImage({ attachment, isDark, onExpand }) {
   const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const src = resolveAttachmentPreviewUrl(attachment);
+
+  if (!src || failed) return null;
 
   return (
     <button
@@ -1304,6 +1335,10 @@ function ChatImage({ attachment, isDark, onExpand }) {
         className="max-h-[360px] w-full max-w-sm object-cover"
         loading="lazy"
         onLoad={() => setLoaded(true)}
+        onError={() => {
+          setLoaded(true);
+          setFailed(true);
+        }}
       />
     </button>
   );
@@ -1329,6 +1364,9 @@ const ChatMessage = memo(function ChatMessage({
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor;
   const directionStyle = getDirectionalStyle(message.content);
+  const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
+  const hasText = Boolean(String(message.content || "").trim());
+  const isImageOnlyUser = isUser && hasAttachments && !hasText;
 
   if (!isUser && message.isStreaming && !message.content) {
     return <ThinkingIndicator responseMode={message.metadata?.aiMode || message.metadata?.responseMode || message.metadata?.mode || message.responseMode} />;
@@ -1346,16 +1384,18 @@ const ChatMessage = memo(function ChatMessage({
         <div
           className={cn(
             "text-[16px] leading-[1.85] transition-colors",
-            isUser
+            isImageOnlyUser
+              ? "p-0"
+              : isUser
               ? "rounded-[24px] rounded-br-lg px-5 py-3.5 text-white shadow-sm"
               : isDark
                 ? "text-[var(--bm-hover-bg)]"
                 : "text-[var(--bm-text-primary)]",
           )}
-          style={isUser ? { backgroundColor: prefs.chatColor || "var(--bm-primary)", ...directionStyle } : directionStyle}
+          style={isUser && !isImageOnlyUser ? { backgroundColor: prefs.chatColor || "var(--bm-primary)", ...directionStyle } : directionStyle}
         >
-          {message.attachments?.length > 0 && (
-            <div className="mb-4 grid max-w-sm grid-cols-1 gap-3">
+          {hasAttachments && (
+            <div className={cn("grid max-w-sm grid-cols-1 gap-3", hasText ? "mb-4" : "mb-0")}>
               {message.attachments.map((attachment) => (
                 <ChatImage
                   key={attachment.id || attachment.previewUrl}
@@ -1367,7 +1407,7 @@ const ChatMessage = memo(function ChatMessage({
             </div>
           )}
 
-          <MessageResponse message={message} previousUserContent={previousUserContent} />
+          {hasText && <MessageResponse message={message} previousUserContent={previousUserContent} />}
 
           {!isUser && isLatestAi && message.isStreaming && (
             <span
@@ -1721,7 +1761,7 @@ export default function ChatPage() {
         ...attachment,
         previewUrl: resolveAttachmentPreviewUrl(attachment),
       })),
-    }))
+    })).flatMap(splitUserImageTextMessage)
   );
 
   const refreshHistory = useCallback(async () => {
@@ -2484,25 +2524,37 @@ export default function ChatPage() {
     if (isListening) stopVoiceInput();
 
     const imageIds = currentAttachments.map((item) => item.id);
-    const userMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: visibleInput || "Please analyze the attached image.",
-      attachments: currentAttachments,
-      metadata: {
-        chatMode: mode,
-        mode: selectedResponseMode,
-        responseMode: selectedResponseMode,
-        aiMode: selectedResponseMode,
-        writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
-      },
+    const userMetadata = {
+      chatMode: mode,
+      mode: selectedResponseMode,
+      responseMode: selectedResponseMode,
+      aiMode: selectedResponseMode,
+      writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
     };
+    const userDisplayMessages = options.hideUserMessage
+      ? []
+      : [
+          ...(currentAttachments.length ? [{
+            id: crypto.randomUUID(),
+            role: "user",
+            content: "",
+            attachments: currentAttachments,
+            metadata: { ...userMetadata, splitKind: "images" },
+          }] : []),
+          ...(visibleInput ? [{
+            id: crypto.randomUUID(),
+            role: "user",
+            content: visibleInput,
+            attachments: [],
+            metadata: { ...userMetadata, splitKind: "text" },
+          }] : []),
+        ];
     const aiMessageId = crypto.randomUUID();
     const abortController = new AbortController();
 
     setMessages((prev) => [
       ...prev,
-      ...(!options.hideUserMessage ? [userMessage] : []),
+      ...userDisplayMessages,
       {
         id: aiMessageId,
         role: "ai",
@@ -2517,6 +2569,7 @@ export default function ChatPage() {
         },
       },
     ]);
+    window.requestAnimationFrame(() => scrollToBottom("smooth"));
     if (!options.keepComposer) {
       setInput("");
       setAttachments([]);
@@ -2706,6 +2759,7 @@ export default function ChatPage() {
     queueAiDelta,
     refreshHistory,
     responseMode,
+    scrollToBottom,
     privateSpaceAccessToken,
     stopVoiceInput,
     t,
