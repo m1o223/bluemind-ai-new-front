@@ -37,7 +37,6 @@ import {
 
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import MessageResponse from "@/components/MessageResponse";
-import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
 import BlueMindMediaPicker from "@/components/BlueMindMediaPicker";
@@ -1314,6 +1313,12 @@ export default function MobileChat() {
     setImageModeStatus("");
   };
 
+  const mobileHomeShortcuts = [
+    { label: "Create Image", icon: Image, action: enterImageMode },
+    { label: "Write / Edit", icon: PenLine, action: enterWriteEditMode },
+    { label: "Search", icon: Search, action: enterSearchMode },
+  ];
+
   const exitSearchMode = () => {
     clearMobileFlowParams();
     setIsSearchMode(false);
@@ -2165,15 +2170,6 @@ export default function MobileChat() {
           : "px-4 pb-[calc(env(safe-area-inset-bottom)+8px)]"
       }
     >
-      {showEmptyActions && (
-        <div className={centered ? "mb-4 h-[60px] overflow-hidden text-center" : "hidden"}>
-          <RotatingChatSuggestion
-            iconClassName="h-[18px] w-[18px]"
-            textClassName={`max-w-[360px] text-center text-[17px] font-semibold leading-6 tracking-tight ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}
-          />
-        </div>
-      )}
-
       {(imageModeError || imageModeStatus) && (
         <div className={`mb-2 rounded-2xl px-3 py-2 text-xs font-bold ${
           imageModeError
@@ -2778,7 +2774,7 @@ export default function MobileChat() {
       <section className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={messagesScrollRef}
-          className={isEmptyChat ? "flex min-h-0 flex-1 items-center overflow-y-auto px-4 py-4" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[104px] pt-4"}
+          className={isEmptyChat ? "min-h-0 flex-1 overflow-y-auto px-4 py-5" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[104px] pt-4"}
         >
           {generatedImages.length > 0 && (
             <div className="mb-5 space-y-3">
@@ -3180,7 +3176,51 @@ export default function MobileChat() {
             </div>
           )}
 
-          {isEmptyChat && !shouldPinComposer && renderComposerArea(true)}
+          {isEmptyChat && !shouldPinComposer && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="mx-auto flex min-h-full w-full max-w-[430px] flex-col justify-center pb-16 pt-6"
+            >
+              <div className="mb-5 text-center">
+                <h1 className={`text-[30px] font-black leading-[1.08] tracking-tight ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
+                  Are you ready today?
+                </h1>
+                <p className={`mx-auto mt-3 max-w-[330px] text-[15px] font-semibold leading-6 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
+                  Ask anything, get answers, create and achieve more with BlueMind AI.
+                </p>
+              </div>
+
+              {renderComposerArea(true)}
+
+              {showEmptyActions && (
+                <div className="mt-4 grid grid-cols-3 gap-2 px-1">
+                  {mobileHomeShortcuts.map((item) => {
+                    const ShortcutIcon = item.icon;
+
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={item.action}
+                        className={`flex h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2 text-center transition-all duration-200 active:scale-[0.98] ${
+                          isDark
+                            ? "border-white/[0.08] bg-white/[0.05] text-white active:bg-white/[0.09]"
+                            : "border-[var(--bm-border)] bg-white/75 text-[var(--bm-text-primary)] shadow-sm shadow-slate-200/60 active:bg-white"
+                        }`}
+                      >
+                        <ShortcutIcon className={`h-[18px] w-[18px] stroke-[2.2] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />
+                        <span className="truncate text-[11px] font-bold leading-4">
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
         </div>
 
         {shouldPinComposer && (
