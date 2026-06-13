@@ -1755,6 +1755,8 @@ export default function MobileChat() {
     hideUserMessage = false,
     imageIds = [],
     displayAttachments = [],
+    prelocked = false,
+    allowWhileBusy = false,
   }) => {
     const visibleMessage = String(prompt || "").trim();
     const currentMessage = activeWriteTask
@@ -1762,8 +1764,15 @@ export default function MobileChat() {
       : visibleMessage;
     const isSearchHandoff = String(metadata?.source || metadata?.searchContext?.source || "").toLowerCase() === "search";
     const canStartFromContext = isSearchHandoff && metadata?.intent && (metadata?.category || metadata?.searchContext?.category);
-    if ((!currentMessage && !canStartFromContext) || isGeneratingImage || isChatSending || sendLockRef.current) return;
-    sendLockRef.current = true;
+    if (
+      (!currentMessage && !canStartFromContext)
+      || isGeneratingImage
+      || (!allowWhileBusy && isChatSending)
+      || (!prelocked && sendLockRef.current)
+    ) return;
+    if (!prelocked) {
+      sendLockRef.current = true;
+    }
     setIsChatSending(true);
     if (isListening) stopVoiceInput();
 
@@ -1786,6 +1795,17 @@ export default function MobileChat() {
       writeEditTask: activeWriteTask || undefined,
     };
     const userDisplayAttachments = displayAttachments.length ? displayAttachments : writeAttachments;
+    const displayAttachmentImageIds = userDisplayAttachments
+      .map((attachment) => attachment?.imageId || (attachment?.type === "image" ? attachment?.id : null))
+      .filter(Boolean);
+    const writeAttachmentImageIds = writeAttachments.map((file) => file.imageId).filter(Boolean);
+    const requestImageIds = imageIds.length
+      ? imageIds
+      : displayAttachmentImageIds.length
+        ? displayAttachmentImageIds
+        : activeWriteTask
+          ? writeAttachmentImageIds
+          : [];
     const userDisplayMessages = hideUserMessage
       ? []
       : [
@@ -1848,7 +1868,7 @@ export default function MobileChat() {
 
       await streamMessage({
         message: currentMessage,
-        imageIds: imageIds.length ? imageIds : activeWriteTask ? writeAttachments.map((file) => file.imageId).filter(Boolean) : [],
+        imageIds: requestImageIds,
         conversationId: chatSessionMode === "hidden" ? undefined : activeConversationId,
         privateSpaceId: activePrivateSpace?.privateSpaceId,
         accessToken: privateSpaceAccessToken,
@@ -2100,8 +2120,6 @@ export default function MobileChat() {
           toast.error(error.message || "Image upload failed");
           return;
         }
-        setIsChatSending(false);
-        sendLockRef.current = false;
       }
       await sendChatPrompt({
         prompt: currentMessage || "Please analyze these images.",
@@ -2116,6 +2134,8 @@ export default function MobileChat() {
             }))
           : attachedImages,
         metadata: isSearchMode ? { chatMode: "web_search" } : {},
+        prelocked: attachedImages.length > 0,
+        allowWhileBusy: attachedImages.length > 0,
       });
       return;
     }
