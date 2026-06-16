@@ -123,7 +123,7 @@ function ResponseBlockShell({ label, children, actions, mono = false }) {
     <div
       className={cn(
         "my-3 w-full max-w-[820px] overflow-hidden rounded-[20px] border shadow-sm md:rounded-[22px]",
-        isDark ? "border-white/[0.08] bg-white/[0.055] text-[var(--bm-hover-bg)]" : "border-black/[0.06] bg-white/85 text-[var(--bm-text-primary)] shadow-slate-200/70",
+        isDark ? "border-white/[0.08] bg-white/[0.055] text-white" : "border-black/[0.06] bg-white/85 text-[var(--bm-text-primary)] shadow-slate-200/70",
       )}
     >
       <div className={cn("flex items-center justify-between gap-3 border-b px-4 py-2.5 md:px-5", isDark ? "border-white/[0.07]" : "border-black/[0.06]")}>

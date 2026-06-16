@@ -96,7 +96,7 @@ export default function UnifiedComposer({
   const isAttachmentState = hasAttachments || Boolean(modePill);
   const isTypingState = !isAttachmentState && (isFocused || hasText);
   const isIdleState = !isAttachmentState && !isTypingState;
-  const textareaMinHeight = isMobile ? (isIdleState ? 32 : 42) : (isIdleState ? 30 : 38);
+  const textareaMinHeight = isMobile ? (isIdleState ? 30 : 44) : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
 
   const normalizedAttachments = useMemo(
@@ -125,11 +125,11 @@ export default function UnifiedComposer({
       whileTap={{ scale: 0.94 }}
       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full transition-colors duration-200",
-        isMobile ? "h-10 w-10" : "h-11 w-11",
+        "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
+        isMobile ? "h-11 w-11" : "h-11 w-11",
         isIdleState
-          ? isDark ? "text-[var(--bm-text-secondary)] hover:text-white" : "text-[var(--bm-primary)] hover:text-[var(--bm-text-primary)]"
-          : isDark ? "bg-[var(--bm-bg-card)]/95 text-white shadow-sm ring-1 ring-white/[0.08] hover:bg-[var(--bm-bg-elevated)]" : "bg-white/95 text-[var(--bm-primary)] shadow-sm ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
+          ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-primary)] hover:text-[var(--bm-text-primary)]"
+          : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
       )}
       style={{
         backdropFilter: "blur(18px)",
@@ -194,20 +194,20 @@ export default function UnifiedComposer({
       <motion.div
         layout
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className={cn("flex w-full items-end", isMobile ? "gap-2" : "gap-3")}
+        className={cn("flex w-full items-end", isMobile ? "gap-2.5" : "gap-3")}
       >
         {!isIdleState && addButton}
 
         <motion.div
           layout
           className={cn(
-            "relative flex min-w-0 flex-1 flex-col border shadow-sm transition-colors duration-200",
+            "relative flex min-w-0 flex-1 flex-col border transition-all duration-200",
             isMobile
-              ? isAttachmentState ? "rounded-[28px] px-3.5 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.12)]" : "rounded-[27px] px-3.5 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.10)]"
+              ? isAttachmentState ? "rounded-[28px] px-3.5 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.14)]" : isTypingState ? "rounded-[27px] px-3.5 py-2.5 shadow-[0_16px_42px_rgba(15,23,42,0.12)]" : "rounded-[26px] px-2.5 py-2 shadow-[0_14px_38px_rgba(15,23,42,0.10)]"
               : isAttachmentState ? "rounded-[32px] px-4 py-3 sm:px-5" : "rounded-[31px] px-4 py-2.5 sm:px-5",
             isDark
-              ? "border-white/[0.08] bg-[var(--bm-bg-card)]/[0.94] focus-within:bg-[var(--bm-bg-elevated)]"
-              : "border-[var(--bm-border)] bg-white/92 focus-within:border-[var(--bm-border)] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
+              ? "border-white/[0.09] bg-[var(--bm-bg-card)]/[0.96] focus-within:bg-[var(--bm-bg-elevated)]"
+              : "border-[var(--bm-border)] bg-white/95 focus-within:border-[var(--bm-border)] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
           )}
           style={{
             backdropFilter: "blur(18px)",
@@ -280,7 +280,7 @@ export default function UnifiedComposer({
             </div>
           )}
 
-          <div className={cn("flex w-full min-w-0 items-end", isIdleState ? "gap-1" : "gap-2")}>
+          <div className={cn("flex w-full min-w-0 items-end", isIdleState ? "gap-1.5" : "gap-2")}>
             {isIdleState && addButton}
 
             <textarea

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowUp,
+  ArrowRight,
   Bell,
   BookOpen,
   Brain,
@@ -650,10 +651,10 @@ export default function MobileChat() {
     [selectedSearchCategory],
   );
 
-  const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0;
+  const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0 || writeAttachments.length > 0;
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
-  const showEmptyActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
-  const shouldPinComposer = !isEmptyChat;
+  const showQuickActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
+  const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
   const shouldShowSearchCards = isSearchMode && messages.length === 0 && generatedImages.length === 0;
@@ -1343,10 +1344,36 @@ export default function MobileChat() {
     setImageModeStatus("");
   };
 
-  const mobileHomeShortcuts = [
-    { label: "Create Image", icon: Image, action: enterImageMode },
-    { label: "Write / Edit", icon: PenLine, action: enterWriteEditMode },
-    { label: "Search", icon: Search, action: enterSearchMode },
+  const startQuickPrompt = (prompt) => {
+    setMessage(prompt);
+    window.setTimeout(() => composerInputRef.current?.focus(), 0);
+  };
+
+  const mobileQuickActions = [
+    {
+      title: "Explain a Topic",
+      description: "Turn hard ideas into simple steps.",
+      icon: BookOpen,
+      prompt: "Explain a topic to me in a simple way: ",
+    },
+    {
+      title: "Create a Study Plan",
+      description: "Build a focused plan for school or exams.",
+      icon: Clipboard,
+      prompt: "Create a study plan for: ",
+    },
+    {
+      title: "Help with Homework",
+      description: "Guide me without just giving the answer.",
+      icon: FileText,
+      prompt: "Help me understand this homework question: ",
+    },
+    {
+      title: "Test My Knowledge",
+      description: "Quiz me and explain what I miss.",
+      icon: Brain,
+      prompt: "Test my knowledge about: ",
+    },
   ];
 
   const exitSearchMode = () => {
@@ -2483,8 +2510,8 @@ export default function MobileChat() {
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
-      <header className={`relative z-40 flex h-14 items-center border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
-        <div className="relative flex items-center gap-2">
+      <header className={`relative z-40 flex h-16 items-center justify-between border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
+        <div className="flex w-12 items-center justify-start">
           <button
             type="button"
             onClick={openMenu}
@@ -2497,11 +2524,13 @@ export default function MobileChat() {
               <span className="block h-[2px] w-3 rounded-full bg-current" />
             </span>
           </button>
+        </div>
 
+        <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
           <button
             type="button"
             onClick={() => setResponseModeMenuOpen((open) => !open)}
-            className={isDark ? "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-bold capitalize text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+            className={isDark ? "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.055] px-3 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-[var(--bm-border)] bg-white px-3 text-sm font-bold capitalize text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"}
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen}
           >
@@ -2509,7 +2538,7 @@ export default function MobileChat() {
               const SelectedModeIcon = getAiMode(responseMode).icon;
               return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
             })()}
-            <span>{getAiMode(responseMode).title}</span>
+            <span className="truncate">{getAiMode(responseMode).title}</span>
             <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
@@ -2520,7 +2549,7 @@ export default function MobileChat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.16 }}
-                className={`absolute left-12 top-12 z-50 w-[292px] overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
+                className={`absolute left-1/2 top-12 z-50 w-[292px] -translate-x-1/2 overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
                   isDark
                     ? "border-white/[0.12] bg-[var(--bm-bg-card)]/95"
                     : "border-black/[0.06] bg-white/90"
@@ -2549,7 +2578,7 @@ export default function MobileChat() {
                         </span>
                         <span className="min-w-0">
                           <span className="block text-[15px] font-bold leading-5">{mode.title}</span>
-                          <span className={`mt-1 block text-xs font-semibold leading-4 ${isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-secondary)]"}`}>
+                          <span className={`mt-1 block text-xs font-semibold leading-4 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
                             {mode.description}
                           </span>
                         </span>
@@ -2563,14 +2592,16 @@ export default function MobileChat() {
           </AnimatePresence>
         </div>
 
-        <button
-          type="button"
-          onClick={startNewChat}
-          className={isDark ? "ml-auto flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "ml-auto flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
-          aria-label="New chat"
-        >
-          <PenLine className="h-5 w-5" />
-        </button>
+        <div className="flex w-12 items-center justify-end">
+          <button
+            type="button"
+            onClick={startNewChat}
+            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+            aria-label="New chat"
+          >
+            <PenLine className="h-5 w-5" />
+          </button>
+        </div>
       </header>
 
       {(chatSessionMode === "private" || chatSessionMode === "hidden") && (
@@ -2588,7 +2619,7 @@ export default function MobileChat() {
       <section className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={messagesScrollRef}
-          className={isEmptyChat ? "min-h-0 flex-1 overflow-y-auto px-4 py-5" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[104px] pt-4"}
+          className={isEmptyChat ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"}
         >
           {generatedImages.length > 0 && (
             <div className="mb-5 space-y-3">
@@ -3001,48 +3032,64 @@ export default function MobileChat() {
             </div>
           )}
 
-          {isEmptyChat && !shouldPinComposer && (
+          {isEmptyChat && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              className="mx-auto flex min-h-full w-full max-w-[430px] flex-col justify-center pb-16 pt-6"
+              className="mx-auto flex min-h-full w-full max-w-[430px] flex-col justify-center pb-8 pt-5"
             >
-              <div className="mb-5 text-center">
-                <h1 className={`text-[30px] font-black leading-[1.08] tracking-tight ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
+              <section className="text-center">
+                <BrandLogo
+                  showName={false}
+                  logoClassName="mx-auto h-[74px] w-[74px]"
+                  className="mx-auto mb-4"
+                />
+                <p className={`text-sm font-bold uppercase ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]"}`}>
+                  BlueMind AI
+                </p>
+                <h1 className={`mt-3 text-[31px] font-black leading-[1.08] ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
                   Are you ready today?
                 </h1>
-                <p className={`mx-auto mt-3 max-w-[330px] text-[15px] font-semibold leading-6 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
+                <p className={`mx-auto mt-3 max-w-[335px] text-[15px] font-semibold leading-6 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
                   Ask anything, get answers, create and achieve more with BlueMind AI.
                 </p>
-              </div>
+              </section>
 
-              {renderComposerArea(true)}
-
-              {showEmptyActions && (
-                <div className="mt-4 grid grid-cols-3 gap-2 px-1">
-                  {mobileHomeShortcuts.map((item) => {
-                    const ShortcutIcon = item.icon;
+              {showQuickActions && (
+                <section className="mt-7 grid gap-3">
+                  {mobileQuickActions.map((item, index) => {
+                    const QuickIcon = item.icon;
 
                     return (
-                      <button
-                        key={item.label}
+                      <motion.button
+                        key={item.title}
                         type="button"
-                        onClick={item.action}
-                        className={`flex h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2 text-center transition-all duration-200 active:scale-[0.98] ${
+                        onClick={() => startQuickPrompt(item.prompt)}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.22, delay: Math.min(index * 0.035, 0.14), ease: [0.22, 1, 0.36, 1] }}
+                        whileTap={{ scale: 0.985 }}
+                        className={`group flex min-h-[78px] items-center gap-3 rounded-[24px] border px-4 text-left shadow-sm transition-all duration-200 ${
                           isDark
-                            ? "border-white/[0.08] bg-white/[0.05] text-white active:bg-white/[0.09]"
-                            : "border-[var(--bm-border)] bg-white/75 text-[var(--bm-text-primary)] shadow-sm shadow-slate-200/60 active:bg-white"
+                            ? "border-white/[0.08] bg-white/[0.055] text-white active:bg-white/[0.1]"
+                            : "border-white/80 bg-white/88 text-[var(--bm-text-primary)] shadow-slate-200/70 active:bg-white"
                         }`}
                       >
-                        <ShortcutIcon className={`h-[18px] w-[18px] stroke-[2.2] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />
-                        <span className="truncate text-[11px] font-bold leading-4">
-                          {item.label}
+                        <span className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/[0.08] text-white" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                          <QuickIcon className="h-5 w-5 stroke-[2.3]" />
                         </span>
-                      </button>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[15px] font-extrabold leading-5">{item.title}</span>
+                          <span className={`mt-1 block text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
+                            {item.description}
+                          </span>
+                        </span>
+                        <ArrowRight className={`h-5 w-5 shrink-0 transition-transform duration-200 group-active:translate-x-0.5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]"}`} />
+                      </motion.button>
                     );
                   })}
-                </div>
+                </section>
               )}
             </motion.div>
           )}

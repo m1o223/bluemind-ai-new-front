@@ -1389,7 +1389,7 @@ const ChatMessage = memo(function ChatMessage({
               : isUser
               ? "rounded-[24px] rounded-br-lg px-5 py-3.5 text-white shadow-sm"
               : isDark
-                ? "text-[var(--bm-hover-bg)]"
+                ? "text-white"
                 : "text-[var(--bm-text-primary)]",
           )}
           style={isUser && !isImageOnlyUser ? { backgroundColor: prefs.chatColor || "var(--bm-primary)", ...directionStyle } : directionStyle}

@@ -203,7 +203,7 @@ function renderMarkdownBlocks(part, sectionKey) {
         <h3
           key={key}
           className={cn(
-            "mt-5 font-semibold leading-snug",
+            "mt-5 font-semibold leading-snug text-[var(--bm-text-primary)]",
             block.level <= 2 ? "text-[19px]" : "text-[17px]",
           )}
           style={getDirectionalStyle(block.text)}
@@ -257,7 +257,7 @@ export default function MarkdownText({ text, className = "" }) {
 
   return (
     <div
-      className={cn("space-y-4 break-words text-[16px] font-normal leading-[1.9]", className)}
+      className={cn("space-y-4 break-words text-[16px] font-normal leading-[1.9] text-[var(--bm-text-primary)]", className)}
       style={{ ...baseStyle, letterSpacing: 0 }}
     >
       {parts.map((part, index) => {

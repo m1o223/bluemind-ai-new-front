@@ -17,8 +17,8 @@ export default function ThinkingIndicator({ className = "" }) {
     >
       <div className={cn("inline-flex min-h-8 items-center gap-2 rounded-full text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
         <motion.span
-          animate={{ opacity: [1, 0.7, 1, 0.7, 1] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          animate={{ opacity: [0.72, 1, 0.72] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
           className="whitespace-nowrap"
         >
           BlueMind is thinking
@@ -28,14 +28,13 @@ export default function ThinkingIndicator({ className = "" }) {
             <motion.span
               key={index}
               animate={{
-                opacity: [0.35, 1, 0.35],
-                scale: [0.82, 1.08, 0.82],
-                y: [1, -1, 1],
+                opacity: [0.32, 1, 0.32],
+                scale: [0.86, 1.12, 0.86],
               }}
               transition={{
-                duration: 0.9,
+                duration: 1.05,
                 repeat: Infinity,
-                delay: index * 0.16,
+                delay: index * 0.18,
                 ease: "easeInOut",
               }}
               className={cn("h-1.5 w-1.5 rounded-full", isDark ? "bg-white" : "bg-[var(--bm-primary)]")}
