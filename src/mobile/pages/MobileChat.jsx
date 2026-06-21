@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowUp,
-  ArrowRight,
   Bell,
   BookOpen,
   Brain,
@@ -653,7 +652,6 @@ export default function MobileChat() {
 
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0 || writeAttachments.length > 0;
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
-  const showQuickActions = isEmptyChat && !message.trim() && attachedImages.length === 0;
   const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
@@ -1343,38 +1341,6 @@ export default function MobileChat() {
     setImageModeError("");
     setImageModeStatus("");
   };
-
-  const startQuickPrompt = (prompt) => {
-    setMessage(prompt);
-    window.setTimeout(() => composerInputRef.current?.focus(), 0);
-  };
-
-  const mobileQuickActions = [
-    {
-      title: "Explain a Topic",
-      description: "Turn hard ideas into simple steps.",
-      icon: BookOpen,
-      prompt: "Explain a topic to me in a simple way: ",
-    },
-    {
-      title: "Create a Study Plan",
-      description: "Build a focused plan for school or exams.",
-      icon: Clipboard,
-      prompt: "Create a study plan for: ",
-    },
-    {
-      title: "Help with Homework",
-      description: "Guide me without just giving the answer.",
-      icon: FileText,
-      prompt: "Help me understand this homework question: ",
-    },
-    {
-      title: "Test My Knowledge",
-      description: "Quiz me and explain what I miss.",
-      icon: Brain,
-      prompt: "Test my knowledge about: ",
-    },
-  ];
 
   const exitSearchMode = () => {
     clearMobileFlowParams();
@@ -3037,60 +3003,13 @@ export default function MobileChat() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              className="mx-auto flex min-h-full w-full max-w-[430px] flex-col justify-center pb-8 pt-5"
+              className="mx-auto flex min-h-full w-full max-w-[430px] items-center justify-center pb-8 pt-5"
             >
-              <section className="text-center">
-                <BrandLogo
-                  showName={false}
-                  logoClassName="mx-auto h-[74px] w-[74px]"
-                  className="mx-auto mb-4"
-                />
-                <p className={`text-sm font-bold uppercase ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]"}`}>
-                  BlueMind AI
-                </p>
-                <h1 className={`mt-3 text-[31px] font-black leading-[1.08] ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
-                  Are you ready today?
-                </h1>
-                <p className={`mx-auto mt-3 max-w-[335px] text-[15px] font-semibold leading-6 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
-                  Ask anything, get answers, create and achieve more with BlueMind AI.
-                </p>
-              </section>
-
-              {showQuickActions && (
-                <section className="mt-7 grid gap-3">
-                  {mobileQuickActions.map((item, index) => {
-                    const QuickIcon = item.icon;
-
-                    return (
-                      <motion.button
-                        key={item.title}
-                        type="button"
-                        onClick={() => startQuickPrompt(item.prompt)}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.22, delay: Math.min(index * 0.035, 0.14), ease: [0.22, 1, 0.36, 1] }}
-                        whileTap={{ scale: 0.985 }}
-                        className={`group flex min-h-[78px] items-center gap-3 rounded-[24px] border px-4 text-left shadow-sm transition-all duration-200 ${
-                          isDark
-                            ? "border-white/[0.08] bg-white/[0.055] text-white active:bg-white/[0.1]"
-                            : "border-white/80 bg-white/88 text-[var(--bm-text-primary)] shadow-slate-200/70 active:bg-white"
-                        }`}
-                      >
-                        <span className={isDark ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/[0.08] text-white" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
-                          <QuickIcon className="h-5 w-5 stroke-[2.3]" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[15px] font-extrabold leading-5">{item.title}</span>
-                          <span className={`mt-1 block text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
-                            {item.description}
-                          </span>
-                        </span>
-                        <ArrowRight className={`h-5 w-5 shrink-0 transition-transform duration-200 group-active:translate-x-0.5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]"}`} />
-                      </motion.button>
-                    );
-                  })}
-                </section>
-              )}
+              <div className="bluemind-mobile-waves" aria-hidden="true">
+                <span className="bluemind-mobile-wave bluemind-mobile-wave--top" />
+                <span className="bluemind-mobile-wave bluemind-mobile-wave--middle" />
+                <span className="bluemind-mobile-wave bluemind-mobile-wave--bottom" />
+              </div>
             </motion.div>
           )}
         </div>

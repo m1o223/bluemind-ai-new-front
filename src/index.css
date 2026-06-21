@@ -653,3 +653,74 @@ select:-webkit-autofill:focus {
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
+.bluemind-mobile-waves {
+  position: relative;
+  width: min(72vw, 292px);
+  height: 62px;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--bm-primary) 26%, transparent));
+}
+
+.bluemind-mobile-wave {
+  position: absolute;
+  left: 50%;
+  display: block;
+  width: 100%;
+  height: 18px;
+  transform: translateX(-50%);
+  background-color: color-mix(in srgb, var(--bluemind-app-color, var(--bm-primary)) 76%, white 24%);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='420' height='24' viewBox='0 0 420 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 12C28 2 54 2 80 12C106 22 132 22 158 12C184 2 210 2 236 12C262 22 288 22 314 12C340 2 366 2 392 12C402 16 411 18 418 18' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg width='420' height='24' viewBox='0 0 420 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 12C28 2 54 2 80 12C106 22 132 22 158 12C184 2 210 2 236 12C262 22 288 22 314 12C340 2 366 2 392 12C402 16 411 18 418 18' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-position: 0 50%;
+  mask-position: 0 50%;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  -webkit-mask-size: 210px 18px;
+  mask-size: 210px 18px;
+  opacity: 0.42;
+  animation:
+    bluemind-wave-flow 4.8s linear infinite,
+    bluemind-wave-float 3.4s ease-in-out infinite;
+  will-change: mask-position, transform;
+}
+
+.bluemind-mobile-wave--top {
+  top: 10px;
+  opacity: 0.32;
+  animation-delay: -0.35s, -0.18s;
+}
+
+.bluemind-mobile-wave--middle {
+  top: 22px;
+  height: 20px;
+  -webkit-mask-size: 210px 20px;
+  mask-size: 210px 20px;
+  opacity: 0.72;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--bm-primary) 30%, transparent));
+}
+
+.bluemind-mobile-wave--bottom {
+  top: 35px;
+  opacity: 0.38;
+  animation-delay: -0.7s, -0.36s;
+}
+
+@keyframes bluemind-wave-flow {
+  from {
+    -webkit-mask-position: 0 50%;
+    mask-position: 0 50%;
+  }
+  to {
+    -webkit-mask-position: 210px 50%;
+    mask-position: 210px 50%;
+  }
+}
+
+@keyframes bluemind-wave-float {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px);
+  }
+}
+
