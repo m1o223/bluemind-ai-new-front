@@ -11,16 +11,13 @@ import {
   Clock,
   Settings,
   Plus,
-  ArrowUp,
   ChevronDown,
-  Mic,
   X,
   PanelLeftClose,
   PanelLeft,
   MoreVertical,
   Pencil,
   Trash2,
-  Square,
   Image as ImageIcon,
   FileText,
   File,
@@ -52,7 +49,7 @@ import { getDirectionalStyle } from "@/components/MarkdownText";
 import MessageResponse from "@/components/MessageResponse";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
-import UnifiedComposer from "@/components/UnifiedComposer";
+import DesktopComposer from "@/components/DesktopComposer";
 import DesktopPlusMenu from "@/components/DesktopPlusMenu";
 import {
   WEBSITE_CATEGORIES,
@@ -64,7 +61,7 @@ import {
   SEARCH_DISCOVERY_CATEGORIES,
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
-import { AI_MODES, getAiMode, normalizeAiModeId } from "@/data/aiModes";
+import { normalizeAiModeId } from "@/data/aiModes";
 import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 import {
   buildWriteEditMessage,
@@ -138,6 +135,8 @@ const CHAT_MODES = {
 };
 
 const RESPONSE_MODE_STORAGE_KEY = "bluemind_response_mode";
+const THINKING_LEVEL_STORAGE_KEY = "bluemind_desktop_thinking_level";
+const DESKTOP_MODEL_STORAGE_KEY = "bluemind_desktop_model";
 const WEBSITE_FAVORITES_STORAGE_KEY = "bluemind_website_favorites";
 const WEBSITE_RECENTS_STORAGE_KEY = "bluemind_website_recents";
 const WEBSITE_PAGE_SIZE = 10;
@@ -1461,7 +1460,8 @@ export default function ChatPage() {
   const [historyOpen, setHistoryOpen] = useState(true);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [responseMode, setResponseMode] = useState(() => normalizeAiModeId(localStorage.getItem(RESPONSE_MODE_STORAGE_KEY)));
-  const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
+  const [desktopModelId, setDesktopModelId] = useState(() => localStorage.getItem(DESKTOP_MODEL_STORAGE_KEY) || "lite");
+  const [thinkingLevel, setThinkingLevel] = useState(() => localStorage.getItem(THINKING_LEVEL_STORAGE_KEY) || "balanced");
   const [isListening, setIsListening] = useState(false);
   const [activeMode, setActiveMode] = useState("default");
   const [chatSessionMode, setChatSessionMode] = useState("normal");
@@ -1553,6 +1553,14 @@ export default function ChatPage() {
   useEffect(() => {
     localStorage.setItem(RESPONSE_MODE_STORAGE_KEY, responseMode);
   }, [responseMode]);
+
+  useEffect(() => {
+    localStorage.setItem(THINKING_LEVEL_STORAGE_KEY, thinkingLevel);
+  }, [thinkingLevel]);
+
+  useEffect(() => {
+    localStorage.setItem(DESKTOP_MODEL_STORAGE_KEY, desktopModelId);
+  }, [desktopModelId]);
 
   useEffect(() => {
     const savedMode = normalizeAiModeId(prefs.aiMode || localStorage.getItem(RESPONSE_MODE_STORAGE_KEY));
@@ -2482,6 +2490,8 @@ export default function ChatPage() {
       mode: selectedResponseMode,
       responseMode: selectedResponseMode,
       aiMode: selectedResponseMode,
+      blueMindModel: desktopModelId,
+      thinkingLevel,
       writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
     };
     const userDisplayMessages = options.hideUserMessage
@@ -2518,6 +2528,8 @@ export default function ChatPage() {
           mode: selectedResponseMode,
           responseMode: selectedResponseMode,
           aiMode: selectedResponseMode,
+          blueMindModel: desktopModelId,
+          thinkingLevel,
           requestContent: visibleInput,
         },
       },
@@ -2589,6 +2601,8 @@ export default function ChatPage() {
           mode: selectedResponseMode,
           responseMode: selectedResponseMode,
           aiMode: selectedResponseMode,
+          blueMindModel: desktopModelId,
+          thinkingLevel,
           writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
         },
         signal: abortController.signal,
@@ -2705,6 +2719,7 @@ export default function ChatPage() {
     activeWriteTask,
     chatSessionMode,
     conversationId,
+    desktopModelId,
     flushAiDelta,
     input,
     isAiTyping,
@@ -2713,6 +2728,7 @@ export default function ChatPage() {
     refreshHistory,
     responseMode,
     scrollToBottom,
+    thinkingLevel,
     privateSpaceAccessToken,
     stopVoiceInput,
     t,
@@ -3842,86 +3858,7 @@ export default function ChatPage() {
     </div>
   );
 
-  const renderResponseModeSelector = () => {
-    const selectedMode = getAiMode(responseMode);
-    const SelectedModeIcon = selectedMode.icon;
-    const handleModeSelect = async (modeId) => {
-      const nextMode = normalizeAiModeId(modeId);
-      setResponseMode(nextMode);
-      setResponseModeMenuOpen(false);
-      try {
-        await updatePreferences({ aiMode: nextMode });
-      } catch (error) {
-        toast.error("Could not save AI mode");
-      }
-    };
-
-    return (
-      <div className="relative flex-shrink-0">
-        <button
-          type="button"
-          onClick={() => setResponseModeMenuOpen((open) => !open)}
-          className={cn(
-            "inline-flex h-[38px] min-w-[118px] items-center justify-center gap-2 rounded-full border px-3 text-sm font-semibold backdrop-blur-[10px] transition-colors duration-200",
-            isDark ? "border-white/[0.12] bg-white/[0.075] text-white hover:bg-white/[0.12]" : "border-black/[0.05] bg-white/50 text-[var(--bm-primary)] hover:bg-white/75"
-          )}
-          data-testid="response-mode-selector"
-        >
-          <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />
-          <span>{selectedMode.title}</span>
-          <ChevronDown className="h-4 w-4 stroke-[2.1]" />
-        </button>
-        <AnimatePresence>
-          {responseModeMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-30" onClick={() => setResponseModeMenuOpen(false)} />
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                transition={{ duration: 0.16 }}
-                className={cn(
-                  "absolute left-0 top-[calc(100%+8px)] z-40 w-[270px] overflow-hidden rounded-2xl border p-1.5 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-[20px]",
-                  isDark ? "border-white/[0.12] bg-[var(--bm-bg-card)]/95 text-white" : "border-black/[0.06] bg-white/90 text-[var(--bm-text-primary)]"
-                )}
-              >
-                {AI_MODES.map((mode) => {
-                  const ModeIcon = mode.icon;
-                  return (
-                    <button
-                      key={mode.id}
-                      type="button"
-                      onClick={() => handleModeSelect(mode.id)}
-                      className={cn(
-                        "flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition-colors duration-200",
-                        responseMode === mode.id
-                          ? isDark ? "bg-white/[0.11] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]"
-                          : isDark ? "text-white hover:bg-white/[0.075]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]"
-                      )}
-                    >
-                      <span className="flex min-w-0 items-center gap-3">
-                        <span className={cn("flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/[0.075] text-[var(--bm-primary)]")}>
-                          <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-[15px] font-bold leading-5">{mode.title}</span>
-                          <span className={cn("mt-1 block text-xs font-semibold leading-4", isDark ? "text-[var(--bm-hover-bg)]" : "text-[var(--bm-text-secondary)]")}>{mode.description}</span>
-                        </span>
-                      </span>
-                      {responseMode === mode.id && <Check className="h-[18px] w-[18px] flex-shrink-0 stroke-[2.2]" />}
-                    </button>
-                  );
-                })}
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  };
-
   const renderInput = (testSuffix = "") => {
-    const usesLargeComposer = ["create_image", "web_search", "write_edit"].includes(activeMode) && !testSuffix;
     const composerAttachments = activeMode === "write_edit" ? writeFiles : attachments;
     const removeComposerAttachment = activeMode === "write_edit" ? removeWriteFile : removeAttachment;
     const clearComposerAttachments = () => {
@@ -3952,6 +3889,16 @@ export default function ChatPage() {
       },
       clearLabel: activeMode === "web_search" ? t("removeWebSearch") : t("remove"),
     } : null;
+    const handleDesktopResponseModeChange = async (nextMode, model) => {
+      const normalizedMode = normalizeAiModeId(nextMode);
+      if (model?.id) setDesktopModelId(model.id);
+      setResponseMode(normalizedMode);
+      try {
+        await updatePreferences({ aiMode: normalizedMode });
+      } catch (error) {
+        toast.error("Could not save BlueMind model");
+      }
+    };
 
     const actionMenu = (
       <DesktopPlusMenu
@@ -4039,13 +3986,9 @@ export default function ChatPage() {
     );
 
     return (
-      <UnifiedComposer
+      <DesktopComposer
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            onInput={(event) => {
-              event.currentTarget.style.height = "auto";
-              event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, usesLargeComposer ? 220 : 160)}px`;
-            }}
             onKeyDown={handleKeyDown}
             onSubmit={(event) => {
               event.preventDefault();
@@ -4089,9 +4032,11 @@ export default function ChatPage() {
             stopLabel={t("stopGenerating")}
             isDark={isDark}
             appColor={appColor}
-            variant="desktop"
-            minRows={usesLargeComposer ? 3 : 1}
-            maxTextHeight={usesLargeComposer ? 220 : 160}
+            responseMode={responseMode}
+            modelId={desktopModelId}
+            onResponseModeChange={handleDesktopResponseModeChange}
+            thinkingLevel={thinkingLevel}
+            onThinkingLevelChange={setThinkingLevel}
             inputDirectionStyle={inputDirectionStyle}
             actionMenu={actionMenu}
             pendingPanel={pendingPanel}
@@ -4351,7 +4296,7 @@ export default function ChatPage() {
           )}
         >
           <div className="flex items-center gap-3">
-            {renderResponseModeSelector()}
+            <span className={cn("text-sm font-extrabold tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</span>
             {chatSessionMode === "private" && activePrivateSpace && (
               <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
                 <Lock className="h-3.5 w-3.5" />
