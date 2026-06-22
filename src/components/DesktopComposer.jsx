@@ -277,7 +277,6 @@ export default function DesktopComposer({
   return (
     <form className="desktop-bluemind-composer relative w-full" onSubmit={onSubmit}>
       {pendingPanel}
-      {actionMenu}
 
       <motion.section
         initial={false}
@@ -372,15 +371,18 @@ export default function DesktopComposer({
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={onAdd}
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] px-3.5 text-sm font-bold text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-hover-bg)]"
-              aria-label={addLabel}
-            >
-              <Plus className="h-4.5 w-4.5" />
-              <span>Add</span>
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={onAdd}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] px-3.5 text-sm font-bold text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-hover-bg)]"
+                aria-label={addLabel}
+              >
+                <Plus className="h-4.5 w-4.5" />
+                <span>Add</span>
+              </button>
+              {actionMenu}
+            </div>
 
             <SelectorMenu
               id="model"
