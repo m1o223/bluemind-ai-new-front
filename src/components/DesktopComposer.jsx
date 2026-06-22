@@ -49,18 +49,18 @@ const BLUEMIND_MODELS = [
     icon: Lightbulb,
   },
   {
-    id: "vision",
-    label: "BlueMind Vision",
-    description: "Best with images and files",
-    responseMode: "writing",
-    icon: Sparkles,
-  },
-  {
     id: "research",
     label: "BlueMind Research",
     description: "Careful research answers",
     responseMode: "research",
     icon: Search,
+  },
+  {
+    id: "vision",
+    label: "BlueMind Vision",
+    description: "Best with images and files",
+    responseMode: "writing",
+    icon: Sparkles,
   },
 ];
 
@@ -91,7 +91,7 @@ function AttachmentPreview({ attachment, onRemove }) {
   const showImage = isImageAttachment(attachment) && preview && !failed;
 
   return (
-    <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[18px] border border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] shadow-sm" title={label}>
+    <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[18px] bg-[var(--bm-hover-bg)] shadow-sm" title={label}>
       {showImage ? (
         <img
           src={preview}
@@ -121,7 +121,17 @@ function AttachmentPreview({ attachment, onRemove }) {
   );
 }
 
-function SelectorMenu({ id, label, value, description, options, selectedValue, onSelect, icon: Icon, activeMenu, setActiveMenu, align = "left" }) {
+function ModelThinkingMenu({
+  activeModel,
+  activeThinkingLevel,
+  modelId,
+  thinkingLevel,
+  onResponseModeChange,
+  onThinkingLevelChange,
+  activeMenu,
+  setActiveMenu,
+}) {
+  const id = "model-thinking";
   const open = activeMenu === id;
 
   return (
@@ -129,11 +139,13 @@ function SelectorMenu({ id, label, value, description, options, selectedValue, o
       <button
         type="button"
         onClick={() => setActiveMenu(open ? "" : id)}
-        className="inline-flex h-10 max-w-[240px] items-center gap-2 rounded-full border border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] px-3.5 text-sm font-bold text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-hover-bg)]"
+        className="inline-flex h-10 max-w-[340px] items-center gap-2 rounded-full px-3 text-sm font-bold text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-hover-bg)]"
         aria-expanded={open}
       >
-        {Icon && <Icon className="h-4 w-4 shrink-0 text-[var(--bm-primary)]" />}
-        <span className="min-w-0 truncate">{value}</span>
+        <activeModel.icon className="h-4 w-4 shrink-0 text-[var(--bm-primary)]" />
+        <span className="min-w-0 truncate">{activeModel.label}</span>
+        <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--bm-text-muted)]/60" />
+        <span className="shrink-0 text-[var(--bm-text-secondary)]">{activeThinkingLevel.label}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-[var(--bm-text-muted)]" />
       </button>
 
@@ -146,41 +158,62 @@ function SelectorMenu({ id, label, value, description, options, selectedValue, o
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 4, scale: 0.98 }}
               transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-              className={cn(
-                "absolute top-[calc(100%+8px)] z-50 w-[286px] overflow-hidden rounded-[20px] border border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] p-1.5 shadow-2xl",
-                align === "right" ? "right-0" : "left-0",
-              )}
+              className="absolute left-0 top-[calc(100%+8px)] z-50 w-[306px] overflow-hidden rounded-[22px] bg-[var(--bm-bg-elevated)] p-2 shadow-2xl ring-1 ring-[var(--bm-border)]"
             >
-              <div className="px-3 pb-2 pt-2">
-                <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--bm-text-muted)]">{label}</p>
-                {description && <p className="mt-1 text-xs font-semibold text-[var(--bm-text-secondary)]">{description}</p>}
+              <div className="px-2 pb-1.5 pt-1">
+                <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--bm-text-muted)]">Models</p>
               </div>
-              {options.map((option) => {
-                const OptionIcon = option.icon;
-                const selected = selectedValue === option.id;
+              {BLUEMIND_MODELS.map((model) => {
+                const ModelIcon = model.icon;
+                const selected = modelId === model.id;
                 return (
                   <button
-                    key={option.id}
+                    key={model.id}
                     type="button"
                     onClick={() => {
-                      onSelect(option);
+                      onResponseModeChange?.(model.responseMode, model);
                       setActiveMenu("");
                     }}
                     className={cn(
-                      "flex min-h-[58px] w-full items-center gap-3 rounded-2xl px-3 text-left transition-colors",
+                      "flex min-h-[48px] w-full items-center gap-3 rounded-2xl px-2.5 text-left transition-colors",
                       selected ? "bg-[var(--bm-primary)]/12 text-[var(--bm-primary)]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
                     )}
                   >
-                    {OptionIcon && (
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]">
-                        <OptionIcon className="h-4.5 w-4.5" />
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-extrabold">{option.label}</span>
-                      <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--bm-text-secondary)]">{option.description}</span>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]">
+                      <ModelIcon className="h-4 w-4" />
                     </span>
-                    {selected && <Check className="h-4.5 w-4.5 shrink-0" />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-extrabold">{model.label}</span>
+                      <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--bm-text-secondary)]">{model.description}</span>
+                    </span>
+                    {selected && <Check className="h-4 w-4 shrink-0" />}
+                  </button>
+                );
+              })}
+              <div className="mx-2 my-2 h-px bg-[var(--bm-border)]" />
+              <div className="px-2 pb-1.5">
+                <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--bm-text-muted)]">Thinking</p>
+              </div>
+              {THINKING_LEVELS.map((level) => {
+                const selected = thinkingLevel === level.id;
+                return (
+                  <button
+                    key={level.id}
+                    type="button"
+                    onClick={() => {
+                      onThinkingLevelChange?.(level.id, level);
+                      setActiveMenu("");
+                    }}
+                    className={cn(
+                      "flex min-h-[42px] w-full items-center gap-3 rounded-2xl px-2.5 text-left transition-colors",
+                      selected ? "bg-[var(--bm-primary)]/12 text-[var(--bm-primary)]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-extrabold">{level.label}</span>
+                      <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--bm-text-secondary)]">{level.description}</span>
+                    </span>
+                    {selected && <Check className="h-4 w-4 shrink-0" />}
                   </button>
                 );
               })}
@@ -286,7 +319,7 @@ export default function DesktopComposer({
             : "0 18px 60px rgba(15, 23, 42, 0.10)",
         }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="overflow-visible rounded-[34px] border border-[var(--bm-border)] bg-[var(--bm-bg-card)]/96 p-4 text-[var(--bm-text-primary)] backdrop-blur-2xl"
+        className="overflow-visible rounded-[34px] bg-[var(--bm-bg-card)]/96 p-5 text-[var(--bm-text-primary)] ring-1 ring-[var(--bm-border)] backdrop-blur-2xl"
         data-testid="desktop-bluemind-composer"
       >
         {(modePill || hasAttachments) && (
@@ -314,7 +347,7 @@ export default function DesktopComposer({
                   />
                 ))}
                 {isUploading && (
-                  <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[18px] border border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]">
+                  <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[18px] bg-[var(--bm-hover-bg)]">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
                   </div>
                 )}
@@ -369,49 +402,33 @@ export default function DesktopComposer({
           />
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-2.5">
             <div className="relative">
               <button
                 type="button"
                 onClick={onAdd}
-                className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] px-3.5 text-sm font-bold text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-hover-bg)]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-hover-bg)]"
                 aria-label={addLabel}
               >
-                <Plus className="h-4.5 w-4.5" />
-                <span>Add</span>
+                <Plus className="h-5 w-5" />
               </button>
               {actionMenu}
             </div>
 
-            <SelectorMenu
-              id="model"
-              label="BlueMind model"
-              description="Choose the BlueMind engine for this request."
-              value={activeModel.label}
-              icon={activeModel.icon}
-              options={BLUEMIND_MODELS}
-              selectedValue={activeModel.id}
+            <ModelThinkingMenu
+              activeModel={activeModel}
+              activeThinkingLevel={activeThinkingLevel}
+              modelId={activeModel.id}
+              thinkingLevel={activeThinkingLevel.id}
+              onResponseModeChange={onResponseModeChange}
+              onThinkingLevelChange={onThinkingLevelChange}
               activeMenu={activeMenu}
               setActiveMenu={setActiveMenu}
-              onSelect={(model) => onResponseModeChange?.(model.responseMode, model)}
-            />
-
-            <SelectorMenu
-              id="thinking"
-              label="Thinking level"
-              description="Control how much reasoning BlueMind uses."
-              value={activeThinkingLevel.label}
-              icon={Lightbulb}
-              options={THINKING_LEVELS}
-              selectedValue={activeThinkingLevel.id}
-              activeMenu={activeMenu}
-              setActiveMenu={setActiveMenu}
-              onSelect={(level) => onThinkingLevelChange?.(level.id, level)}
             />
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={onVoice}
