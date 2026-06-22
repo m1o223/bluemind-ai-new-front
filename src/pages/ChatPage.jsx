@@ -38,7 +38,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, typeClasses } from "@/lib/interactions";
@@ -673,6 +673,7 @@ function Sidebar({
   onOpenHiddenChat,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, prefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const [menuOpenId, setMenuOpenId] = useState(null);
@@ -827,12 +828,77 @@ function Sidebar({
       action: () => navigate("/scheman"),
     },
   ];
+  const collapsedPrimaryItems = [
+    {
+      id: "chat",
+      icon: MessageSquare,
+      label: "Chat",
+      action: () => {
+        if (chatSessionMode !== "normal") onSelectNormalChat?.();
+        navigate("/chat");
+      },
+      active: location.pathname === "/chat" || location.pathname === "/",
+    },
+    {
+      id: "learning",
+      icon: BookOpen,
+      label: t("learning"),
+      action: () => navigate("/learning"),
+      active: location.pathname.startsWith("/learning"),
+    },
+    {
+      id: "ai_plans",
+      icon: Sparkles,
+      label: "AI Plans",
+      action: () => navigate("/ai-plans"),
+      active: location.pathname.startsWith("/ai-plans"),
+    },
+    {
+      id: "dashboard",
+      icon: Home,
+      label: "Smart Hub",
+      action: () => navigate("/dashboard"),
+      active: location.pathname.startsWith("/dashboard"),
+    },
+    {
+      id: "reminders",
+      icon: Bell,
+      label: t("reminders"),
+      action: () => navigate("/reminders"),
+      active: location.pathname.startsWith("/reminders"),
+    },
+  ];
   const settingsItem = {
     id: "settings",
     icon: Settings,
     label: t("settings"),
     action: onOpenSettings,
   };
+  const renderCollapsedRailItem = (item) => (
+    <div key={item.id} className="relative">
+      <button
+        type="button"
+        onClick={() => item.action?.()}
+        className={cn(
+          "group relative flex h-12 w-full items-center justify-center rounded-2xl transition-all duration-200",
+          item.active
+            ? isDark
+              ? "bg-[var(--bm-primary)]/18 text-white shadow-[0_10px_26px_rgba(25,59,104,0.22)]"
+              : "bg-[var(--bm-primary)]/12 text-[var(--bm-primary)] shadow-[0_10px_26px_rgba(25,59,104,0.12)]"
+            : isDark
+              ? "text-[#E4E4E7] hover:bg-white/[0.08] hover:text-white"
+              : "text-[var(--bm-text-primary)] hover:bg-black/[0.05] hover:text-[var(--bm-primary)]",
+        )}
+        data-testid={`nav-${item.id}`}
+        title={item.label}
+      >
+        <item.icon className={cn("flex-shrink-0 stroke-[2.35]", iconClasses.sidebar)} />
+        <span className={cn("pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2 py-1 opacity-0 shadow-lg transition-opacity group-hover:opacity-100", typeClasses.small, isDark ? "bg-[var(--bm-bg-elevated)] text-white" : "bg-white text-[var(--bm-text-primary)]")}>
+          {item.label}
+        </span>
+      </button>
+    </div>
+  );
   const renderSidebarSection = (title, items) => (
     <div className="space-y-1">
       {isHistoryOpen && (
@@ -1062,10 +1128,16 @@ function Sidebar({
         )}
       </AnimatePresence>
 
-      <nav className={cn("space-y-2 px-3.5 pt-4", !isHistoryOpen && "px-4")} data-testid="chat-sidebar-nav">
-        {renderSidebarSection("CHAT", chatItems)}
-        {renderSidebarSection("CHAT MODES", chatModeItems)}
-        {renderSidebarSection("BLUEMIND", bluemindItems)}
+      <nav className={cn(isHistoryOpen ? "space-y-2 px-3.5 pt-4" : "space-y-3 px-4 pt-5")} data-testid="chat-sidebar-nav">
+        {isHistoryOpen ? (
+          <>
+            {renderSidebarSection("CHAT", chatItems)}
+            {renderSidebarSection("CHAT MODES", chatModeItems)}
+            {renderSidebarSection("BLUEMIND", bluemindItems)}
+          </>
+        ) : (
+          collapsedPrimaryItems.map(renderCollapsedRailItem)
+        )}
       </nav>
 
       <AnimatePresence>
@@ -1186,14 +1258,14 @@ function Sidebar({
         </AnimatePresence>
       </div>
 
-      <div className={cn("pb-4", isHistoryOpen ? "px-3.5" : "px-4")}>
+      <div className={cn("border-t pt-4", isHistoryOpen ? "px-3.5 pb-4" : "px-4 pb-4", isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]")}>
         <button
           type="button"
           onClick={() => {
             settingsItem.action?.();
           }}
           className={cn(
-            "group relative flex w-full items-center rounded-xl transition-all duration-200 cursor-pointer",
+            "group relative flex w-full items-center rounded-2xl transition-all duration-200 cursor-pointer",
             iconClasses.iconText,
             isHistoryOpen ? "px-3.5 py-3" : "h-12 justify-center px-0 py-0",
             isDark
