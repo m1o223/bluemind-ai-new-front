@@ -289,7 +289,7 @@ export default function DesktopComposer({
   useLayoutEffect(() => {
     const element = inputRef?.current;
     if (!element) return;
-    const minHeight = 88;
+    const minHeight = 104;
     const maxHeight = maxHeightRef.current;
     element.style.height = "auto";
     const nextHeight = Math.max(minHeight, Math.min(element.scrollHeight, maxHeight));
@@ -299,7 +299,7 @@ export default function DesktopComposer({
 
   const handleTextareaInput = (event) => {
     const element = event.currentTarget;
-    const minHeight = 88;
+    const minHeight = 104;
     const maxHeight = maxHeightRef.current;
     element.style.height = "auto";
     const nextHeight = Math.max(minHeight, Math.min(element.scrollHeight, maxHeight));
@@ -315,11 +315,11 @@ export default function DesktopComposer({
         initial={false}
         animate={{
           boxShadow: isFocused
-            ? "0 28px 80px rgba(15, 23, 42, 0.16)"
-            : "0 18px 60px rgba(15, 23, 42, 0.10)",
+            ? "0 22px 58px rgba(0, 0, 0, 0.16)"
+            : "0 16px 44px rgba(0, 0, 0, 0.12)",
         }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="overflow-visible rounded-[34px] bg-[var(--bm-bg-card)]/96 p-5 text-[var(--bm-text-primary)] ring-1 ring-[var(--bm-border)] backdrop-blur-2xl"
+        className="overflow-visible rounded-[36px] bg-[var(--bm-bg-card)] px-6 py-6 text-[var(--bm-text-primary)] backdrop-blur-2xl"
         data-testid="desktop-bluemind-composer"
       >
         {(modePill || hasAttachments) && (
@@ -374,7 +374,7 @@ export default function DesktopComposer({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="pointer-events-none absolute left-0 top-0 text-[18px] font-medium leading-7 text-[var(--bm-text-secondary)]"
+                className="pointer-events-none absolute left-0 top-2 text-[18px] font-medium leading-7 text-[var(--bm-text-secondary)]"
               >
                 {activePlaceholder}
               </motion.span>
@@ -390,10 +390,10 @@ export default function DesktopComposer({
             onBlur={() => setIsFocused(false)}
             rows={1}
             placeholder={isFocused || hasText ? activePlaceholder : ""}
-            className="desktop-bluemind-composer-input block w-full resize-none bg-transparent text-[18px] font-medium leading-7 text-[var(--bm-text-primary)] outline-none placeholder:text-[var(--bm-text-secondary)]/80"
+            className="desktop-bluemind-composer-input bm-composer-input block w-full resize-none bg-transparent pt-2 text-[18px] font-medium leading-7 text-[var(--bm-text-primary)] outline-none placeholder:text-[var(--bm-text-secondary)]/80"
             style={{
               ...inputDirectionStyle,
-              minHeight: "88px",
+              minHeight: "104px",
               maxHeight: "46vh",
               caretColor: "var(--bm-input-caret)",
               letterSpacing: "0",
