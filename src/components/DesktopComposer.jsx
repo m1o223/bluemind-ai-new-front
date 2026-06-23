@@ -313,13 +313,9 @@ export default function DesktopComposer({
 
       <motion.section
         initial={false}
-        animate={{
-          boxShadow: isFocused
-            ? "0 22px 58px rgba(0, 0, 0, 0.16)"
-            : "0 16px 44px rgba(0, 0, 0, 0.12)",
-        }}
+        animate={{ boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)" }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="overflow-visible rounded-[36px] bg-[var(--bm-bg-card)] px-6 py-6 text-[var(--bm-text-primary)] backdrop-blur-2xl"
+        className="overflow-visible rounded-[36px] bg-[var(--bm-bg-card)] px-6 py-6 text-[var(--bm-text-primary)]"
         data-testid="desktop-bluemind-composer"
       >
         {(modePill || hasAttachments) && (
