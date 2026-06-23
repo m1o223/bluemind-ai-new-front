@@ -38,7 +38,7 @@ function AttachmentPreview({ attachment, isDark, isMobile, onRemove }) {
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className={cn("flex h-full w-full items-center justify-center", isDark ? "text-white" : "text-[var(--bm-primary)]")}>
+        <div className="flex h-full w-full items-center justify-center text-[var(--bm-icon-primary)]">
           <FileText className={isMobile ? "h-5 w-5" : "h-6 w-6"} />
         </div>
       )}
@@ -128,8 +128,8 @@ export default function UnifiedComposer({
         "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
         isMobile ? "h-11 w-11" : "h-11 w-11",
         isIdleState
-          ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-primary)] hover:text-[var(--bm-text-primary)]"
-          : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
+          ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)]"
+          : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
       )}
       style={{
         backdropFilter: "blur(18px)",
@@ -223,7 +223,7 @@ export default function UnifiedComposer({
                 onClick={modePill.onClear}
                 className={cn(
                   "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
-                  isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]",
+                  isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] active:bg-[var(--bm-active-bg)]",
                 )}
                 aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
                 data-testid="composer-mode-pill"
@@ -271,7 +271,7 @@ export default function UnifiedComposer({
                   onClick={onClearAttachments}
                   className={cn(
                     "h-9 shrink-0 rounded-full px-3 text-xs font-bold",
-                    isDark ? "bg-white/[0.07] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)] hover:bg-[var(--bm-active-bg)]",
+                    isDark ? "bg-white/[0.07] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] hover:bg-[var(--bm-active-bg)]",
                   )}
                 >
                   Clear

@@ -102,7 +102,7 @@ function AttachmentPreview({ attachment, onRemove }) {
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-[var(--bm-primary)]">
+        <div className="flex h-full w-full items-center justify-center text-[var(--bm-icon-primary)]">
           <FileText className="h-7 w-7" />
         </div>
       )}
@@ -137,10 +137,9 @@ function ModelThinkingMenu({
   const accentTextClass = isDark ? "text-white" : "text-[var(--bm-primary)]";
   const selectedRowClass = isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]";
   const idleRowClass = isDark ? "text-white hover:bg-white/[0.07]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]";
-  const iconBubbleClass = isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]";
   const sectionLabelClass = isDark ? "text-white/55" : "text-[var(--bm-text-muted)]";
   const dropdownSurfaceClass = isDark
-    ? "bg-[#202020] text-white ring-white/[0.08] shadow-[0_12px_28px_rgba(0,0,0,0.28)]"
+    ? "bg-[var(--bm-bg-card)] text-white ring-white/[0.08] shadow-[0_12px_28px_rgba(0,0,0,0.28)]"
     : "bg-white text-[var(--bm-text-primary)] ring-[var(--bm-border)] shadow-[0_12px_28px_rgba(15,23,42,0.10)]";
   const triggerClass = cn(
     "inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-bold transition-colors",
@@ -190,14 +189,21 @@ function ModelThinkingMenu({
                       selected ? selectedRowClass : idleRowClass,
                     )}
                   >
-                    <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", iconBubbleClass)}>
+                    <span className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                      isDark
+                        ? "bg-white/[0.08] text-white"
+                        : selected
+                          ? "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]"
+                          : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)]",
+                    )}>
                       <ModelIcon className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-extrabold">{model.label}</span>
                       <span className={cn("mt-0.5 block truncate text-xs font-semibold", isDark ? "text-white/65" : "text-[var(--bm-text-secondary)]")}>{model.description}</span>
                     </span>
-                    {selected && <Check className={cn("h-5 w-5 shrink-0 stroke-[3]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />}
+                    {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
                   </button>
                 );
               })}
@@ -224,7 +230,7 @@ function ModelThinkingMenu({
                       <span className="block truncate text-sm font-extrabold">{level.label}</span>
                       <span className={cn("mt-0.5 block truncate text-xs font-semibold", isDark ? "text-white/65" : "text-[var(--bm-text-secondary)]")}>{level.description}</span>
                     </span>
-                    {selected && <Check className={cn("h-5 w-5 shrink-0 stroke-[3]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />}
+                    {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
                   </button>
                 );
               })}
@@ -363,7 +369,7 @@ export default function DesktopComposer({
                   <button
                     type="button"
                     onClick={onClearAttachments}
-                    className="h-10 shrink-0 rounded-full bg-[var(--bm-hover-bg)] px-4 text-xs font-extrabold text-[var(--bm-primary)] transition-colors hover:bg-[var(--bm-active-bg)]"
+                    className="h-10 shrink-0 rounded-full bg-[var(--bm-hover-bg)] px-4 text-xs font-extrabold text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-active-bg)]"
                   >
                     Clear
                   </button>

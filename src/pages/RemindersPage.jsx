@@ -70,7 +70,7 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
       className={cn(
         "rounded-xl border p-5 hover:shadow-sm transition-all duration-200 relative",
         isHighlighted && "ring-2 ring-offset-2 ring-offset-transparent",
-        isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)] hover:border-[#466589]" : "bg-white border-[var(--bm-border)] hover:border-[var(--bm-primary)]/50",
+        isDark ? "bg-[var(--bm-bg-elevated)] border-[var(--bm-bg-elevated)] hover:border-[var(--bm-border-strong)]" : "bg-white border-[var(--bm-border)] hover:border-[var(--bm-border-strong)]",
       )}
       style={isHighlighted ? { "--tw-ring-color": appColor } : undefined}
       data-testid={`reminder-card-${reminder._id}`}
@@ -87,19 +87,19 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
           </p>
 
           <div className="flex items-center gap-4 mt-3">
-            <span className="flex items-center gap-1.5 text-xs" style={{ color: appColor }}>
+            <span className="flex items-center gap-1.5 text-xs text-[var(--bm-icon-primary)]">
               <Calendar className="w-3.5 h-3.5" />
               {formatDate(reminder.reminderDate || reminder.date, language)}
             </span>
 
-            <span className="flex items-center gap-1.5 text-xs" style={{ color: appColor }}>
+            <span className="flex items-center gap-1.5 text-xs text-[var(--bm-icon-primary)]">
               <Clock className="w-3.5 h-3.5" />
               {formatTime(reminder.reminderTime || reminder.time, language)}
             </span>
           </div>
 
           {(reminder.recurrence?.frequency || "none") !== "none" && (
-            <span className={cn("mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
+            <span className={cn("mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", isDark ? "bg-[var(--bm-bg-elevated)] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
               <Repeat2 className="h-3.5 w-3.5" />
               {t(`repeat_${reminder.recurrence.frequency}`)}
             </span>
@@ -111,7 +111,7 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
             onClick={() => setMenuOpen(!menuOpen)}
             className={cn(
               "p-1.5 rounded-lg flex items-center justify-center transition-colors cursor-pointer",
-              isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-primary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
+              isDark ? "text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-icon-primary)] hover:bg-[var(--bm-hover-bg)]",
             )}
             data-testid={`reminder-menu-${reminder._id}`}
           >
@@ -236,7 +236,7 @@ function ReminderModal({ isOpen, onClose, onSave, editData, t, isDark, appColor 
       >
         <button
           onClick={onClose}
-          className={cn("absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-primary)] hover:text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)]")}
+          className={cn("absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]")}
         >
           <X className="w-4 h-4" />
         </button>
@@ -437,7 +437,7 @@ function NotificationSetupPanel({
               "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
               isGranted
                 ? isDark ? "bg-emerald-500/15 text-emerald-300" : "bg-emerald-50 text-emerald-700"
-                : isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]",
+                : isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)]",
             )}
           >
             {isDenied ? <BellOff className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
@@ -813,7 +813,7 @@ const fetchReminders = useCallback(async () => {
         {/* Search */}
         <div className="mb-6">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: appColor }} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--bm-icon-primary)]" />
 
             <input
               type="text"
@@ -851,7 +851,7 @@ const fetchReminders = useCallback(async () => {
         {filteredReminders.length === 0 && (
           <div className="text-center py-16">
             <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-hover-bg)]")}>
-              <Clock className="w-6 h-6" style={{ color: appColor }} />
+              <Clock className="w-6 h-6 text-[var(--bm-icon-primary)]" />
             </div>
 
             <p className={cn("text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>

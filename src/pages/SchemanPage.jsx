@@ -573,7 +573,7 @@ function NotificationBanner({ isDark, appColor, t }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
-            <Bell className="h-5 w-5" style={{ color: appColor }} />
+            <Bell className="h-5 w-5 text-[var(--bm-icon-primary)]" />
           </div>
           <div>
             <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaNotificationPromptTitle")}</p>
@@ -601,10 +601,10 @@ function PlanTypeCard({ item, isDark, appColor, onClick, t }) {
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.99 }}
       onClick={() => onClick(item.id)}
-      className={cn("min-h-[190px] rounded-2xl border p-6 text-left transition-all sm:min-h-[210px]", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)] hover:border-[#466589] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] bg-white shadow-sm shadow-slate-200/60 hover:border-[var(--bm-primary)]/40 hover:bg-[var(--bm-bg-elevated)] hover:shadow-md")}
+      className={cn("min-h-[190px] rounded-2xl border p-6 text-left transition-all sm:min-h-[210px]", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-elevated)] hover:border-[var(--bm-border-strong)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] bg-white shadow-sm shadow-slate-200/60 hover:border-[var(--bm-border-strong)] hover:bg-[var(--bm-bg-elevated)] hover:shadow-md")}
     >
-      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: hexToRgba(appColor, isDark ? 0.22 : 0.12) }}>
-        <Icon className="h-6 w-6" style={{ color: appColor }} />
+      <div className={cn("mb-5 flex h-14 w-14 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)]")}>
+        <Icon className="h-6 w-6 text-[var(--bm-icon-primary)]" />
       </div>
       <h3 className={cn("text-xl font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t(item.title)}</h3>
       <p className={cn("mt-3 text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t(item.subtitle)}</p>
@@ -617,7 +617,7 @@ function EmptyCreateScreen({ isDark, appColor, onSelectType, t }) {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
         <div className={cn("mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-white border border-[var(--bm-border-strong)] shadow-sm")}>
-          <Sparkles className="h-6 w-6" style={{ color: appColor }} />
+          <Sparkles className="h-6 w-6 text-[var(--bm-icon-primary)]" />
         </div>
         <h2 className={cn("text-3xl font-semibold tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaCreateTitle")}</h2>
         <p className={cn("mx-auto mt-3 max-w-xl text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaCreateSubtitle")}</p>
@@ -659,7 +659,7 @@ function PlansDashboard({ plans, isDark, appColor, onCreate, onOpen, onDelete, o
             >
               <div className="flex items-start gap-4">
                 <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
-                  <Icon className="h-5 w-5" style={{ color: appColor }} />
+                  <Icon className="h-5 w-5 text-[var(--bm-icon-primary)]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -835,7 +835,7 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
           className={cn("flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors disabled:opacity-70", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] bg-white hover:bg-[var(--bm-bg-elevated)]")}
         >
           <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
-            {isAnalyzing ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: appColor }} /> : <FileImage className="h-5 w-5" style={{ color: appColor }} />}
+            {isAnalyzing ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--bm-icon-primary)] border-t-transparent" /> : <FileImage className="h-5 w-5 text-[var(--bm-icon-primary)]" />}
           </div>
           <div className="min-w-0 flex-1">
             <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
@@ -905,7 +905,7 @@ function QuestionInput({ question, answers, setAnswers, isDark, appColor, t }) {
           className={cn("flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)] bg-white hover:bg-[var(--bm-bg-elevated)]")}
         >
           <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
-            {acceptsAny ? <Paperclip className="h-5 w-5" style={{ color: appColor }} /> : <FileImage className="h-5 w-5" style={{ color: appColor }} />}
+            {acceptsAny ? <Paperclip className="h-5 w-5 text-[var(--bm-icon-primary)]" /> : <FileImage className="h-5 w-5 text-[var(--bm-icon-primary)]" />}
           </div>
           <div className="min-w-0 flex-1">
             <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{fileName || t(acceptsAny ? "schemaUploadAnyButton" : "schemaUploadImageButton")}</p>
@@ -1029,7 +1029,7 @@ function SetupFlow({ setup, isDark, appColor, onClose, onComplete, t }) {
             >
               <div className="mb-5 flex items-start gap-3">
                 <div className={cn("mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-[var(--bm-active-bg)]")}>
-                  <Sparkles className="h-4 w-4" style={{ color: appColor }} />
+                  <Sparkles className="h-4 w-4 text-[var(--bm-icon-primary)]" />
                 </div>
                 <h3 className={cn("text-xl font-semibold leading-8", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{question.title}</h3>
               </div>
@@ -1079,7 +1079,7 @@ function GeneratingOverlay({ open, progress, isDark, appColor, t }) {
           animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.05, 1] }}
           transition={{ duration: 1.4, repeat: Infinity }}
         >
-          <Sparkles className="h-7 w-7" style={{ color: appColor }} />
+          <Sparkles className="h-7 w-7 text-[var(--bm-icon-primary)]" />
         </motion.div>
         <h3 className={cn("text-lg font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemaBuildingTitle")}</h3>
         <p className={cn("mt-2 text-sm leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("schemaBuildingSubtitle")}</p>
@@ -1163,7 +1163,7 @@ function DayColumn({ day, items, isDark, editMode, appColor, onEdit, onAddTask, 
         {items.map((item) => <TaskCard key={item.id} taskItem={item} isDark={isDark} editMode={editMode} onEdit={onEdit} onDragStart={onDragStart} />)}
         {editMode && (
           <button type="button" onClick={() => onAddTask(day)} className={cn("flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-3 text-sm", isDark ? "border-[var(--bm-border-strong)] text-[var(--bm-text-muted)] hover:bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] text-[var(--bm-text-secondary)] hover:bg-white")}>
-            <Plus className="h-4 w-4" style={{ color: appColor }} />
+            <Plus className="h-4 w-4 text-[var(--bm-icon-primary)]" />
             {t("schemanAddTask")}
           </button>
         )}
@@ -1527,7 +1527,7 @@ function PlanDetail({ plan, isDark, appColor, onBack, onChange, t }) {
           <div className={cn("rounded-xl border p-4 lg:col-span-2", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
             <h3 className={cn("mb-3 font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("schemanSmartInsights")}</h3>
             <div className="grid gap-2 sm:grid-cols-3">
-              {plan.insights.map((insight) => <button key={insight} type="button" onClick={() => toast.success(t("schemanSuggestionApplied"))} className={cn("rounded-xl p-3 text-left text-sm leading-6", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)]")}><Sparkles className="mb-2 h-4 w-4" style={{ color: appColor }} />{insight}</button>)}
+              {plan.insights.map((insight) => <button key={insight} type="button" onClick={() => toast.success(t("schemanSuggestionApplied"))} className={cn("rounded-xl p-3 text-left text-sm leading-6", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)]")}><Sparkles className="mb-2 h-4 w-4 text-[var(--bm-icon-primary)]" />{insight}</button>)}
             </div>
           </div>
         </div>

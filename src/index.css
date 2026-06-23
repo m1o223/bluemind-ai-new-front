@@ -20,6 +20,12 @@
   --bm-text-primary: #FFFFFF;
   --bm-text-secondary: #D7D7D7;
   --bm-text-muted: #A7A7A7;
+  --bm-icon-primary: #FFFFFF;
+  --bm-icon-secondary: #D7D7D7;
+  --bm-icon-accent: #FFFFFF;
+  --bm-check: #FFFFFF;
+  --bm-selected-bg: rgba(255, 255, 255, 0.08);
+  --bm-selected-text: #FFFFFF;
   --bm-hover-bg: rgba(255, 255, 255, 0.08);
   --bm-hover-border: rgba(255, 255, 255, 0.16);
   --bm-hover-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
@@ -125,6 +131,12 @@ html[data-theme="light"] body {
   --bm-text-primary: #111827;
   --bm-text-secondary: #64748B;
   --bm-text-muted: #94A3B8;
+  --bm-icon-primary: #111827;
+  --bm-icon-secondary: #475569;
+  --bm-icon-accent: var(--bm-primary);
+  --bm-check: var(--bm-primary);
+  --bm-selected-bg: rgba(25, 59, 104, 0.10);
+  --bm-selected-text: var(--bm-primary);
   --bm-hover-bg: rgba(25, 59, 104, 0.07);
   --bm-hover-border: rgba(25, 59, 104, 0.22);
   --bm-hover-shadow: 0 16px 38px rgba(15, 23, 42, 0.12);

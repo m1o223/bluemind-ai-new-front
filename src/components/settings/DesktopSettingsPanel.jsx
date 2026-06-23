@@ -322,11 +322,11 @@ function SettingsRow({
                   }}
                   className={cn(
                     "flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition-colors",
-                    selected ? "bg-[var(--bm-primary)]/12 text-[var(--bm-primary)]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
+                    selected ? "bg-[var(--bm-selected-bg)] text-[var(--bm-selected-text)]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                  {selected && <Check className="h-4 w-4 shrink-0" />}
+                  {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
                 </button>
               );
             })}
@@ -907,7 +907,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
                 className={cn(
                   "flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold transition-colors max-[900px]:justify-center max-[900px]:px-0",
                   active
-                    ? "bg-[var(--bm-primary)]/14 text-[var(--bm-primary)]"
+                    ? "bg-[var(--bm-selected-bg)] text-[var(--bm-selected-text)]"
                     : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
                 )}
               >

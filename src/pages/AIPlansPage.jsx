@@ -424,7 +424,7 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack }) {
                 onClick={() => submit(card.prompt, card)}
                 className={cn("group rounded-[24px] border p-4 text-left shadow-sm", interactionClasses.card, isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
               >
-                <span className={cn("mb-4 flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)]")} style={{ color: appColor }}>
+                <span className={cn("mb-4 flex h-11 w-11 items-center justify-center rounded-2xl text-[var(--bm-icon-primary)]", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)]")}>
                   <Icon className={iconClasses.card} />
                 </span>
                 <span className={cn("block font-extrabold", typeClasses.cardTitle)}>{card.title}</span>
@@ -659,8 +659,8 @@ function Dashboard({ plans, isDark, appColor, accentText, onCreate, onOpen, onEd
               </div>
               <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <button type="button" onClick={() => onOpen(plan.id)} className={cn("rounded-2xl px-3 py-3 font-bold", typeClasses.small, interactionClasses.control)} style={{ backgroundColor: appColor, color: accentText }}>Open Plan</button>
-                <button type="button" onClick={() => onEdit(plan.id)} className={cn("rounded-2xl px-3 py-3 font-bold", typeClasses.small, interactionClasses.menuItem, isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]")}>Edit</button>
-                <button type="button" onClick={() => onToggleStatus(plan.id)} disabled={status === "Completed"} className={cn("rounded-2xl px-3 py-3 font-bold disabled:opacity-50", typeClasses.small, interactionClasses.menuItem, isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]")}>{plan.status === "Paused" ? "Resume" : "Pause"}</button>
+                <button type="button" onClick={() => onEdit(plan.id)} className={cn("rounded-2xl px-3 py-3 font-bold", typeClasses.small, interactionClasses.menuItem, isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>Edit</button>
+                <button type="button" onClick={() => onToggleStatus(plan.id)} disabled={status === "Completed"} className={cn("rounded-2xl px-3 py-3 font-bold disabled:opacity-50", typeClasses.small, interactionClasses.menuItem, isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>{plan.status === "Paused" ? "Resume" : "Pause"}</button>
                 <button type="button" onClick={() => onDelete(plan.id)} className={cn("rounded-2xl bg-red-500/10 px-3 py-3 font-bold text-red-400", typeClasses.small, interactionClasses.menuItem)}>Delete</button>
               </div>
             </motion.article>
@@ -715,7 +715,7 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <button type="button" onClick={onBack} className={cn("mb-4 inline-flex items-center rounded-full px-3 py-2 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.menuItem, isDark ? "bg-white/[0.06]" : "bg-white text-[var(--bm-primary)] shadow-sm")}>
+            <button type="button" onClick={onBack} className={cn("mb-4 inline-flex items-center rounded-full px-3 py-2 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.menuItem, isDark ? "bg-white/[0.06]" : "bg-white text-[var(--bm-text-primary)] shadow-sm")}>
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
@@ -763,7 +763,7 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
                     {phase.tasks.map((task) => (
                       <div key={task.id} className={cn("group flex items-center gap-3 rounded-2xl border px-3 py-3", interactionClasses.menuItem, task.done ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : isDark ? "border-white/[0.06] bg-white/[0.035]" : "border-[var(--bm-border)] bg-[var(--bm-bg-app)]")}>
                         <button type="button" onClick={() => updateTask(phase.id, task.id, { done: !task.done })} className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full border", interactionClasses.iconButton, task.done ? "border-emerald-400 bg-emerald-500 text-white" : isDark ? "border-white/[0.12]" : "border-[var(--bm-border-strong)]")}>
-                          {task.done ? <Check className="h-4 w-4" /> : null}
+                          {task.done ? <Check className="h-5 w-5 stroke-[3]" /> : null}
                         </button>
                         <span className={cn("min-w-0 flex-1 font-bold", typeClasses.small, task.done && "line-through decoration-emerald-300/70")}>{task.title}</span>
                         <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
@@ -782,7 +782,7 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
 
           <aside className="space-y-4">
             <div className={cn("rounded-[26px] border p-5", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
-              <h3 className={cn("flex items-center font-extrabold", iconClasses.iconText, typeClasses.sectionTitle)}><Sparkles className={iconClasses.button} style={{ color: appColor }} />AI Recommendations</h3>
+              <h3 className={cn("flex items-center font-extrabold", iconClasses.iconText, typeClasses.sectionTitle)}><Sparkles className={cn(iconClasses.button, "text-[var(--bm-icon-primary)]")} />AI Recommendations</h3>
               <div className="mt-4 space-y-2">
                 {(plan.recommendations || []).map((item) => (
                   <p key={item} className={cn("rounded-2xl px-3 py-3 font-semibold", typeClasses.body, isDark ? "bg-white/[0.05] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]")}>{item}</p>
@@ -810,7 +810,7 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
 
 function ActionButton({ icon: Icon, label, isDark, active, onClick }) {
   return (
-    <button type="button" onClick={onClick} className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.control, active ? "bg-white text-[var(--bm-text-primary)]" : isDark ? "bg-white/[0.07]" : "bg-white text-[var(--bm-primary)] shadow-sm")}>
+    <button type="button" onClick={onClick} className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.control, active ? "bg-[var(--bm-selected-bg)] text-[var(--bm-selected-text)]" : isDark ? "bg-white/[0.07]" : "bg-white text-[var(--bm-text-primary)] shadow-sm")}>
       <Icon className={iconClasses.button} />
       {label}
     </button>

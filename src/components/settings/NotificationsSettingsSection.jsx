@@ -405,7 +405,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
 
         <div className={cn("rounded-[22px] border p-4 shadow-sm", panelClass)}>
           <div className="mb-4 flex items-center gap-3">
-            <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
+            <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)]")}>
               <Icon className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
@@ -486,7 +486,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
     <section className={cn("mx-auto w-full space-y-4", pageWidth)} data-testid="notifications-settings-section">
       <div className={cn("rounded-[22px] border p-4 shadow-sm", panelClass)}>
         <div className="flex items-center gap-3">
-          <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
+          <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)]")}>
             <ToggleLeft className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
@@ -515,7 +515,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
               className={cn("flex w-full items-center gap-3 rounded-[22px] border p-3 text-left shadow-sm transition-colors", panelClass, isDark ? "hover:bg-[#292929]" : "hover:bg-[var(--bm-bg-elevated)]")}
               data-testid={`notification-category-link-${category.id}`}
             >
-              <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
+              <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)]")}>
                 <Icon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">

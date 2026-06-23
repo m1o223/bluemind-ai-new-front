@@ -78,10 +78,10 @@ function OptionCard({ label, icon: Icon, isSelected, onClick, isDark }) {
       <div className="flex items-center gap-3">
         {Icon && (
           <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0", isSelected ? "bg-[var(--bm-primary)]" : isDark ? "bg-white/[0.08]" : "bg-[var(--bm-hover-bg)]")}>
-            <Icon className={cn(iconClasses.card, isSelected ? "text-white" : isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
+            <Icon className={cn(iconClasses.card, isSelected ? "text-white" : "text-[var(--bm-icon-primary)]")} />
           </div>
         )}
-        <p className={cn("font-medium", typeClasses.body, isSelected ? "text-[var(--bm-primary)]" : isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{label}</p>
+        <p className={cn("font-medium", typeClasses.body, isSelected ? "text-[var(--bm-selected-text)]" : isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{label}</p>
       </div>
     </button>
   );
@@ -97,7 +97,7 @@ function SimpleOption({ label, isSelected, onClick, isDark }) {
         typeClasses.body,
         interactionClasses.menuItem,
         isSelected
-          ? "border-[var(--bm-primary)] bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+          ? "border-[var(--bm-primary)] bg-[var(--bm-selected-bg)] text-[var(--bm-selected-text)]"
           : isDark
             ? "border-white/[0.10] bg-[var(--bm-bg-elevated)] text-white"
             : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"

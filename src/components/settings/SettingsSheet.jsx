@@ -855,7 +855,7 @@ export default function SettingsSheet({
         >
           <Moon className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
           <span className="flex-1 text-[15px] font-semibold capitalize">{theme}</span>
-          {prefs.theme === theme && <Check className="h-5 w-5 text-[var(--bm-primary)]" />}
+          {prefs.theme === theme && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
         </button>
       ))}
     </div>
@@ -872,7 +872,7 @@ export default function SettingsSheet({
         >
           <Globe2 className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
           <span className="flex-1 text-[15px] font-semibold">{language.label}</span>
-          {currentLanguage.value === language.value && <Check className="h-5 w-5 text-[var(--bm-primary)]" />}
+          {currentLanguage.value === language.value && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
         </button>
       ))}
     </div>
@@ -1124,7 +1124,7 @@ export default function SettingsSheet({
         >
           <span className="h-7 w-7 rounded-full" style={{ backgroundColor: color.value }} />
           <span className={cn("flex-1 text-sm font-bold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{color.label}</span>
-          {accent.value === color.value && <Check className="h-5 w-5 text-[var(--bm-primary)]" />}
+          {accent.value === color.value && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
         </button>
       ))}
     </div>
@@ -1143,7 +1143,7 @@ export default function SettingsSheet({
           >
             <span className="h-7 w-7 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />
             <span className={cn("min-w-0 flex-1 truncate text-sm font-bold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{color.label}</span>
-            {activeMessageColor.value.toLowerCase() === color.value.toLowerCase() && <Check className="h-5 w-5 shrink-0 text-[var(--bm-primary)]" />}
+            {activeMessageColor.value.toLowerCase() === color.value.toLowerCase() && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
           </button>
         ))}
       </div>

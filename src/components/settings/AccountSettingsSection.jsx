@@ -175,7 +175,7 @@ function CollapsiblePanel({ title, icon: Icon, open, onToggle, children, isDark,
         onClick={onToggle}
         className={cn("flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors", isDark ? "hover:bg-white/[0.05]" : "hover:bg-[var(--bm-bg-elevated)]")}
       >
-        <Icon className={cn("h-5 w-5 shrink-0", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-primary)]")} />
+        <Icon className="h-5 w-5 shrink-0 text-[var(--bm-icon-primary)]" />
         <span className="flex-1 text-sm font-extrabold">{title}</span>
         {badge}
         <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />

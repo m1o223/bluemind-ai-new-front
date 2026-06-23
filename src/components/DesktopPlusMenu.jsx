@@ -19,10 +19,10 @@ export default function DesktopPlusMenu({
   const [placement, setPlacement] = useState("above");
 
   const surfaceClass = isDark
-    ? "border-white/[0.08] bg-[#202020] text-white shadow-[0_10px_22px_rgba(0,0,0,0.26)]"
+    ? "border-white/[0.08] bg-[var(--bm-bg-card)] text-white shadow-[0_10px_22px_rgba(0,0,0,0.26)]"
     : "border-black/[0.07] bg-white text-[var(--bm-text-primary)] shadow-[0_10px_22px_rgba(15,23,42,0.10)]";
   const groupLabelClass = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
-  const iconClass = isDark ? "text-[var(--bm-border)]" : "text-[var(--bm-primary)]";
+  const iconClass = "text-[var(--bm-icon-primary)]";
   const dividerClass = isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]";
 
   useLayoutEffect(() => {
@@ -63,7 +63,7 @@ export default function DesktopPlusMenu({
     const Icon = item.icon;
     const content = (
       <>
-        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[#EEF4FB]")}>
+        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)]")}>
           <Icon className={cn(iconClasses.button, iconClass)} />
         </span>
         <span className="min-w-0 flex-1">
