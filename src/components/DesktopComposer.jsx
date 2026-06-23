@@ -5,6 +5,7 @@ import {
   Brain,
   Check,
   ChevronDown,
+  ChevronRight,
   FileText,
   Lightbulb,
   Mic,
@@ -121,9 +122,8 @@ function AttachmentPreview({ attachment, onRemove }) {
   );
 }
 
-function ModelThinkingMenu({
+function ModelMenu({
   activeModel,
-  activeThinkingLevel,
   modelId,
   thinkingLevel,
   onResponseModeChange,
@@ -132,12 +132,11 @@ function ModelThinkingMenu({
   setActiveMenu,
   isDark = false,
 }) {
-  const id = "model-thinking";
+  const id = "models";
   const open = activeMenu === id;
-  const accentTextClass = isDark ? "text-white" : "text-[var(--bm-primary)]";
+  const [hoveredModelId, setHoveredModelId] = useState(modelId || BLUEMIND_MODELS[0].id);
   const selectedRowClass = isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]";
   const idleRowClass = isDark ? "text-white hover:bg-white/[0.07]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]";
-  const sectionLabelClass = isDark ? "text-white/55" : "text-[var(--bm-text-muted)]";
   const dropdownSurfaceClass = isDark
     ? "bg-[var(--bm-bg-card)] text-white ring-white/[0.08] shadow-[0_12px_28px_rgba(0,0,0,0.28)]"
     : "bg-white text-[var(--bm-text-primary)] ring-[var(--bm-border)] shadow-[0_12px_28px_rgba(15,23,42,0.10)]";
@@ -145,17 +144,26 @@ function ModelThinkingMenu({
     "inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-bold transition-colors",
     isDark ? "text-white hover:bg-white/[0.07]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
   );
+  const hoveredModel = BLUEMIND_MODELS.find((model) => model.id === hoveredModelId) || activeModel || BLUEMIND_MODELS[0];
+
+  useEffect(() => {
+    if (open) setHoveredModelId(modelId || activeModel?.id || BLUEMIND_MODELS[0].id);
+  }, [activeModel?.id, modelId, open]);
+
+  const selectModel = (model) => {
+    onResponseModeChange?.(model.responseMode, model);
+  };
+
+  const selectThinkingForModel = (level) => {
+    selectModel(hoveredModel);
+    onThinkingLevelChange?.(level.id, level);
+    setActiveMenu("");
+  };
 
   return (
-    <div className="relative flex items-center gap-2">
+    <div className="relative">
       <button type="button" onClick={() => setActiveMenu(open ? "" : id)} className={cn(triggerClass, "max-w-[220px]")} aria-expanded={open}>
-        <activeModel.icon className={cn("h-4 w-4 shrink-0", accentTextClass)} />
         <span className="min-w-0 truncate">{activeModel.label}</span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0", isDark ? "text-white/75" : "text-[var(--bm-text-muted)]")} />
-      </button>
-
-      <button type="button" onClick={() => setActiveMenu(open ? "" : id)} className={triggerClass} aria-expanded={open}>
-        <span className={cn("shrink-0", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{activeThinkingLevel.label}</span>
         <ChevronDown className={cn("h-4 w-4 shrink-0", isDark ? "text-white/75" : "text-[var(--bm-text-muted)]")} />
       </button>
 
@@ -168,49 +176,101 @@ function ModelThinkingMenu({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 4, scale: 0.98 }}
               transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-              className={cn("absolute left-0 top-[calc(100%+8px)] z-50 w-[306px] overflow-hidden rounded-[22px] p-2 ring-1", dropdownSurfaceClass)}
+              className="absolute left-0 top-[calc(100%+8px)] z-50 flex items-start"
             >
-              <div className="px-2 pb-1.5 pt-1">
-                <p className={cn("text-xs font-extrabold uppercase tracking-[0.1em]", sectionLabelClass)}>Models</p>
+              <div className={cn("w-[248px] rounded-[20px] p-1.5 ring-1", dropdownSurfaceClass)}>
+                {BLUEMIND_MODELS.map((model) => {
+                  const selected = modelId === model.id;
+                  const active = hoveredModel.id === model.id;
+                  return (
+                    <button
+                      key={model.id}
+                      type="button"
+                      onMouseEnter={() => setHoveredModelId(model.id)}
+                      onFocus={() => setHoveredModelId(model.id)}
+                      onClick={() => selectModel(model)}
+                      className={cn(
+                        "flex min-h-[42px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors",
+                        selected || active ? selectedRowClass : idleRowClass,
+                      )}
+                    >
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                        {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{model.label}</span>
+                      <ChevronRight className={cn("h-4 w-4 shrink-0", isDark ? "text-white/70" : "text-[var(--bm-text-muted)]")} />
+                    </button>
+                  );
+                })}
               </div>
-              {BLUEMIND_MODELS.map((model) => {
-                const ModelIcon = model.icon;
-                const selected = modelId === model.id;
-                return (
-                  <button
-                    key={model.id}
-                    type="button"
-                    onClick={() => {
-                      onResponseModeChange?.(model.responseMode, model);
-                      setActiveMenu("");
-                    }}
-                    className={cn(
-                      "flex min-h-[48px] w-full items-center gap-3 rounded-2xl px-2.5 text-left transition-colors",
-                      selected ? selectedRowClass : idleRowClass,
-                    )}
-                  >
-                    <span className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
-                      isDark
-                        ? "bg-white/[0.08] text-white"
-                        : selected
-                          ? "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]"
-                          : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)]",
-                    )}>
-                      <ModelIcon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-extrabold">{model.label}</span>
-                      <span className={cn("mt-0.5 block truncate text-xs font-semibold", isDark ? "text-white/65" : "text-[var(--bm-text-secondary)]")}>{model.description}</span>
-                    </span>
-                    {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
-                  </button>
-                );
-              })}
-              <div className="mx-2 my-2 h-px bg-[var(--bm-border)]" />
-              <div className="px-2 pb-1.5">
-                <p className={cn("text-xs font-extrabold uppercase tracking-[0.1em]", sectionLabelClass)}>Thinking</p>
+
+              <div className={cn("ml-2 w-[174px] rounded-[20px] p-1.5 ring-1", dropdownSurfaceClass)}>
+                {THINKING_LEVELS.map((level) => {
+                  const selected = thinkingLevel === level.id;
+                  return (
+                    <button
+                      key={level.id}
+                      type="button"
+                      onClick={() => selectThinkingForModel(level)}
+                      className={cn(
+                        "flex min-h-[40px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors",
+                        selected ? selectedRowClass : idleRowClass,
+                      )}
+                    >
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                        {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{level.label}</span>
+                    </button>
+                  );
+                })}
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ThinkingMenu({
+  activeThinkingLevel,
+  thinkingLevel,
+  onThinkingLevelChange,
+  activeMenu,
+  setActiveMenu,
+  isDark = false,
+}) {
+  const id = "thinking";
+  const open = activeMenu === id;
+  const selectedRowClass = isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]";
+  const idleRowClass = isDark ? "text-white hover:bg-white/[0.07]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]";
+  const dropdownSurfaceClass = isDark
+    ? "bg-[var(--bm-bg-card)] text-white ring-white/[0.08] shadow-[0_12px_28px_rgba(0,0,0,0.28)]"
+    : "bg-white text-[var(--bm-text-primary)] ring-[var(--bm-border)] shadow-[0_12px_28px_rgba(15,23,42,0.10)]";
+  const triggerClass = cn(
+    "inline-flex h-10 items-center gap-2 rounded-full px-3 text-sm font-bold transition-colors",
+    isDark ? "text-white hover:bg-white/[0.07]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
+  );
+
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setActiveMenu(open ? "" : id)} className={triggerClass} aria-expanded={open}>
+        <span className="shrink-0">{activeThinkingLevel.label}</span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0", isDark ? "text-white/75" : "text-[var(--bm-text-muted)]")} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <button type="button" className="fixed inset-0 z-40 cursor-default" onClick={() => setActiveMenu("")} aria-label="Close thinking menu" />
+            <motion.div
+              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.98 }}
+              transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className={cn("absolute left-0 top-[calc(100%+8px)] z-50 w-[190px] rounded-[20px] p-1.5 ring-1", dropdownSurfaceClass)}
+            >
               {THINKING_LEVELS.map((level) => {
                 const selected = thinkingLevel === level.id;
                 return (
@@ -222,15 +282,14 @@ function ModelThinkingMenu({
                       setActiveMenu("");
                     }}
                     className={cn(
-                      "flex min-h-[42px] w-full items-center gap-3 rounded-2xl px-2.5 text-left transition-colors",
+                      "flex min-h-[40px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors",
                       selected ? selectedRowClass : idleRowClass,
                     )}
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-extrabold">{level.label}</span>
-                      <span className={cn("mt-0.5 block truncate text-xs font-semibold", isDark ? "text-white/65" : "text-[var(--bm-text-secondary)]")}>{level.description}</span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                      {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
                     </span>
-                    {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
+                    <span className="min-w-0 flex-1 truncate">{level.label}</span>
                   </button>
                 );
               })}
@@ -430,12 +489,20 @@ export default function DesktopComposer({
               {actionMenu}
             </div>
 
-            <ModelThinkingMenu
+            <ModelMenu
               activeModel={activeModel}
-              activeThinkingLevel={activeThinkingLevel}
               modelId={activeModel.id}
               thinkingLevel={activeThinkingLevel.id}
               onResponseModeChange={onResponseModeChange}
+              onThinkingLevelChange={onThinkingLevelChange}
+              activeMenu={activeMenu}
+              setActiveMenu={setActiveMenu}
+              isDark={isDark}
+            />
+
+            <ThinkingMenu
+              activeThinkingLevel={activeThinkingLevel}
+              thinkingLevel={activeThinkingLevel.id}
               onThinkingLevelChange={onThinkingLevelChange}
               activeMenu={activeMenu}
               setActiveMenu={setActiveMenu}
