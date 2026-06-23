@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, FileText, Image as ImageIcon, PenLine, Search } from "lucide-react";
 
@@ -9,23 +10,47 @@ export default function DesktopPlusMenu({
   onClose,
   isDark = false,
   onCamera,
-  onAllPhotos,
   onFiles,
   onCreateImage,
   onWriteEdit,
   onSearch,
 }) {
+  const menuRef = useRef(null);
+  const [placement, setPlacement] = useState("above");
+
   const surfaceClass = isDark
-    ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.96] text-white shadow-[0_18px_52px_rgba(0,0,0,0.42)]"
-    : "border-black/[0.08] bg-white/[0.97] text-[var(--bm-text-primary)] shadow-[0_18px_48px_rgba(15,23,42,0.14)]";
+    ? "border-white/[0.08] bg-[#202020] text-white shadow-[0_10px_22px_rgba(0,0,0,0.26)]"
+    : "border-black/[0.07] bg-white text-[var(--bm-text-primary)] shadow-[0_10px_22px_rgba(15,23,42,0.10)]";
   const groupLabelClass = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
   const iconClass = isDark ? "text-[var(--bm-border)]" : "text-[var(--bm-primary)]";
-  const dividerClass = isDark ? "bg-white/[0.1]" : "bg-[var(--bm-border)]";
+  const dividerClass = isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]";
+
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+
+    const updatePlacement = () => {
+      const trigger = menuRef.current?.parentElement;
+      if (!trigger) return;
+      const triggerRect = trigger.getBoundingClientRect();
+      const menuHeight = menuRef.current?.offsetHeight || 276;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const availableBelow = viewportHeight - triggerRect.bottom;
+      const availableAbove = triggerRect.top;
+      setPlacement(availableBelow >= menuHeight + 12 || availableBelow >= availableAbove ? "below" : "above");
+    };
+
+    updatePlacement();
+    window.addEventListener("resize", updatePlacement);
+    window.addEventListener("scroll", updatePlacement, true);
+    return () => {
+      window.removeEventListener("resize", updatePlacement);
+      window.removeEventListener("scroll", updatePlacement, true);
+    };
+  }, [open]);
 
   const pickerItems = [
     { label: "Camera", description: "Take a photo", icon: Camera, action: onCamera },
-    { label: "Photos", description: "Choose images", icon: ImageIcon, action: onAllPhotos },
-    { label: "Files", description: "Attach documents", icon: FileText, action: onFiles },
+    { label: "Photos & Files", description: "Upload images or documents", icon: FileText, action: onFiles },
   ];
 
   const toolItems = [
@@ -53,7 +78,7 @@ export default function DesktopPlusMenu({
         key={item.label}
         type="button"
         onClick={item.action}
-        className={cn("flex min-h-[48px] w-full items-center rounded-2xl px-2.5 py-1.5 text-left", iconClasses.iconText, interactionClasses.menuItem)}
+        className={cn("flex min-h-[44px] w-full items-center rounded-[16px] px-2 py-1 text-left", iconClasses.iconText, interactionClasses.menuItem)}
       >
         {content}
       </button>
@@ -72,21 +97,21 @@ export default function DesktopPlusMenu({
           />
 
           <motion.div
-            className={cn("absolute bottom-[calc(100%+10px)] left-0 z-[86] w-[286px] rounded-[22px] border p-1.5 backdrop-blur-2xl", surfaceClass)}
+            ref={menuRef}
+            className={cn(
+              "absolute left-0 z-[86] w-[258px] rounded-[20px] border p-1",
+              placement === "below" ? "top-[calc(100%+8px)]" : "bottom-[calc(100%+8px)]",
+              surfaceClass,
+            )}
             data-testid="desktop-plus-menu"
-            initial={{ opacity: 0, y: 8, scale: 0.96, transformOrigin: "18px 100%" }}
-            animate={{ opacity: 1, y: 0, scale: 1, transformOrigin: "18px 100%" }}
-            exit={{ opacity: 0, y: 6, scale: 0.96, transformOrigin: "18px 100%" }}
+            initial={{ opacity: 0, y: placement === "below" ? -4 : 4, scale: 0.98, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}
+            exit={{ opacity: 0, y: placement === "below" ? -4 : 4, scale: 0.98, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="px-2.5 pb-1.5 pt-1.5">
-              <p className={cn("font-extrabold", typeClasses.small)}>BlueMind AI</p>
-              <p className={cn("mt-0.5 font-semibold leading-4", typeClasses.small, groupLabelClass)}>Add media or choose a tool.</p>
-            </div>
-
             <div className="space-y-0.5">{pickerItems.map(renderRow)}</div>
 
-            <div className={cn("my-1.5 h-px", dividerClass)} />
+            <div className={cn("my-1 h-px", dividerClass)} />
 
             <div className="space-y-0.5">{toolItems.map(renderRow)}</div>
           </motion.div>

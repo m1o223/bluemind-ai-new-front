@@ -3981,10 +3981,6 @@ export default function ChatPage() {
           setAttachmentMenuOpen(false);
           cameraInputRef.current?.click();
         }}
-        onAllPhotos={() => {
-          setAttachmentMenuOpen(false);
-          imageInputRef.current?.click();
-        }}
         onFiles={() => {
           setAttachmentMenuOpen(false);
           fileInputRef.current?.click();
