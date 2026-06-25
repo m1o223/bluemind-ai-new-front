@@ -11,15 +11,40 @@ function getSpeechRecognition() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
 
-function getVoiceErrorMessage(error) {
+function logVoiceDebug(label, details, level = "debug") {
+  const payload = {
+    label,
+    details,
+    secureContext: window.isSecureContext,
+    host: window.location.host,
+    hasMediaDevices: Boolean(navigator.mediaDevices),
+    hasGetUserMedia: Boolean(navigator.mediaDevices?.getUserMedia),
+    hasSpeechRecognition: Boolean(getSpeechRecognition()),
+    userAgent: navigator.userAgent,
+  };
+
+  if (level === "error") {
+    console.error("[BlueMind Voice]", payload);
+    return;
+  }
+
+  if (level === "warn") {
+    console.warn("[BlueMind Voice]", payload);
+    return;
+  }
+
+  console.debug("[BlueMind Voice]", payload);
+}
+
+function getMicrophoneErrorMessage(error) {
   const name = error?.name || error?.error || "";
 
   if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "not-allowed") {
-    return "Microphone permission is blocked. Please allow microphone access and try again.";
+    return "Microphone permission denied.";
   }
 
   if (name === "NotFoundError" || name === "DevicesNotFoundError" || name === "audio-capture") {
-    return "No microphone was found. Please connect a microphone and try again.";
+    return "No microphone detected.";
   }
 
   if (name === "NotReadableError" || name === "TrackStartError") {
@@ -30,11 +55,36 @@ function getVoiceErrorMessage(error) {
     return "Microphone access requires a secure HTTPS connection.";
   }
 
-  if (name === "network" || name === "service-not-allowed") {
-    return "Voice recognition is temporarily unavailable. Please try again.";
+  if (error?.message) {
+    return error.message;
   }
 
-  return "Could not capture voice input. Please try again.";
+  return `Microphone capture failed${name ? `: ${name}` : ""}.`;
+}
+
+function getSpeechRecognitionErrorMessage(error) {
+  const name = error?.error || error?.name || "";
+
+  switch (name) {
+    case "not-allowed":
+      return "Microphone permission denied.";
+    case "audio-capture":
+      return "No microphone detected.";
+    case "network":
+      return "Speech Recognition service failed: network error.";
+    case "service-not-allowed":
+      return "Speech Recognition service is not allowed in this browser.";
+    case "language-not-supported":
+      return "Speech Recognition does not support the selected language.";
+    case "bad-grammar":
+      return "Speech Recognition grammar error.";
+    case "aborted":
+      return "Recognition aborted unexpectedly.";
+    case "no-speech":
+      return "No speech was detected.";
+    default:
+      return `Speech Recognition service failed${name ? `: ${name}` : ""}.`;
+  }
 }
 
 export default function useVoiceInput({ onTranscript, onError } = {}) {
@@ -48,6 +98,7 @@ export default function useVoiceInput({ onTranscript, onError } = {}) {
   const baseTextRef = useRef("");
   const committedTranscriptRef = useRef("");
   const shouldRestartRecognitionRef = useRef(false);
+  const recognitionErrorRef = useRef("");
 
   const stopAnalyzer = useCallback(() => {
     if (animationFrameRef.current) {
@@ -88,6 +139,18 @@ export default function useVoiceInput({ onTranscript, onError } = {}) {
   }, [onTranscript, stop]);
 
   const startWaveform = useCallback(async () => {
+    let permissionState = "unknown";
+    try {
+      if (navigator.permissions?.query) {
+        const permission = await navigator.permissions.query({ name: "microphone" });
+        permissionState = permission.state;
+      }
+    } catch (error) {
+      permissionState = `unavailable: ${error?.name || "unknown"}`;
+    }
+
+    logVoiceDebug("startWaveform:before-getUserMedia", { permissionState });
+
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error("getUserMedia is not supported in this browser.");
     }
@@ -107,6 +170,7 @@ export default function useVoiceInput({ onTranscript, onError } = {}) {
     }
 
     const audioContext = new AudioContext();
+    await audioContext.resume?.();
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 512;
     analyser.smoothingTimeConstant = 0.72;
@@ -117,6 +181,17 @@ export default function useVoiceInput({ onTranscript, onError } = {}) {
     streamRef.current = stream;
     audioContextRef.current = audioContext;
     analyserRef.current = analyser;
+
+    logVoiceDebug("startWaveform:success", {
+      permissionState,
+      audioContextState: audioContext.state,
+      tracks: stream.getAudioTracks().map((track) => ({
+        enabled: track.enabled,
+        muted: track.muted,
+        readyState: track.readyState,
+        label: track.label,
+      })),
+    });
 
     const samples = new Uint8Array(analyser.fftSize);
     const tick = () => {
@@ -140,14 +215,31 @@ export default function useVoiceInput({ onTranscript, onError } = {}) {
 
   const startRecognition = useCallback(({ language }) => {
     const SpeechRecognition = getSpeechRecognition();
-    if (!SpeechRecognition) return false;
+    if (!SpeechRecognition) {
+      logVoiceDebug("startRecognition:unsupported", {}, "warn");
+      return false;
+    }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = language || navigator.language || "en-US";
+    recognitionErrorRef.current = "";
+
+    recognition.onstart = () => {
+      logVoiceDebug("recognition:onstart", {
+        lang: recognition.lang,
+        continuous: recognition.continuous,
+        interimResults: recognition.interimResults,
+      });
+    };
 
     recognition.onresult = (event) => {
+      logVoiceDebug("recognition:onresult", {
+        resultIndex: event.resultIndex,
+        resultCount: event.results?.length,
+      });
+
       let interimTranscript = "";
 
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
@@ -170,14 +262,29 @@ export default function useVoiceInput({ onTranscript, onError } = {}) {
     };
 
     recognition.onerror = (event) => {
-      if (event.error === "no-speech" || event.error === "aborted") return;
+      logVoiceDebug("recognition:onerror", {
+        error: event.error,
+        message: event.message,
+        type: event.type,
+        timeStamp: event.timeStamp,
+      }, event.error === "no-speech" ? "warn" : "error");
+
+      if (event.error === "no-speech") return;
+
+      if (event.error === "aborted" && !shouldRestartRecognitionRef.current) return;
 
       shouldRestartRecognitionRef.current = false;
-      onError?.(getVoiceErrorMessage(event));
-      stop();
+      recognitionErrorRef.current = event.error || "unknown";
+      recognitionRef.current = null;
+      onError?.(getSpeechRecognitionErrorMessage(event));
     };
 
     recognition.onend = () => {
+      logVoiceDebug("recognition:onend", {
+        shouldRestart: shouldRestartRecognitionRef.current,
+        lastError: recognitionErrorRef.current,
+      }, recognitionErrorRef.current ? "warn" : "debug");
+
       recognitionRef.current = null;
       if (!shouldRestartRecognitionRef.current) return;
 
@@ -186,17 +293,42 @@ export default function useVoiceInput({ onTranscript, onError } = {}) {
         try {
           recognitionRef.current = recognition;
           recognition.start();
-        } catch {
+          logVoiceDebug("recognition:restart", { lang: recognition.lang });
+        } catch (error) {
+          logVoiceDebug("recognition:restart-failed", {
+            name: error?.name,
+            message: error?.message,
+          }, "error");
           recognitionRef.current = null;
+          shouldRestartRecognitionRef.current = false;
+          recognitionErrorRef.current = error?.name || "restart-failed";
+          onError?.(getSpeechRecognitionErrorMessage(error));
         }
       }, 180);
     };
 
     recognitionRef.current = recognition;
     shouldRestartRecognitionRef.current = true;
-    recognition.start();
-    return true;
-  }, [onError, onTranscript, stop]);
+    try {
+      recognition.start();
+      logVoiceDebug("recognition:start-called", {
+        lang: recognition.lang,
+        continuous: recognition.continuous,
+        interimResults: recognition.interimResults,
+      });
+      return true;
+    } catch (error) {
+      logVoiceDebug("recognition:start-failed", {
+        name: error?.name,
+        message: error?.message,
+      }, "error");
+      recognitionRef.current = null;
+      shouldRestartRecognitionRef.current = false;
+      recognitionErrorRef.current = error?.name || "start-failed";
+      onError?.(getSpeechRecognitionErrorMessage(error));
+      return false;
+    }
+  }, [onError, onTranscript]);
 
   const start = useCallback(async ({ baseText = "", language } = {}) => {
     if (isListening) {
@@ -218,12 +350,17 @@ export default function useVoiceInput({ onTranscript, onError } = {}) {
       setIsListening(true);
 
       if (!recognitionStarted) {
-        onError?.("Speech recognition is not supported in this browser, but microphone recording is active.");
+        onError?.("Browser does not support Speech Recognition. Microphone recording is active, but transcription will not work.");
       }
     } catch (error) {
+      logVoiceDebug("start:microphone-failed", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+      }, "error");
       stopAnalyzer();
       setIsListening(false);
-      onError?.(getVoiceErrorMessage(error));
+      onError?.(getMicrophoneErrorMessage(error));
     }
   }, [isListening, onError, startRecognition, startWaveform, stop, stopAnalyzer]);
 
