@@ -1051,7 +1051,7 @@ function Sidebar({
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder={t("searchConversations")}
                 className={cn(
-                  "min-w-0 flex-1 bg-transparent font-semibold outline-none",
+                  "bm-input-reset min-w-0 flex-1 bg-transparent p-0 font-semibold outline-none",
                   typeClasses.small,
                   isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-muted)]",
                 )}
@@ -1162,8 +1162,8 @@ function Sidebar({
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   autoFocus
-                  placeholder={t("searchChats")}
-                  className={cn("min-w-0 flex-1 bg-transparent font-medium outline-none placeholder:opacity-70", typeClasses.small)}
+                  placeholder={t("searchConversations")}
+                  className={cn("bm-input-reset min-w-0 flex-1 bg-transparent p-0 font-medium outline-none placeholder:opacity-70", typeClasses.small)}
                 />
                 <button
                   type="button"

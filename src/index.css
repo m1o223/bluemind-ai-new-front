@@ -543,7 +543,7 @@ html[data-theme="dark"] select {
   caret-color: var(--bm-input-caret);
 }
 
-:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), textarea, select):not(.bm-composer-input):not(.bm-field) {
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), textarea, select):not(.bm-composer-input):not(.bm-input-reset):not(.bm-field) {
   border-radius: var(--bm-input-radius);
   border-color: var(--bm-border);
   background-color: var(--bm-bg-input);
@@ -555,15 +555,15 @@ html[data-theme="dark"] select {
   transition-timing-function: var(--bm-motion-ease);
 }
 
-:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), select):not(.bm-composer-input):not(.bm-field) {
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), select):not(.bm-composer-input):not(.bm-input-reset):not(.bm-field) {
   min-height: var(--bm-input-height);
 }
 
-:where(textarea):not(.bm-composer-input):not(.bm-field) {
+:where(textarea):not(.bm-composer-input):not(.bm-input-reset):not(.bm-field) {
   min-height: 112px;
 }
 
-:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), textarea, select):not(.bm-composer-input):not(.bm-field):hover {
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), textarea, select):not(.bm-composer-input):not(.bm-input-reset):not(.bm-field):hover {
   border-color: var(--bm-hover-border);
 }
 
@@ -585,9 +585,13 @@ select:focus-visible {
 }
 
 .bm-composer-input,
+.bm-input-reset,
 .bm-composer-input:hover,
+.bm-input-reset:hover,
 .bm-composer-input:focus,
-.bm-composer-input:focus-visible {
+.bm-input-reset:focus,
+.bm-composer-input:focus-visible,
+.bm-input-reset:focus-visible {
   appearance: none;
   background: transparent !important;
   border: 0 !important;
@@ -602,7 +606,18 @@ select:focus-visible {
   caret-color: var(--bm-input-caret);
 }
 
+.bm-input-reset {
+  min-height: 0 !important;
+  color: var(--bm-text-primary);
+  caret-color: var(--bm-input-caret);
+}
+
 .bm-composer-input::placeholder {
+  color: var(--bm-input-placeholder);
+  opacity: 0.9;
+}
+
+.bm-input-reset::placeholder {
   color: var(--bm-input-placeholder);
   opacity: 0.9;
 }
