@@ -976,16 +976,14 @@ function Sidebar({
       }}
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "h-full flex flex-col overflow-visible flex-shrink-0",
-        isDark ? "bg-[var(--bm-bg-app)]/96" : "bg-[var(--bm-bg-app)]/96",
+        "h-full flex flex-col overflow-visible flex-shrink-0 border-r",
+        isDark ? "border-white/[0.08] bg-[var(--bm-bg-app)]/96" : "border-[var(--bm-border)] bg-[var(--bm-bg-app)]/96",
       )}
       data-testid="sidebar"
     >
       <div
         className={cn(
-          "relative flex items-center justify-between p-4 after:absolute after:bottom-0 after:h-px after:content-['']",
-          isHistoryOpen ? "after:left-3.5 after:right-3.5" : "after:left-4 after:right-4",
-          isDark ? "after:bg-white/[0.08]" : "after:bg-[var(--bm-border)]",
+          "relative flex items-center justify-between p-4",
         )}
       >
         {isHistoryOpen ? (
@@ -1259,7 +1257,7 @@ function Sidebar({
         </AnimatePresence>
       </div>
 
-      <div className={cn("border-t pt-4", isHistoryOpen ? "px-3.5 pb-4" : "px-4 pb-4", isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]")}>
+      <div className={cn("pt-4", isHistoryOpen ? "px-3.5 pb-4" : "px-4 pb-4")}>
         <button
           type="button"
           onClick={() => {
@@ -4326,8 +4324,8 @@ export default function ChatPage() {
       <div className="relative flex-1 flex flex-col h-full min-w-0">
         <header
           className={cn(
-            "sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3.5 sm:px-6",
-            isDark ? "border-white/[0.08] bg-[var(--bm-bg-app)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-app)]",
+            "sticky top-0 z-20 flex items-center justify-between px-4 py-3.5 sm:px-6",
+            "bg-[var(--bm-bg-app)]",
           )}
         >
           <div className="flex items-center gap-3">
