@@ -976,7 +976,7 @@ function Sidebar({
       }}
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "h-full flex flex-col overflow-visible flex-shrink-0 border-r",
+        "h-screen flex flex-col overflow-y-auto overflow-x-visible flex-shrink-0 border-r",
         isDark ? "border-white/[0.08] bg-[var(--bm-bg-app)]/96" : "border-[var(--bm-border)] bg-[var(--bm-bg-app)]/96",
       )}
       data-testid="sidebar"
@@ -1206,7 +1206,7 @@ function Sidebar({
         )}
       </AnimatePresence>
 
-      <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+      <div className="flex flex-col">
         {isHistoryOpen && (
           <div className="px-3.5 pb-2 pt-5">
             <div className={cn("flex items-center justify-between px-1 font-semibold uppercase tracking-[0.12em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
@@ -1223,9 +1223,9 @@ function Sidebar({
               animate={{ opacity: 1, height: "auto", y: 0 }}
               exit={{ opacity: 0, height: 0, y: -6 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="min-h-0 flex-1 overflow-hidden"
+              className="overflow-visible"
             >
-              <div className="h-full max-h-full space-y-2 overflow-y-auto overscroll-contain px-3 pb-4">
+              <div className="space-y-2 px-3 pb-4">
                 {history.map((item) => (
                   <HistoryItem
                     key={item.conversationId}
