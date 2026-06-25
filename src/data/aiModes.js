@@ -1,7 +1,7 @@
 import {
   BriefcaseBusiness,
-  ChefHat,
   BookOpen,
+  Code2,
   MessageCircle,
   Microscope,
   PenLine,
@@ -44,11 +44,11 @@ export const AI_MODES = [
     icon: PenLine,
   },
   {
-    id: "cooking",
-    title: "Cooking",
-    description: "Recipes, ingredients, and substitutions",
-    status: "Preparing cooking guidance...",
-    icon: ChefHat,
+    id: "coding",
+    title: "Coding",
+    description: "Programming, debugging, and software engineering",
+    status: "Preparing coding guidance...",
+    icon: Code2,
   },
 ];
 
@@ -65,6 +65,8 @@ export function normalizeAiModeId(value) {
     deep_thinking: "research",
     deep_research: "research",
     write_edit: "writing",
+    code: "coding",
+    programming: "coding",
   };
   const rawValue = String(value || "general").trim().toLowerCase();
   const normalized = aliases[rawValue] || rawValue;
