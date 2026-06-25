@@ -129,13 +129,13 @@ export default function MobileRegister() {
           <div>
             <label className="mb-1.5 block text-sm font-semibold">{t("fullName")}</label>
             <div className="relative">
-              <User className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
+              <User className="absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
               <Input
                 type="text"
                 value={formData.fullName}
                 onChange={(event) => setFormData({ ...formData, fullName: event.target.value })}
                 placeholder={t("enterFullName")}
-                className={`h-[52px] rounded-2xl pl-11 text-[15px] ${inputClass}`}
+                className={`h-[52px] rounded-2xl pl-14 text-[15px] ${inputClass}`}
                 data-testid="mobile-fullname-input"
               />
             </div>
@@ -144,13 +144,13 @@ export default function MobileRegister() {
           <div>
             <label className="mb-1.5 block text-sm font-semibold">{t("email")}</label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
+              <Mail className="absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(event) => setFormData({ ...formData, email: event.target.value })}
                 placeholder={t("enterEmail")}
-                className={`h-[52px] rounded-2xl pl-11 text-[15px] ${inputClass}`}
+                className={`h-[52px] rounded-2xl pl-14 text-[15px] ${inputClass}`}
                 data-testid="mobile-register-email-input"
               />
             </div>
@@ -159,19 +159,19 @@ export default function MobileRegister() {
           <div>
             <label className="mb-1.5 block text-sm font-semibold">{t("password")}</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
+              <Lock className="absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--bm-text-muted)]" />
               <Input
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={(event) => setFormData({ ...formData, password: event.target.value })}
                 placeholder={t("createPassword")}
-                className={`h-[52px] rounded-2xl pl-11 pr-11 text-[15px] ${inputClass}`}
+                className={`h-[52px] rounded-2xl pl-14 pr-14 text-[15px] ${inputClass}`}
                 data-testid="mobile-register-password-input"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--bm-text-muted)]"
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--bm-text-muted)]"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
@@ -189,7 +189,10 @@ export default function MobileRegister() {
                   >
                     {requirement.met && <Check className="h-2 w-2 text-white" />}
                   </div>
-                  <span className={cn("text-xs", requirement.met ? textColor : mutedText)}>
+                  <span className={cn(
+                    "text-[13px] font-semibold",
+                    requirement.met ? textColor : isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-primary)]"
+                  )}>
                     {requirement.label}
                   </span>
                 </div>

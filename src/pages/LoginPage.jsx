@@ -98,13 +98,13 @@ export default function LoginPage() {
           <div>
             <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("email")}</label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--bm-text-muted)]" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--bm-text-muted)]" />
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder={t("enterEmail")}
-                className={`pl-10 py-5 rounded-xl text-sm w-full ${inputClass}`}
+                className={`pl-12 py-5 rounded-xl text-sm w-full ${inputClass}`}
                 data-testid="email-input"
               />
             </div>
@@ -113,19 +113,19 @@ export default function LoginPage() {
           <div>
             <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("password")}</label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--bm-text-muted)]" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--bm-text-muted)]" />
               <Input
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder={t("enterPassword")}
-                className={`pl-10 pr-10 py-5 rounded-xl text-sm w-full ${inputClass}`}
+                className={`pl-12 pr-12 py-5 rounded-xl text-sm w-full ${inputClass}`}
                 data-testid="password-input"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--bm-text-muted)] hover:text-[var(--bm-text-secondary)] transition-colors duration-200 cursor-pointer"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--bm-text-muted)] hover:text-[var(--bm-text-secondary)] transition-colors duration-200 cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
               </button>
