@@ -61,7 +61,7 @@ import {
   SEARCH_DISCOVERY_CATEGORIES,
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
-import { AI_MODES, normalizeAiModeId } from "@/data/aiModes";
+import { AI_MODES, getAiMode, getAiSpecializationLabel, normalizeAiModeId } from "@/data/aiModes";
 import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 import {
   buildWriteEditMessage,
@@ -1531,6 +1531,7 @@ export default function ChatPage() {
   const [conversationId, setConversationId] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [responseMode, setResponseMode] = useState(() => normalizeAiModeId(localStorage.getItem(RESPONSE_MODE_STORAGE_KEY)));
   const [desktopModelId, setDesktopModelId] = useState(() => localStorage.getItem(DESKTOP_MODEL_STORAGE_KEY) || "lite");
   const [thinkingLevel, setThinkingLevel] = useState(() => localStorage.getItem(THINKING_LEVEL_STORAGE_KEY) || "balanced");
@@ -1591,6 +1592,7 @@ export default function ChatPage() {
   const fileInputRef = useRef(null);
   const writeImageInputRef = useRef(null);
   const writeCameraInputRef = useRef(null);
+  const responseModeMenuRef = useRef(null);
   const quickTemplatesRef = useRef(null);
   const websiteCategoryBarRef = useRef(null);
   const streamAbortRef = useRef(null);
@@ -1621,6 +1623,18 @@ export default function ChatPage() {
     streamAbortRef.current?.abort();
     speechRecognitionRef.current?.stop?.();
   }, []);
+
+  useEffect(() => {
+    if (!responseModeMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (responseModeMenuRef.current?.contains(event.target)) return;
+      setResponseModeMenuOpen(false);
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, [responseModeMenuOpen]);
 
   useEffect(() => {
     localStorage.setItem(RESPONSE_MODE_STORAGE_KEY, responseMode);
@@ -3934,6 +3948,7 @@ export default function ChatPage() {
     const normalizedMode = normalizeAiModeId(nextMode);
     if (model?.id) setDesktopModelId(model.id);
     setResponseMode(normalizedMode);
+    setResponseModeMenuOpen(false);
     try {
       await updatePreferences({ aiMode: normalizedMode });
     } catch (error) {
@@ -4359,34 +4374,80 @@ export default function ChatPage() {
           )}
         >
           <div className="flex items-center gap-3">
-            <span className={cn("text-sm font-extrabold tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</span>
-            <div className="hidden items-center gap-1.5 lg:flex" aria-label="BlueMind AI modes">
-              {AI_MODES.map((mode) => {
-                const ModeIcon = mode.icon;
-                const selected = responseMode === mode.id;
+            <div ref={responseModeMenuRef} className="relative" aria-label="AI specialization selector">
+              {(() => {
+                const activeAiMode = getAiMode(responseMode);
+                const ActiveModeIcon = activeAiMode.icon;
                 return (
                   <button
-                    key={mode.id}
                     type="button"
-                    onClick={() => handleResponseModeSelect(mode.id)}
+                    onClick={() => setResponseModeMenuOpen((open) => !open)}
                     className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-bold transition-colors",
-                      selected
-                        ? isDark
-                          ? "bg-white text-[var(--bm-bg-app)]"
-                          : "bg-[var(--bm-primary)] text-white"
-                        : isDark
-                          ? "text-white/78 hover:bg-white/[0.08] hover:text-white"
-                          : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
+                      "inline-flex h-10 min-w-[150px] items-center justify-between gap-2 rounded-full border px-3.5 text-sm font-bold transition-colors",
+                      isDark
+                        ? "border-white/[0.1] bg-white/[0.055] text-white hover:bg-white/[0.09]"
+                        : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] shadow-sm hover:bg-[var(--bm-hover-bg)]",
                     )}
-                    title={mode.description}
-                    aria-pressed={selected}
+                    aria-haspopup="menu"
+                    aria-expanded={responseModeMenuOpen}
+                    title={activeAiMode.description}
                   >
-                    <ModeIcon className="h-3.5 w-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{mode.title}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <ActiveModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
+                      <span className="truncate">{getAiSpecializationLabel(activeAiMode)}</span>
+                    </span>
+                    <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", responseModeMenuOpen && "rotate-180")} />
                   </button>
                 );
-              })}
+              })()}
+              <AnimatePresence>
+                {responseModeMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                    transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                    className={cn(
+                      "absolute left-0 top-[calc(100%+8px)] z-50 w-[260px] overflow-hidden rounded-[18px] border p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.24)]",
+                      isDark
+                        ? "border-white/[0.1] bg-[#202020] text-white"
+                        : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]",
+                    )}
+                    role="menu"
+                  >
+                    {AI_MODES.map((mode) => {
+                      const ModeIcon = mode.icon;
+                      const selected = responseMode === mode.id;
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => handleResponseModeSelect(mode.id)}
+                          className={cn(
+                            "flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors",
+                            selected
+                              ? isDark
+                                ? "bg-white/[0.1] text-white"
+                                : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                              : isDark
+                                ? "text-white hover:bg-white/[0.07]"
+                                : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
+                          )}
+                          title={mode.description}
+                          role="menuitemradio"
+                          aria-checked={selected}
+                        >
+                          <span className="flex min-w-0 items-center gap-2.5">
+                            <ModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
+                            <span className="truncate">{getAiSpecializationLabel(mode)}</span>
+                          </span>
+                          {selected && <Check className={cn("h-[18px] w-[18px] shrink-0 stroke-[2.5]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />}
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             {chatSessionMode === "private" && activePrivateSpace && (
               <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>

@@ -76,3 +76,8 @@ export function normalizeAiModeId(value) {
 export function getAiMode(value) {
   return AI_MODES.find((mode) => mode.id === normalizeAiModeId(value)) || AI_MODES[0];
 }
+
+export function getAiSpecializationLabel(value) {
+  const mode = typeof value === "string" ? getAiMode(value) : value || AI_MODES[0];
+  return `${mode.title} AI`;
+}

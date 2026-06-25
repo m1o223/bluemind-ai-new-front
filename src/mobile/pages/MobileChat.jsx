@@ -55,7 +55,7 @@ import {
   SEARCH_DISCOVERY_CATEGORIES,
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
-import { AI_MODES, getAiMode, normalizeAiModeId } from "@/data/aiModes";
+import { AI_MODES, getAiMode, getAiSpecializationLabel, normalizeAiModeId } from "@/data/aiModes";
 import { getApiErrorMessage } from "@/services/api";
 import { restoreExistingSession } from "@/services/authService";
 import { getConversation, listConversations, searchConversations, streamChatMessage, streamHiddenChatMessage } from "@/services/chatService";
@@ -2504,7 +2504,7 @@ export default function MobileChat() {
               const SelectedModeIcon = getAiMode(responseMode).icon;
               return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
             })()}
-            <span className="truncate">{getAiMode(responseMode).title}</span>
+            <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
             <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
@@ -2543,7 +2543,7 @@ export default function MobileChat() {
                           <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-[15px] font-bold leading-5">{mode.title}</span>
+                          <span className="block text-[15px] font-bold leading-5">{getAiSpecializationLabel(mode)}</span>
                           <span className={`mt-1 block text-xs font-semibold leading-4 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
                             {mode.description}
                           </span>
