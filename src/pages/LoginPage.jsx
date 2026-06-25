@@ -104,7 +104,7 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder={t("enterEmail")}
-                className={`pl-12 py-5 rounded-xl text-sm w-full ${inputClass}`}
+                className={`!pl-[56px] py-5 rounded-xl text-sm w-full ${inputClass}`}
                 data-testid="email-input"
               />
             </div>
@@ -119,7 +119,7 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder={t("enterPassword")}
-                className={`pl-12 pr-12 py-5 rounded-xl text-sm w-full ${inputClass}`}
+                className={`!pl-[56px] !pr-[52px] py-5 rounded-xl text-sm w-full ${inputClass}`}
                 data-testid="password-input"
               />
               <button
