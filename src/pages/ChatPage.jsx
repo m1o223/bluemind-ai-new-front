@@ -100,6 +100,7 @@ import {
 } from "@/services/reminderService";
 import { updatePreferences } from "@/services/profileService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
+import useVoiceInput from "@/hooks/useVoiceInput";
 
 const CHAT_MODES = {
   default: {
@@ -1535,7 +1536,6 @@ export default function ChatPage() {
   const [responseMode, setResponseMode] = useState(() => normalizeAiModeId(localStorage.getItem(RESPONSE_MODE_STORAGE_KEY)));
   const [desktopModelId, setDesktopModelId] = useState(() => localStorage.getItem(DESKTOP_MODEL_STORAGE_KEY) || "lite");
   const [thinkingLevel, setThinkingLevel] = useState(() => localStorage.getItem(THINKING_LEVEL_STORAGE_KEY) || "balanced");
-  const [isListening, setIsListening] = useState(false);
   const [activeMode, setActiveMode] = useState("default");
   const [chatSessionMode, setChatSessionMode] = useState("normal");
   const [privateSpaceModalOpen, setPrivateSpaceModalOpen] = useState(false);
@@ -1596,7 +1596,6 @@ export default function ChatPage() {
   const quickTemplatesRef = useRef(null);
   const websiteCategoryBarRef = useRef(null);
   const streamAbortRef = useRef(null);
-  const speechRecognitionRef = useRef(null);
   const activeAiMessageRef = useRef(null);
   const sendLockRef = useRef(false);
   const stopRequestedRef = useRef(false);
@@ -1605,6 +1604,16 @@ export default function ChatPage() {
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor;
   const inputDirectionStyle = getDirectionalStyle(input);
+  const {
+    isListening,
+    audioLevels: voiceAudioLevels,
+    start: startVoiceCapture,
+    stop: stopVoiceInput,
+    cancel: cancelVoiceInput,
+  } = useVoiceInput({
+    onTranscript: setInput,
+    onError: (message) => toast.error(message),
+  });
 
   const {
     scrollRef: messagesScrollRef,
@@ -1621,7 +1630,6 @@ export default function ChatPage() {
       window.clearTimeout(streamBufferRef.current.timer);
     }
     streamAbortRef.current?.abort();
-    speechRecognitionRef.current?.stop?.();
   }, []);
 
   useEffect(() => {
@@ -2490,67 +2498,13 @@ export default function ChatPage() {
     activeAiMessageRef.current = null;
   }, [flushAiDelta, isAiTyping]);
 
-  const stopVoiceInput = useCallback(() => {
-    speechRecognitionRef.current?.stop?.();
-    speechRecognitionRef.current = null;
-    setIsListening(false);
-  }, []);
-
   const startVoiceInput = useCallback(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      toast.error("Voice input is not supported in this browser.");
-      return;
-    }
-
     if (isListening) {
       stopVoiceInput();
       return;
     }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = prefs.language || navigator.language || "en-US";
-
-    let committedTranscript = "";
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => {
-      speechRecognitionRef.current = null;
-      setIsListening(false);
-    };
-    recognition.onerror = () => {
-      speechRecognitionRef.current = null;
-      setIsListening(false);
-      toast.error("Could not capture voice input.");
-    };
-    recognition.onresult = (event) => {
-      let interimTranscript = "";
-
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const transcript = event.results[index][0]?.transcript || "";
-
-        if (event.results[index].isFinal) {
-          committedTranscript = `${committedTranscript} ${transcript}`.trim();
-        } else {
-          interimTranscript = `${interimTranscript} ${transcript}`.trim();
-        }
-      }
-
-      const nextText = [input, committedTranscript, interimTranscript]
-        .filter(Boolean)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trimStart();
-
-      setInput(nextText);
-    };
-
-    speechRecognitionRef.current = recognition;
-    recognition.start();
-  }, [input, isListening, prefs.language, stopVoiceInput]);
+    startVoiceCapture({ baseText: input, language: prefs.language || navigator.language || "en-US" });
+  }, [input, isListening, prefs.language, startVoiceCapture, stopVoiceInput]);
 
   const handleSend = useCallback(async (options = {}) => {
     const mode = options.mode || activeMode;
@@ -4101,6 +4055,9 @@ export default function ChatPage() {
             onAdd={() => setAttachmentMenuOpen((open) => !open)}
             onVoice={startVoiceInput}
             isListening={isListening}
+            voiceAudioLevels={voiceAudioLevels}
+            onCancelVoice={cancelVoiceInput}
+            onFinishVoice={stopVoiceInput}
             isBusy={isAiTyping || isListening}
             canSend={Boolean(input.trim() || composerAttachments.length)}
             onSendAction={isAiTyping ? handleStopStreaming : isListening ? stopVoiceInput : undefined}

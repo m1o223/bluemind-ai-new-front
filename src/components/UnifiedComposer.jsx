@@ -4,6 +4,7 @@ import { ArrowUp, FileText, Mic, Plus, Square, X } from "lucide-react";
 
 import { inputClasses } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
+import VoiceRecordingPanel from "@/components/VoiceRecordingPanel";
 
 function getAttachmentPreview(attachment) {
   return attachment?.previewUrl || attachment?.url || attachment?.thumbnail || attachment?.src || "";
@@ -73,6 +74,9 @@ export default function UnifiedComposer({
   onAdd,
   onVoice,
   isListening = false,
+  voiceAudioLevels = [],
+  onCancelVoice,
+  onFinishVoice,
   isBusy = false,
   canSend = false,
   onSendAction,
@@ -216,104 +220,117 @@ export default function UnifiedComposer({
           data-composer-mode={composerState}
           data-testid="unified-composer-box"
         >
-          {modePill && (
-            <div className="mb-2 flex items-center gap-2" data-testid="composer-tool-state">
-              <button
-                type="button"
-                onClick={modePill.onClear}
-                className={cn(
-                  "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
-                  isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] active:bg-[var(--bm-active-bg)]",
-                )}
-                aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
-                data-testid="composer-mode-pill"
-              >
-                {modePill.icon && <modePill.icon className="h-3.5 w-3.5" />}
-                <span className="truncate">{modePill.label}</span>
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-
-          {hasAttachments && (
-            <div
-              className={cn(
-                "mb-3 flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                isMobile ? "pb-0.5" : "pb-1",
-              )}
-              data-testid="composer-attachment-strip"
-            >
-              {normalizedAttachments.map((attachment) => (
-                <AttachmentPreview
-                  key={attachment.id || getAttachmentPreview(attachment) || attachment.name}
-                  attachment={attachment}
-                  isDark={isDark}
-                  isMobile={isMobile}
-                  onRemove={onRemoveAttachment}
-                />
-              ))}
-
-              {isUploading && (
-                <div
-                  className={cn(
-                    "flex shrink-0 items-center justify-center rounded-[16px] border",
-                    isMobile ? "h-14 w-14" : "h-16 w-16",
-                    isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85",
-                  )}
-                >
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
+          {isListening ? (
+            <VoiceRecordingPanel
+              audioLevels={voiceAudioLevels}
+              onCancel={onCancelVoice}
+              onFinish={onFinishVoice}
+              isDark={isDark}
+              appColor={appColor}
+              compact={isMobile}
+            />
+          ) : (
+            <>
+              {modePill && (
+                <div className="mb-2 flex items-center gap-2" data-testid="composer-tool-state">
+                  <button
+                    type="button"
+                    onClick={modePill.onClear}
+                    className={cn(
+                      "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
+                      isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] active:bg-[var(--bm-active-bg)]",
+                    )}
+                    aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
+                    data-testid="composer-mode-pill"
+                  >
+                    {modePill.icon && <modePill.icon className="h-3.5 w-3.5" />}
+                    <span className="truncate">{modePill.label}</span>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               )}
 
-              {normalizedAttachments.length > 1 && onClearAttachments && (
-                <button
-                  type="button"
-                  onClick={onClearAttachments}
+              {hasAttachments && (
+                <div
                   className={cn(
-                    "h-9 shrink-0 rounded-full px-3 text-xs font-bold",
-                    isDark ? "bg-white/[0.07] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] hover:bg-[var(--bm-active-bg)]",
+                    "mb-3 flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                    isMobile ? "pb-0.5" : "pb-1",
                   )}
+                  data-testid="composer-attachment-strip"
                 >
-                  Clear
-                </button>
+                  {normalizedAttachments.map((attachment) => (
+                    <AttachmentPreview
+                      key={attachment.id || getAttachmentPreview(attachment) || attachment.name}
+                      attachment={attachment}
+                      isDark={isDark}
+                      isMobile={isMobile}
+                      onRemove={onRemoveAttachment}
+                    />
+                  ))}
+
+                  {isUploading && (
+                    <div
+                      className={cn(
+                        "flex shrink-0 items-center justify-center rounded-[16px] border",
+                        isMobile ? "h-14 w-14" : "h-16 w-16",
+                        isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85",
+                      )}
+                    >
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
+                    </div>
+                  )}
+
+                  {normalizedAttachments.length > 1 && onClearAttachments && (
+                    <button
+                      type="button"
+                      onClick={onClearAttachments}
+                      className={cn(
+                        "h-9 shrink-0 rounded-full px-3 text-xs font-bold",
+                        isDark ? "bg-white/[0.07] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] hover:bg-[var(--bm-active-bg)]",
+                      )}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               )}
-            </div>
+
+              <div className={cn("flex w-full min-w-0 items-end", isIdleState ? "gap-1.5" : "gap-2")}>
+                {isIdleState && addButton}
+
+                <textarea
+                  ref={inputRef}
+                  value={value}
+                  onChange={onChange}
+                  onInput={onInput}
+                  onKeyDown={onKeyDown}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  rows={1}
+                  placeholder={placeholder}
+                  className={cn(
+                    inputClasses.composer,
+                    "block min-w-0 flex-1 resize-none bg-transparent font-medium outline-none",
+                    isMobile ? "text-[16px] leading-6" : "text-[17px] leading-7",
+                    isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
+                  )}
+                  style={{
+                    ...inputDirectionStyle,
+                    letterSpacing: "0",
+                    caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
+                    maxHeight: `${maxTextHeight}px`,
+                    minHeight: `${textareaMinHeight}px`,
+                  }}
+                  data-testid={testId}
+                />
+
+                <div className={cn("flex shrink-0 items-end", isAttachmentState ? "self-end" : "self-end")}>
+                  {voiceButton}
+                  {sendButton}
+                </div>
+              </div>
+            </>
           )}
-
-          <div className={cn("flex w-full min-w-0 items-end", isIdleState ? "gap-1.5" : "gap-2")}>
-            {isIdleState && addButton}
-
-            <textarea
-              ref={inputRef}
-              value={value}
-              onChange={onChange}
-              onInput={onInput}
-              onKeyDown={onKeyDown}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              rows={1}
-              placeholder={placeholder}
-              className={cn(
-                inputClasses.composer,
-                "block min-w-0 flex-1 resize-none bg-transparent font-medium outline-none",
-                isMobile ? "text-[16px] leading-6" : "text-[17px] leading-7",
-                isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
-              )}
-              style={{
-                ...inputDirectionStyle,
-                letterSpacing: "0",
-                caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
-                maxHeight: `${maxTextHeight}px`,
-                minHeight: `${textareaMinHeight}px`,
-              }}
-              data-testid={testId}
-            />
-
-            <div className={cn("flex shrink-0 items-end", isAttachmentState ? "self-end" : "self-end")}>
-              {voiceButton}
-              {sendButton}
-            </div>
-          </div>
         </motion.div>
       </motion.div>
     </form>

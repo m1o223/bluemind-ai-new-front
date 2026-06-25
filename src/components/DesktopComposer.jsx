@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import VoiceRecordingPanel from "@/components/VoiceRecordingPanel";
 
 const ROTATING_PROMPTS = [
   "How can I help you today?",
@@ -316,6 +317,9 @@ export default function DesktopComposer({
   onAdd,
   onVoice,
   isListening = false,
+  voiceAudioLevels = [],
+  onCancelVoice,
+  onFinishVoice,
   isBusy = false,
   canSend = false,
   onSendAction,
@@ -395,152 +399,169 @@ export default function DesktopComposer({
         className="overflow-visible rounded-[36px] bg-[var(--bm-bg-card)] px-6 py-6 text-[var(--bm-text-primary)]"
         data-testid="desktop-bluemind-composer"
       >
-        {(modePill || hasAttachments) && (
-          <div className="mb-4 flex max-w-full flex-wrap items-center gap-2">
-            {modePill && (
-              <button
-                type="button"
-                onClick={modePill.onClear}
-                className="inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--bm-primary)]/12 px-3 py-1.5 text-sm font-extrabold text-[var(--bm-primary)] transition-colors hover:bg-[var(--bm-primary)]/16"
-                aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
-              >
-                {modePill.icon && <modePill.icon className="h-4 w-4 shrink-0" />}
-                <span className="truncate">{modePill.label}</span>
-                <X className="h-4 w-4 shrink-0" />
-              </button>
-            )}
+        <AnimatePresence mode="wait">
+          {isListening ? (
+            <VoiceRecordingPanel
+              key="recording"
+              audioLevels={voiceAudioLevels}
+              onCancel={onCancelVoice}
+              onFinish={onFinishVoice}
+              isDark={isDark}
+              appColor={appColor}
+            />
+          ) : (
+            <motion.div
+              key="composer"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {(modePill || hasAttachments) && (
+                <div className="mb-4 flex max-w-full flex-wrap items-center gap-2">
+                  {modePill && (
+                    <button
+                      type="button"
+                      onClick={modePill.onClear}
+                      className="inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--bm-primary)]/12 px-3 py-1.5 text-sm font-extrabold text-[var(--bm-primary)] transition-colors hover:bg-[var(--bm-primary)]/16"
+                      aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
+                    >
+                      {modePill.icon && <modePill.icon className="h-4 w-4 shrink-0" />}
+                      <span className="truncate">{modePill.label}</span>
+                      <X className="h-4 w-4 shrink-0" />
+                    </button>
+                  )}
 
-            {hasAttachments && (
-              <div className="flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {normalizedAttachments.map((attachment) => (
-                  <AttachmentPreview
-                    key={attachment.id || getAttachmentPreview(attachment) || attachment.name}
-                    attachment={attachment}
-                    onRemove={onRemoveAttachment}
-                  />
-                ))}
-                {isUploading && (
-                  <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[18px] bg-[var(--bm-hover-bg)]">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
+                  {hasAttachments && (
+                    <div className="flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {normalizedAttachments.map((attachment) => (
+                        <AttachmentPreview
+                          key={attachment.id || getAttachmentPreview(attachment) || attachment.name}
+                          attachment={attachment}
+                          onRemove={onRemoveAttachment}
+                        />
+                      ))}
+                      {isUploading && (
+                        <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[18px] bg-[var(--bm-hover-bg)]">
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
+                        </div>
+                      )}
+                      {normalizedAttachments.length > 1 && onClearAttachments && (
+                        <button
+                          type="button"
+                          onClick={onClearAttachments}
+                          className="h-10 shrink-0 rounded-full bg-[var(--bm-hover-bg)] px-4 text-xs font-extrabold text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-active-bg)]"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="relative">
+                <AnimatePresence mode="wait">
+                  {!hasText && !isFocused && (
+                    <motion.span
+                      key={activePlaceholder}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      className="pointer-events-none absolute left-0 top-2 text-[18px] font-medium leading-7 text-[var(--bm-text-secondary)]"
+                    >
+                      {activePlaceholder}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <textarea
+                  ref={inputRef}
+                  value={value}
+                  onChange={onChange}
+                  onInput={handleTextareaInput}
+                  onKeyDown={onKeyDown}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  rows={1}
+                  placeholder={isFocused || hasText ? activePlaceholder : ""}
+                  className="desktop-bluemind-composer-input bm-composer-input block w-full resize-none bg-transparent pt-2 text-[18px] font-medium leading-7 text-[var(--bm-text-primary)] outline-none placeholder:text-[var(--bm-text-secondary)]/80"
+                  style={{
+                    ...inputDirectionStyle,
+                    minHeight: "104px",
+                    maxHeight: "46vh",
+                    caretColor: "var(--bm-input-caret)",
+                    letterSpacing: "0",
+                  }}
+                  data-testid={testId}
+                />
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={onAdd}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-hover-bg)]"
+                      aria-label={addLabel}
+                    >
+                      <Plus className="h-5 w-5" />
+                    </button>
+                    {actionMenu}
                   </div>
-                )}
-                {normalizedAttachments.length > 1 && onClearAttachments && (
+
+                  <ModelMenu
+                    activeModel={activeModel}
+                    modelId={activeModel.id}
+                    thinkingLevel={activeThinkingLevel.id}
+                    onResponseModeChange={onResponseModeChange}
+                    onThinkingLevelChange={onThinkingLevelChange}
+                    activeMenu={activeMenu}
+                    setActiveMenu={setActiveMenu}
+                    isDark={isDark}
+                  />
+
+                  <ThinkingMenu
+                    activeThinkingLevel={activeThinkingLevel}
+                    thinkingLevel={activeThinkingLevel.id}
+                    onThinkingLevelChange={onThinkingLevelChange}
+                    activeMenu={activeMenu}
+                    setActiveMenu={setActiveMenu}
+                    isDark={isDark}
+                  />
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
                   <button
                     type="button"
-                    onClick={onClearAttachments}
-                    className="h-10 shrink-0 rounded-full bg-[var(--bm-hover-bg)] px-4 text-xs font-extrabold text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-active-bg)]"
+                    onClick={onVoice}
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-secondary)] transition-colors hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]"
+                    aria-label={voiceLabel}
                   >
-                    Clear
+                    <Mic className="h-5 w-5" />
                   </button>
-                )}
+                  <motion.button
+                    type={isBusy ? "button" : "submit"}
+                    onClick={onSendAction}
+                    disabled={!isBusy && !canSend}
+                    whileTap={!isBusy && canSend ? { scale: 0.93 } : undefined}
+                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-[0_12px_28px_rgba(25,59,104,0.22)] transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
+                    style={{ backgroundColor: isBusy || canSend ? appColor : "var(--bm-text-muted)" }}
+                    aria-label={isBusy ? stopLabel : sendLabel}
+                  >
+                    {isBusy ? (
+                      <Square className="h-4 w-4 fill-current" />
+                    ) : (
+                      <ArrowUp className="h-5 w-5 -translate-y-[1px] stroke-[2.7]" />
+                    )}
+                  </motion.button>
+                </div>
               </div>
-            )}
-          </div>
-        )}
-
-        <div className="relative">
-          <AnimatePresence mode="wait">
-            {!hasText && !isFocused && (
-              <motion.span
-                key={activePlaceholder}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="pointer-events-none absolute left-0 top-2 text-[18px] font-medium leading-7 text-[var(--bm-text-secondary)]"
-              >
-                {activePlaceholder}
-              </motion.span>
-            )}
-          </AnimatePresence>
-          <textarea
-            ref={inputRef}
-            value={value}
-            onChange={onChange}
-            onInput={handleTextareaInput}
-            onKeyDown={onKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            rows={1}
-            placeholder={isFocused || hasText ? activePlaceholder : ""}
-            className="desktop-bluemind-composer-input bm-composer-input block w-full resize-none bg-transparent pt-2 text-[18px] font-medium leading-7 text-[var(--bm-text-primary)] outline-none placeholder:text-[var(--bm-text-secondary)]/80"
-            style={{
-              ...inputDirectionStyle,
-              minHeight: "104px",
-              maxHeight: "46vh",
-              caretColor: "var(--bm-input-caret)",
-              letterSpacing: "0",
-            }}
-            data-testid={testId}
-          />
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={onAdd}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-hover-bg)]"
-                aria-label={addLabel}
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-              {actionMenu}
-            </div>
-
-            <ModelMenu
-              activeModel={activeModel}
-              modelId={activeModel.id}
-              thinkingLevel={activeThinkingLevel.id}
-              onResponseModeChange={onResponseModeChange}
-              onThinkingLevelChange={onThinkingLevelChange}
-              activeMenu={activeMenu}
-              setActiveMenu={setActiveMenu}
-              isDark={isDark}
-            />
-
-            <ThinkingMenu
-              activeThinkingLevel={activeThinkingLevel}
-              thinkingLevel={activeThinkingLevel.id}
-              onThinkingLevelChange={onThinkingLevelChange}
-              activeMenu={activeMenu}
-              setActiveMenu={setActiveMenu}
-              isDark={isDark}
-            />
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={onVoice}
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
-                isListening ? "text-white" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
-              )}
-              style={isListening ? { backgroundColor: appColor } : undefined}
-              aria-label={voiceLabel}
-            >
-              <Mic className="h-5 w-5" />
-            </button>
-            <motion.button
-              type={isBusy ? "button" : "submit"}
-              onClick={onSendAction}
-              disabled={!isBusy && !canSend}
-              whileTap={!isBusy && canSend ? { scale: 0.93 } : undefined}
-              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-[0_12px_28px_rgba(25,59,104,0.22)] transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
-              style={{ backgroundColor: isBusy || canSend ? appColor : "var(--bm-text-muted)" }}
-              aria-label={isBusy ? stopLabel : sendLabel}
-            >
-              {isBusy ? (
-                <Square className="h-4 w-4 fill-current" />
-              ) : (
-                <ArrowUp className="h-5 w-5 -translate-y-[1px] stroke-[2.7]" />
-              )}
-            </motion.button>
-          </div>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.section>
     </form>
   );

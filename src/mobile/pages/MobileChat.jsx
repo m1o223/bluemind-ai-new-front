@@ -77,6 +77,7 @@ import {
 import { AUTH_SESSION_CLEARED_EVENT } from "@/services/storageKeys";
 import { updatePreferences } from "@/services/profileService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
+import useVoiceInput from "@/hooks/useVoiceInput";
 import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 
 const MAX_IMAGE_ATTACHMENTS = 6;
@@ -540,7 +541,6 @@ export default function MobileChat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [chatSessionMode, setChatSessionMode] = useState("normal");
   const [privateSpaceModalOpen, setPrivateSpaceModalOpen] = useState(false);
   const [privateSpaceStep, setPrivateSpaceStep] = useState("list");
@@ -598,7 +598,6 @@ export default function MobileChat() {
   const activeAiMessageRef = useRef(null);
   const sendLockRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
-  const speechRecognitionRef = useRef(null);
   const loadedConversationRef = useRef(null);
 
   const activeConversationId = searchParams.get("conversation");
@@ -674,6 +673,20 @@ export default function MobileChat() {
     node.style.height = `${Math.max(nextHeight, 50)}px`;
     node.style.overflowY = node.scrollHeight > maxHeight ? "auto" : "hidden";
   }, [isImageMode, isWriteEditMode]);
+
+  const {
+    isListening,
+    audioLevels: voiceAudioLevels,
+    start: startVoiceCapture,
+    stop: stopVoiceInput,
+    cancel: cancelVoiceInput,
+  } = useVoiceInput({
+    onTranscript: (nextText) => {
+      setMessage(nextText);
+      window.requestAnimationFrame(() => resizeChatComposer(composerInputRef.current));
+    },
+    onError: (messageText) => toast.error(messageText),
+  });
 
   const redirectToMobileLogin = useCallback(() => {
     closeMenu();
@@ -844,7 +857,6 @@ export default function MobileChat() {
 
   useEffect(() => () => {
     streamAbortRef.current?.abort();
-    speechRecognitionRef.current?.stop?.();
     attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
   }, []);
 
@@ -1622,69 +1634,16 @@ export default function MobileChat() {
     ].filter(Boolean).join("\n\n");
   };
 
-  const stopVoiceInput = useCallback(() => {
-    speechRecognitionRef.current?.stop?.();
-    speechRecognitionRef.current = null;
-    setIsListening(false);
-  }, []);
-
   const startVoiceInput = useCallback(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      toast.error("Voice input is not supported in this browser.");
-      return;
-    }
-
     if (isListening) {
       stopVoiceInput();
       return;
     }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = prefs?.language || uiLanguage || navigator.language || "en-US";
-
-    let committedTranscript = "";
-    const baseMessage = message;
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => {
-      speechRecognitionRef.current = null;
-      setIsListening(false);
-    };
-    recognition.onerror = () => {
-      speechRecognitionRef.current = null;
-      setIsListening(false);
-      toast.error("Could not capture voice input.");
-    };
-    recognition.onresult = (event) => {
-      let interimTranscript = "";
-
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const transcript = event.results[index][0]?.transcript || "";
-
-        if (event.results[index].isFinal) {
-          committedTranscript = `${committedTranscript} ${transcript}`.trim();
-        } else {
-          interimTranscript = `${interimTranscript} ${transcript}`.trim();
-        }
-      }
-
-      const nextText = [baseMessage, committedTranscript, interimTranscript]
-        .filter(Boolean)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trimStart();
-
-      setMessage(nextText);
-      window.requestAnimationFrame(() => resizeChatComposer(composerInputRef.current));
-    };
-
-    speechRecognitionRef.current = recognition;
-    recognition.start();
-  }, [isListening, message, prefs?.language, resizeChatComposer, stopVoiceInput, uiLanguage]);
+    startVoiceCapture({
+      baseText: message,
+      language: prefs?.language || uiLanguage || navigator.language || "en-US",
+    });
+  }, [isListening, message, prefs?.language, startVoiceCapture, stopVoiceInput, uiLanguage]);
 
   const appendAiDelta = useCallback((messageId, token) => {
     setMessages((current) =>
@@ -2359,6 +2318,9 @@ export default function MobileChat() {
         onAdd={openComposerAttachment}
         onVoice={startVoiceInput}
         isListening={isListening}
+        voiceAudioLevels={voiceAudioLevels}
+        onCancelVoice={cancelVoiceInput}
+        onFinishVoice={stopVoiceInput}
         isBusy={isGeneratingImage || isChatSending || isListening}
         canSend={hasComposerContent}
         onSendAction={isChatSending ? stopChatGeneration : isListening ? stopVoiceInput : undefined}
