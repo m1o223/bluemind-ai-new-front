@@ -61,7 +61,7 @@ import {
   SEARCH_DISCOVERY_CATEGORIES,
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
-import { normalizeAiModeId } from "@/data/aiModes";
+import { AI_MODES, normalizeAiModeId } from "@/data/aiModes";
 import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 import {
   buildWriteEditMessage,
@@ -3930,6 +3930,17 @@ export default function ChatPage() {
     </div>
   );
 
+  const handleResponseModeSelect = async (nextMode, model) => {
+    const normalizedMode = normalizeAiModeId(nextMode);
+    if (model?.id) setDesktopModelId(model.id);
+    setResponseMode(normalizedMode);
+    try {
+      await updatePreferences({ aiMode: normalizedMode });
+    } catch (error) {
+      toast.error("Could not save BlueMind mode");
+    }
+  };
+
   const renderInput = (testSuffix = "") => {
     const composerAttachments = activeMode === "write_edit" ? writeFiles : attachments;
     const removeComposerAttachment = activeMode === "write_edit" ? removeWriteFile : removeAttachment;
@@ -3961,17 +3972,6 @@ export default function ChatPage() {
       },
       clearLabel: activeMode === "web_search" ? t("removeWebSearch") : t("remove"),
     } : null;
-    const handleDesktopResponseModeChange = async (nextMode, model) => {
-      const normalizedMode = normalizeAiModeId(nextMode);
-      if (model?.id) setDesktopModelId(model.id);
-      setResponseMode(normalizedMode);
-      try {
-        await updatePreferences({ aiMode: normalizedMode });
-      } catch (error) {
-        toast.error("Could not save BlueMind model");
-      }
-    };
-
     const actionMenu = (
       <DesktopPlusMenu
         open={attachmentMenuOpen}
@@ -4097,7 +4097,7 @@ export default function ChatPage() {
             appColor={appColor}
             responseMode={responseMode}
             modelId={desktopModelId}
-            onResponseModeChange={handleDesktopResponseModeChange}
+            onResponseModeChange={handleResponseModeSelect}
             thinkingLevel={thinkingLevel}
             onThinkingLevelChange={setThinkingLevel}
             inputDirectionStyle={inputDirectionStyle}
@@ -4360,6 +4360,34 @@ export default function ChatPage() {
         >
           <div className="flex items-center gap-3">
             <span className={cn("text-sm font-extrabold tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</span>
+            <div className="hidden items-center gap-1.5 lg:flex" aria-label="BlueMind AI modes">
+              {AI_MODES.map((mode) => {
+                const ModeIcon = mode.icon;
+                const selected = responseMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => handleResponseModeSelect(mode.id)}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-bold transition-colors",
+                      selected
+                        ? isDark
+                          ? "bg-white text-[var(--bm-bg-app)]"
+                          : "bg-[var(--bm-primary)] text-white"
+                        : isDark
+                          ? "text-white/78 hover:bg-white/[0.08] hover:text-white"
+                          : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
+                    )}
+                    title={mode.description}
+                    aria-pressed={selected}
+                  >
+                    <ModeIcon className="h-3.5 w-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{mode.title}</span>
+                  </button>
+                );
+              })}
+            </div>
             {chatSessionMode === "private" && activePrivateSpace && (
               <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
                 <Lock className="h-3.5 w-3.5" />

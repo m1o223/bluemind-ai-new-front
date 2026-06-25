@@ -46,7 +46,7 @@ export const AI_MODES = [
   {
     id: "coding",
     title: "Coding",
-    description: "Programming, debugging, and software engineering",
+    description: "Programming, debugging, code generation, code explanation, software development, and technical problem solving",
     status: "Preparing coding guidance...",
     icon: Code2,
   },
