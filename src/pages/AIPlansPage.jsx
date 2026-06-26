@@ -15,7 +15,6 @@ import {
   Mic,
   Paperclip,
   Plus,
-  Send,
   Save,
   Sparkles,
   Target,
@@ -25,6 +24,7 @@ import {
 import { toast } from "sonner";
 
 import { useApp } from "@/context/AppContext";
+import BlueMindSendButton from "@/components/BlueMindSendButton";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, motionTokens, spacingClasses, typeClasses } from "@/lib/interactions";
@@ -195,7 +195,6 @@ function PlannerComposer({
   placeholder,
   isDark,
   appColor,
-  accentText,
   disabled = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -321,15 +320,11 @@ function PlannerComposer({
           >
             <Mic className={iconClasses.button} />
           </button>
-          <button
-            type="submit"
-            disabled={disabled || (!value.trim() && !attachments.length)}
-            className={cn("flex h-11 w-11 items-center justify-center rounded-full text-white disabled:cursor-not-allowed disabled:bg-[var(--bm-disabled-bg)] disabled:opacity-60", interactionClasses.iconButton)}
-            style={!disabled && (value.trim() || attachments.length) ? { backgroundColor: appColor, color: accentText } : undefined}
-            aria-label="Send plan goal"
-          >
-            <Send className="h-[18px] w-[18px]" />
-          </button>
+          <BlueMindSendButton
+            canSend={Boolean(value.trim() || attachments.length) && !disabled}
+            appColor={appColor}
+            sendLabel="Send plan goal"
+          />
         </div>
       </div>
 
@@ -410,7 +405,6 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack }) {
             placeholder="Tell BlueMind what you want to plan..."
             isDark={isDark}
             appColor={appColor}
-            accentText={accentText}
           />
         </div>
 

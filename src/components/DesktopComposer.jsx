@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowUp,
   Brain,
   Check,
   ChevronDown,
@@ -12,12 +11,12 @@ import {
   Plus,
   Search,
   Sparkles,
-  Square,
   X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import VoiceRecordingPanel from "@/components/VoiceRecordingPanel";
+import BlueMindSendButton from "@/components/BlueMindSendButton";
 
 const ROTATING_PROMPTS = [
   "How can I help you today?",
@@ -497,22 +496,14 @@ export default function DesktopComposer({
                   >
                     <Mic className="h-5 w-5" />
                   </button>
-                  <motion.button
-                    type={isBusy ? "button" : "submit"}
+                  <BlueMindSendButton
+                    isBusy={isBusy}
+                    canSend={canSend}
                     onClick={onSendAction}
-                    disabled={!isBusy && !canSend}
-                    whileTap={!isBusy && canSend ? { scale: 0.93 } : undefined}
-                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                    className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-[0_12px_28px_rgba(25,59,104,0.22)] transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
-                    style={{ backgroundColor: isBusy || canSend ? appColor : "var(--bm-text-muted)" }}
-                    aria-label={isBusy ? stopLabel : sendLabel}
-                  >
-                    {isBusy ? (
-                      <Square className="h-4 w-4 fill-current" />
-                    ) : (
-                      <ArrowUp className="h-5 w-5 -translate-y-[1px] stroke-[2.7]" />
-                    )}
-                  </motion.button>
+                    appColor={appColor}
+                    sendLabel={sendLabel}
+                    stopLabel={stopLabel}
+                  />
                 </div>
               </div>
             </motion.div>

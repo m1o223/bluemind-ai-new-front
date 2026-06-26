@@ -1,10 +1,11 @@
 import { useLayoutEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUp, FileText, Mic, Plus, Square, X } from "lucide-react";
+import { FileText, Mic, Plus, X } from "lucide-react";
 
 import { inputClasses } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
 import VoiceRecordingPanel from "@/components/VoiceRecordingPanel";
+import BlueMindSendButton from "@/components/BlueMindSendButton";
 
 function getAttachmentPreview(attachment) {
   return attachment?.previewUrl || attachment?.url || attachment?.thumbnail || attachment?.src || "";
@@ -166,28 +167,16 @@ export default function UnifiedComposer({
   );
 
   const sendButton = (
-    <motion.button
-      type={isBusy ? "button" : "submit"}
+    <BlueMindSendButton
+      isBusy={isBusy}
+      canSend={canSend}
       onClick={onSendAction}
-      disabled={!isBusy && !canSend}
-      whileTap={!isBusy && canSend ? { scale: 0.92 } : undefined}
-      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-      className={cn(
-        "ml-1.5 flex shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.20)] transition-colors duration-200 disabled:cursor-not-allowed",
-        isMobile ? "h-8 w-8" : "h-[42px] w-[42px]",
-        isBusy || canSend
-          ? "hover:opacity-95"
-          : isDark ? "bg-[var(--bm-text-secondary)]" : "bg-[var(--bm-text-muted)]",
-      )}
-      style={isBusy || canSend ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : undefined}
-      aria-label={isBusy ? stopLabel : sendLabel}
-    >
-      {isBusy ? (
-        <Square className={isMobile ? "h-3.5 w-3.5 fill-current" : "h-[14px] w-[14px] fill-current"} />
-      ) : (
-        <ArrowUp className={isMobile ? "h-[19px] w-[18px] -translate-y-[1px] scale-y-[1.06] stroke-[3]" : "h-[20px] w-[20px] -translate-y-[1px] scale-y-[1.08] stroke-[2.5]"} />
-      )}
-    </motion.button>
+      appColor={appColor}
+      sendLabel={sendLabel}
+      stopLabel={stopLabel}
+      compact={isMobile}
+      className={cn("ml-1.5", !isMobile && "h-[42px] w-[42px]")}
+    />
   );
 
   return (
