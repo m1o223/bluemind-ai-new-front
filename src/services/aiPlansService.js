@@ -91,8 +91,139 @@ export function getPlanningQuestions(goal, answers = []) {
   return questions[answers.length] || null;
 }
 
+const QUESTION_SUGGESTIONS = {
+  websiteType: ["Portfolio", "E-commerce", "AI Tool", "Educational Website", "Blog", "Business Website", "Landing Page", "Other"],
+  websiteScope: ["Frontend only", "Frontend + backend", "Design only", "Full stack", "I am not sure"],
+  websiteStyle: ["Dark theme", "Blue accent", "Minimal", "Modern", "I have screenshots", "No design yet"],
+  websiteTech: ["React", "Next.js", "Firebase", "Node.js", "Python", "No preference"],
+  studyLevel: ["Mathematics", "Physics", "Chemistry", "Biology", "Programming", "English", "Swedish", "History", "Other"],
+  studyMaterial: ["Book", "Topic", "Chapter", "Pages", "PDF", "Notes", "Slides"],
+  studyDeadline: ["Today", "3 days", "1 week", "2 weeks", "Exam date", "No deadline"],
+  studyTasks: ["Reading", "Practice", "Revision", "Mock test", "All of them", "Weak points"],
+  businessGoal: ["Startup", "Product launch", "Marketing plan", "Sales plan", "Brand idea", "Business strategy"],
+  businessAudience: ["Students", "Parents", "Businesses", "Local customers", "Online audience", "Not sure"],
+  businessDirection: ["Idea only", "MVP exists", "Brand exists", "Need branding", "Need launch plan"],
+  fitnessGoal: ["Build muscle", "Lose weight", "Get stronger", "Run better", "Home routine", "Gym routine"],
+  fitnessSchedule: ["2 days/week", "3 days/week", "4 days/week", "5 days/week", "Daily", "Flexible"],
+  fitnessEquipment: ["Home only", "Gym", "Dumbbells", "No equipment", "Running", "Mixed"],
+  timeline: ["Today", "This week", "2 weeks", "1 month", "3 months", "Flexible"],
+  detailLevel: ["Simple", "Detailed", "Step-by-step", "Weekly phases", "Daily tasks", "Balanced"],
+  generalOutcome: ["Project plan", "Study plan", "Learning roadmap", "Launch plan", "Personal routine", "Something else"],
+  generalResources: ["I have notes", "I have files", "I have a deadline", "I work alone", "I have a team", "Not sure"],
+};
+
+const PLANNING_SLOTS = {
+  website: [
+    { id: "websiteType", question: "What kind of website do you want to build?", suggestions: QUESTION_SUGGESTIONS.websiteType, pattern: /portfolio|e-?commerce|shop|store|ai tool|educational|education|blog|business|landing|website|site|platform|app|saas/i },
+    { id: "websiteScope", question: "Do you need frontend only, or frontend and backend?", suggestions: QUESTION_SUGGESTIONS.websiteScope, pattern: /frontend|front end|backend|back end|full stack|design only|database|api|not sure/i },
+    { id: "websiteStyle", question: "Do you already have a design style, colors, screenshots, or visual identity?", suggestions: QUESTION_SUGGESTIONS.websiteStyle, pattern: /dark|light|blue|minimal|modern|style|design|color|brand|screenshot|identity|no design/i },
+    { id: "timeline", question: "What deadline or time frame should this plan use?", suggestions: QUESTION_SUGGESTIONS.timeline, pattern: /today|tomorrow|day|week|month|deadline|flexible|date|soon/i },
+    { id: "detailLevel", question: "Do you want a simple plan or a detailed step-by-step plan?", suggestions: QUESTION_SUGGESTIONS.detailLevel, pattern: /simple|detailed|step|weekly|daily|balanced|short|long/i },
+  ],
+  study: [
+    { id: "studyLevel", question: "What subject are you studying?", suggestions: QUESTION_SUGGESTIONS.studyLevel, pattern: /math|mathematics|physics|chemistry|biology|programming|english|swedish|history|geography|science|subject/i },
+    { id: "studyMaterial", question: "What book, topic, chapter, or pages should this plan cover?", suggestions: QUESTION_SUGGESTIONS.studyMaterial, pattern: /book|topic|chapter|page|pdf|notes|slides|lesson|unit|part/i },
+    { id: "studyDeadline", question: "When is your exam, deadline, or study target date?", suggestions: QUESTION_SUGGESTIONS.studyDeadline, pattern: /today|tomorrow|day|week|exam|deadline|date|test|month/i },
+    { id: "studyTasks", question: "Do you want reading tasks, practice tasks, revision tasks, mock tests, or all of them?", suggestions: QUESTION_SUGGESTIONS.studyTasks, pattern: /reading|practice|revision|mock|test|weak|exercise|all/i },
+  ],
+  business: [
+    { id: "businessGoal", question: "What are you trying to launch, build, or organize?", suggestions: QUESTION_SUGGESTIONS.businessGoal, pattern: /startup|product|launch|marketing|sales|brand|strategy|business|company/i },
+    { id: "businessAudience", question: "Who is the target customer or audience?", suggestions: QUESTION_SUGGESTIONS.businessAudience, pattern: /student|parent|business|customer|audience|people|users|market|online|local/i },
+    { id: "businessDirection", question: "Do you already have a product, offer, or brand direction?", suggestions: QUESTION_SUGGESTIONS.businessDirection, pattern: /idea|mvp|product|offer|brand|direction|launch|branding/i },
+    { id: "timeline", question: "What deadline or time frame should this plan use?", suggestions: QUESTION_SUGGESTIONS.timeline, pattern: /today|tomorrow|day|week|month|deadline|flexible|date|soon/i },
+  ],
+  fitness: [
+    { id: "fitnessGoal", question: "What is your fitness goal?", suggestions: QUESTION_SUGGESTIONS.fitnessGoal, pattern: /muscle|weight|strong|strength|run|fitness|routine|gym|home|workout/i },
+    { id: "fitnessSchedule", question: "How many days per week can you train?", suggestions: QUESTION_SUGGESTIONS.fitnessSchedule, pattern: /day|week|daily|flexible|2|3|4|5|every/i },
+    { id: "fitnessEquipment", question: "Do you have equipment, a gym, or only home workouts?", suggestions: QUESTION_SUGGESTIONS.fitnessEquipment, pattern: /home|gym|dumbbell|equipment|running|no equipment|mixed/i },
+    { id: "timeline", question: "What deadline or time frame should this plan use?", suggestions: QUESTION_SUGGESTIONS.timeline, pattern: /today|tomorrow|day|week|month|deadline|flexible|date|soon/i },
+  ],
+  general: [
+    { id: "generalOutcome", question: "What final outcome do you want from this plan?", suggestions: QUESTION_SUGGESTIONS.generalOutcome, pattern: /plan|roadmap|project|study|learn|launch|routine|build|finish|create/i },
+    { id: "generalResources", question: "What resources, files, notes, tools, or people do you already have?", suggestions: QUESTION_SUGGESTIONS.generalResources, pattern: /notes|file|pdf|tool|team|alone|deadline|resource|material|have/i },
+    { id: "timeline", question: "What deadline or time frame should this plan use?", suggestions: QUESTION_SUGGESTIONS.timeline, pattern: /today|tomorrow|day|week|month|deadline|flexible|date|soon/i },
+    { id: "detailLevel", question: "Do you want a simple plan or a detailed step-by-step plan?", suggestions: QUESTION_SUGGESTIONS.detailLevel, pattern: /simple|detailed|step|weekly|daily|balanced|short|long/i },
+  ],
+};
+
+const POSITIVE_CONFIRMATION_RE = /^(yes|yeah|yep|sure|go ahead|okay|ok|please do|do it|generate|generate it|start|sounds good|تمام|نعم|ايوا|اوك|ابدأ|سويها)$/i;
+const VAGUE_ANSWER_RE = /^(yes|yeah|yep|ok|okay|sure|no|maybe|idk|i don't know|not sure|whatever|anything|لا اعرف|ما بعرف|مدري)$/i;
+
+function normalizeAnswerText(answer) {
+  return String(answer?.content || answer || "").trim();
+}
+
+export function isPlanGenerationConfirmation(value) {
+  return POSITIVE_CONFIRMATION_RE.test(String(value || "").trim());
+}
+
+function getSlots(goal) {
+  const type = detectPlanType(goal);
+  return PLANNING_SLOTS[type] || PLANNING_SLOTS.general;
+}
+
+function answeredSlot(slot, answers) {
+  return answers.some((answer) => {
+    const text = normalizeAnswerText(answer);
+    if (!hasUsefulAnswer(text)) return false;
+    return answer?.slotId === slot.id || slot.pattern.test(text);
+  });
+}
+
+function hasUsefulAnswer(value) {
+  const text = String(value || "").trim();
+  if (!text) return false;
+  if (text.length < 3) return false;
+  if (VAGUE_ANSWER_RE.test(text)) return false;
+  return true;
+}
+
+export function analyzePlanningConversation(goal, answers = [], latestAnswer = "") {
+  const slots = getSlots(goal);
+  const cleanLatestAnswer = String(latestAnswer || "").trim();
+  const missingSlots = slots.filter((slot) => !answeredSlot(slot, answers));
+  const usefulAnswers = answers.filter((answer) => hasUsefulAnswer(answer?.content));
+  const enough = usefulAnswers.length >= Math.min(3, slots.length) && missingSlots.length <= Math.max(1, slots.length - 3);
+
+  if (cleanLatestAnswer && !hasUsefulAnswer(cleanLatestAnswer)) {
+    const latestAnswerObject = answers[answers.length - 1];
+    const currentSlot = slots.find((slot) => slot.id === latestAnswerObject?.slotId) || missingSlots[0] || slots[0];
+    return {
+      action: "clarify",
+      canGenerate: enough,
+      question: currentSlot.question,
+      suggestions: currentSlot.suggestions,
+      content: "I didn’t fully understand your answer. Could you provide a little more detail so I can build a better plan?",
+      slot: currentSlot,
+    };
+  }
+
+  if (enough) {
+    return {
+      action: "confirm",
+      canGenerate: true,
+      question: null,
+      suggestions: ["Yes", "Go ahead", "Add one more detail"],
+      content: missingSlots.length
+        ? "I already have enough information to generate your plan. If you want, you can add one more detail, but I can start now."
+        : "I have enough information now. Would you like me to generate your plan?",
+      slot: null,
+    };
+  }
+
+  const nextSlot = missingSlots[0] || slots[Math.min(usefulAnswers.length, slots.length - 1)];
+  return {
+    action: "ask",
+    canGenerate: false,
+    question: nextSlot.question,
+    suggestions: nextSlot.suggestions,
+    content: nextSlot.question,
+    slot: nextSlot,
+  };
+}
+
 export function hasEnoughPlanContext(goal, answers) {
-  return Boolean(String(goal || "").trim()) && Array.isArray(answers) && answers.filter((answer) => String(answer?.content || "").trim()).length >= 4;
+  return Boolean(String(goal || "").trim()) && analyzePlanningConversation(goal, answers).canGenerate;
 }
 
 function task(title) {

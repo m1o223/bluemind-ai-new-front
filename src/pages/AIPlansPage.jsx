@@ -30,14 +30,17 @@ import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, motionTokens, spacingClasses, typeClasses } from "@/lib/interactions";
 import {
   applyAIPlanInstruction,
+  analyzePlanningConversation,
   createAIPlanFromConversation,
   getPlanningQuestions,
   getPlanProgress,
   getPlanStatus,
   hasEnoughPlanContext,
+  isPlanGenerationConfirmation,
   loadAIPlans,
   saveAIPlans,
 } from "@/services/aiPlansService";
+import { streamHiddenChatMessage } from "@/services/chatService";
 
 const ROTATING_PLAN_SUGGESTIONS = [
   "Build a study plan",
@@ -438,13 +441,59 @@ function getInitialAIMessage(goal, draftContext) {
       role: "ai",
       content: draftContext.sourceCard.firstQuestion,
       suggestions: draftContext.sourceCard.suggestions || [],
+      question: draftContext.sourceCard.firstQuestion,
     };
   }
+  const analysis = analyzePlanningConversation(goal, []);
   return {
     role: "ai",
-    content: getPlanningQuestions(goal, []),
-    suggestions: [],
+    content: analysis.content,
+    suggestions: analysis.suggestions || [],
+    question: analysis.question,
+    slotId: analysis.slot?.id,
   };
+}
+
+function buildPlanningAssistantPrompt({ goal, answers, latestAnswer, analysis }) {
+  return [
+    "You are BlueMind AI inside AI Plans.",
+    "Act like an intelligent planning assistant, not a fixed questionnaire.",
+    "The frontend planning analyzer has already chosen the next action. Follow that action exactly.",
+    "Write one short, friendly assistant message only. Do not include JSON. Do not include a plan yet.",
+    "",
+    `User goal: ${goal}`,
+    `Latest user answer: ${latestAnswer}`,
+    `Collected answers: ${answers.map((answer, index) => `${index + 1}. ${answer.question || "Answer"}: ${answer.content}`).join(" | ") || "None"}`,
+    `Next action: ${analysis.action}`,
+    `Required meaning: ${analysis.content}`,
+    analysis.question ? `Question to ask: ${analysis.question}` : "",
+    analysis.canGenerate ? "If asking for confirmation, clearly say you have enough information and the user can reply Yes/Go ahead to generate automatically." : "",
+    "If the answer was unclear, kindly ask for clarification.",
+  ].filter(Boolean).join("\n");
+}
+
+async function getPlanningAssistantReply({ goal, answers, latestAnswer, analysis }) {
+  let text = "";
+  await streamHiddenChatMessage({
+    message: buildPlanningAssistantPrompt({ goal, answers, latestAnswer, analysis }),
+    mode: "work",
+    metadata: {
+      source: "ai_plans_builder",
+      aiPlans: true,
+      planningAction: analysis.action,
+      planningCanGenerate: analysis.canGenerate,
+      hiddenChat: true,
+    },
+    onDelta: (payload) => {
+      text += payload?.token || "";
+    },
+    onComplete: (payload) => {
+      if (!text.trim()) {
+        text = payload?.message?.content || "";
+      }
+    },
+  });
+  return text.trim();
 }
 
 function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText, onCancel, onCreate }) {
@@ -461,6 +510,7 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
   const planningResponseTimerRef = useRef(null);
   const planningSendLockRef = useRef(false);
   const enough = hasEnoughPlanContext(goal, answers);
+  const lastAssistantMessage = [...messages].reverse().find((message) => message.role === "ai" && !message.isThinking);
 
   useEffect(() => {
     if (!generating) return undefined;
@@ -476,48 +526,70 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
     }
   }, []);
 
-  const submitAnswer = (nextInput = input) => {
-    const clean = String(nextInput || "").trim();
-    if (!clean || generating || isPlanningAiThinking || planningSendLockRef.current) return;
-    planningSendLockRef.current = true;
-    const nextAnswers = [...answers, { question: getPlanningQuestions(goal, answers), content: clean }];
-    const nextQuestion = getPlanningQuestions(goal, nextAnswers);
-    const nextMessages = [...messages, { role: "user", content: clean }, { role: "ai", content: "", isThinking: true }];
-    setAnswers(nextAnswers);
-    setMessages(nextMessages);
-    setInput("");
-    setIsPlanningAiThinking(true);
-
-    planningResponseTimerRef.current = window.setTimeout(() => {
-      const aiMessages = [];
-    if (nextQuestion) {
-        aiMessages.push({ role: "ai", content: nextQuestion, suggestions: [] });
-    }
-    if (hasEnoughPlanContext(goal, nextAnswers)) {
-        aiMessages.push({ role: "ai", content: "I have enough information now. Would you like me to generate your plan?", suggestions: [] });
-    }
-      setMessages((current) => [
-        ...current.filter((message) => !message.isThinking),
-        ...aiMessages,
-      ]);
-      setIsPlanningAiThinking(false);
-      planningSendLockRef.current = false;
-    }, 220);
-  };
-
-  const generate = () => {
-    if (!enough || generating || isPlanningAiThinking) return;
+  const generateFrom = (sourceAnswers = answers, sourceMessages = messages) => {
+    if (!hasEnoughPlanContext(goal, sourceAnswers) || generating || isPlanningAiThinking) return;
     setGenerating(true);
     setGenerationStep(0);
-    window.setTimeout(() => onCreate(createAIPlanFromConversation(goal, answers, {
+    window.setTimeout(() => onCreate(createAIPlanFromConversation(goal, sourceAnswers, {
       attachments,
-      messages,
+      messages: sourceMessages,
       selectedQuickCard: draftContext?.sourceCard ? {
         id: draftContext.sourceCard.id,
         title: draftContext.sourceCard.title,
         prompt: draftContext.sourceCard.prompt,
       } : null,
     })), 2300);
+  };
+
+  const submitAnswer = (nextInput = input) => {
+    const clean = String(nextInput || "").trim();
+    if (!clean || generating || isPlanningAiThinking || planningSendLockRef.current) return;
+    planningSendLockRef.current = true;
+
+    if (isPlanGenerationConfirmation(clean) && enough) {
+      const nextMessages = [
+        ...messages,
+        { role: "user", content: clean },
+        { role: "ai", content: "Generating your personalized plan...", suggestions: [] },
+      ];
+      setMessages(nextMessages);
+      setInput("");
+      planningSendLockRef.current = false;
+      generateFrom(answers, nextMessages);
+      return;
+    }
+
+    const activeQuestion = lastAssistantMessage?.question || lastAssistantMessage?.content || getPlanningQuestions(goal, answers);
+    const nextAnswers = [...answers, { question: activeQuestion, slotId: lastAssistantMessage?.slotId, content: clean }];
+    const analysis = analyzePlanningConversation(goal, nextAnswers, clean);
+    const nextMessages = [...messages, { role: "user", content: clean }, { role: "ai", content: "", isThinking: true }];
+    setAnswers(nextAnswers);
+    setMessages(nextMessages);
+    setInput("");
+    setIsPlanningAiThinking(true);
+
+    planningResponseTimerRef.current = window.setTimeout(async () => {
+      const aiContent = await getPlanningAssistantReply({
+        goal,
+        answers: nextAnswers,
+        latestAnswer: clean,
+        analysis,
+      }).catch(() => analysis.content);
+
+      setMessages((current) => [
+        ...current.filter((message) => !message.isThinking),
+        {
+          role: "ai",
+          content: aiContent || analysis.content,
+          suggestions: analysis.suggestions || [],
+          question: analysis.question,
+          slotId: analysis.slot?.id,
+          canGenerate: analysis.canGenerate,
+        },
+      ]);
+      setIsPlanningAiThinking(false);
+      planningSendLockRef.current = false;
+    }, 220);
   };
 
   return (
@@ -527,16 +599,13 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
           <ArrowLeft className={iconClasses.button} />
           Back
         </button>
-        <button
-          type="button"
-          onClick={generate}
-          disabled={!enough || generating || isPlanningAiThinking}
-          className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-bold disabled:cursor-not-allowed disabled:opacity-55", iconClasses.iconText, typeClasses.small, interactionClasses.control, !enough && (isDark ? "bg-white/[0.07] text-[var(--bm-text-muted)]" : "bg-[var(--bm-border)] text-[var(--bm-text-secondary)]"))}
+        <div
+          className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.control, !enough && (isDark ? "bg-white/[0.07] text-[var(--bm-text-muted)]" : "bg-[var(--bm-border)] text-[var(--bm-text-secondary)]"))}
           style={enough ? { backgroundColor: appColor, color: accentText } : undefined}
         >
           {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {enough ? "Generate Plan" : "Not enough details yet"}
-        </button>
+          {generating ? "Generating..." : enough ? "Reply Yes to generate" : "Collecting details"}
+        </div>
       </header>
 
       <section className="flex min-h-0 flex-1 flex-col">
