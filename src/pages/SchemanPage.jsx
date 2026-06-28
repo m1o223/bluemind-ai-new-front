@@ -139,7 +139,7 @@ function ScheduleButton({ children, active = false, appColor, accentText, classN
   );
 }
 
-function WeeklyGrid({ isDark, blocks, manualMode, onAddCell }) {
+function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
   const lineClass = isDark ? "border-white/[0.07]" : "border-[var(--bm-border)]";
   const headerBg = isDark ? "bg-white/[0.045]" : "bg-[var(--bm-bg-elevated)]";
   const cellBg = isDark ? "bg-transparent" : "bg-white";
@@ -200,7 +200,7 @@ function WeeklyGrid({ isDark, blocks, manualMode, onAddCell }) {
                         occupied ? (isDark ? "bg-[var(--bm-bg-card)]" : "bg-white") : cellBg,
                       )}
                     >
-                      {manualMode && hour !== "24:00" && !occupied && (
+                      {editMode && hour !== "24:00" && !occupied && (
                       <button
                         type="button"
                         onClick={() => onAddCell(day, hour)}
@@ -235,6 +235,16 @@ function WeeklyGrid({ isDark, blocks, manualMode, onAddCell }) {
                     background: `linear-gradient(145deg, ${block.color}, #1D4ED8)`,
                   }}
                 >
+                  {editMode && (
+                    <button
+                      type="button"
+                      onClick={() => onRequestDelete(block)}
+                      className="absolute right-2 top-2 z-40 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-lg font-black leading-none text-white shadow-sm transition hover:bg-black/60"
+                      aria-label={`Delete ${block.name}`}
+                    >
+                      -
+                    </button>
+                  )}
                   <div className="flex h-full flex-col justify-between gap-2">
                     <p className={cn("text-[15px] font-extrabold leading-tight tracking-[0.01em]")}>
                       <span className="mr-1.5">{DISPLAY_ICON_SYMBOLS[block.icon] || "\u2B50"}</span>
@@ -385,6 +395,47 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
         >
           Save
         </button>
+      </motion.div>
+    </div>
+  );
+}
+
+function DeleteActivityDialog({ isDark, appColor, accentText, activity, onCancel, onDelete }) {
+  if (!activity) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className={cn("w-full max-w-sm rounded-[28px] border p-6 shadow-2xl", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]")}
+      >
+        <h3 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Delete activity?</h3>
+        <p className={cn("mt-3 font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
+          Are you sure you want to delete this activity?
+        </p>
+        <p className={cn("mt-3 rounded-2xl px-4 py-3 font-extrabold", typeClasses.body, isDark ? "bg-white/[0.06]" : "bg-[var(--bm-bg-elevated)]")}>
+          {activity.name}
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className={cn("rounded-2xl px-4 py-3 font-bold", typeClasses.small, interactionClasses.control)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(activity)}
+            className={cn("rounded-2xl px-5 py-3 font-bold text-white shadow-[0_12px_30px_rgba(220,38,38,0.22)]", typeClasses.small)}
+            style={{ backgroundColor: "var(--bm-error)", color: "#FFFFFF" }}
+          >
+            Delete
+          </button>
+        </div>
       </motion.div>
     </div>
   );
@@ -677,9 +728,10 @@ export default function SchemanPage() {
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
   const [chatVisible, setChatVisible] = useState(true);
-  const [manualMode, setManualMode] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [scheduleState, setScheduleState] = useState(readScheduleState);
   const [blockModal, setBlockModal] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [aiStartSignal, setAiStartSignal] = useState(0);
   const [tutorialOpen, setTutorialOpen] = useState(() => localStorage.getItem(SCHEDULE_TUTORIAL_KEY) !== "true");
 
@@ -693,9 +745,34 @@ export default function SchemanPage() {
     writeScheduleState(scheduleState);
   }, [scheduleState]);
 
-  const enterManualMode = () => {
-    setManualMode(true);
-    toast.success(hasBlocks ? "Schedule edit mode enabled." : "Manual schedule design enabled.");
+  const handlePrimaryScheduleAction = () => {
+    if (!hasBlocks) {
+      setEditMode(true);
+      toast.success("Create mode enabled. Use the plus buttons to add schedule blocks.");
+      return;
+    }
+
+    if (editMode) {
+      setEditMode(false);
+      toast.success("Schedule changes saved.");
+      return;
+    }
+
+    setEditMode(true);
+    toast.success("Schedule edit mode enabled.");
+  };
+
+  const createCustomSchedule = () => {
+    setScheduleState({
+      blocks: [],
+      id: `schedule-${Date.now().toString(36)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    setEditMode(true);
+    setBlockModal(null);
+    setDeleteTarget(null);
+    toast.success("New custom schedule created.");
   };
 
   const startAiDesign = () => {
@@ -710,8 +787,18 @@ export default function SchemanPage() {
       updatedAt: new Date().toISOString(),
     }));
     setBlockModal(null);
-    setManualMode(true);
+    setEditMode(true);
     toast.success("Schedule block added.");
+  };
+
+  const deleteActivity = (activity) => {
+    setScheduleState((current) => ({
+      ...current,
+      blocks: (current.blocks || []).filter((block) => block.id !== activity.id),
+      updatedAt: new Date().toISOString(),
+    }));
+    setDeleteTarget(null);
+    toast.success("Activity deleted.");
   };
 
   const closeTutorial = () => {
@@ -732,9 +819,13 @@ export default function SchemanPage() {
               <MessageSquare className={iconClasses.button} />
               {chatVisible ? "Close Chat" : "Open Chat"}
             </ScheduleButton>
-            <ScheduleButton onClick={enterManualMode} active={manualMode} appColor={appColor} accentText={accentText}>
+            <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
               <Plus className={iconClasses.button} />
-              {hasBlocks ? "Edit Schedule" : "Design Schedule Manually"}
+              {!hasBlocks ? "Create Custom Schedule" : editMode ? "Save Changes" : "Edit Schedule"}
+            </ScheduleButton>
+            <ScheduleButton onClick={createCustomSchedule} appColor={appColor} accentText={accentText}>
+              <Plus className={iconClasses.button} />
+              Create Custom Schedule
             </ScheduleButton>
             <ScheduleButton onClick={startAiDesign} active appColor={appColor} accentText={accentText}>
               <Sparkles className={iconClasses.button} />
@@ -748,8 +839,9 @@ export default function SchemanPage() {
             <WeeklyGrid
               isDark={isDark}
               blocks={blocks}
-              manualMode={manualMode}
+              editMode={editMode}
               onAddCell={(day, hour) => setBlockModal({ day, hour })}
+              onRequestDelete={setDeleteTarget}
             />
           </div>
           <AnimatePresence mode="wait">
@@ -785,6 +877,16 @@ export default function SchemanPage() {
             initialStart={blockModal.hour}
             onClose={() => setBlockModal(null)}
             onSave={saveBlock}
+          />
+        )}
+        {deleteTarget && (
+          <DeleteActivityDialog
+            isDark={isDark}
+            appColor={appColor}
+            accentText={accentText}
+            activity={deleteTarget}
+            onCancel={() => setDeleteTarget(null)}
+            onDelete={deleteActivity}
           />
         )}
       </AnimatePresence>
