@@ -1,53 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Apple, BookOpen, BriefcaseBusiness, CalendarDays, Dumbbell, MessageSquare, Plus, Search, Sparkles, X } from "lucide-react";
+import { MessageSquare, Plus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
 import BlueMindSendButton from "@/components/BlueMindSendButton";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
+import { streamHiddenChatMessage } from "@/services/chatService";
 
-const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v1";
+const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
 const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const HOURS = Array.from({ length: 25 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
-
-const SCHEDULE_TYPES = [
-  {
-    id: "study",
-    title: "Study Schedule",
-    description: "Create an intelligent study schedule.",
-    icon: BookOpen,
-    firstPrompt: "Great. Which days do you study, what time do you start and finish, and which subjects should we plan first?",
-    examples: ["Study days", "Start time", "Finish time", "Subjects", "Upcoming exams", "Priority subjects"],
-  },
-  {
-    id: "gym",
-    title: "Gym Schedule",
-    description: "Create a personalized workout schedule.",
-    icon: Dumbbell,
-    firstPrompt: "Nice. What are your training days, training time, and main goal: build muscle, lose fat, cardio, strength, or endurance?",
-    examples: ["Training days", "Training time", "Build muscle", "Lose fat", "Cardio", "Strength"],
-  },
-  {
-    id: "nutrition",
-    title: "Nutrition Schedule",
-    description: "Create a healthy meal schedule.",
-    icon: Apple,
-    firstPrompt: "Good. Do you already have a meal plan, and what is your goal: fat loss, muscle gain, or a healthy lifestyle?",
-    examples: ["Meal plan", "Fat loss", "Muscle gain", "Healthy lifestyle", "Meal timing", "Food preferences"],
-  },
-  {
-    id: "business",
-    title: "Business Schedule",
-    description: "Create work and employee schedules.",
-    icon: BriefcaseBusiness,
-    firstPrompt: "Understood. How many employees do you have, what are the working days and hours, and how long should breaks be?",
-    examples: ["Employees", "Working days", "Working hours", "Break duration", "Shift preferences", "Fair rotation"],
-  },
-];
+const ROW_HEIGHT = 48;
+const ICON_OPTIONS = ["Book", "Dumbbell", "Briefcase", "Apple", "Moon", "Clock", "Star"];
+const ICON_SYMBOLS = {
+  Book: "📘",
+  Dumbbell: "🏋️",
+  Briefcase: "💼",
+  Apple: "🍎",
+  Moon: "🌙",
+  Clock: "⏰",
+  Star: "⭐",
+};
+const COLOR_OPTIONS = ["#2563EB", "#16A34A", "#7C3AED", "#EA580C", "#DC2626", "#0891B2", "#9333EA", "#4F46E5"];
 
 const TUTORIAL_STEPS = [
   {
@@ -55,12 +33,12 @@ const TUTORIAL_STEPS = [
     body: "The grid starts empty so you can build a clean schedule from scratch.",
   },
   {
-    title: "This is the AI assistant.",
-    body: "Use the compact BlueMind assistant to describe what you want to organize.",
+    title: "Design manually.",
+    body: "Use manual mode to add schedule blocks directly into the weekly grid.",
   },
   {
-    title: "Create a custom schedule.",
-    body: "Choose a schedule type first. BlueMind will use the right workflow for that category later.",
+    title: "Use BlueMind AI.",
+    body: "BlueMind can help you think through the schedule before activities are generated.",
   },
   {
     title: "You're ready.",
@@ -71,9 +49,9 @@ const TUTORIAL_STEPS = [
 function readScheduleState() {
   try {
     const value = JSON.parse(localStorage.getItem(SCHEDULE_STORAGE_KEY) || "null");
-    return value && typeof value === "object" ? value : { exists: false };
+    return value && typeof value === "object" ? { blocks: Array.isArray(value.blocks) ? value.blocks : [] } : { blocks: [] };
   } catch {
-    return { exists: false };
+    return { blocks: [] };
   }
 }
 
@@ -99,6 +77,39 @@ function getTextOnColor(value) {
   return luminance > 0.52 ? "var(--bm-text-primary)" : "#FFFFFF";
 }
 
+function timeToIndex(value) {
+  const hour = Number.parseInt(String(value).slice(0, 2), 10);
+  return Number.isFinite(hour) ? Math.max(0, Math.min(24, hour)) : 0;
+}
+
+function buildScheduleContext(blocks) {
+  if (!blocks.length) return "The weekly schedule grid is currently empty.";
+  return blocks.map((block) => (
+    `- ${block.name}: ${block.start} to ${block.end} on ${block.days.join(", ")}`
+  )).join("\n");
+}
+
+function buildSchedulePrompt({ messages, latestText, blocks, initial = false }) {
+  const recentContext = messages
+    .slice(-8)
+    .map((message) => `${message.role === "assistant" ? "BlueMind" : "User"}: ${message.content}`)
+    .join("\n");
+
+  return [
+    "You are BlueMind AI inside the Schedule feature.",
+    "Use the same real BlueMind AI reasoning style as the main chat, but focus only on helping the user design a weekly schedule.",
+    "Do not behave like a form. Understand answers, ask follow-up questions, detect missing information, recommend improvements, and explain why.",
+    "Do not generate calendar blocks automatically yet. This step is only conversation guidance for schedule design.",
+    "Ask concise, useful questions based on what the user wants to build.",
+    "",
+    `Current schedule blocks:\n${buildScheduleContext(blocks)}`,
+    recentContext ? `Conversation so far:\n${recentContext}` : "Conversation so far: none.",
+    initial
+      ? "Start the conversation now with a friendly opener. Ask what kind of schedule the user wants to build."
+      : `Current user message: ${latestText}`,
+  ].filter(Boolean).join("\n\n");
+}
+
 function ScheduleButton({ children, active = false, appColor, accentText, className, ...props }) {
   return (
     <button
@@ -118,7 +129,7 @@ function ScheduleButton({ children, active = false, appColor, accentText, classN
   );
 }
 
-function WeeklyGrid({ isDark }) {
+function WeeklyGrid({ isDark, blocks, manualMode, onAddCell }) {
   const lineClass = isDark ? "border-white/[0.07]" : "border-[var(--bm-border)]";
   const headerBg = isDark ? "bg-white/[0.045]" : "bg-[var(--bm-bg-elevated)]";
   const cellBg = isDark ? "bg-transparent" : "bg-white";
@@ -136,21 +147,62 @@ function WeeklyGrid({ isDark }) {
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className="grid min-w-[900px] grid-cols-[76px_repeat(7,minmax(116px,1fr))]">
+          <div
+            className="grid min-w-[900px] grid-cols-[76px_repeat(7,minmax(116px,1fr))]"
+            style={{ gridTemplateRows: `repeat(${HOURS.length}, ${ROW_HEIGHT}px)` }}
+          >
             {HOURS.map((hour) => (
               <div key={`time-${hour}`} className="contents">
-                <div className={cn("flex h-12 items-start justify-center border-b border-r pt-2 font-semibold", typeClasses.small, lineClass, "text-[var(--bm-text-muted)]")}>
+                <div className={cn("flex items-start justify-center border-b border-r pt-2 font-semibold", typeClasses.small, lineClass, "text-[var(--bm-text-muted)]")}>
                   {hour}
                 </div>
                 {DAYS.map((day) => (
                   <div
                     key={`${day}-${hour}`}
                     aria-label={`${day} ${hour}`}
-                    className={cn("h-12 border-b border-r last:border-r-0", lineClass, cellBg)}
-                  />
+                    className={cn("relative border-b border-r last:border-r-0", lineClass, cellBg)}
+                  >
+                    {manualMode && hour !== "24:00" && (
+                      <button
+                        type="button"
+                        onClick={() => onAddCell(day, hour)}
+                        className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--bm-primary)] text-white opacity-80 shadow-sm transition hover:opacity-100"
+                        aria-label={`Add activity on ${day} at ${hour}`}
+                      >
+                        <Plus className="h-3 w-3 stroke-[3]" />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             ))}
+
+            {blocks.flatMap((block) => block.days.map((day) => {
+              const dayIndex = DAYS.indexOf(day);
+              const startIndex = timeToIndex(block.start);
+              const endIndex = Math.max(startIndex + 1, timeToIndex(block.end));
+              if (dayIndex === -1) return null;
+
+              return (
+                <motion.div
+                  key={`${block.id}-${day}`}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className="z-20 m-1 overflow-hidden rounded-2xl px-3 py-2 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)]"
+                  style={{
+                    gridColumn: dayIndex + 2,
+                    gridRow: `${startIndex + 1} / ${endIndex + 1}`,
+                    backgroundColor: block.color,
+                  }}
+                >
+                  <div className="flex h-full flex-col justify-center">
+                    <p className={cn("font-extrabold leading-tight", typeClasses.small)}>{ICON_SYMBOLS[block.icon] || "⭐"} {block.name}</p>
+                    <p className="mt-1 text-xs font-bold opacity-90">{block.start} - {block.end}</p>
+                  </div>
+                </motion.div>
+              );
+            }))}
           </div>
         </div>
       </div>
@@ -158,11 +210,42 @@ function WeeklyGrid({ isDark }) {
   );
 }
 
-function ScheduleTypeModal({ isDark, appColor, accentText, onClose, onSelect }) {
-  const [query, setQuery] = useState("");
-  const filteredTypes = SCHEDULE_TYPES.filter((type) => (
-    `${type.title} ${type.description}`.toLowerCase().includes(query.trim().toLowerCase())
-  ));
+function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, onClose, onSave }) {
+  const [name, setName] = useState("");
+  const [start, setStart] = useState(initialStart || "00:00");
+  const [end, setEnd] = useState(HOURS[Math.min(timeToIndex(initialStart || "00:00") + 1, 24)]);
+  const [days, setDays] = useState(initialDay ? [initialDay] : []);
+  const [color, setColor] = useState(COLOR_OPTIONS[0]);
+  const [icon, setIcon] = useState(ICON_OPTIONS[0]);
+
+  const toggleDay = (day) => {
+    setDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
+  };
+
+  const save = () => {
+    if (!name.trim()) {
+      toast.error("Activity name is required.");
+      return;
+    }
+    if (!days.length) {
+      toast.error("Select at least one day.");
+      return;
+    }
+    if (timeToIndex(end) <= timeToIndex(start)) {
+      toast.error("End time must be after start time.");
+      return;
+    }
+
+    onSave({
+      id: `block-${Date.now().toString(36)}`,
+      name: name.trim(),
+      start,
+      end,
+      days,
+      color,
+      icon,
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
@@ -171,89 +254,173 @@ function ScheduleTypeModal({ isDark, appColor, accentText, onClose, onSelect }) 
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className={cn("w-full max-w-3xl rounded-[30px] border p-5 shadow-2xl", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]")}
+        className={cn("w-full max-w-xl rounded-[30px] border p-5 shadow-2xl", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]")}
       >
         <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Create Custom Schedule</h2>
-            <p className={cn("mt-1 font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>Choose the type of schedule you want to build.</p>
-          </div>
-          <button type="button" onClick={onClose} className={cn("rounded-full p-2", interactionClasses.control)} aria-label="Close schedule types">
+          <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Create Schedule Block</h2>
+          <button type="button" onClick={onClose} className={cn("rounded-full p-2", interactionClasses.control)} aria-label="Close block form">
             <X className={iconClasses.button} />
           </button>
         </div>
 
-        <label className={cn("mt-5 flex h-12 items-center gap-3 rounded-2xl border px-4", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
-          <Search className={cn(iconClasses.button, "text-[var(--bm-text-muted)]")} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search schedule types..."
-            className={cn(inputClasses.base, "h-full flex-1 bg-transparent p-0 font-semibold outline-none", typeClasses.body)}
-          />
-        </label>
+        <div className="mt-5 grid gap-4">
+          <label className="grid gap-2">
+            <span className={cn("font-bold", typeClasses.small)}>Activity name</span>
+            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Sleep, Study, Gym..." className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")} />
+          </label>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {filteredTypes.map((type) => {
-            const Icon = type.icon;
-            return (
-              <button
-                key={type.id}
-                type="button"
-                onClick={() => onSelect(type)}
-                className={cn("group rounded-[24px] border p-4 text-left transition-all duration-200 hover:-translate-y-0.5", isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.075]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] hover:bg-white")}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_12px_28px_rgba(25,59,104,0.18)]" style={{ backgroundColor: appColor, color: accentText }}>
-                    <Icon className={iconClasses.card} />
-                  </span>
-                  <div>
-                    <h3 className={cn("font-extrabold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{type.title}</h3>
-                    <p className={cn("mt-1 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{type.description}</p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className={cn("font-bold", typeClasses.small)}>Start time</span>
+              <select value={start} onChange={(event) => setStart(event.target.value)} className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")}>
+                {HOURS.slice(0, -1).map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-2">
+              <span className={cn("font-bold", typeClasses.small)}>End time</span>
+              <select value={end} onChange={(event) => setEnd(event.target.value)} className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")}>
+                {HOURS.slice(1).map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+              </select>
+            </label>
+          </div>
+
+          <div className="grid gap-2">
+            <span className={cn("font-bold", typeClasses.small)}>Days</span>
+            <div className="flex flex-wrap gap-2">
+              {DAYS.map((day) => (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  className={cn("rounded-full px-3 py-2 font-bold", typeClasses.small, days.includes(day) ? "text-white" : interactionClasses.control)}
+                  style={days.includes(day) ? { backgroundColor: appColor, color: accentText } : undefined}
+                >
+                  {day.slice(0, 3)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <span className={cn("font-bold", typeClasses.small)}>Color</span>
+              <div className="flex flex-wrap gap-2">
+                {COLOR_OPTIONS.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setColor(item)}
+                    className={cn("h-9 w-9 rounded-full border-2", color === item ? "border-white ring-2 ring-[var(--bm-primary)]" : "border-transparent")}
+                    style={{ backgroundColor: item }}
+                    aria-label={`Use color ${item}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <label className="grid gap-2">
+              <span className={cn("font-bold", typeClasses.small)}>Icon</span>
+              <select value={icon} onChange={(event) => setIcon(event.target.value)} className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")}>
+                {ICON_OPTIONS.map((item) => <option key={item} value={item}>{ICON_SYMBOLS[item]} {item}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={save}
+          className={cn("mt-6 h-12 w-full rounded-2xl font-extrabold shadow-[0_12px_30px_rgba(25,59,104,0.20)]", typeClasses.body)}
+          style={{ backgroundColor: appColor, color: accentText }}
+        >
+          Save
+        </button>
       </motion.div>
     </div>
   );
 }
 
-function ScheduleAssistant({ isDark, appColor, selectedType, onOpenTypes, chatVisible }) {
+function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
-  const canSend = Boolean(input.trim());
+  const [isSending, setIsSending] = useState(false);
+  const sendLockRef = useRef(false);
+  const lastStartSignalRef = useRef(0);
+  const canSend = Boolean(input.trim()) && !isSending;
 
-  useEffect(() => {
-    if (!selectedType) return;
-    setMessages([
-      {
-        id: `assistant-${selectedType.id}`,
-        role: "assistant",
-        content: selectedType.firstPrompt,
-        examples: selectedType.examples,
-      },
-    ]);
-  }, [selectedType]);
+  const streamAssistant = async ({ latestText = "", initial = false, userMessage = null }) => {
+    if (sendLockRef.current) return;
+    sendLockRef.current = true;
+    setIsSending(true);
 
-  const submit = () => {
-    if (!canSend) return;
-    const value = input.trim();
+    const assistantId = `assistant-${Date.now()}`;
+    const baseMessages = userMessage ? [...messages, userMessage] : messages;
+
     setMessages((current) => [
       ...current,
-      { id: `user-${Date.now()}`, role: "user", content: value },
-      {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: selectedType
-          ? "Got it. I will use that detail when the intelligent scheduling system is connected. For now, keep adding the key constraints you want BlueMind to consider."
-          : "Choose a schedule type first so BlueMind can use the right workflow.",
-        examples: selectedType?.examples || [],
-      },
+      ...(userMessage ? [userMessage] : []),
+      { id: assistantId, role: "assistant", content: "", isThinking: true },
     ]);
+
+    let streamedText = "";
+    try {
+      await streamHiddenChatMessage({
+        message: buildSchedulePrompt({ messages: baseMessages, latestText, blocks, initial }),
+        mode: "work",
+        metadata: {
+          source: "schedule",
+          schedule: true,
+          hiddenChat: true,
+          scheduleBlocks: blocks.map(({ id, name, start, end, days, color, icon }) => ({ id, name, start, end, days, color, icon })),
+        },
+        onAiStart: () => {
+          setMessages((current) => current.map((message) => (
+            message.id === assistantId ? { ...message, isThinking: false } : message
+          )));
+        },
+        onDelta: (payload) => {
+          const token = payload?.token || "";
+          if (!token) return;
+          streamedText += token;
+          setMessages((current) => current.map((message) => (
+            message.id === assistantId ? { ...message, content: streamedText, isThinking: false } : message
+          )));
+        },
+        onComplete: (payload) => {
+          const finalText = streamedText.trim() || payload?.message?.content || "";
+          setMessages((current) => current.map((message) => (
+            message.id === assistantId ? { ...message, content: finalText, isThinking: false } : message
+          )));
+        },
+      });
+    } catch (error) {
+      console.error("Schedule assistant stream failed", error);
+      setMessages((current) => current.map((message) => (
+        message.id === assistantId
+          ? { ...message, content: "I could not connect to BlueMind AI right now. Please try again.", isThinking: false, error: true }
+          : message
+      )));
+      toast.error(error?.message || "Schedule AI request failed.");
+    } finally {
+      setIsSending(false);
+      sendLockRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (!startSignal || startSignal === lastStartSignalRef.current) return;
+    lastStartSignalRef.current = startSignal;
+    streamAssistant({ initial: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startSignal]);
+
+  const submit = () => {
+    if (!canSend || sendLockRef.current) return;
+    const value = input.trim();
     setInput("");
+    streamAssistant({
+      latestText: value,
+      userMessage: { id: `user-${Date.now()}`, role: "user", content: value },
+    });
   };
 
   if (!chatVisible) return null;
@@ -277,19 +444,16 @@ function ScheduleAssistant({ isDark, appColor, selectedType, onOpenTypes, chatVi
           What would you like to build today?
         </h2>
         <p className={cn("mt-3 font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
-          BlueMind can help organize study, gym, nutrition, and business schedules. Choose a type to start the right workflow.
+          Tell BlueMind what schedule you want. It will ask follow-up questions and help you design it step by step.
         </p>
-        <button type="button" onClick={onOpenTypes} className={cn("mt-4 rounded-2xl px-4 py-3 font-bold", typeClasses.small, interactionClasses.control)}>
-          Choose Schedule Type
-        </button>
       </div>
 
       <div className="mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
         {messages.length === 0 ? (
           <div className={cn("rounded-[22px] border p-4", isDark ? "border-white/[0.08] bg-white/[0.035]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
-            <p className={cn("font-bold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Start with a schedule type.</p>
+            <p className={cn("font-bold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Ready when you are.</p>
             <p className={cn("mt-2 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
-              Click Create Custom Schedule and choose Study, Gym, Nutrition, or Business.
+              Click Design Schedule with BlueMind AI to start the real AI conversation.
             </p>
           </div>
         ) : (
@@ -307,24 +471,15 @@ function ScheduleAssistant({ isDark, appColor, selectedType, onOpenTypes, chatVi
                   message.role === "user"
                     ? "text-white"
                     : isDark ? "bg-white/[0.055] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]",
+                  message.error && "border border-[var(--bm-error)]",
                 )}
                 style={message.role === "user" ? { backgroundColor: appColor } : undefined}
               >
-                <p className={cn("whitespace-pre-wrap font-semibold leading-6", typeClasses.body)}>{message.content}</p>
-                {message.examples?.length ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {message.examples.map((example) => (
-                      <button
-                        type="button"
-                        key={example}
-                        onClick={() => setInput(example)}
-                        className={cn("rounded-full px-3 py-1.5 font-bold", typeClasses.small, isDark ? "bg-white/[0.08] text-white" : "bg-white text-[var(--bm-text-primary)]")}
-                      >
-                        {example}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+                {message.isThinking ? (
+                  <p className={cn("font-semibold", typeClasses.small)}>BlueMind is thinking...</p>
+                ) : (
+                  <p className={cn("whitespace-pre-wrap font-semibold leading-6", typeClasses.body)}>{message.content}</p>
+                )}
               </div>
             </motion.div>
           ))
@@ -351,8 +506,8 @@ function ScheduleAssistant({ isDark, appColor, selectedType, onOpenTypes, chatVi
           )}
         />
         <div className="mt-2 flex items-center justify-between gap-3">
-          <span className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{selectedType?.title || "Schedule assistant"}</span>
-          <BlueMindSendButton canSend={canSend} appColor={appColor} sendLabel="Send schedule message" />
+          <span className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>Schedule assistant</span>
+          <BlueMindSendButton isBusy={isSending} canSend={canSend} appColor={appColor} sendLabel="Send schedule message" />
         </div>
       </form>
     </motion.aside>
@@ -411,12 +566,14 @@ export default function SchemanPage() {
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
   const [chatVisible, setChatVisible] = useState(true);
+  const [manualMode, setManualMode] = useState(false);
   const [scheduleState, setScheduleState] = useState(readScheduleState);
-  const [selectedType, setSelectedType] = useState(null);
-  const [typeModalOpen, setTypeModalOpen] = useState(false);
+  const [blockModal, setBlockModal] = useState(null);
+  const [aiStartSignal, setAiStartSignal] = useState(0);
   const [tutorialOpen, setTutorialOpen] = useState(() => localStorage.getItem(SCHEDULE_TUTORIAL_KEY) !== "true");
 
-  const scheduleExists = Boolean(scheduleState.exists);
+  const blocks = scheduleState.blocks || [];
+  const hasBlocks = blocks.length > 0;
   const pageColumns = useMemo(() => (
     chatVisible ? "xl:grid-cols-[minmax(0,7fr)_minmax(300px,3fr)]" : "xl:grid-cols-1"
   ), [chatVisible]);
@@ -425,29 +582,25 @@ export default function SchemanPage() {
     writeScheduleState(scheduleState);
   }, [scheduleState]);
 
-  const createScheduleShell = () => {
-    setScheduleState({
-      exists: true,
-      id: scheduleState.id || `schedule-${Date.now().toString(36)}`,
-      type: selectedType?.id || scheduleState.type,
-      createdAt: scheduleState.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    toast.success(scheduleExists ? "Schedule ready to edit." : "Schedule created.");
+  const enterManualMode = () => {
+    setManualMode(true);
+    toast.success(hasBlocks ? "Schedule edit mode enabled." : "Manual schedule design enabled.");
   };
 
-  const selectScheduleType = (type) => {
-    setSelectedType(type);
-    setScheduleState({
-      exists: true,
-      id: `schedule-${Date.now().toString(36)}`,
-      type: type.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    setTypeModalOpen(false);
+  const startAiDesign = () => {
     setChatVisible(true);
-    toast.success(`${type.title} selected.`);
+    setAiStartSignal((value) => value + 1);
+  };
+
+  const saveBlock = (block) => {
+    setScheduleState((current) => ({
+      ...current,
+      blocks: [...(current.blocks || []), block],
+      updatedAt: new Date().toISOString(),
+    }));
+    setBlockModal(null);
+    setManualMode(true);
+    toast.success("Schedule block added.");
   };
 
   const closeTutorial = () => {
@@ -468,20 +621,25 @@ export default function SchemanPage() {
               <MessageSquare className={iconClasses.button} />
               {chatVisible ? "Close Chat" : "Open Chat"}
             </ScheduleButton>
-            <ScheduleButton onClick={createScheduleShell} appColor={appColor} accentText={accentText}>
-              <Sparkles className={iconClasses.button} />
-              {scheduleExists ? "Edit Schedule" : "Create Schedule"}
-            </ScheduleButton>
-            <ScheduleButton onClick={() => setTypeModalOpen(true)} active appColor={appColor} accentText={accentText}>
+            <ScheduleButton onClick={enterManualMode} active={manualMode} appColor={appColor} accentText={accentText}>
               <Plus className={iconClasses.button} />
-              Create Custom Schedule
+              {hasBlocks ? "Edit Schedule" : "Design Schedule Manually"}
+            </ScheduleButton>
+            <ScheduleButton onClick={startAiDesign} active appColor={appColor} accentText={accentText}>
+              <Sparkles className={iconClasses.button} />
+              {hasBlocks ? "Edit with BlueMind AI" : "Design Schedule with BlueMind AI"}
             </ScheduleButton>
           </div>
         </header>
 
         <div className={cn("grid min-h-0 flex-1 gap-5", pageColumns)}>
           <div className="min-h-[620px]">
-            <WeeklyGrid isDark={isDark} />
+            <WeeklyGrid
+              isDark={isDark}
+              blocks={blocks}
+              manualMode={manualMode}
+              onAddCell={(day, hour) => setBlockModal({ day, hour })}
+            />
           </div>
           <AnimatePresence mode="wait">
             {chatVisible && (
@@ -489,8 +647,8 @@ export default function SchemanPage() {
                 key="schedule-assistant"
                 isDark={isDark}
                 appColor={appColor}
-                selectedType={selectedType}
-                onOpenTypes={() => setTypeModalOpen(true)}
+                blocks={blocks}
+                startSignal={aiStartSignal}
                 chatVisible={chatVisible}
               />
             )}
@@ -507,13 +665,15 @@ export default function SchemanPage() {
             onComplete={closeTutorial}
           />
         )}
-        {typeModalOpen && (
-          <ScheduleTypeModal
+        {blockModal && (
+          <BlockModal
             isDark={isDark}
             appColor={appColor}
             accentText={accentText}
-            onClose={() => setTypeModalOpen(false)}
-            onSelect={selectScheduleType}
+            initialDay={blockModal.day}
+            initialStart={blockModal.hour}
+            onClose={() => setBlockModal(null)}
+            onSave={saveBlock}
           />
         )}
       </AnimatePresence>
