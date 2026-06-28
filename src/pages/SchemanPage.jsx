@@ -9,6 +9,7 @@ import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
 import { streamHiddenChatMessage } from "@/services/chatService";
+import { getImageUrl, uploadChatImage } from "@/services/imageService";
 
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
 const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
@@ -118,6 +119,13 @@ function buildSchedulePrompt({ messages, latestText, blocks, initial = false }) 
       ? "Start the conversation now with a friendly opener. Ask what kind of schedule the user wants to build."
       : `Current user message: ${latestText}`,
   ].filter(Boolean).join("\n\n");
+}
+
+function formatScheduleFileSize(size) {
+  if (!size) return "";
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function ScheduleButton({ children, active = false, appColor, accentText, className, ...props }) {
@@ -448,13 +456,23 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const sendLockRef = useRef(false);
   const lastStartSignalRef = useRef(0);
-  const canSend = Boolean(input.trim()) && !isSending;
+  const cameraInputRef = useRef(null);
+  const uploadInputRef = useRef(null);
+  const canSend = Boolean(input.trim()) && !isSending && !isUploading;
   const hasConversation = messages.length > 0;
 
-  const streamAssistant = async ({ latestText = "", initial = false, userMessage = null }) => {
+  const resetConversation = () => {
+    setMessages([]);
+    setInput("");
+    setAddMenuOpen(false);
+    sendLockRef.current = false;
+  };
+
+  const streamAssistant = async ({ latestText = "", initial = false, userMessage = null, imageIds = [] }) => {
     if (sendLockRef.current) return;
     sendLockRef.current = true;
     setIsSending(true);
@@ -472,11 +490,13 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
     try {
       await streamHiddenChatMessage({
         message: buildSchedulePrompt({ messages: baseMessages, latestText, blocks, initial }),
+        imageIds,
         mode: "work",
         metadata: {
           source: "schedule",
           schedule: true,
           hiddenChat: true,
+          uploadedImageIds: imageIds,
           scheduleBlocks: blocks.map(({ id, name, start, end, days, color, icon }) => ({ id, name, start, end, days, color, icon })),
         },
         onAiStart: () => {
@@ -531,6 +551,93 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
     });
   };
 
+  const sendUploadedImagesToAi = async (files, source = "upload") => {
+    const selectedFiles = Array.from(files || []);
+    if (!selectedFiles.length || sendLockRef.current || isUploading) return;
+    setAddMenuOpen(false);
+    setIsUploading(true);
+
+    const uploadedImages = [];
+    for (const file of selectedFiles.slice(0, 4)) {
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+        toast.error(`${file.name} is not a supported image. Use PNG, JPG, JPEG, or WEBP.`);
+        continue;
+      }
+
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 8MB.`);
+        continue;
+      }
+
+      try {
+        const image = await uploadChatImage(file);
+        uploadedImages.push({
+          id: image.id,
+          imageId: image.id,
+          name: image.originalName || file.name || "Uploaded image",
+          type: "image",
+          previewUrl: getImageUrl(image.id),
+          localPreviewUrl: URL.createObjectURL(file),
+        });
+      } catch (error) {
+        toast.error(error?.message || "Image upload failed.");
+      }
+    }
+
+    setIsUploading(false);
+    if (!uploadedImages.length) return;
+
+    const imageIds = uploadedImages.map((image) => image.id);
+    const fileLabel = uploadedImages.length === 1 ? uploadedImages[0].name : `${uploadedImages.length} images`;
+    streamAssistant({
+      latestText: `Analyze the uploaded ${source === "camera" ? "camera photo" : "schedule image"} (${fileLabel}) and use it as context to help build or improve this Schedule.`,
+      imageIds,
+      userMessage: {
+        id: `user-image-${Date.now()}`,
+        role: "user",
+        content: uploadedImages.length === 1 ? `Uploaded image: ${uploadedImages[0].name}` : `Uploaded ${uploadedImages.length} images`,
+        attachments: uploadedImages,
+      },
+    });
+  };
+
+  const handleUploadFileSelect = async (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!selectedFiles.length) return;
+
+    const imageFiles = selectedFiles.filter((file) => file.type.startsWith("image/"));
+    const pdfFiles = selectedFiles.filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
+
+    if (imageFiles.length) {
+      await sendUploadedImagesToAi(imageFiles, "upload");
+      if (pdfFiles.length) {
+        toast.info("Images were sent to BlueMind AI. PDF analysis needs the backend document parser endpoint before PDF contents can be read.");
+      }
+      return;
+    }
+
+    if (pdfFiles.length) {
+      setAddMenuOpen(false);
+      const names = pdfFiles.map((file) => `${file.name}${formatScheduleFileSize(file.size) ? ` (${formatScheduleFileSize(file.size)})` : ""}`).join(", ");
+      toast.info("PDF upload is selected, but document text extraction needs the backend document parser endpoint before BlueMind can read the PDF contents.");
+      streamAssistant({
+        latestText: `The user selected PDF file(s): ${names}. Explain that Schedule PDF analysis needs document text extraction to be connected, and ask the user to paste the important schedule details or upload an image of the schedule for immediate analysis.`,
+        userMessage: {
+          id: `user-pdf-${Date.now()}`,
+          role: "user",
+          content: `Uploaded PDF: ${names}`,
+          attachments: pdfFiles.map((file) => ({
+            id: `pdf-${file.name}-${file.size}-${Date.now()}`,
+            name: file.name,
+            type: "pdf",
+            size: file.size,
+          })),
+        },
+      });
+    }
+  };
+
   if (!chatVisible) return null;
 
   return (
@@ -539,35 +646,45 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 18 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className={cn("flex min-h-[420px] flex-col rounded-[28px] border p-5 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
+      className={cn("flex min-h-[360px] flex-col rounded-[28px] border p-4 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
     >
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <BrandLogo
+            showName={false}
+            small
+            logoClassName="h-8 w-8"
+            className="shrink-0"
+          />
+          <p className={cn("truncate font-extrabold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</p>
+        </div>
+        <button
+          type="button"
+          onClick={resetConversation}
+          className={cn("shrink-0 rounded-full px-3 py-1.5 font-extrabold", typeClasses.small, interactionClasses.control)}
+        >
+          New Chat
+        </button>
+      </header>
+
       {!hasConversation && (
-        <div>
-          <div className="flex items-center gap-2">
-            <BrandLogo
-              showName={false}
-              small
-              logoClassName="h-10 w-10"
-              className="shrink-0"
-            />
-            <p className={cn("font-extrabold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</p>
-          </div>
-          <h2 className={cn("mt-7 text-center font-extrabold tracking-tight", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
-            What would you like BlueMind to help you build today?
+        <div className="pt-6">
+          <h2 className={cn("text-center font-extrabold tracking-tight", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
+            What would you like to build today?
           </h2>
-          <p className={cn("mt-3 text-center font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
-            BlueMind can help you create smart schedules for study, gym, nutrition, work, and more.
+          <p className={cn("mx-auto mt-3 max-w-[340px] text-center font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
+            BlueMind can help you build smart schedules for study, gym, nutrition, business, and more.
           </p>
-          <div className="mt-6 px-1">
+          <div className="mt-5 px-1">
             <p className={cn("font-extrabold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Ready when you are.</p>
             <p className={cn("mt-2 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
-              Click Design Schedule with BlueMind AI to start the real AI conversation.
+              Type below or upload a schedule image for BlueMind to analyze.
             </p>
           </div>
         </div>
       )}
 
-      <div className={cn("max-h-[300px] min-h-0 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-0" : "mt-6")}>
+      <div className={cn("max-h-[240px] min-h-0 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-4" : "mt-4")}>
         {hasConversation && messages.map((message) => (
             <motion.div
               key={message.id}
@@ -586,11 +703,35 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
                   )}
                 </div>
               ) : (
-                <div
-                  className="max-w-[88%] rounded-[20px] px-4 py-2.5 text-white"
-                  style={{ backgroundColor: appColor }}
-                >
-                  <p className={cn("whitespace-pre-wrap font-semibold leading-6", typeClasses.body)}>{message.content}</p>
+                <div className="flex max-w-[88%] flex-col items-end gap-2">
+                  {Array.isArray(message.attachments) && message.attachments.length > 0 && (
+                    <div className="flex max-w-full flex-wrap justify-end gap-2">
+                      {message.attachments.map((attachment) => (
+                        <div key={attachment.id || attachment.name} className={cn("overflow-hidden rounded-2xl border", isDark ? "border-white/[0.12] bg-white/[0.06]" : "border-[var(--bm-border)] bg-white")}>
+                          {attachment.type === "image" ? (
+                            <img
+                              src={attachment.localPreviewUrl || attachment.previewUrl}
+                              alt={attachment.name || "Uploaded schedule image"}
+                              className="h-20 w-24 object-cover"
+                            />
+                          ) : (
+                            <div className="flex max-w-[180px] items-center gap-2 px-3 py-2">
+                              <Paperclip className={iconClasses.button} />
+                              <span className={cn("min-w-0 truncate font-bold", typeClasses.small)}>{attachment.name}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {message.content && (
+                    <div
+                      className="rounded-[20px] px-4 py-2.5 text-white"
+                      style={{ backgroundColor: appColor }}
+                    >
+                      <p className={cn("whitespace-pre-wrap font-semibold leading-6", typeClasses.body)}>{message.content}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -627,7 +768,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
                   type="button"
                   onClick={() => {
                     setAddMenuOpen(false);
-                    toast.info("Camera support for Schedule will be added next.");
+                    cameraInputRef.current?.click();
                   }}
                   className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
                 >
@@ -638,7 +779,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
                   type="button"
                   onClick={() => {
                     setAddMenuOpen(false);
-                    toast.info("Image and PDF upload for Schedule will be added next.");
+                    uploadInputRef.current?.click();
                   }}
                   className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
                 >
@@ -671,9 +812,29 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
             >
               <Mic className={iconClasses.button} />
             </button>
-            <BlueMindSendButton isBusy={isSending} canSend={canSend} appColor={appColor} sendLabel="Send schedule message" compact />
+            <BlueMindSendButton isBusy={isSending || isUploading} canSend={canSend} appColor={appColor} sendLabel="Send schedule message" compact />
           </div>
         </div>
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          capture="environment"
+          className="hidden"
+          onChange={(event) => {
+            const files = Array.from(event.target.files || []);
+            event.target.value = "";
+            sendUploadedImagesToAi(files, "camera");
+          }}
+        />
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,application/pdf,.pdf"
+          multiple
+          className="hidden"
+          onChange={handleUploadFileSelect}
+        />
       </form>
     </motion.aside>
   );
