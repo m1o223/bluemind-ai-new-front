@@ -504,10 +504,10 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
         </p>
       </div>
 
-      <div className="mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="mt-6 min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
         {messages.length === 0 ? (
-          <div className={cn("rounded-[22px] border p-4", isDark ? "border-white/[0.08] bg-white/[0.035]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
-            <p className={cn("font-bold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Ready when you are.</p>
+          <div className="px-1">
+            <p className={cn("font-extrabold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Ready when you are.</p>
             <p className={cn("mt-2 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
               Click Design Schedule with BlueMind AI to start the real AI conversation.
             </p>
@@ -521,39 +521,40 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
               className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
             >
-              <div
-                className={cn(
-                  "max-w-[92%] rounded-[22px] px-4 py-3",
-                  message.role === "user"
-                    ? "text-white"
-                    : isDark ? "bg-white/[0.055] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]",
-                  message.error && "border border-[var(--bm-error)]",
-                )}
-                style={message.role === "user" ? { backgroundColor: appColor } : undefined}
-              >
-                {message.isThinking ? (
-                  <p className={cn("font-semibold", typeClasses.small)}>BlueMind is thinking...</p>
-                ) : (
+              {message.role === "assistant" ? (
+                <div className="w-full px-1">
+                  <p className={cn("font-extrabold", typeClasses.small, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind</p>
+                  {message.isThinking ? (
+                    <p className={cn("mt-2 font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>BlueMind is thinking...</p>
+                  ) : (
+                    <p className={cn("mt-2 whitespace-pre-wrap font-semibold leading-7", typeClasses.body, message.error ? "text-[var(--bm-error)]" : "text-[var(--bm-text-primary)]")}>{message.content}</p>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="max-w-[88%] rounded-[20px] px-4 py-2.5 text-white"
+                  style={{ backgroundColor: appColor }}
+                >
                   <p className={cn("whitespace-pre-wrap font-semibold leading-6", typeClasses.body)}>{message.content}</p>
-                )}
-              </div>
+                </div>
+              )}
             </motion.div>
           ))
         )}
       </div>
 
       <form
-        className={cn("mt-6 rounded-[26px] border p-3", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
+        className={cn("mt-4 shrink-0 rounded-[24px] border p-2", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
         onSubmit={(event) => {
           event.preventDefault();
           submit();
         }}
       >
-        <div className="relative flex items-end gap-2">
+        <div className="relative flex items-center gap-2">
           <button
             type="button"
             onClick={() => setAddMenuOpen((value) => !value)}
-            className={cn("mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full", interactionClasses.control)}
+            className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", interactionClasses.control)}
             aria-label="Open schedule attachment menu"
           >
             <Plus className={iconClasses.button} />
@@ -597,17 +598,17 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            rows={3}
+            rows={1}
             placeholder="Tell me what kind of schedule you want to create..."
             className={cn(
               inputClasses.composer,
-              "max-h-32 min-h-[84px] flex-1 resize-none bg-transparent px-1 py-2 font-semibold leading-6 outline-none",
+              "max-h-[68px] min-h-[40px] flex-1 resize-none bg-transparent px-1 py-2 font-semibold leading-6 outline-none",
               typeClasses.body,
               isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]",
             )}
           />
 
-          <div className="mb-0.5 flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => toast.info("Microphone support for Schedule will be added next.")}
