@@ -27,6 +27,15 @@ const ICON_SYMBOLS = {
   Star: "⭐",
 };
 const COLOR_OPTIONS = ["#2563EB", "#16A34A", "#7C3AED", "#EA580C", "#DC2626", "#0891B2", "#9333EA", "#4F46E5"];
+const DISPLAY_ICON_SYMBOLS = {
+  Book: "\uD83D\uDCD8",
+  Dumbbell: "\uD83C\uDFCB\uFE0F",
+  Briefcase: "\uD83D\uDCBC",
+  Apple: "\uD83C\uDF4E",
+  Moon: "\uD83D\uDE34",
+  Clock: "\u23F0",
+  Star: "\u2B50",
+};
 
 const TUTORIAL_STEPS = [
   {
@@ -134,6 +143,21 @@ function WeeklyGrid({ isDark, blocks, manualMode, onAddCell }) {
   const lineClass = isDark ? "border-white/[0.07]" : "border-[var(--bm-border)]";
   const headerBg = isDark ? "bg-white/[0.045]" : "bg-[var(--bm-bg-elevated)]";
   const cellBg = isDark ? "bg-transparent" : "bg-white";
+  const isCellOccupied = (day, hour) => {
+    const hourIndex = timeToIndex(hour);
+    return blocks.some((block) => (
+      block.days.includes(day)
+      && hourIndex >= timeToIndex(block.start)
+      && hourIndex < timeToIndex(block.end)
+    ));
+  };
+  const isInteriorHourCovered = (hour) => {
+    const hourIndex = timeToIndex(hour);
+    return blocks.some((block) => (
+      hourIndex > timeToIndex(block.start)
+      && hourIndex < timeToIndex(block.end)
+    ));
+  };
 
   return (
     <section className={cn("h-full overflow-hidden rounded-[28px] border shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
@@ -154,16 +178,29 @@ function WeeklyGrid({ isDark, blocks, manualMode, onAddCell }) {
           >
             {HOURS.map((hour) => (
               <div key={`time-${hour}`} className="contents">
-                <div className={cn("flex items-start justify-center border-b border-r pt-2 font-semibold", typeClasses.small, lineClass, "text-[var(--bm-text-muted)]")}>
-                  {hour}
+                <div className={cn(
+                  "flex items-start justify-center border-r pt-2 font-semibold",
+                  !isInteriorHourCovered(hour) && "border-b",
+                  typeClasses.small,
+                  lineClass,
+                  "text-[var(--bm-text-muted)]",
+                )}>
+                  <span className={cn(isInteriorHourCovered(hour) && "opacity-0")}>{hour}</span>
                 </div>
-                {DAYS.map((day) => (
-                  <div
-                    key={`${day}-${hour}`}
-                    aria-label={`${day} ${hour}`}
-                    className={cn("relative border-b border-r last:border-r-0", lineClass, cellBg)}
-                  >
-                    {manualMode && hour !== "24:00" && (
+                {DAYS.map((day) => {
+                  const occupied = isCellOccupied(day, hour);
+                  return (
+                    <div
+                      key={`${day}-${hour}`}
+                      aria-label={`${day} ${hour}`}
+                      className={cn(
+                        "relative border-r last:border-r-0",
+                        !occupied && "border-b",
+                        lineClass,
+                        occupied ? (isDark ? "bg-[var(--bm-bg-card)]" : "bg-white") : cellBg,
+                      )}
+                    >
+                      {manualMode && hour !== "24:00" && !occupied && (
                       <button
                         type="button"
                         onClick={() => onAddCell(day, hour)}
@@ -172,9 +209,10 @@ function WeeklyGrid({ isDark, blocks, manualMode, onAddCell }) {
                       >
                         <Plus className="h-3 w-3 stroke-[3]" />
                       </button>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))}
 
@@ -190,16 +228,28 @@ function WeeklyGrid({ isDark, blocks, manualMode, onAddCell }) {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  className="z-20 m-1 overflow-hidden rounded-2xl px-3 py-2 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)]"
+                  className="z-30 mx-1.5 my-1 overflow-hidden rounded-[24px] px-4 py-3 text-white shadow-[0_18px_38px_rgba(15,23,42,0.22)] ring-1 ring-white/20"
                   style={{
                     gridColumn: dayIndex + 2,
                     gridRow: `${startIndex + 1} / ${endIndex + 1}`,
-                    backgroundColor: block.color,
+                    background: `linear-gradient(145deg, ${block.color}, #1D4ED8)`,
                   }}
                 >
-                  <div className="flex h-full flex-col justify-center">
-                    <p className={cn("font-extrabold leading-tight", typeClasses.small)}>{ICON_SYMBOLS[block.icon] || "⭐"} {block.name}</p>
-                    <p className="mt-1 text-xs font-bold opacity-90">{block.start} - {block.end}</p>
+                  <div className="flex h-full flex-col justify-between gap-2">
+                    <p className={cn("text-[15px] font-extrabold leading-tight tracking-[0.01em]")}>
+                      <span className="mr-1.5">{DISPLAY_ICON_SYMBOLS[block.icon] || "\u2B50"}</span>
+                      {block.name}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white/15 p-2 backdrop-blur-sm">
+                      <div>
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-75">From</p>
+                        <p className="mt-0.5 text-sm font-black leading-none">{block.start}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-75">To</p>
+                        <p className="mt-0.5 text-sm font-black leading-none">{block.end}</p>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -321,7 +371,7 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
             <label className="grid gap-2">
               <span className={cn("font-bold", typeClasses.small)}>Icon</span>
               <select value={icon} onChange={(event) => setIcon(event.target.value)} className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")}>
-                {ICON_OPTIONS.map((item) => <option key={item} value={item}>{ICON_SYMBOLS[item]} {item}</option>)}
+                {ICON_OPTIONS.map((item) => <option key={item} value={item}>{DISPLAY_ICON_SYMBOLS[item]} {item}</option>)}
               </select>
             </label>
           </div>
