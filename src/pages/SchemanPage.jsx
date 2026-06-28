@@ -151,14 +151,6 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
       && hourIndex < timeToIndex(block.end)
     ));
   };
-  const isInteriorHourCovered = (hour) => {
-    const hourIndex = timeToIndex(hour);
-    return blocks.some((block) => (
-      hourIndex > timeToIndex(block.start)
-      && hourIndex < timeToIndex(block.end)
-    ));
-  };
-
   return (
     <section className={cn("h-full overflow-hidden rounded-[28px] border shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
       <div className="flex h-full flex-col">
@@ -179,13 +171,12 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
             {HOURS.map((hour) => (
               <div key={`time-${hour}`} className="contents">
                 <div className={cn(
-                  "flex items-start justify-center border-r pt-2 font-semibold",
-                  !isInteriorHourCovered(hour) && "border-b",
+                  "flex items-start justify-center border-b border-r pt-2 font-semibold",
                   typeClasses.small,
                   lineClass,
                   "text-[var(--bm-text-muted)]",
                 )}>
-                  <span className={cn(isInteriorHourCovered(hour) && "opacity-0")}>{hour}</span>
+                  <span>{hour}</span>
                 </div>
                 {DAYS.map((day) => {
                   const occupied = isCellOccupied(day, hour);
