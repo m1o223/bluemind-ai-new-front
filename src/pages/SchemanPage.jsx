@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageSquare, Plus, Sparkles, X } from "lucide-react";
+import { Camera, MessageSquare, Mic, Paperclip, Plus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
+import BrandLogo from "@/components/BrandLogo";
 import BlueMindSendButton from "@/components/BlueMindSendButton";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
@@ -343,6 +344,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [isSending, setIsSending] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const sendLockRef = useRef(false);
   const lastStartSignalRef = useRef(0);
   const canSend = Boolean(input.trim()) && !isSending;
@@ -417,6 +419,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
     if (!canSend || sendLockRef.current) return;
     const value = input.trim();
     setInput("");
+    setAddMenuOpen(false);
     streamAssistant({
       latestText: value,
       userMessage: { id: `user-${Date.now()}`, role: "user", content: value },
@@ -435,16 +438,19 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
     >
       <div>
         <div className="flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: appColor }}>
-            <Sparkles className={iconClasses.button} />
-          </span>
-          <p className={cn("font-extrabold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind</p>
+          <BrandLogo
+            showName={false}
+            small
+            logoClassName="h-10 w-10"
+            className="shrink-0"
+          />
+          <p className={cn("font-extrabold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</p>
         </div>
-        <h2 className={cn("mt-7 font-extrabold tracking-tight", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
-          What would you like to build today?
+        <h2 className={cn("mt-7 text-center font-extrabold tracking-tight", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
+          What would you like BlueMind to help you build today?
         </h2>
-        <p className={cn("mt-3 font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
-          Tell BlueMind what schedule you want. It will ask follow-up questions and help you design it step by step.
+        <p className={cn("mt-3 text-center font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
+          BlueMind can help you create smart schedules for study, gym, nutrition, work, and more.
         </p>
       </div>
 
@@ -493,21 +499,75 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
           submit();
         }}
       >
-        <textarea
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          rows={3}
-          placeholder="Tell BlueMind what you want to organize..."
-          className={cn(
-            inputClasses.composer,
-            "max-h-32 min-h-[84px] w-full resize-none bg-transparent px-2 py-2 font-semibold leading-6 outline-none",
-            typeClasses.body,
-            isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]",
-          )}
-        />
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <span className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>Schedule assistant</span>
-          <BlueMindSendButton isBusy={isSending} canSend={canSend} appColor={appColor} sendLabel="Send schedule message" />
+        <div className="relative flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => setAddMenuOpen((value) => !value)}
+            className={cn("mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full", interactionClasses.control)}
+            aria-label="Open schedule attachment menu"
+          >
+            <Plus className={iconClasses.button} />
+          </button>
+
+          <AnimatePresence>
+            {addMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                className={cn("absolute bottom-12 left-0 z-30 w-52 rounded-2xl border p-1.5 shadow-lg", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)]" : "border-[var(--bm-border)] bg-white")}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    toast.info("Camera support for Schedule will be added next.");
+                  }}
+                  className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                >
+                  <Camera className={iconClasses.button} />
+                  Camera
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    toast.info("Image and PDF upload for Schedule will be added next.");
+                  }}
+                  className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                >
+                  <Paperclip className={iconClasses.button} />
+                  Upload Image / PDF
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <textarea
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            rows={3}
+            placeholder="Tell me what kind of schedule you want to create..."
+            className={cn(
+              inputClasses.composer,
+              "max-h-32 min-h-[84px] flex-1 resize-none bg-transparent px-1 py-2 font-semibold leading-6 outline-none",
+              typeClasses.body,
+              isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]",
+            )}
+          />
+
+          <div className="mb-0.5 flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toast.info("Microphone support for Schedule will be added next.")}
+              className={cn("flex h-9 w-9 items-center justify-center rounded-full", interactionClasses.control)}
+              aria-label="Use microphone"
+            >
+              <Mic className={iconClasses.button} />
+            </button>
+            <BlueMindSendButton isBusy={isSending} canSend={canSend} appColor={appColor} sendLabel="Send schedule message" compact />
+          </div>
         </div>
       </form>
     </motion.aside>
