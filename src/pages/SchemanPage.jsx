@@ -220,6 +220,8 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
               const dayIndex = DAYS.indexOf(day);
               const startIndex = timeToIndex(block.start);
               const endIndex = Math.max(startIndex + 1, timeToIndex(block.end));
+              const duration = Math.max(1, endIndex - startIndex);
+              const symbol = DISPLAY_ICON_SYMBOLS[block.icon] || "\u2B50";
               if (dayIndex === -1) return null;
 
               return (
@@ -228,7 +230,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  className="z-30 mx-1.5 my-1 overflow-hidden rounded-[24px] px-4 py-3 text-white shadow-[0_18px_38px_rgba(15,23,42,0.22)] ring-1 ring-white/20"
+                  className="z-30 mx-1.5 my-1 overflow-hidden rounded-[24px] text-white shadow-[0_18px_38px_rgba(15,23,42,0.22)] ring-1 ring-white/20"
                   style={{
                     gridColumn: dayIndex + 2,
                     gridRow: `${startIndex + 1} / ${endIndex + 1}`,
@@ -245,21 +247,31 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                       -
                     </button>
                   )}
-                  <div className="flex h-full flex-col justify-between gap-2">
-                    <p className={cn("text-[15px] font-extrabold leading-tight tracking-[0.01em]")}>
-                      <span className="mr-1.5">{DISPLAY_ICON_SYMBOLS[block.icon] || "\u2B50"}</span>
-                      {block.name}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white/15 p-2 backdrop-blur-sm">
-                      <div>
-                        <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-75">From</p>
-                        <p className="mt-0.5 text-sm font-black leading-none">{block.start}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-75">To</p>
-                        <p className="mt-0.5 text-sm font-black leading-none">{block.end}</p>
+                  <div
+                    className="grid h-full"
+                    style={{ gridTemplateRows: `repeat(${duration}, minmax(0, 1fr))` }}
+                  >
+                    <div className="flex min-h-0 flex-col justify-center px-4 py-3">
+                      <p className={cn("truncate text-[15px] font-extrabold leading-tight tracking-[0.01em]")}>
+                        <span className="mr-1.5">{symbol}</span>
+                        {block.name}
+                      </p>
+                      <div className="mt-2 grid grid-cols-2 gap-2 rounded-2xl bg-white/15 p-2 backdrop-blur-sm">
+                        <div>
+                          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-75">From</p>
+                          <p className="mt-0.5 text-sm font-black leading-none">{block.start}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-75">To</p>
+                          <p className="mt-0.5 text-sm font-black leading-none">{block.end}</p>
+                        </div>
                       </div>
                     </div>
+                    {Array.from({ length: Math.max(0, duration - 1) }, (_, index) => (
+                      <div key={`${block.id}-${day}-continuation-${index}`} className="flex min-h-0 items-center justify-center border-t border-white/10">
+                        <span className="text-xl drop-shadow-sm" aria-hidden="true">{symbol}</span>
+                      </div>
+                    ))}
                   </div>
                 </motion.div>
               );
