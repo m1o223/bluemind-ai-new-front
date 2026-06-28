@@ -539,7 +539,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 18 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className={cn("flex min-h-[520px] flex-col rounded-[28px] border p-5 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
+      className={cn("flex min-h-[420px] flex-col rounded-[28px] border p-5 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
     >
       {!hasConversation && (
         <div>
@@ -567,7 +567,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
         </div>
       )}
 
-      <div className={cn("min-h-0 flex-1 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-0" : "mt-6")}>
+      <div className={cn("max-h-[300px] min-h-0 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-0" : "mt-6")}>
         {hasConversation && messages.map((message) => (
             <motion.div
               key={message.id}
