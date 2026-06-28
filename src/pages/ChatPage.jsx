@@ -825,7 +825,7 @@ function Sidebar({
     {
       id: "scheman",
       icon: CalendarDays,
-      label: t("scheman"),
+      label: "Tent",
       action: () => navigate("/scheman"),
     },
   ];

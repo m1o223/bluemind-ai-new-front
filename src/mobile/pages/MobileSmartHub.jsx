@@ -97,8 +97,8 @@ export default function MobileSmartHub() {
     {
       key: "scheman",
       icon: CalendarDays,
-      title: "Scheman",
-      description: "Manage your study schedule",
+      title: "Tent",
+      description: "Build your weekly planner",
       path: "/mobile/scheman",
     },
   ];

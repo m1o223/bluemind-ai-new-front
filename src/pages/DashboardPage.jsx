@@ -119,8 +119,8 @@ export default function DashboardPage() {
     {
       key: "scheman",
       icon: CalendarDays,
-      title: "Scheman",
-      description: "Manage your study schedule",
+      title: "Tent",
+      description: "Build your weekly planner",
       path: "/scheman",
     },
   ];

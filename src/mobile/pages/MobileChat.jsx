@@ -612,7 +612,7 @@ export default function MobileChat() {
     { label: "Reminders", path: "/mobile/reminders", icon: Bell },
     { label: "Learning", path: "/mobile/learning", icon: BookOpen },
     { label: "AI Plans", path: "/mobile/ai-plans", icon: Sparkles },
-    { label: "Scheman", path: "/mobile/scheman", icon: Clipboard },
+    { label: "Tent", path: "/mobile/scheman", icon: Clipboard },
     {
       label: t("settings"),
       action: () => {
