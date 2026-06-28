@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera, MessageSquare, Mic, Paperclip, Plus, Sparkles, X } from "lucide-react";
+import { Apple, BookOpen, BriefcaseBusiness, Camera, Dumbbell, FileText, MessageSquare, Mic, Paperclip, Plus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
@@ -9,7 +9,7 @@ import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
 import { streamHiddenChatMessage } from "@/services/chatService";
-import { getImageUrl, uploadChatImage } from "@/services/imageService";
+import { analyzeImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
 const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
@@ -28,6 +28,36 @@ const ICON_SYMBOLS = {
   Star: "⭐",
 };
 const COLOR_OPTIONS = ["#2563EB", "#16A34A", "#7C3AED", "#EA580C", "#DC2626", "#0891B2", "#9333EA", "#4F46E5"];
+const SCHEDULE_TYPES = [
+  {
+    id: "study",
+    title: "Study Schedule",
+    description: "Create an intelligent study schedule.",
+    icon: BookOpen,
+    assistantPrompt: "The user selected Study Schedule. Start a study-schedule workflow. Ask about study days, start time, finish time, subjects, exams, and priority subjects. Keep it conversational.",
+  },
+  {
+    id: "gym",
+    title: "Gym Schedule",
+    description: "Create a personalized workout schedule.",
+    icon: Dumbbell,
+    assistantPrompt: "The user selected Gym Schedule. Start a fitness schedule workflow. Ask about training days, training time, goals, current program, recovery, and experience level. Keep it conversational.",
+  },
+  {
+    id: "nutrition",
+    title: "Nutrition Schedule",
+    description: "Create a healthy meal schedule.",
+    icon: Apple,
+    assistantPrompt: "The user selected Nutrition Schedule. Start a nutrition schedule workflow. Ask about current meal plan, goal, dietary restrictions, meal timing, and preferences. Keep it conversational.",
+  },
+  {
+    id: "business",
+    title: "Business Schedule",
+    description: "Create work and employee schedules.",
+    icon: BriefcaseBusiness,
+    assistantPrompt: "The user selected Business Schedule. Start a business scheduling workflow. Ask about employees, working days, working hours, breaks, shift preferences, and coverage needs. Keep it conversational.",
+  },
+];
 const DISPLAY_ICON_SYMBOLS = {
   Book: "\uD83D\uDCD8",
   Dumbbell: "\uD83C\uDFCB\uFE0F",
@@ -110,13 +140,13 @@ function buildSchedulePrompt({ messages, latestText, blocks, initial = false }) 
     "You are BlueMind AI inside the Schedule feature.",
     "Use the same real BlueMind AI reasoning style as the main chat, but focus only on helping the user design a weekly schedule.",
     "Do not behave like a form. Understand answers, ask follow-up questions, detect missing information, recommend improvements, and explain why.",
-    "Do not generate calendar blocks automatically yet. This step is only conversation guidance for schedule design.",
+    "When exact schedule data has been imported from an upload, acknowledge it and help improve it. Do not invent calendar blocks when days, times, or activities are missing.",
     "Ask concise, useful questions based on what the user wants to build.",
     "",
     `Current schedule blocks:\n${buildScheduleContext(blocks)}`,
     recentContext ? `Conversation so far:\n${recentContext}` : "Conversation so far: none.",
     initial
-      ? "Start the conversation now with a friendly opener. Ask what kind of schedule the user wants to build."
+      ? (latestText || "Start the conversation now with a friendly opener. Ask what kind of schedule the user wants to build.")
       : `Current user message: ${latestText}`,
   ].filter(Boolean).join("\n\n");
 }
@@ -126,6 +156,79 @@ function formatScheduleFileSize(size) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function normalizeScheduleTime(value) {
+  const match = String(value || "").match(/(\d{1,2})(?::|\.)(\d{2})|(\d{1,2})/);
+  if (!match) return "";
+  const hour = Number(match[1] ?? match[3]);
+  const minute = Number(match[2] ?? 0);
+  if (!Number.isFinite(hour) || hour < 0 || hour > 24) return "";
+  if (!Number.isFinite(minute) || minute < 0 || minute > 59) return "";
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function guessScheduleIcon(activity = "") {
+  const text = activity.toLowerCase();
+  if (/sleep|rest|nap|bed/i.test(text)) return "Moon";
+  if (/gym|workout|train|cardio|run|fitness/i.test(text)) return "Dumbbell";
+  if (/meal|food|breakfast|lunch|dinner|nutrition/i.test(text)) return "Apple";
+  if (/work|meeting|business|shift|office/i.test(text)) return "Briefcase";
+  if (/study|read|math|physics|lesson|school|homework|exam/i.test(text)) return "Book";
+  return "Star";
+}
+
+function parseScheduleBlocksFromText(text) {
+  const content = String(text || "");
+  if (!content.trim()) return [];
+
+  const blocks = [];
+  const dayPattern = DAYS.join("|");
+  const lines = content
+    .split(/\n|;|\r/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  lines.forEach((line, index) => {
+    const dayMatch = line.match(new RegExp(`\\b(${dayPattern})\\b`, "i"));
+    const rangeMatch = line.match(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:-|–|—|to|until)\s*(\d{1,2}(?::|\.)?\d{0,2})/i);
+    if (!dayMatch || !rangeMatch) return;
+
+    const start = normalizeScheduleTime(rangeMatch[1]);
+    const end = normalizeScheduleTime(rangeMatch[2]);
+    if (!start || !end || timeToIndex(end) <= timeToIndex(start)) return;
+
+    const day = DAYS.find((item) => item.toLowerCase() === dayMatch[1].toLowerCase());
+    const name = line
+      .replace(dayMatch[0], "")
+      .replace(rangeMatch[0], "")
+      .replace(/[:|\-–—]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 48) || "Imported activity";
+
+    blocks.push({
+      id: `imported-${Date.now().toString(36)}-${index}`,
+      name,
+      start,
+      end,
+      days: [day],
+      color: COLOR_OPTIONS[blocks.length % COLOR_OPTIONS.length],
+      icon: guessScheduleIcon(name),
+    });
+  });
+
+  return blocks.slice(0, 32);
+}
+
+async function extractReadableFileText(file) {
+  const raw = await file.text().catch(() => "");
+  return raw
+    .replace(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\uFFFF]+/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, 9000);
 }
 
 function ScheduleButton({ children, active = false, appColor, accentText, className, ...props }) {
@@ -163,7 +266,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
     <section className={cn("h-full overflow-hidden rounded-[28px] border shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
       <div className="flex h-full flex-col">
         <div className={cn("grid grid-cols-[76px_repeat(7,minmax(116px,1fr))] border-b", lineClass, headerBg)}>
-          <div className={cn("flex h-14 items-center justify-center border-r font-bold", typeClasses.small, lineClass, "text-[var(--bm-text-muted)]")}>Time</div>
+          <div className={cn("sticky left-0 z-40 flex h-14 items-center justify-center border-r font-bold", typeClasses.small, lineClass, headerBg, "text-[var(--bm-text-muted)]")}>Time</div>
           {DAYS.map((day) => (
             <div key={day} className={cn("flex h-14 items-center justify-center border-r px-3 text-center font-extrabold last:border-r-0", typeClasses.small, lineClass, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
               {day}
@@ -179,9 +282,10 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
             {HOURS.map((hour) => (
               <div key={`time-${hour}`} className="contents">
                 <div className={cn(
-                  "flex items-start justify-center border-b border-r pt-2 font-semibold",
+                  "sticky left-0 z-20 flex items-start justify-center border-b border-r pt-2 font-semibold",
                   typeClasses.small,
                   lineClass,
+                  isDark ? "bg-[var(--bm-bg-card)]" : "bg-white",
                   "text-[var(--bm-text-muted)]",
                 )}>
                   <span>{hour}</span>
@@ -255,16 +359,6 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                         <span className="mr-1.5">{symbol}</span>
                         {block.name}
                       </p>
-                      <div className="mt-2 grid grid-cols-2 gap-2 rounded-2xl bg-white/15 p-2 backdrop-blur-sm">
-                        <div>
-                          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-75">From</p>
-                          <p className="mt-0.5 text-sm font-black leading-none">{block.start}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-75">To</p>
-                          <p className="mt-0.5 text-sm font-black leading-none">{block.end}</p>
-                        </div>
-                      </div>
                     </div>
                     {Array.from({ length: Math.max(0, duration - 1) }, (_, index) => (
                       <div key={`${block.id}-${day}-continuation-${index}`} className="flex min-h-0 items-center justify-center border-t border-white/10">
@@ -452,7 +546,54 @@ function DeleteActivityDialog({ isDark, appColor, accentText, activity, onCancel
   );
 }
 
-function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible }) {
+function ScheduleTypeDialog({ isDark, appColor, accentText, onClose, onSelect }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.98 }}
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className={cn("w-full max-w-3xl rounded-[30px] border p-5 shadow-2xl", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]")}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>Create Custom Schedule</p>
+            <h2 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.sectionTitle)}>Choose a schedule type</h2>
+          </div>
+          <button type="button" onClick={onClose} className={cn("rounded-full p-2", interactionClasses.control)} aria-label="Close schedule type selection">
+            <X className={iconClasses.button} />
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {SCHEDULE_TYPES.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onSelect(item)}
+                className={cn("group rounded-[24px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg", isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] hover:bg-white")}
+              >
+                <span
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-[0_12px_26px_rgba(25,59,104,0.18)]"
+                  style={{ backgroundColor: appColor, color: accentText }}
+                >
+                  <Icon className={iconClasses.card} />
+                </span>
+                <span className={cn("mt-4 block font-extrabold", typeClasses.cardTitle)}>{item.title}</span>
+                <span className={cn("mt-2 block font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{item.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext, chatVisible, onImportBlocks }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [isSending, setIsSending] = useState(false);
@@ -461,7 +602,8 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
   const sendLockRef = useRef(false);
   const lastStartSignalRef = useRef(0);
   const cameraInputRef = useRef(null);
-  const uploadInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
   const canSend = Boolean(input.trim()) && !isSending && !isUploading;
   const hasConversation = messages.length > 0;
 
@@ -536,7 +678,10 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
   useEffect(() => {
     if (!startSignal || startSignal === lastStartSignalRef.current) return;
     lastStartSignalRef.current = startSignal;
-    streamAssistant({ initial: true });
+    streamAssistant({
+      initial: true,
+      latestText: startContext || "Start the conversation now with a friendly opener. Ask what kind of schedule the user wants to build.",
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startSignal]);
 
@@ -558,6 +703,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
     setIsUploading(true);
 
     const uploadedImages = [];
+    const analyses = [];
     for (const file of selectedFiles.slice(0, 4)) {
       if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
         toast.error(`${file.name} is not a supported image. Use PNG, JPG, JPEG, or WEBP.`);
@@ -571,6 +717,11 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
 
       try {
         const image = await uploadChatImage(file);
+        const analysis = await analyzeImage(
+          image.id,
+          "Analyze this schedule image. Extract readable text, days, activities, start times, end times, and any weekly planning information. Be concise but include exact times when visible.",
+        );
+        if (analysis?.analysis) analyses.push(analysis.analysis);
         uploadedImages.push({
           id: image.id,
           imageId: image.id,
@@ -587,10 +738,28 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
     setIsUploading(false);
     if (!uploadedImages.length) return;
 
+    const analysisText = analyses
+      .map((analysis) => [analysis.description, analysis.extractedText, Array.isArray(analysis.objects) ? analysis.objects.join(", ") : ""].filter(Boolean).join("\n"))
+      .filter(Boolean)
+      .join("\n\n");
+    const importedBlocks = parseScheduleBlocksFromText(analysisText);
+    if (importedBlocks.length > 0) {
+      onImportBlocks?.(importedBlocks);
+      toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from image.`);
+    } else {
+      toast.info("BlueMind analyzed the image. I could not safely auto-place blocks, so the assistant will use it as context.");
+    }
+
     const imageIds = uploadedImages.map((image) => image.id);
     const fileLabel = uploadedImages.length === 1 ? uploadedImages[0].name : `${uploadedImages.length} images`;
     streamAssistant({
-      latestText: `Analyze the uploaded ${source === "camera" ? "camera photo" : "schedule image"} (${fileLabel}) and use it as context to help build or improve this Schedule.`,
+      latestText: [
+        `Analyze the uploaded ${source === "camera" ? "camera photo" : "schedule image"} (${fileLabel}) and use it as context to help build or improve this Schedule.`,
+        importedBlocks.length > 0
+          ? `${importedBlocks.length} block(s) were automatically imported into the Schedule workspace. Ask whether the user wants improvements or optimization.`
+          : "No schedule blocks were safely auto-imported. Use the image context to guide the user.",
+        analysisText ? `Image analysis:\n${analysisText}` : "",
+      ].filter(Boolean).join("\n\n"),
       imageIds,
       userMessage: {
         id: `user-image-${Date.now()}`,
@@ -638,6 +807,59 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
     }
   };
 
+  const handlePdfFileSelect = async (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!selectedFiles.length || sendLockRef.current) return;
+    setAddMenuOpen(false);
+    setIsUploading(true);
+
+    const pdfFiles = selectedFiles.filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
+    if (!pdfFiles.length) {
+      setIsUploading(false);
+      toast.error("Please choose a PDF file.");
+      return;
+    }
+
+    const extracted = [];
+    for (const file of pdfFiles.slice(0, 3)) {
+      const text = await extractReadableFileText(file);
+      extracted.push({ file, text });
+    }
+
+    const combinedText = extracted.map(({ file, text }) => `File: ${file.name}\n${text || "No readable embedded text was extracted."}`).join("\n\n");
+    const importedBlocks = parseScheduleBlocksFromText(combinedText);
+    if (importedBlocks.length > 0) {
+      onImportBlocks?.(importedBlocks);
+      toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from PDF.`);
+    } else {
+      toast.info("BlueMind will analyze the PDF text. If the PDF is scanned, upload an image for stronger schedule detection.");
+    }
+
+    setIsUploading(false);
+    const names = pdfFiles.map((file) => `${file.name}${formatScheduleFileSize(file.size) ? ` (${formatScheduleFileSize(file.size)})` : ""}`).join(", ");
+    streamAssistant({
+      latestText: [
+        `The user uploaded PDF schedule file(s): ${names}. Analyze the extracted text and help build or improve the Schedule.`,
+        importedBlocks.length > 0
+          ? `${importedBlocks.length} block(s) were automatically imported into the Schedule workspace. Ask whether the user wants improvements or optimization.`
+          : "If the extracted PDF text is not enough to place exact blocks, ask only for the missing days/times/activities.",
+        `Extracted PDF text:\n${combinedText || "No readable text extracted."}`,
+      ].join("\n\n"),
+      userMessage: {
+        id: `user-pdf-${Date.now()}`,
+        role: "user",
+        content: `Uploaded PDF: ${names}`,
+        attachments: pdfFiles.map((file) => ({
+          id: `pdf-${file.name}-${file.size}-${Date.now()}`,
+          name: file.name,
+          type: "pdf",
+          size: file.size,
+        })),
+      },
+    });
+  };
+
   if (!chatVisible) return null;
 
   return (
@@ -646,7 +868,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 18 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className={cn("flex min-h-[360px] flex-col rounded-[28px] border p-4 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
+      className={cn("self-start flex min-h-[330px] w-full flex-col rounded-[28px] border p-4 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
     >
       <header className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -684,7 +906,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
         </div>
       )}
 
-      <div className={cn("max-h-[240px] min-h-0 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-4" : "mt-4")}>
+      <div className={cn("min-h-0 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-4 h-[220px]" : "h-0")}>
         {hasConversation && messages.map((message) => (
             <motion.div
               key={message.id}
@@ -739,7 +961,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
       </div>
 
       <form
-        className={cn("mt-4 shrink-0 rounded-[24px] border p-2", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
+        className={cn("mt-auto shrink-0 rounded-[24px] border p-2", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -779,12 +1001,23 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
                   type="button"
                   onClick={() => {
                     setAddMenuOpen(false);
-                    uploadInputRef.current?.click();
+                    imageInputRef.current?.click();
                   }}
                   className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
                 >
                   <Paperclip className={iconClasses.button} />
-                  Upload Image / PDF
+                  Upload Image
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    pdfInputRef.current?.click();
+                  }}
+                  className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                >
+                  <FileText className={iconClasses.button} />
+                  Upload PDF
                 </button>
               </motion.div>
             )}
@@ -797,7 +1030,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
             placeholder="Tell me what kind of schedule you want to create..."
             className={cn(
               inputClasses.composer,
-              "max-h-[68px] min-h-[40px] flex-1 resize-none bg-transparent px-1 py-2 font-semibold leading-6 outline-none",
+              "max-h-[92px] min-h-[52px] flex-1 resize-none bg-transparent px-1 py-3 font-semibold leading-6 outline-none",
               typeClasses.body,
               isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]",
             )}
@@ -828,12 +1061,20 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
           }}
         />
         <input
-          ref={uploadInputRef}
+          ref={imageInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,application/pdf,.pdf"
+          accept="image/png,image/jpeg,image/webp"
           multiple
           className="hidden"
           onChange={handleUploadFileSelect}
+        />
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          multiple
+          className="hidden"
+          onChange={handlePdfFileSelect}
         />
       </form>
     </motion.aside>
@@ -896,7 +1137,9 @@ export default function SchemanPage() {
   const [scheduleState, setScheduleState] = useState(readScheduleState);
   const [blockModal, setBlockModal] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [scheduleTypeOpen, setScheduleTypeOpen] = useState(false);
   const [aiStartSignal, setAiStartSignal] = useState(0);
+  const [aiStartContext, setAiStartContext] = useState("");
   const [tutorialOpen, setTutorialOpen] = useState(() => localStorage.getItem(SCHEDULE_TUTORIAL_KEY) !== "true");
 
   const blocks = scheduleState.blocks || [];
@@ -910,15 +1153,14 @@ export default function SchemanPage() {
   }, [scheduleState]);
 
   const handlePrimaryScheduleAction = () => {
-    if (!hasBlocks) {
-      setEditMode(true);
-      toast.success("Create mode enabled. Use the plus buttons to add schedule blocks.");
-      return;
-    }
-
     if (editMode) {
       setEditMode(false);
       toast.success("Schedule changes saved.");
+      return;
+    }
+
+    if (!hasBlocks) {
+      setScheduleTypeOpen(true);
       return;
     }
 
@@ -927,21 +1169,32 @@ export default function SchemanPage() {
   };
 
   const createCustomSchedule = () => {
-    setScheduleState({
-      blocks: [],
-      id: `schedule-${Date.now().toString(36)}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    setEditMode(true);
-    setBlockModal(null);
-    setDeleteTarget(null);
-    toast.success("New custom schedule created.");
+    setScheduleTypeOpen(true);
+  };
+
+  const selectScheduleType = (type) => {
+    setScheduleTypeOpen(false);
+    setChatVisible(true);
+    setAiStartContext(type.assistantPrompt);
+    setAiStartSignal((value) => value + 1);
   };
 
   const startAiDesign = () => {
     setChatVisible(true);
+    setAiStartContext(hasBlocks
+      ? "The user wants to edit the existing Schedule with BlueMind AI. Use the current schedule blocks as context, identify possible improvements, and ask what they want to optimize."
+      : "The user wants BlueMind AI to design a Schedule from scratch. Ask what kind of schedule they want to build and guide them conversationally.");
     setAiStartSignal((value) => value + 1);
+  };
+
+  const importScheduleBlocks = (importedBlocks) => {
+    if (!importedBlocks?.length) return;
+    setScheduleState((current) => ({
+      ...current,
+      blocks: [...(current.blocks || []), ...importedBlocks],
+      updatedAt: new Date().toISOString(),
+    }));
+    setEditMode(false);
   };
 
   const saveBlock = (block) => {
@@ -983,10 +1236,12 @@ export default function SchemanPage() {
               <MessageSquare className={iconClasses.button} />
               {chatVisible ? "Close Chat" : "Open Chat"}
             </ScheduleButton>
-            <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
-              <Plus className={iconClasses.button} />
-              {!hasBlocks ? "Create Custom Schedule" : editMode ? "Save Changes" : "Edit Schedule"}
-            </ScheduleButton>
+            {(hasBlocks || editMode) && (
+              <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
+                <Plus className={iconClasses.button} />
+                {editMode ? "Save Changes" : "Edit Schedule"}
+              </ScheduleButton>
+            )}
             <ScheduleButton onClick={createCustomSchedule} appColor={appColor} accentText={accentText}>
               <Plus className={iconClasses.button} />
               Create Custom Schedule
@@ -1016,7 +1271,9 @@ export default function SchemanPage() {
                 appColor={appColor}
                 blocks={blocks}
                 startSignal={aiStartSignal}
+                startContext={aiStartContext}
                 chatVisible={chatVisible}
+                onImportBlocks={importScheduleBlocks}
               />
             )}
           </AnimatePresence>
@@ -1051,6 +1308,15 @@ export default function SchemanPage() {
             activity={deleteTarget}
             onCancel={() => setDeleteTarget(null)}
             onDelete={deleteActivity}
+          />
+        )}
+        {scheduleTypeOpen && (
+          <ScheduleTypeDialog
+            isDark={isDark}
+            appColor={appColor}
+            accentText={accentText}
+            onClose={() => setScheduleTypeOpen(false)}
+            onSelect={selectScheduleType}
           />
         )}
       </AnimatePresence>
