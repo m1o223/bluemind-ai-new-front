@@ -452,6 +452,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
   const sendLockRef = useRef(false);
   const lastStartSignalRef = useRef(0);
   const canSend = Boolean(input.trim()) && !isSending;
+  const hasConversation = messages.length > 0;
 
   const streamAssistant = async ({ latestText = "", initial = false, userMessage = null }) => {
     if (sendLockRef.current) return;
@@ -540,34 +541,34 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={cn("flex min-h-[520px] flex-col rounded-[28px] border p-5 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
     >
-      <div>
-        <div className="flex items-center gap-2">
-          <BrandLogo
-            showName={false}
-            small
-            logoClassName="h-10 w-10"
-            className="shrink-0"
-          />
-          <p className={cn("font-extrabold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</p>
-        </div>
-        <h2 className={cn("mt-7 text-center font-extrabold tracking-tight", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
-          What would you like BlueMind to help you build today?
-        </h2>
-        <p className={cn("mt-3 text-center font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
-          BlueMind can help you create smart schedules for study, gym, nutrition, work, and more.
-        </p>
-      </div>
-
-      <div className="mt-6 min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
-        {messages.length === 0 ? (
-          <div className="px-1">
+      {!hasConversation && (
+        <div>
+          <div className="flex items-center gap-2">
+            <BrandLogo
+              showName={false}
+              small
+              logoClassName="h-10 w-10"
+              className="shrink-0"
+            />
+            <p className={cn("font-extrabold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</p>
+          </div>
+          <h2 className={cn("mt-7 text-center font-extrabold tracking-tight", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
+            What would you like BlueMind to help you build today?
+          </h2>
+          <p className={cn("mt-3 text-center font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
+            BlueMind can help you create smart schedules for study, gym, nutrition, work, and more.
+          </p>
+          <div className="mt-6 px-1">
             <p className={cn("font-extrabold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Ready when you are.</p>
             <p className={cn("mt-2 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
               Click Design Schedule with BlueMind AI to start the real AI conversation.
             </p>
           </div>
-        ) : (
-          messages.map((message) => (
+        </div>
+      )}
+
+      <div className={cn("min-h-0 flex-1 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-0" : "mt-6")}>
+        {hasConversation && messages.map((message) => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, y: 8 }}
@@ -593,8 +594,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, chatVisible 
                 </div>
               )}
             </motion.div>
-          ))
-        )}
+          ))}
       </div>
 
       <form
