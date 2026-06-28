@@ -825,8 +825,8 @@ function Sidebar({
     {
       id: "scheman",
       icon: CalendarDays,
-      label: "Tent",
-      action: () => navigate("/scheman"),
+      label: "Schedule",
+      action: () => navigate("/schedule"),
     },
   ];
   const collapsedPrimaryItems = [

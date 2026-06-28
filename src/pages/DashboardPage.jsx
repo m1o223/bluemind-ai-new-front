@@ -119,9 +119,9 @@ export default function DashboardPage() {
     {
       key: "scheman",
       icon: CalendarDays,
-      title: "Tent",
-      description: "Build your weekly planner",
-      path: "/scheman",
+      title: "Schedule",
+      description: "Build your weekly schedule",
+      path: "/schedule",
     },
   ];
   const welcomeTitle = isRTL ? "مرحباً" : "Welcome back";

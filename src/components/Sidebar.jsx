@@ -9,7 +9,7 @@ const navItems = [
   { to: "/dashboard", icon: Home, labelKey: "dashboard", testId: "dashboard" },
   { to: "/chat", icon: MessageSquare, labelKey: "chat", testId: "chat" },
   { to: "/reminders", icon: Bell, labelKey: "reminders", testId: "reminders" },
-  { to: "/scheman", icon: CalendarDays, labelKey: "scheman", testId: "scheman" },
+  { to: "/schedule", icon: CalendarDays, labelKey: "scheman", testId: "schedule" },
   { to: "/feedback", icon: MessageCircleHeart, labelKey: "shareFeedback", testId: "feedback" },
 ];
 
