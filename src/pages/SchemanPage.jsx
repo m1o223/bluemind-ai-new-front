@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Apple, BookOpen, BriefcaseBusiness, Camera, Dumbbell, FileText, MessageSquare, Mic, Paperclip, Plus, Sparkles, X } from "lucide-react";
+import { Apple, BookOpen, BriefcaseBusiness, Camera, Copy, Dumbbell, FileText, MessageSquare, Mic, Paperclip, Plus, RefreshCcw, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
@@ -609,28 +609,36 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState([]);
   const messagesEndRef = useRef(null);
   const sendLockRef = useRef(false);
   const lastStartSignalRef = useRef(0);
+  const pendingAttachmentsRef = useRef([]);
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const textareaRef = useRef(null);
-  const canSend = Boolean(input.trim()) && !isSending && !isUploading;
+  const canSend = Boolean(input.trim() || pendingAttachments.length) && !isSending && !isUploading;
   const hasConversation = messages.length > 0;
 
   const resizeInput = (element) => {
     if (!element) return;
     element.style.height = "auto";
-    const nextHeight = Math.min(Math.max(element.scrollHeight, 56), 116);
+    const nextHeight = Math.min(Math.max(element.scrollHeight, 52), 112);
     element.style.height = `${nextHeight}px`;
-    element.style.overflowY = element.scrollHeight > 116 ? "auto" : "hidden";
+    element.style.overflowY = element.scrollHeight > 112 ? "auto" : "hidden";
   };
 
   const resetConversation = () => {
     setMessages([]);
     setConversationId("");
     setInput("");
+    setPendingAttachments((current) => {
+      current.forEach((attachment) => {
+        if (attachment.localPreviewUrl) URL.revokeObjectURL(attachment.localPreviewUrl);
+      });
+      return [];
+    });
     setAddMenuOpen(false);
     sendLockRef.current = false;
   };
@@ -715,88 +723,228 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  const submit = () => {
-    if (!canSend || sendLockRef.current) return;
-    const value = input.trim();
-    setInput("");
-    window.requestAnimationFrame(() => resizeInput(textareaRef.current));
-    setAddMenuOpen(false);
-    streamAssistant({
-      latestText: value,
-      userMessage: { id: `user-${Date.now()}`, role: "user", content: value },
+  useEffect(() => {
+    pendingAttachmentsRef.current = pendingAttachments;
+  }, [pendingAttachments]);
+
+  useEffect(() => () => {
+    pendingAttachmentsRef.current.forEach((attachment) => {
+      if (attachment.localPreviewUrl) URL.revokeObjectURL(attachment.localPreviewUrl);
+    });
+  }, []);
+
+  const removePendingAttachment = (attachmentId) => {
+    setPendingAttachments((current) => {
+      const attachment = current.find((item) => item.id === attachmentId);
+      if (attachment?.localPreviewUrl) URL.revokeObjectURL(attachment.localPreviewUrl);
+      return current.filter((item) => item.id !== attachmentId);
     });
   };
 
-  const sendUploadedImagesToAi = async (files, source = "upload") => {
+  const addPendingFiles = (files, preferredType = "mixed", source = "upload") => {
     const selectedFiles = Array.from(files || []);
-    if (!selectedFiles.length || sendLockRef.current || isUploading) return;
+    if (!selectedFiles.length) return;
     setAddMenuOpen(false);
-    setIsUploading(true);
 
-    const uploadedImages = [];
-    const analyses = [];
-    for (const file of selectedFiles.slice(0, 4)) {
-      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-        toast.error(`${file.name} is not a supported image. Use PNG, JPG, JPEG, or WEBP.`);
-        continue;
-      }
+    const nextAttachments = [];
+    selectedFiles.slice(0, 4).forEach((file) => {
+      const isImage = file.type.startsWith("image/");
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
-      if (file.size > 8 * 1024 * 1024) {
-        toast.error(`${file.name} is larger than 8MB.`);
-        continue;
-      }
-
-      try {
-        const image = await uploadChatImage(file);
-        const analysis = await analyzeImage(
-          image.id,
-          "Analyze this schedule image. Extract readable text, days, activities, start times, end times, and any weekly planning information. Be concise but include exact times when visible.",
-        );
-        if (analysis?.analysis) analyses.push(analysis.analysis);
-        uploadedImages.push({
-          id: image.id,
-          imageId: image.id,
-          name: image.originalName || file.name || "Uploaded image",
+      if ((preferredType === "image" || preferredType === "camera" || preferredType === "mixed") && isImage) {
+        if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+          toast.error(`${file.name} is not a supported image. Use PNG, JPG, JPEG, or WEBP.`);
+          return;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          toast.error(`${file.name} is larger than 8MB.`);
+          return;
+        }
+        nextAttachments.push({
+          id: `pending-image-${Date.now()}-${file.name}-${file.size}`,
+          file,
+          name: file.name || (source === "camera" ? "Camera photo" : "Uploaded image"),
           type: "image",
-          previewUrl: getImageUrl(image.id),
+          source,
           localPreviewUrl: URL.createObjectURL(file),
         });
-      } catch (error) {
-        toast.error(error?.message || "Image upload failed.");
+        return;
+      }
+
+      if ((preferredType === "pdf" || preferredType === "mixed") && isPdf) {
+        nextAttachments.push({
+          id: `pending-pdf-${Date.now()}-${file.name}-${file.size}`,
+          file,
+          name: file.name,
+          type: "pdf",
+          size: file.size,
+          source,
+        });
+        return;
+      }
+
+      toast.error(`${file.name} is not supported here.`);
+    });
+
+    if (!nextAttachments.length) return;
+    setPendingAttachments((current) => [...current, ...nextAttachments].slice(0, 4));
+  };
+
+  const processAttachmentsForSend = async (attachments) => {
+    const messageAttachments = [];
+    const imageIds = [];
+    const contextParts = [];
+    const imageFiles = attachments.filter((attachment) => attachment.type === "image");
+    const pdfFiles = attachments.filter((attachment) => attachment.type === "pdf");
+
+    if (imageFiles.length) {
+      const uploadedImages = [];
+      const analyses = [];
+      for (const attachment of imageFiles) {
+        try {
+          const image = await uploadChatImage(attachment.file);
+          const analysis = await analyzeImage(
+            image.id,
+            "Analyze this schedule image. Extract readable text, days, activities, start times, end times, and any weekly planning information. Be concise but include exact times when visible.",
+          );
+          if (analysis?.analysis) analyses.push(analysis.analysis);
+          const uploaded = {
+            id: image.id,
+            imageId: image.id,
+            name: image.originalName || attachment.name || "Uploaded image",
+            type: "image",
+            previewUrl: getImageUrl(image.id),
+          };
+          uploadedImages.push(uploaded);
+          messageAttachments.push(uploaded);
+          imageIds.push(image.id);
+        } catch (error) {
+          toast.error(error?.message || "Image upload failed.");
+        }
+      }
+
+      const analysisText = analyses
+        .map((analysis) => [analysis.description, analysis.extractedText, Array.isArray(analysis.objects) ? analysis.objects.join(", ") : ""].filter(Boolean).join("\n"))
+        .filter(Boolean)
+        .join("\n\n");
+      const importedBlocks = parseScheduleBlocksFromText(analysisText);
+      if (importedBlocks.length > 0) {
+        onImportBlocks?.(importedBlocks);
+        toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from image.`);
+      } else if (uploadedImages.length) {
+        toast.info("BlueMind analyzed the image. I could not safely auto-place blocks, so the assistant will use it as context.");
+      }
+
+      if (uploadedImages.length) {
+        const source = uploadedImages.some((image) => image.name.toLowerCase().includes("camera")) ? "camera photo" : "schedule image";
+        contextParts.push([
+          `Analyze the uploaded ${source} (${uploadedImages.length === 1 ? uploadedImages[0].name : `${uploadedImages.length} images`}) and use it as context to help build or improve this Schedule.`,
+          importedBlocks.length > 0
+            ? `${importedBlocks.length} block(s) were automatically imported into the Schedule workspace. Ask whether the user wants improvements or optimization.`
+            : "No schedule blocks were safely auto-imported. Use the image context to guide the user.",
+          analysisText ? `Image analysis:\n${analysisText}` : "",
+        ].filter(Boolean).join("\n\n"));
       }
     }
 
-    setIsUploading(false);
-    if (!uploadedImages.length) return;
+    if (pdfFiles.length) {
+      const extracted = [];
+      for (const attachment of pdfFiles.slice(0, 3)) {
+        const text = await extractReadableFileText(attachment.file);
+        extracted.push({ attachment, text });
+        messageAttachments.push({
+          id: attachment.id,
+          name: attachment.name,
+          type: "pdf",
+          size: attachment.size,
+        });
+      }
 
-    const analysisText = analyses
-      .map((analysis) => [analysis.description, analysis.extractedText, Array.isArray(analysis.objects) ? analysis.objects.join(", ") : ""].filter(Boolean).join("\n"))
-      .filter(Boolean)
-      .join("\n\n");
-    const importedBlocks = parseScheduleBlocksFromText(analysisText);
-    if (importedBlocks.length > 0) {
-      onImportBlocks?.(importedBlocks);
-      toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from image.`);
-    } else {
-      toast.info("BlueMind analyzed the image. I could not safely auto-place blocks, so the assistant will use it as context.");
-    }
+      const combinedText = extracted.map(({ attachment, text }) => `File: ${attachment.name}\n${text || "No readable embedded text was extracted."}`).join("\n\n");
+      const importedBlocks = parseScheduleBlocksFromText(combinedText);
+      if (importedBlocks.length > 0) {
+        onImportBlocks?.(importedBlocks);
+        toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from PDF.`);
+      } else {
+        toast.info("BlueMind will analyze the PDF text. If the PDF is scanned, upload an image for stronger schedule detection.");
+      }
 
-    const imageIds = uploadedImages.map((image) => image.id);
-    const fileLabel = uploadedImages.length === 1 ? uploadedImages[0].name : `${uploadedImages.length} images`;
-    streamAssistant({
-      latestText: [
-        `Analyze the uploaded ${source === "camera" ? "camera photo" : "schedule image"} (${fileLabel}) and use it as context to help build or improve this Schedule.`,
+      const names = pdfFiles.map((attachment) => `${attachment.name}${formatScheduleFileSize(attachment.size) ? ` (${formatScheduleFileSize(attachment.size)})` : ""}`).join(", ");
+      contextParts.push([
+        `The user uploaded PDF schedule file(s): ${names}. Analyze the extracted text and help build or improve the Schedule.`,
         importedBlocks.length > 0
           ? `${importedBlocks.length} block(s) were automatically imported into the Schedule workspace. Ask whether the user wants improvements or optimization.`
-          : "No schedule blocks were safely auto-imported. Use the image context to guide the user.",
-        analysisText ? `Image analysis:\n${analysisText}` : "",
-      ].filter(Boolean).join("\n\n"),
-      imageIds,
+          : "If the extracted PDF text is not enough to place exact blocks, ask only for the missing days/times/activities.",
+        `Extracted PDF text:\n${combinedText || "No readable text extracted."}`,
+      ].join("\n\n"));
+    }
+
+    return { messageAttachments, imageIds, contextText: contextParts.filter(Boolean).join("\n\n") };
+  };
+
+  const copyAssistantMessage = async (content) => {
+    if (!content) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success("Copied.");
+    } catch {
+      toast.error("Could not copy message.");
+    }
+  };
+
+  const retryAssistantMessage = (messageId) => {
+    const messageIndex = messages.findIndex((message) => message.id === messageId);
+    const previousUserMessage = messages.slice(0, messageIndex).reverse().find((message) => message.role === "user");
+    streamAssistant({
+      latestText: previousUserMessage?.content
+        ? `Regenerate the previous Schedule answer for this user message: ${previousUserMessage.content}`
+        : "Regenerate the previous Schedule answer.",
+    });
+  };
+
+  const submit = async () => {
+    if (!canSend || sendLockRef.current) return;
+    sendLockRef.current = true;
+    const value = input.trim();
+    const attachmentsToSend = pendingAttachments;
+    setInput("");
+    setPendingAttachments([]);
+    window.requestAnimationFrame(() => resizeInput(textareaRef.current));
+    setAddMenuOpen(false);
+    setIsUploading(Boolean(attachmentsToSend.length));
+
+    let processed = { messageAttachments: [], imageIds: [], contextText: "" };
+    try {
+      if (attachmentsToSend.length) {
+        processed = await processAttachmentsForSend(attachmentsToSend);
+      }
+    } catch (error) {
+      console.error("Schedule attachment preparation failed", error);
+      toast.error(error?.message || "Attachment preparation failed.");
+      setIsUploading(false);
+      sendLockRef.current = false;
+      return;
+    } finally {
+      attachmentsToSend.forEach((attachment) => {
+        if (attachment.localPreviewUrl) URL.revokeObjectURL(attachment.localPreviewUrl);
+      });
+      setIsUploading(false);
+    }
+
+    const attachmentLabel = processed.messageAttachments.length
+      ? processed.messageAttachments.map((attachment) => attachment.name).join(", ")
+      : "";
+    const displayText = value || (attachmentLabel ? `Uploaded ${attachmentLabel}` : "");
+    const latestText = [value, processed.contextText].filter(Boolean).join("\n\n");
+    sendLockRef.current = false;
+    streamAssistant({
+      latestText: latestText || displayText,
+      imageIds: processed.imageIds,
       userMessage: {
-        id: `user-image-${Date.now()}`,
+        id: `user-${Date.now()}`,
         role: "user",
-        content: uploadedImages.length === 1 ? `Uploaded image: ${uploadedImages[0].name}` : `Uploaded ${uploadedImages.length} images`,
-        attachments: uploadedImages,
+        content: displayText,
+        attachments: processed.messageAttachments,
       },
     });
   };
@@ -805,90 +953,14 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
     if (!selectedFiles.length) return;
-
-    const imageFiles = selectedFiles.filter((file) => file.type.startsWith("image/"));
-    const pdfFiles = selectedFiles.filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
-
-    if (imageFiles.length) {
-      await sendUploadedImagesToAi(imageFiles, "upload");
-      if (pdfFiles.length) {
-        toast.info("Images were sent to BlueMind AI. PDF analysis needs the backend document parser endpoint before PDF contents can be read.");
-      }
-      return;
-    }
-
-    if (pdfFiles.length) {
-      setAddMenuOpen(false);
-      const names = pdfFiles.map((file) => `${file.name}${formatScheduleFileSize(file.size) ? ` (${formatScheduleFileSize(file.size)})` : ""}`).join(", ");
-      toast.info("PDF upload is selected, but document text extraction needs the backend document parser endpoint before BlueMind can read the PDF contents.");
-      streamAssistant({
-        latestText: `The user selected PDF file(s): ${names}. Explain that Schedule PDF analysis needs document text extraction to be connected, and ask the user to paste the important schedule details or upload an image of the schedule for immediate analysis.`,
-        userMessage: {
-          id: `user-pdf-${Date.now()}`,
-          role: "user",
-          content: `Uploaded PDF: ${names}`,
-          attachments: pdfFiles.map((file) => ({
-            id: `pdf-${file.name}-${file.size}-${Date.now()}`,
-            name: file.name,
-            type: "pdf",
-            size: file.size,
-          })),
-        },
-      });
-    }
+    addPendingFiles(selectedFiles, "image", "upload");
   };
 
   const handlePdfFileSelect = async (event) => {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
-    if (!selectedFiles.length || sendLockRef.current) return;
-    setAddMenuOpen(false);
-    setIsUploading(true);
-
-    const pdfFiles = selectedFiles.filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
-    if (!pdfFiles.length) {
-      setIsUploading(false);
-      toast.error("Please choose a PDF file.");
-      return;
-    }
-
-    const extracted = [];
-    for (const file of pdfFiles.slice(0, 3)) {
-      const text = await extractReadableFileText(file);
-      extracted.push({ file, text });
-    }
-
-    const combinedText = extracted.map(({ file, text }) => `File: ${file.name}\n${text || "No readable embedded text was extracted."}`).join("\n\n");
-    const importedBlocks = parseScheduleBlocksFromText(combinedText);
-    if (importedBlocks.length > 0) {
-      onImportBlocks?.(importedBlocks);
-      toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from PDF.`);
-    } else {
-      toast.info("BlueMind will analyze the PDF text. If the PDF is scanned, upload an image for stronger schedule detection.");
-    }
-
-    setIsUploading(false);
-    const names = pdfFiles.map((file) => `${file.name}${formatScheduleFileSize(file.size) ? ` (${formatScheduleFileSize(file.size)})` : ""}`).join(", ");
-    streamAssistant({
-      latestText: [
-        `The user uploaded PDF schedule file(s): ${names}. Analyze the extracted text and help build or improve the Schedule.`,
-        importedBlocks.length > 0
-          ? `${importedBlocks.length} block(s) were automatically imported into the Schedule workspace. Ask whether the user wants improvements or optimization.`
-          : "If the extracted PDF text is not enough to place exact blocks, ask only for the missing days/times/activities.",
-        `Extracted PDF text:\n${combinedText || "No readable text extracted."}`,
-      ].join("\n\n"),
-      userMessage: {
-        id: `user-pdf-${Date.now()}`,
-        role: "user",
-        content: `Uploaded PDF: ${names}`,
-        attachments: pdfFiles.map((file) => ({
-          id: `pdf-${file.name}-${file.size}-${Date.now()}`,
-          name: file.name,
-          type: "pdf",
-          size: file.size,
-        })),
-      },
-    });
+    if (!selectedFiles.length) return;
+    addPendingFiles(selectedFiles, "pdf", "upload");
   };
 
   if (!chatVisible) return null;
@@ -946,7 +1018,25 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
                   {message.isThinking ? (
                     <p className={cn("mt-2 font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>BlueMind is thinking...</p>
                   ) : (
-                    <p className={cn("mt-2 whitespace-pre-wrap font-semibold leading-7", typeClasses.body, message.error ? "text-[var(--bm-error)]" : "text-[var(--bm-text-primary)]")}>{message.content}</p>
+                    <>
+                      <p className={cn("mt-2 whitespace-pre-wrap font-semibold leading-7", typeClasses.body, message.error ? "text-[var(--bm-error)]" : "text-[var(--bm-text-primary)]")}>{message.content}</p>
+                      {!message.error && message.content && (
+                        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                          <button type="button" onClick={() => toast.success("Thanks for the feedback.")} className={cn("flex h-8 w-8 items-center justify-center rounded-full", interactionClasses.control)} aria-label="Like response">
+                            <ThumbsUp className="h-4 w-4" />
+                          </button>
+                          <button type="button" onClick={() => toast.info("Feedback noted.")} className={cn("flex h-8 w-8 items-center justify-center rounded-full", interactionClasses.control)} aria-label="Dislike response">
+                            <ThumbsDown className="h-4 w-4" />
+                          </button>
+                          <button type="button" onClick={() => copyAssistantMessage(message.content)} className={cn("flex h-8 w-8 items-center justify-center rounded-full", interactionClasses.control)} aria-label="Copy response">
+                            <Copy className="h-4 w-4" />
+                          </button>
+                          <button type="button" onClick={() => retryAssistantMessage(message.id)} className={cn("flex h-8 w-8 items-center justify-center rounded-full", interactionClasses.control)} aria-label="Retry response">
+                            <RefreshCcw className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
@@ -987,17 +1077,62 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       </div>
 
       <form
-        className={cn("mt-auto shrink-0 rounded-[24px] border p-2", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
+        className={cn("mt-auto shrink-0 rounded-[26px] border p-2.5 transition-all duration-200", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
         onSubmit={(event) => {
           event.preventDefault();
           submit();
         }}
       >
-        <div className="relative flex items-center gap-2">
+        <AnimatePresence initial={false}>
+          {pendingAttachments.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 6, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: 6, height: 0 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="mb-2 flex max-h-24 flex-wrap gap-2 overflow-y-auto px-1"
+            >
+              {pendingAttachments.map((attachment) => (
+                <motion.div
+                  key={attachment.id}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                  className={cn("relative flex h-16 max-w-[180px] items-center overflow-hidden rounded-2xl border", isDark ? "border-white/[0.12] bg-white/[0.06]" : "border-[var(--bm-border)] bg-white")}
+                >
+                  {attachment.type === "image" ? (
+                    <img src={attachment.localPreviewUrl} alt={attachment.name} className="h-full w-20 object-cover" />
+                  ) : (
+                    <div className="flex h-full w-20 items-center justify-center bg-[var(--bm-primary)]/10">
+                      <FileText className="h-6 w-6 text-[var(--bm-primary)]" />
+                    </div>
+                  )}
+                  <div className="min-w-0 px-2 pr-7">
+                    <p className={cn("truncate font-extrabold", typeClasses.small, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{attachment.name}</p>
+                    <p className={cn("mt-0.5 truncate font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+                      {attachment.type === "pdf" ? "PDF" : "Image"} {formatScheduleFileSize(attachment.size || attachment.file?.size)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePendingAttachment(attachment.id)}
+                    className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/70"
+                    aria-label={`Remove ${attachment.name}`}
+                  >
+                    <X className="h-3 w-3 stroke-[3]" />
+                  </button>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="relative flex items-end gap-2">
           <button
             type="button"
             onClick={() => setAddMenuOpen((value) => !value)}
-            className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", interactionClasses.control)}
+            className={cn("mb-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full", interactionClasses.control)}
             aria-label="Open schedule attachment menu"
           >
             <Plus className={iconClasses.button} />
@@ -1058,20 +1193,20 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
             }}
             onInput={(event) => resizeInput(event.currentTarget)}
             rows={1}
-            placeholder="Tell me what kind of schedule you want to create..."
+            placeholder="Describe your schedule..."
             className={cn(
               inputClasses.composer,
-              "max-h-[116px] min-h-[56px] flex-1 resize-none bg-transparent px-1 py-3 font-semibold leading-6 outline-none",
+              "max-h-[112px] min-h-[52px] flex-1 resize-none bg-transparent px-2 py-3.5 font-semibold leading-6 outline-none transition-[height] duration-150",
               typeClasses.body,
               isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]",
             )}
           />
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="mb-1 flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => toast.info("Microphone support for Schedule will be added next.")}
-              className={cn("flex h-9 w-9 items-center justify-center rounded-full", interactionClasses.control)}
+              className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)}
               aria-label="Use microphone"
             >
               <Mic className={iconClasses.button} />
@@ -1088,7 +1223,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
           onChange={(event) => {
             const files = Array.from(event.target.files || []);
             event.target.value = "";
-            sendUploadedImagesToAi(files, "camera");
+            addPendingFiles(files, "camera", "camera");
           }}
         />
         <input
