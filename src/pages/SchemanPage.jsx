@@ -232,6 +232,15 @@ function timeToIndex(value) {
   return Number.isFinite(hour) ? Math.max(0, Math.min(24, hour)) : 0;
 }
 
+function timeToMinutes(value) {
+  const match = String(value || "").match(/(\d{1,2})(?::|\.)(\d{2})?/);
+  if (!match) return timeToIndex(value) * 60;
+  const hour = Number(match[1]);
+  const minute = Number(match[2] || 0);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return 0;
+  return Math.max(0, Math.min(24 * 60, hour * 60 + minute));
+}
+
 function hexToRgba(value, alpha = 1) {
   if (!value || !String(value).startsWith("#")) return `rgba(37, 99, 235, ${alpha})`;
   const normalized = value.replace("#", "").padEnd(6, "0").slice(0, 6);
@@ -259,7 +268,12 @@ function buildSchedulePrompt({ messages, latestText, blocks, initial = false }) 
     "You are BlueMind AI inside the Schedule feature.",
     "Use the same real BlueMind AI reasoning style as the main chat, but focus only on helping the user design a weekly schedule.",
     "Do not behave like a form. Understand answers, ask follow-up questions, detect missing information, recommend improvements, and explain why.",
-    "When exact schedule data has been imported from an upload, acknowledge it and help improve it. Do not invent calendar blocks when days, times, or activities are missing.",
+    "When a schedule image or PDF is uploaded, first understand the schedule type, days, times, activities, breaks, repeated activities, and whether it looks official or personal.",
+    "Official schedules such as school timetables, university timetables, company shift schedules, and employer-provided schedules should be imported exactly as provided. Do not suggest changing official schedules unless the user asks.",
+    "Personal schedules such as gym plans, meal plans, personal study plans, travel plans, and daily routines should be discussed first. Ask the goal, compare the schedule with that goal, and ask before suggesting improvements.",
+    "If the schedule purpose is unclear, ask: What is this schedule for? Offer examples such as School, University, Work, Gym, Weight loss, Meal plan, Study plan, Travel, Business, and Personal routine.",
+    "If the user refuses improvements, respect that and import the schedule as provided.",
+    "For school schedules, use short block labels such as MA, BI, PH, EN, SW, HI, AR, PE, and BR.",
     "Ask concise, useful questions based on what the user wants to build.",
     "",
     `Current schedule blocks:\n${buildScheduleContext(blocks)}`,
@@ -287,6 +301,29 @@ function normalizeScheduleTime(value) {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
+function abbreviateScheduleName(name = "") {
+  const text = String(name || "").trim();
+  const lower = text.toLowerCase();
+  const known = [
+    [/mathematics|maths|math\b|matte|matematik/i, "MA"],
+    [/biology|biologi/i, "BI"],
+    [/physics|fysik/i, "PH"],
+    [/chemistry|kemi/i, "CH"],
+    [/english|engelska/i, "EN"],
+    [/swedish|svenska/i, "SW"],
+    [/history|historia/i, "HI"],
+    [/geography|geografi/i, "GE"],
+    [/art|bild/i, "AR"],
+    [/sport|pe|idrott|gymnastik/i, "PE"],
+    [/break|rest|rast|lunch/i, "BR"],
+  ];
+  const match = known.find(([pattern]) => pattern.test(lower));
+  if (match) return match[1];
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length > 1) return words.map((word) => word[0]).join("").slice(0, 3).toUpperCase();
+  return text.length > 8 ? text.slice(0, 3).toUpperCase() : text;
+}
+
 function guessScheduleIcon(activity = "") {
   const text = activity.toLowerCase();
   if (/sleep|nap|bed/i.test(text)) return "Bed";
@@ -304,7 +341,56 @@ function guessScheduleIcon(activity = "") {
   return "Calendar";
 }
 
-function parseScheduleBlocksFromText(text) {
+function classifyScheduleText(text) {
+  const content = String(text || "").toLowerCase();
+  const officialScore = [
+    /school timetable|class schedule|lesson schedule|university timetable|course schedule|veckoschema|schema/,
+    /shift schedule|work roster|employee schedule|company schedule|arbetsschema/,
+    /teacher|classroom|period|semester|department|employer|manager|klass|lektion|lÃ¤rare|larare/,
+  ].filter((pattern) => pattern.test(content)).length;
+  const personalScore = [
+    /gym|workout|meal plan|weight loss|routine|personal|habit|diet|nutrition|fitness/,
+    /my plan|daily routine|study plan|travel plan|sleep better|build muscle/,
+  ].filter((pattern) => pattern.test(content)).length;
+
+  if (officialScore > personalScore && officialScore > 0) return "official";
+  if (personalScore > officialScore && personalScore > 0) return "personal";
+  return "unclear";
+}
+
+function isAffirmativeText(text = "") {
+  return /\b(yes|yeah|yep|sure|ok|okay|go ahead|improve|please|do it)\b/i.test(text);
+}
+
+function isNegativeText(text = "") {
+  return /\b(no|nope|don't|do not|dont|skip|just import|import as is|as provided)\b/i.test(text);
+}
+
+function classifyPurposeText(text = "") {
+  const content = String(text || "").toLowerCase();
+  if (/school|university|college|class|course|work|company|shift|employer|business/.test(content)) return "official";
+  if (/gym|weight|meal|nutrition|diet|fitness|study plan|personal|routine|travel|sleep|health/.test(content)) return "personal";
+  return "unclear";
+}
+
+function normalizeImportedBlocks(blocks, classification = "unclear") {
+  const colorByName = new Map();
+  return blocks.map((block) => {
+    const displayName = classification === "official" ? abbreviateScheduleName(block.name) : block.name;
+    const colorKey = displayName.toLowerCase();
+    if (!colorByName.has(colorKey)) {
+      colorByName.set(colorKey, COLOR_OPTIONS[colorByName.size % COLOR_OPTIONS.length]);
+    }
+    return {
+      ...block,
+      name: displayName,
+      color: colorByName.get(colorKey),
+      icon: guessScheduleIcon(displayName),
+    };
+  });
+}
+
+function parseScheduleBlocksFromText(text, options = {}) {
   const content = String(text || "");
   if (!content.trim()) return [];
 
@@ -317,18 +403,18 @@ function parseScheduleBlocksFromText(text) {
 
   lines.forEach((line, index) => {
     const dayMatch = line.match(new RegExp(`\\b(${dayPattern})\\b`, "i"));
-    const rangeMatch = line.match(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:-|–|—|to|until)\s*(\d{1,2}(?::|\.)?\d{0,2})/i);
+    const rangeMatch = line.match(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:[^\dA-Za-z]+|to|until|till)\s*(\d{1,2}(?::|\.)?\d{0,2})/i);
     if (!dayMatch || !rangeMatch) return;
 
     const start = normalizeScheduleTime(rangeMatch[1]);
     const end = normalizeScheduleTime(rangeMatch[2]);
-    if (!start || !end || timeToIndex(end) <= timeToIndex(start)) return;
+    if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) return;
 
     const day = DAYS.find((item) => item.toLowerCase() === dayMatch[1].toLowerCase());
     const name = line
       .replace(dayMatch[0], "")
       .replace(rangeMatch[0], "")
-      .replace(/[:|\-–—]+/g, " ")
+      .replace(/[^\w\s]+/g, " ")
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 48) || "Imported activity";
@@ -344,7 +430,7 @@ function parseScheduleBlocksFromText(text) {
     });
   });
 
-  return blocks.slice(0, 32);
+  return normalizeImportedBlocks(blocks.slice(0, 32), options.classification || classifyScheduleText(content));
 }
 
 async function extractReadableFileText(file) {
@@ -380,23 +466,31 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
   const lineClass = isDark ? "border-white/[0.07]" : "border-[var(--bm-border)]";
   const headerBg = isDark ? "bg-white/[0.045]" : "bg-[var(--bm-bg-elevated)]";
   const cellBg = isDark ? "bg-transparent" : "bg-white";
-  const getCellBlock = (day, hour) => {
-    const hourIndex = timeToIndex(hour);
-    return blocks.find((block) => (
-      block.days.includes(day)
-      && hourIndex >= timeToIndex(block.start)
-      && hourIndex < timeToIndex(block.end)
-    ));
-  };
-
-  const getCellPosition = (block, hour) => {
-    const hourIndex = timeToIndex(hour);
-    const startIndex = timeToIndex(block.start);
-    const endIndex = Math.max(startIndex + 1, timeToIndex(block.end));
-    return {
-      isFirst: hourIndex === startIndex,
-      isLast: hourIndex === endIndex - 1,
-    };
+  const getCellSegments = (day, hour) => {
+    const cellStart = timeToMinutes(hour);
+    const cellEnd = Math.min(cellStart + 60, 24 * 60);
+    return blocks
+      .filter((block) => {
+        const blockStart = timeToMinutes(block.start);
+        const blockEnd = timeToMinutes(block.end);
+        return block.days.includes(day) && blockStart < cellEnd && blockEnd > cellStart;
+      })
+      .map((block) => {
+        const blockStart = timeToMinutes(block.start);
+        const blockEnd = timeToMinutes(block.end);
+        const segmentStart = Math.max(blockStart, cellStart);
+        const segmentEnd = Math.min(blockEnd, cellEnd);
+        const duration = Math.max(1, segmentEnd - segmentStart);
+        return {
+          block,
+          duration,
+          offset: Math.max(0, segmentStart - cellStart),
+          isFirst: blockStart >= cellStart && blockStart < cellEnd,
+          startsInside: blockStart > cellStart,
+          endsInside: blockEnd < cellEnd,
+        };
+      })
+      .sort((a, b) => timeToMinutes(a.block.start) - timeToMinutes(b.block.start));
   };
 
   return (
@@ -428,11 +522,8 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                   <span>{hour}</span>
                 </div>
                 {DAYS.map((day) => {
-                  const block = getCellBlock(day, hour);
-                  const occupied = Boolean(block);
-                  const position = block ? getCellPosition(block, hour) : null;
-                  const ScheduleIcon = block ? getScheduleIconOption(block.icon).Icon : null;
-                  const activityTextColor = block ? getTextOnColor(block.color) : undefined;
+                  const segments = getCellSegments(day, hour);
+                  const occupied = segments.length > 0;
                   return (
                     <div
                       key={`${day}-${hour}`}
@@ -443,11 +534,6 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                         !occupied && cellBg,
                         occupied && "overflow-hidden",
                       )}
-                      style={occupied ? {
-                        background: `linear-gradient(135deg, ${hexToRgba(block.color, isDark ? 0.84 : 0.76)}, ${hexToRgba(block.color, isDark ? 0.72 : 0.62)})`,
-                        color: activityTextColor,
-                        boxShadow: position.isFirst ? `inset 0 1px 0 ${hexToRgba("#FFFFFF", 0.18)}` : undefined,
-                      } : undefined}
                     >
                       {editMode && hour !== "24:00" && !occupied && (
                       <button
@@ -460,33 +546,51 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                       </button>
                       )}
                       {occupied && (
-                        <div
-                          className={cn(
-                            "flex h-full min-w-0 items-center px-3",
-                            position.isFirst ? "justify-between gap-2 rounded-t-[14px]" : "justify-center",
-                            position.isLast && "rounded-b-[14px]",
-                          )}
-                        >
-                          {position.isFirst ? (
-                            <>
-                              <div className="flex min-w-0 items-center gap-2">
-                                {ScheduleIcon && <ScheduleIcon className="h-4 w-4 shrink-0 stroke-[2.4]" aria-hidden="true" />}
-                                <span className={cn("truncate font-extrabold leading-tight", typeClasses.small)}>{block.name}</span>
+                        <div className="absolute inset-0">
+                          {segments.map(({ block, duration, offset, isFirst, startsInside, endsInside }) => {
+                            const ScheduleIcon = getScheduleIconOption(block.icon).Icon;
+                            const activityTextColor = getTextOnColor(block.color);
+                            const segmentTop = `${(offset / 60) * 100}%`;
+                            const segmentHeight = `${(duration / 60) * 100}%`;
+                            return (
+                              <div
+                                key={`${block.id}-${day}-${hour}`}
+                                className={cn(
+                                  "group absolute left-0.5 right-0.5 flex min-h-[12px] min-w-0 items-center px-2",
+                                  isFirst ? "justify-between gap-1.5" : "justify-center",
+                                  startsInside ? "rounded-t-xl" : "rounded-t-md",
+                                  endsInside ? "rounded-b-xl" : "rounded-b-md",
+                                )}
+                                style={{
+                                  top: segmentTop,
+                                  height: segmentHeight,
+                                  background: `linear-gradient(135deg, ${hexToRgba(block.color, isDark ? 0.84 : 0.76)}, ${hexToRgba(block.color, isDark ? 0.72 : 0.62)})`,
+                                  color: activityTextColor,
+                                }}
+                              >
+                                {isFirst ? (
+                                  <>
+                                    <div className="flex min-w-0 items-center gap-1.5">
+                                      <ScheduleIcon className="h-3.5 w-3.5 shrink-0 stroke-[2.4]" aria-hidden="true" />
+                                      <span className={cn("truncate font-extrabold leading-tight", typeClasses.small)}>{block.name}</span>
+                                    </div>
+                                    {editMode && (
+                                      <button
+                                        type="button"
+                                        onClick={() => onRequestDelete(block)}
+                                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/25 text-base font-black leading-none text-white opacity-0 transition group-hover:opacity-100 hover:bg-black/40"
+                                        aria-label={`Delete ${block.name}`}
+                                      >
+                                        -
+                                      </button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <ScheduleIcon className="h-3.5 w-3.5 stroke-[2.4]" aria-hidden="true" />
+                                )}
                               </div>
-                              {editMode && (
-                                <button
-                                  type="button"
-                                  onClick={() => onRequestDelete(block)}
-                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/25 text-lg font-black leading-none text-white transition hover:bg-black/40"
-                                  aria-label={`Delete ${block.name}`}
-                                >
-                                  -
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            ScheduleIcon && <ScheduleIcon className="h-4 w-4 stroke-[2.4]" aria-hidden="true" />
-                          )}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -821,6 +925,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
   const [isUploading, setIsUploading] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [pendingImport, setPendingImport] = useState(null);
   const messagesEndRef = useRef(null);
   const sendLockRef = useRef(false);
   const lastStartSignalRef = useRef(0);
@@ -850,6 +955,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       });
       return [];
     });
+    setPendingImport(null);
     setAddMenuOpen(false);
     sendLockRef.current = false;
   };
@@ -1016,7 +1122,14 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
           const image = await uploadChatImage(attachment.file);
           const analysis = await analyzeImage(
             image.id,
-            "Analyze this schedule image. Extract readable text, days, activities, start times, end times, and any weekly planning information. Be concise but include exact times when visible.",
+            [
+              "Analyze this uploaded schedule completely.",
+              "Detect schedule type, days, exact times including partial times, activities, activity names, breaks, repeated activities, and whether it looks official or personal.",
+              "Decide whether it should be imported directly or discussed first.",
+              "If it is official, preserve the schedule exactly.",
+              "If it is a school schedule, identify subjects and use short labels when possible: Mathematics=MA, Biology=BI, Physics=PH, English=EN, Swedish=SW, History=HI, Art=AR, PE/Sport=PE, Break=BR.",
+              "Return readable extraction lines using this style when possible: Monday 09:00-09:30 Mathematics.",
+            ].join(" "),
           );
           if (analysis?.analysis) analyses.push(analysis.analysis);
           const uploaded = {
@@ -1038,21 +1151,31 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
         .map((analysis) => [analysis.description, analysis.extractedText, Array.isArray(analysis.objects) ? analysis.objects.join(", ") : ""].filter(Boolean).join("\n"))
         .filter(Boolean)
         .join("\n\n");
-      const importedBlocks = parseScheduleBlocksFromText(analysisText);
-      if (importedBlocks.length > 0) {
+      const classification = classifyScheduleText(analysisText);
+      const importedBlocks = parseScheduleBlocksFromText(analysisText, { classification });
+      if (classification === "official" && importedBlocks.length > 0) {
         onImportBlocks?.(importedBlocks);
-        toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from image.`);
+        toast.success(`${importedBlocks.length} official schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from image.`);
       } else if (uploadedImages.length) {
-        toast.info("BlueMind analyzed the image. I could not safely auto-place blocks, so the assistant will use it as context.");
+        setPendingImport({
+          source: "image",
+          classification,
+          blocks: importedBlocks,
+          analysisText,
+        });
+        toast.info(classification === "personal" ? "BlueMind analyzed the schedule. It will discuss the goal before importing." : "BlueMind analyzed the schedule. It needs the schedule purpose before importing.");
       }
 
       if (uploadedImages.length) {
         const source = uploadedImages.some((image) => image.name.toLowerCase().includes("camera")) ? "camera photo" : "schedule image";
         contextParts.push([
-          `Analyze the uploaded ${source} (${uploadedImages.length === 1 ? uploadedImages[0].name : `${uploadedImages.length} images`}) and use it as context to help build or improve this Schedule.`,
-          importedBlocks.length > 0
-            ? `${importedBlocks.length} block(s) were automatically imported into the Schedule workspace. Ask whether the user wants improvements or optimization.`
-            : "No schedule blocks were safely auto-imported. Use the image context to guide the user.",
+          `Analyze the uploaded ${source} (${uploadedImages.length === 1 ? uploadedImages[0].name : `${uploadedImages.length} images`}) as a schedule, not just OCR.`,
+          `Detected schedule category: ${classification}.`,
+          classification === "official" && importedBlocks.length > 0
+            ? "This looks official, so it was imported exactly as provided. Acknowledge that and do not suggest changes unless the user asks."
+            : classification === "personal"
+              ? "This looks personal. Ask: What is the goal of this schedule? Then compare the schedule to that goal and ask before suggesting improvements."
+              : "The purpose is not fully clear. Ask: What is this schedule for? Offer examples: School, University, Work, Gym, Weight loss, Meal plan, Study plan, Travel, Business, Personal routine.",
           analysisText ? `Image analysis:\n${analysisText}` : "",
         ].filter(Boolean).join("\n\n"));
       }
@@ -1072,20 +1195,30 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       }
 
       const combinedText = extracted.map(({ attachment, text }) => `File: ${attachment.name}\n${text || "No readable embedded text was extracted."}`).join("\n\n");
-      const importedBlocks = parseScheduleBlocksFromText(combinedText);
-      if (importedBlocks.length > 0) {
+      const classification = classifyScheduleText(combinedText);
+      const importedBlocks = parseScheduleBlocksFromText(combinedText, { classification });
+      if (classification === "official" && importedBlocks.length > 0) {
         onImportBlocks?.(importedBlocks);
-        toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from PDF.`);
+        toast.success(`${importedBlocks.length} official schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from PDF.`);
       } else {
-        toast.info("BlueMind will analyze the PDF text. If the PDF is scanned, upload an image for stronger schedule detection.");
+        setPendingImport({
+          source: "pdf",
+          classification,
+          blocks: importedBlocks,
+          analysisText: combinedText,
+        });
+        toast.info(classification === "personal" ? "BlueMind analyzed the PDF. It will discuss the goal before importing." : "BlueMind analyzed the PDF. It needs the schedule purpose before importing.");
       }
 
       const names = pdfFiles.map((attachment) => `${attachment.name}${formatScheduleFileSize(attachment.size) ? ` (${formatScheduleFileSize(attachment.size)})` : ""}`).join(", ");
       contextParts.push([
         `The user uploaded PDF schedule file(s): ${names}. Analyze the extracted text and help build or improve the Schedule.`,
-        importedBlocks.length > 0
-          ? `${importedBlocks.length} block(s) were automatically imported into the Schedule workspace. Ask whether the user wants improvements or optimization.`
-          : "If the extracted PDF text is not enough to place exact blocks, ask only for the missing days/times/activities.",
+        `Detected schedule category: ${classification}.`,
+        classification === "official" && importedBlocks.length > 0
+          ? "This looks official, so it was imported exactly as provided. Acknowledge that and do not suggest changes unless the user asks."
+          : classification === "personal"
+            ? "This looks personal. Ask what the goal is, compare the uploaded schedule to the goal, and ask whether the user wants improvements before changing it."
+            : "The purpose is unclear. Ask what this schedule is for before importing or optimizing.",
         `Extracted PDF text:\n${combinedText || "No readable text extracted."}`,
       ].join("\n\n"));
     }
@@ -1146,7 +1279,62 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       ? processed.messageAttachments.map((attachment) => attachment.name).join(", ")
       : "";
     const displayText = value || (attachmentLabel ? `Uploaded ${attachmentLabel}` : "");
-    const latestText = [value, processed.contextText].filter(Boolean).join("\n\n");
+    let pendingContext = "";
+    if (!attachmentsToSend.length && pendingImport && value) {
+      const purposeClassification = classifyPurposeText(value);
+      const userRejectedImprovements = isNegativeText(value);
+      const userAcceptedImprovements = isAffirmativeText(value);
+
+      if (pendingImport.stage === "improvement-choice") {
+        if (userRejectedImprovements && pendingImport.blocks.length > 0) {
+          onImportBlocks?.(pendingImport.blocks);
+          setPendingImport(null);
+          pendingContext = [
+            "The user does not want improvements.",
+            "Respect the choice and say: No problem. I will import the schedule as you provided it.",
+            `${pendingImport.blocks.length} block(s) were imported exactly from the uploaded schedule.`,
+          ].join("\n");
+        } else if (userAcceptedImprovements) {
+          pendingContext = [
+            "The user accepted schedule improvements.",
+            "Discuss the detected issues and improvements step by step before changing the schedule.",
+            "Focus on realistic improvements such as rest time, meal timing, study spacing, workout balance, breaks, intensity, sleep timing, and feasibility.",
+            `Original schedule analysis:\n${pendingImport.analysisText}`,
+          ].join("\n\n");
+        }
+      } else if (purposeClassification === "official" && pendingImport.blocks.length > 0) {
+        onImportBlocks?.(normalizeImportedBlocks(pendingImport.blocks, "official"));
+        setPendingImport(null);
+        pendingContext = [
+          "The user clarified this is an official schedule.",
+          "It has been imported exactly as provided. Do not suggest changing it unless the user asks.",
+        ].join("\n");
+      } else if (userRejectedImprovements && pendingImport.blocks.length > 0) {
+        onImportBlocks?.(pendingImport.blocks);
+        setPendingImport(null);
+        pendingContext = [
+          "The user does not want optimization or discussion.",
+          "The schedule was imported as provided. Acknowledge this respectfully.",
+        ].join("\n");
+      } else if (purposeClassification === "personal" || pendingImport.classification === "personal") {
+        setPendingImport({ ...pendingImport, stage: "improvement-choice", goal: value });
+        pendingContext = [
+          `The user explained the schedule goal/purpose: ${value}`,
+          "Compare the uploaded schedule to this goal.",
+          "If there are mismatches, say you noticed a few issues that may not support the goal and ask whether the user wants suggestions.",
+          "Do not import or change the schedule yet unless the user accepts or refuses improvements.",
+          `Uploaded schedule analysis:\n${pendingImport.analysisText}`,
+        ].join("\n\n");
+      } else {
+        pendingContext = [
+          `The user answered about the schedule purpose: ${value}`,
+          "If this still does not clearly tell whether the schedule is official or personal, ask one concise clarification.",
+          "If it is official, import exactly. If it is personal, ask the goal before improving.",
+          `Uploaded schedule analysis:\n${pendingImport.analysisText}`,
+        ].join("\n\n");
+      }
+    }
+    const latestText = [value, processed.contextText, pendingContext].filter(Boolean).join("\n\n");
     sendLockRef.current = false;
     streamAssistant({
       latestText: latestText || displayText,
@@ -1695,3 +1883,4 @@ export default function SchemanPage() {
     </main>
   );
 }
+
