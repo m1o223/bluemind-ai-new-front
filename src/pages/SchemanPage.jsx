@@ -37,6 +37,7 @@ import {
   Plus,
   RefreshCcw,
   School,
+  Search,
   ShoppingBag,
   Sparkles,
   ThumbsDown,
@@ -58,6 +59,7 @@ import { analyzeImage, getImageUrl, uploadChatImage } from "@/services/imageServ
 
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
 const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
+const GENERATED_TEMPLATE_STORAGE_KEY = "bluemind-schedule-generated-templates-v1";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const HOURS = Array.from({ length: 25 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
@@ -142,36 +144,76 @@ const SCHEDULE_ICON_OPTIONS = [
   { id: "Health", label: "Health", Icon: HeartPulse },
   { id: "Rest", label: "Rest", Icon: BatteryCharging },
   { id: "Travel", label: "Travel", Icon: Plane },
+  { id: "Sparkles", label: "AI Generated", Icon: Sparkles },
 ];
-const SCHEDULE_TYPES = [
-  {
-    id: "study",
-    title: "Study Schedule",
-    description: "Create an intelligent study schedule.",
-    icon: BookOpen,
-    assistantPrompt: "The user selected Study Schedule. Start a study-schedule workflow. Ask about study days, start time, finish time, subjects, exams, and priority subjects. Keep it conversational.",
-  },
-  {
-    id: "gym",
-    title: "Gym Schedule",
-    description: "Create a personalized workout schedule.",
-    icon: Dumbbell,
-    assistantPrompt: "The user selected Gym Schedule. Start a fitness schedule workflow. Ask about training days, training time, goals, current program, recovery, and experience level. Keep it conversational.",
-  },
-  {
-    id: "nutrition",
-    title: "Nutrition Schedule",
-    description: "Create a healthy meal schedule.",
-    icon: Apple,
-    assistantPrompt: "The user selected Nutrition Schedule. Start a nutrition schedule workflow. Ask about current meal plan, goal, dietary restrictions, meal timing, and preferences. Keep it conversational.",
-  },
-  {
-    id: "business",
-    title: "Business Schedule",
-    description: "Create work and employee schedules.",
-    icon: BriefcaseBusiness,
-    assistantPrompt: "The user selected Business Schedule. Start a business scheduling workflow. Ask about employees, working days, working hours, breaks, shift preferences, and coverage needs. Keep it conversational.",
-  },
+const SCHEDULE_TEMPLATE_CATEGORIES = [
+  { id: "study", title: "Study", description: "School, exams, revision, reading, and learning routines.", icon: "Study" },
+  { id: "fitness", title: "Fitness", description: "Training, recovery, workouts, and daily movement.", icon: "Dumbbell" },
+  { id: "work", title: "Work", description: "Teams, shifts, meetings, projects, and business operations.", icon: "Briefcase" },
+  { id: "family", title: "Family", description: "Household routines, children, care, and shared planning.", icon: "Family" },
+  { id: "home", title: "Home", description: "Cleaning, chores, moving, maintenance, and home projects.", icon: "Home" },
+  { id: "nutrition", title: "Nutrition", description: "Meals, hydration, health goals, and food planning.", icon: "Meal" },
+  { id: "finance", title: "Finance", description: "Budgets, bills, saving routines, and money reviews.", icon: "Calendar" },
+  { id: "travel", title: "Travel", description: "Trips, packing, transport, itineraries, and vacations.", icon: "Travel" },
+  { id: "productivity", title: "Productivity", description: "Focus blocks, habits, deep work, and planning systems.", icon: "Clock" },
+  { id: "health", title: "Health", description: "Sleep, medication, appointments, recovery, and wellbeing.", icon: "Health" },
+  { id: "growth", title: "Personal Growth", description: "Goals, routines, reflection, skills, and self improvement.", icon: "Leaf" },
+  { id: "hobbies", title: "Hobbies", description: "Music, creative projects, photography, and practice plans.", icon: "Music" },
+  { id: "events", title: "Events", description: "Weddings, parties, launches, and event preparation.", icon: "Calendar" },
+  { id: "ai-generated", title: "AI Generated", description: "Reusable templates created from generic user needs.", icon: "Sparkles" },
+  { id: "custom-ai", title: "Custom AI Schedule", description: "Tell BlueMind anything you want to organize.", icon: "Code" },
+];
+
+const BASE_SCHEDULE_TEMPLATES = [
+  { id: "study-schedule", category: "study", title: "Study Schedule", description: "Create an intelligent study schedule.", icon: "Study", questions: ["Subject", "Exam date", "Available study hours", "Weak topics", "Revision style"] },
+  { id: "exam-preparation", category: "study", title: "Exam Preparation", description: "Plan focused revision before an exam.", icon: "Book", questions: ["Exam date", "Subjects", "Weak topics", "Practice needs", "Mock test timing"] },
+  { id: "university-semester", category: "study", title: "University Semester Planner", description: "Organize lectures, assignments, exams, and study blocks.", icon: "University", questions: ["Courses", "Seminar times", "Deadlines", "Exam period", "Weekly study load"] },
+  { id: "homework-planner", category: "study", title: "Homework Planner", description: "Balance homework across the week.", icon: "Pen", questions: ["Subjects", "Due dates", "Difficulty", "Available time"] },
+  { id: "reading-schedule", category: "study", title: "Reading Schedule", description: "Break a book or reading list into clear sessions.", icon: "Book", questions: ["Book or material", "Pages", "Deadline", "Reading speed"] },
+  { id: "language-learning", category: "study", title: "Language Learning", description: "Plan vocabulary, listening, grammar, and speaking practice.", icon: "School", questions: ["Language", "Current level", "Daily time", "Practice style"] },
+  { id: "coding-practice", category: "study", title: "Coding Practice", description: "Create a programming practice routine.", icon: "Code", questions: ["Language", "Goal", "Practice days", "Project type"] },
+  { id: "thesis-research", category: "study", title: "Thesis / Research Planner", description: "Structure research, writing, feedback, and revisions.", icon: "Laptop", questions: ["Topic", "Deadline", "Research stage", "Writing milestones"] },
+  { id: "daily-revision", category: "study", title: "Daily Revision", description: "Build a consistent daily review routine.", icon: "Clock", questions: ["Subjects", "Available time", "Weak points", "Review method"] },
+  { id: "flashcard-schedule", category: "study", title: "Flashcard Schedule", description: "Plan spaced repetition sessions.", icon: "Book", questions: ["Decks", "Daily target", "Exam date", "Hard topics"] },
+
+  { id: "gym-schedule", category: "fitness", title: "Gym Schedule", description: "Create a personalized workout schedule.", icon: "Dumbbell", questions: ["Goal", "Experience level", "Training days", "Injuries", "Equipment", "Focus areas"] },
+  { id: "weight-loss", category: "fitness", title: "Weight Loss Plan", description: "Plan cardio, strength, meals, and recovery.", icon: "Running", questions: ["Goal", "Current routine", "Training days", "Meal timing"] },
+  { id: "muscle-building", category: "fitness", title: "Muscle Building", description: "Organize strength training and recovery.", icon: "Dumbbell", questions: ["Experience", "Equipment", "Training split", "Recovery needs"] },
+  { id: "running-program", category: "fitness", title: "Running Program", description: "Create running sessions with rest and progression.", icon: "Running", questions: ["Distance goal", "Current level", "Running days", "Injuries"] },
+  { id: "walking-routine", category: "fitness", title: "Walking Routine", description: "Build a simple walking habit.", icon: "Running", questions: ["Daily steps", "Available time", "Goal", "Preferred days"] },
+  { id: "swimming-training", category: "fitness", title: "Swimming Training", description: "Plan pool sessions, technique, and endurance.", icon: "Water", questions: ["Skill level", "Pool days", "Goal", "Session length"] },
+  { id: "stretching-routine", category: "fitness", title: "Stretching Routine", description: "Create mobility and flexibility sessions.", icon: "Yoga", questions: ["Focus areas", "Time per day", "Pain points", "Routine style"] },
+  { id: "rehabilitation-plan", category: "fitness", title: "Rehabilitation Plan", description: "Plan gentle recovery routines.", icon: "Health", questions: ["Recovery focus", "Restrictions", "Session length", "Professional guidance"] },
+  { id: "sleep-schedule", category: "fitness", title: "Sleep Schedule", description: "Design a consistent sleep and wind-down routine.", icon: "Bed", questions: ["Wake time", "Bedtime goal", "Evening habits", "Sleep issues"] },
+  { id: "morning-routine", category: "fitness", title: "Morning Routine", description: "Plan a calm and useful morning structure.", icon: "Coffee", questions: ["Wake time", "Must-do tasks", "Energy goal", "Available time"] },
+  { id: "evening-routine", category: "fitness", title: "Evening Routine", description: "Create a wind-down and preparation routine.", icon: "Moon", questions: ["Bedtime", "Evening tasks", "Relaxation needs", "Next-day prep"] },
+
+  { id: "work-schedule", category: "work", title: "Work Schedule", description: "Organize work hours, breaks, and tasks.", icon: "Briefcase", questions: ["Working hours", "Breaks", "Main tasks", "Meeting load"] },
+  { id: "business-schedule", category: "work", title: "Business Schedule", description: "Create work and employee schedules.", icon: "Briefcase", questions: ["Employees", "Working days", "Hours", "Break duration", "Shift preferences"] },
+  { id: "employee-shift", category: "work", title: "Employee Shift Planner", description: "Plan fair shifts and coverage.", icon: "Meeting", questions: ["Employees", "Roles", "Opening hours", "Coverage rules", "Breaks"] },
+  { id: "team-schedule", category: "work", title: "Team Schedule", description: "Coordinate team availability and focus blocks.", icon: "Meeting", questions: ["Team members", "Meetings", "Focus blocks", "Deadlines"] },
+  { id: "meeting-planner", category: "work", title: "Meeting Planner", description: "Build a meeting cadence that does not overload the week.", icon: "Calendar", questions: ["Meeting types", "Participants", "Frequency", "Focus time"] },
+  { id: "project-timeline", category: "work", title: "Project Timeline", description: "Turn milestones into a weekly schedule.", icon: "Laptop", questions: ["Project goal", "Deadline", "Milestones", "Team size"] },
+  { id: "startup-planner", category: "work", title: "Startup Planner", description: "Plan product, marketing, operations, and launch tasks.", icon: "Code", questions: ["Idea", "Stage", "Team", "Launch date"] },
+  { id: "freelancer-schedule", category: "work", title: "Freelancer Schedule", description: "Balance client work, admin, and outreach.", icon: "Briefcase", questions: ["Clients", "Deadlines", "Admin tasks", "Outreach goals"] },
+  { id: "client-management", category: "work", title: "Client Management", description: "Plan follow-ups, delivery, and communication.", icon: "Meeting", questions: ["Clients", "Follow-up frequency", "Deliverables", "Review time"] },
+  { id: "content-creator", category: "work", title: "Content Creator Workflow", description: "Plan scripting, recording, editing, and publishing.", icon: "Camera", questions: ["Platforms", "Post frequency", "Production steps", "Publishing days"] },
+  { id: "restaurant-schedule", category: "work", title: "Restaurant Schedule", description: "Plan opening hours, roles, peak times, and shifts.", icon: "Meal", questions: ["Opening hours", "Employees", "Roles", "Peak hours", "Breaks", "Shift rules"] },
+
+  { id: "meal-plan", category: "nutrition", title: "Meal Plan", description: "Plan meals around goals and timing.", icon: "Meal", questions: ["Goal", "Eating style", "Allergies", "Meal count", "Budget"] },
+  { id: "hydration-schedule", category: "nutrition", title: "Hydration Schedule", description: "Create simple water and meal timing routines.", icon: "Water", questions: ["Wake time", "Activity level", "Goal", "Meal times"] },
+  { id: "family-routine", category: "family", title: "Family Routine", description: "Coordinate family activities and responsibilities.", icon: "Family", questions: ["Family members", "School/work times", "Tasks", "Shared routines"] },
+  { id: "autism-therapy", category: "family", title: "Autism Therapy Schedule", description: "Organize therapy, sensory breaks, school routines, and daily structure.", icon: "Health", questions: ["Main focus area", "Communication practice", "Sensory breaks", "School routines", "Therapy appointments", "Daily structure"] },
+  { id: "newborn-baby", category: "family", title: "Newborn Baby Routine", description: "Plan feeding, sleep, care, and parent rest blocks.", icon: "Rest", questions: ["Feeding pattern", "Sleep needs", "Appointments", "Parent support"] },
+  { id: "cleaning-schedule", category: "home", title: "Cleaning Schedule", description: "Split cleaning tasks across days.", icon: "Cleaning", questions: ["Rooms", "Tasks", "Frequency", "Available time"] },
+  { id: "moving-house", category: "home", title: "Moving House", description: "Plan packing, admin, transport, and moving day tasks.", icon: "Home", questions: ["Move date", "Rooms", "Helpers", "Transport", "Admin tasks"] },
+  { id: "budget-review", category: "finance", title: "Budget Review", description: "Schedule bills, saving checks, and money reviews.", icon: "Calendar", questions: ["Income dates", "Bills", "Savings goal", "Review frequency"] },
+  { id: "travel-itinerary", category: "travel", title: "Travel Itinerary", description: "Plan transport, activities, meals, and rest.", icon: "Travel", questions: ["Destination", "Dates", "Transport", "Activities", "Budget"] },
+  { id: "deep-work", category: "productivity", title: "Deep Work Schedule", description: "Protect focus time for demanding work.", icon: "Clock", questions: ["Focus goal", "Best energy time", "Interruptions", "Deadline"] },
+  { id: "medication-routine", category: "health", title: "Medication Routine", description: "Organize medication and appointment reminders.", icon: "Health", questions: ["Medication times", "Appointments", "Meals", "Notes"] },
+  { id: "habit-builder", category: "growth", title: "Habit Builder", description: "Build a weekly habit system.", icon: "Leaf", questions: ["Habit", "Trigger", "Frequency", "Reward"] },
+  { id: "music-practice", category: "hobbies", title: "Music Practice", description: "Plan technique, songs, and review sessions.", icon: "Music", questions: ["Instrument", "Level", "Practice days", "Goals"] },
+  { id: "wedding-planner", category: "events", title: "Wedding Planner", description: "Organize planning tasks, vendors, and event timeline.", icon: "Calendar", questions: ["Date", "Venue", "Vendors", "Guest count", "Tasks"] },
 ];
 const TUTORIAL_STEPS = [
   {
@@ -207,6 +249,98 @@ function writeScheduleState(state) {
   } catch {
     // Local persistence is best-effort until Schedule backend storage is added.
   }
+}
+
+function readGeneratedScheduleTemplates() {
+  try {
+    const value = JSON.parse(localStorage.getItem(GENERATED_TEMPLATE_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeGeneratedScheduleTemplates(templates) {
+  try {
+    localStorage.setItem(GENERATED_TEMPLATE_STORAGE_KEY, JSON.stringify(templates));
+  } catch {
+    // Generated templates are generic local drafts until the shared template backend is connected.
+  }
+}
+
+function titleCaseTemplate(value = "") {
+  return String(value || "")
+    .replace(/[^\w\s-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 5)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function inferTemplateCategory(query = "") {
+  const text = query.toLowerCase();
+  if (/exam|study|school|university|homework|reading|language|python|coding|research|thesis/.test(text)) return "study";
+  if (/gym|fitness|run|walk|muscle|weight|yoga|sleep|marathon|training/.test(text)) return "fitness";
+  if (/restaurant|employee|shift|work|business|client|startup|project|team/.test(text)) return "work";
+  if (/baby|family|child|autism|therapy|caregiver|parent/.test(text)) return "family";
+  if (/meal|nutrition|diet|ramadan|food/.test(text)) return "nutrition";
+  if (/travel|vacation|trip/.test(text)) return "travel";
+  if (/wedding|event|party|launch/.test(text)) return "events";
+  if (/home|moving|clean|laundry|house/.test(text)) return "home";
+  return "ai-generated";
+}
+
+function inferTemplateIcon(query = "") {
+  const text = query.toLowerCase();
+  if (/restaurant|meal|nutrition|food|ramadan/.test(text)) return "Meal";
+  if (/autism|therapy|health|care/.test(text)) return "Health";
+  if (/python|coding|program/.test(text)) return "Code";
+  if (/wedding|event/.test(text)) return "Calendar";
+  if (/baby|family/.test(text)) return "Family";
+  if (/gym|marathon|training/.test(text)) return "Dumbbell";
+  if (/travel|vacation/.test(text)) return "Travel";
+  if (/moving|home|house/.test(text)) return "Home";
+  if (/work|business|employee|restaurant/.test(text)) return "Briefcase";
+  if (/study|exam|school|learning/.test(text)) return "Study";
+  return "Sparkles";
+}
+
+function createGeneratedScheduleTemplate(query = "") {
+  const cleanTitle = titleCaseTemplate(query) || "Custom AI";
+  const category = inferTemplateCategory(cleanTitle);
+  const title = `${cleanTitle} Schedule`;
+  return {
+    id: `ai-${cleanTitle.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
+    category: "ai-generated",
+    originCategory: category,
+    title,
+    description: `A reusable AI-generated template for organizing ${cleanTitle.toLowerCase()} safely and clearly.`,
+    icon: inferTemplateIcon(cleanTitle),
+    aiGenerated: true,
+    questions: [
+      "Main goal",
+      "Available days",
+      "Important time limits",
+      "People or roles involved",
+      "Required breaks",
+      "What should BlueMind optimize for?",
+    ],
+  };
+}
+
+function buildTemplateAssistantPrompt(template) {
+  const questions = Array.isArray(template.questions) ? template.questions.join(", ") : "goals, available days, times, constraints, and preferred workflow";
+  return [
+    `The user selected the "${template.title}" schedule template.`,
+    "Start a real BlueMind AI schedule workflow for this template.",
+    "Do not create a fake form. Ask intelligent follow-up questions and adapt to the user's answers.",
+    `Template category: ${template.originCategory || template.category}.`,
+    `Template purpose: ${template.description}`,
+    `Suggested setup questions: ${questions}.`,
+    "Keep the questions privacy-safe and generic. Do not store personal names, addresses, private notes, uploaded content, or exact personal schedules in any shared template.",
+    "When enough context is collected, help the user build a private schedule in the Schedule workspace.",
+  ].join("\n");
 }
 
 function getTextOnColor(value) {
@@ -871,6 +1005,124 @@ function DeleteActivityDialog({ isDark, appColor, accentText, activity, onCancel
 }
 
 function ScheduleTypeDialog({ isDark, appColor, accentText, onClose, onSelect }) {
+  const [query, setQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [generatedTemplates, setGeneratedTemplates] = useState(readGeneratedScheduleTemplates);
+  const normalizedQuery = query.trim().toLowerCase();
+  const allTemplates = useMemo(() => [...BASE_SCHEDULE_TEMPLATES, ...generatedTemplates], [generatedTemplates]);
+  const visibleTemplates = useMemo(() => {
+    if (!normalizedQuery) return activeCategory ? allTemplates.filter((template) => template.category === activeCategory) : [];
+    return allTemplates.filter((template) => (
+      [template.title, template.description, template.category, ...(template.questions || [])]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery)
+    ));
+  }, [activeCategory, allTemplates, normalizedQuery]);
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    allTemplates.forEach((template) => {
+      counts[template.category] = (counts[template.category] || 0) + 1;
+      if (template.originCategory) counts[template.originCategory] = (counts[template.originCategory] || 0) + 1;
+    });
+    return counts;
+  }, [allTemplates]);
+  const activeCategoryInfo = SCHEDULE_TEMPLATE_CATEGORIES.find((category) => category.id === activeCategory);
+  const noSearchResults = Boolean(normalizedQuery) && visibleTemplates.length === 0;
+
+  const selectTemplate = (template) => {
+    onSelect({
+      ...template,
+      assistantPrompt: buildTemplateAssistantPrompt(template),
+    });
+  };
+
+  const createAiTemplate = () => {
+    const template = createGeneratedScheduleTemplate(query);
+    const nextTemplates = [template, ...generatedTemplates].slice(0, 50);
+    setGeneratedTemplates(nextTemplates);
+    writeGeneratedScheduleTemplates(nextTemplates);
+    setQuery(template.title);
+    setActiveCategory("ai-generated");
+    toast.success(`${template.title} template created.`);
+  };
+
+  const renderTemplateCard = (template) => {
+    const Icon = getScheduleIconOption(template.icon).Icon;
+    return (
+      <button
+        key={template.id}
+        type="button"
+        onClick={() => selectTemplate(template)}
+        className={cn(
+          "group rounded-[24px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
+          isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] hover:bg-white",
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_12px_26px_rgba(25,59,104,0.18)]"
+            style={{ backgroundColor: appColor, color: accentText }}
+          >
+            <Icon className={iconClasses.card} />
+          </span>
+          {template.aiGenerated && (
+            <span className={cn("rounded-full px-2.5 py-1 font-extrabold", typeClasses.small, isDark ? "bg-white/[0.08] text-white" : "bg-white text-[var(--bm-text-secondary)]")}>
+              AI
+            </span>
+          )}
+        </div>
+        <span className={cn("mt-4 block font-extrabold", typeClasses.cardTitle)}>{template.title}</span>
+        <span className={cn("mt-2 block font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{template.description}</span>
+      </button>
+    );
+  };
+
+  const renderCategoryCard = (category) => {
+    const Icon = getScheduleIconOption(category.icon).Icon;
+    const isCustom = category.id === "custom-ai";
+    return (
+      <button
+        key={category.id}
+        type="button"
+        onClick={() => {
+          if (isCustom) {
+            const template = createGeneratedScheduleTemplate("Custom AI");
+            selectTemplate({
+              ...template,
+              title: "Custom AI Schedule",
+              description: "BlueMind asks what you want to organize and builds a custom workflow.",
+              questions: ["What do you want to organize?", "Important dates", "Available time", "Constraints", "Success goal"],
+            });
+            return;
+          }
+          setActiveCategory(category.id);
+          setQuery("");
+        }}
+        className={cn(
+          "group rounded-[24px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
+          isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] hover:bg-white",
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_12px_26px_rgba(25,59,104,0.18)]"
+            style={{ backgroundColor: appColor, color: accentText }}
+          >
+            <Icon className={iconClasses.card} />
+          </span>
+          {!isCustom && (
+            <span className={cn("rounded-full px-2.5 py-1 font-extrabold", typeClasses.small, isDark ? "bg-white/[0.08] text-white" : "bg-white text-[var(--bm-text-secondary)]")}>
+              {categoryCounts[category.id] || 0}
+            </span>
+          )}
+        </div>
+        <span className={cn("mt-4 block font-extrabold", typeClasses.cardTitle)}>{category.title}</span>
+        <span className={cn("mt-2 block font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{category.description}</span>
+      </button>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
       <motion.div
@@ -878,39 +1130,79 @@ function ScheduleTypeDialog({ isDark, appColor, accentText, onClose, onSelect })
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className={cn("w-full max-w-3xl rounded-[30px] border p-5 shadow-2xl", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]")}
+        className={cn("flex h-[86vh] w-full max-w-5xl flex-col rounded-[30px] border p-5 shadow-2xl", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]")}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>Create Custom Schedule</p>
-            <h2 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.sectionTitle)}>Choose a schedule type</h2>
+            <h2 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.sectionTitle)}>Schedule Template Gallery</h2>
           </div>
           <button type="button" onClick={onClose} className={cn("rounded-full p-2", interactionClasses.control)} aria-label="Close schedule type selection">
             <X className={iconClasses.button} />
           </button>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {SCHEDULE_TYPES.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelect(item)}
-                className={cn("group rounded-[24px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg", isDark ? "border-white/[0.08] bg-white/[0.045] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] hover:bg-white")}
-              >
-                <span
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-[0_12px_26px_rgba(25,59,104,0.18)]"
-                  style={{ backgroundColor: appColor, color: accentText }}
-                >
-                  <Icon className={iconClasses.card} />
-                </span>
-                <span className={cn("mt-4 block font-extrabold", typeClasses.cardTitle)}>{item.title}</span>
-                <span className={cn("mt-2 block font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{item.description}</span>
+        <div className={cn("mt-5 flex h-12 items-center gap-3 rounded-2xl border px-4", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+          <Search className="h-5 w-5 shrink-0 text-[var(--bm-text-muted)]" />
+          <input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setActiveCategory(null);
+            }}
+            placeholder="Search schedules..."
+            className={cn("h-full min-w-0 flex-1 bg-transparent font-semibold outline-none", typeClasses.body, isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]")}
+          />
+        </div>
+
+        <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+          {activeCategory && !normalizedQuery && (
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setActiveCategory(null)} className={cn("rounded-2xl px-4 py-2.5 font-bold", typeClasses.small, interactionClasses.control)}>
+                Back
               </button>
-            );
-          })}
+              <p className={cn("min-w-0 truncate font-extrabold", typeClasses.cardTitle)}>{activeCategoryInfo?.title || "Templates"}</p>
+            </div>
+          )}
+
+          {normalizedQuery ? (
+            <>
+              {visibleTemplates.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {visibleTemplates.map(renderTemplateCard)}
+                </div>
+              )}
+              {noSearchResults && (
+                <div className={cn("rounded-[24px] border p-6 text-center", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+                  <Sparkles className="mx-auto h-9 w-9 text-[var(--bm-primary)]" />
+                  <h3 className={cn("mt-4 font-extrabold", typeClasses.cardTitle)}>We couldn't find a template for "{query}".</h3>
+                  <p className={cn("mx-auto mt-2 max-w-lg font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
+                    Would you like BlueMind AI to create a reusable, privacy-safe schedule template for this idea?
+                  </p>
+                  <div className="mt-5 flex justify-center gap-3">
+                    <button type="button" onClick={createAiTemplate} className={cn("rounded-2xl px-5 py-3 font-extrabold text-white", typeClasses.small)} style={{ backgroundColor: appColor, color: accentText }}>
+                      Yes, create it
+                    </button>
+                    <button type="button" onClick={() => setQuery("")} className={cn("rounded-2xl px-5 py-3 font-extrabold", typeClasses.small, interactionClasses.control)}>
+                      No
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : activeCategory ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visibleTemplates.length > 0 ? visibleTemplates.map(renderTemplateCard) : (
+                <div className={cn("col-span-full rounded-[24px] border p-6 text-center", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+                  <p className={cn("font-extrabold", typeClasses.cardTitle)}>No templates here yet.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {SCHEDULE_TEMPLATE_CATEGORIES.map(renderCategoryCard)}
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
