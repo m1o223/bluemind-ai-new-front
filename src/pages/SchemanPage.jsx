@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Apple, BookOpen, BriefcaseBusiness, Camera, Dumbbell, FileText, MessageSquare, Mic, Paperclip, Plus, Sparkles, X } from "lucide-react";
+import { Apple, BookOpen, BriefcaseBusiness, Camera, Dumbbell, FileText, Mic, Paperclip, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
@@ -8,7 +8,7 @@ import BlueMindSendButton from "@/components/BlueMindSendButton";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
-import { streamHiddenChatMessage } from "@/services/chatService";
+import { streamChatMessage } from "@/services/chatService";
 import { analyzeImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
@@ -596,9 +596,11 @@ function ScheduleTypeDialog({ isDark, appColor, accentText, onClose, onSelect })
 function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext, chatVisible, onImportBlocks }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
+  const [conversationId, setConversationId] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const messagesEndRef = useRef(null);
   const sendLockRef = useRef(false);
   const lastStartSignalRef = useRef(0);
   const cameraInputRef = useRef(null);
@@ -609,6 +611,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
 
   const resetConversation = () => {
     setMessages([]);
+    setConversationId("");
     setInput("");
     setAddMenuOpen(false);
     sendLockRef.current = false;
@@ -630,16 +633,21 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
 
     let streamedText = "";
     try {
-      await streamHiddenChatMessage({
+      await streamChatMessage({
         message: buildSchedulePrompt({ messages: baseMessages, latestText, blocks, initial }),
         imageIds,
+        conversationId,
         mode: "work",
         metadata: {
           source: "schedule",
           schedule: true,
-          hiddenChat: true,
+          scheduleAssistant: true,
           uploadedImageIds: imageIds,
           scheduleBlocks: blocks.map(({ id, name, start, end, days, color, icon }) => ({ id, name, start, end, days, color, icon })),
+        },
+        onReady: (payload) => {
+          const nextConversationId = payload?.conversation?.conversationId;
+          if (nextConversationId) setConversationId(nextConversationId);
         },
         onAiStart: () => {
           setMessages((current) => current.map((message) => (
@@ -684,6 +692,10 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startSignal]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages]);
 
   const submit = () => {
     if (!canSend || sendLockRef.current) return;
@@ -958,6 +970,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
               )}
             </motion.div>
           ))}
+        <div ref={messagesEndRef} />
       </div>
 
       <form
@@ -1132,21 +1145,15 @@ export default function SchemanPage() {
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
-  const [chatVisible, setChatVisible] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [scheduleState, setScheduleState] = useState(readScheduleState);
   const [blockModal, setBlockModal] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [scheduleTypeOpen, setScheduleTypeOpen] = useState(false);
-  const [aiStartSignal, setAiStartSignal] = useState(0);
-  const [aiStartContext, setAiStartContext] = useState("");
   const [tutorialOpen, setTutorialOpen] = useState(() => localStorage.getItem(SCHEDULE_TUTORIAL_KEY) !== "true");
 
   const blocks = scheduleState.blocks || [];
   const hasBlocks = blocks.length > 0;
-  const pageColumns = useMemo(() => (
-    chatVisible ? "xl:grid-cols-[minmax(0,7fr)_minmax(300px,3fr)]" : "xl:grid-cols-1"
-  ), [chatVisible]);
 
   useEffect(() => {
     writeScheduleState(scheduleState);
@@ -1174,27 +1181,7 @@ export default function SchemanPage() {
 
   const selectScheduleType = (type) => {
     setScheduleTypeOpen(false);
-    setChatVisible(true);
-    setAiStartContext(type.assistantPrompt);
-    setAiStartSignal((value) => value + 1);
-  };
-
-  const startAiDesign = () => {
-    setChatVisible(true);
-    setAiStartContext(hasBlocks
-      ? "The user wants to edit the existing Schedule with BlueMind AI. Use the current schedule blocks as context, identify possible improvements, and ask what they want to optimize."
-      : "The user wants BlueMind AI to design a Schedule from scratch. Ask what kind of schedule they want to build and guide them conversationally.");
-    setAiStartSignal((value) => value + 1);
-  };
-
-  const importScheduleBlocks = (importedBlocks) => {
-    if (!importedBlocks?.length) return;
-    setScheduleState((current) => ({
-      ...current,
-      blocks: [...(current.blocks || []), ...importedBlocks],
-      updatedAt: new Date().toISOString(),
-    }));
-    setEditMode(false);
+    toast.info(`${type.title} selected. The new Schedule assistant UI will be rebuilt next.`);
   };
 
   const saveBlock = (block) => {
@@ -1232,10 +1219,6 @@ export default function SchemanPage() {
             <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <ScheduleButton onClick={() => setChatVisible((value) => !value)} active={chatVisible} appColor={appColor} accentText={accentText}>
-              <MessageSquare className={iconClasses.button} />
-              {chatVisible ? "Close Chat" : "Open Chat"}
-            </ScheduleButton>
             {(hasBlocks || editMode) && (
               <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
                 <Plus className={iconClasses.button} />
@@ -1246,14 +1229,10 @@ export default function SchemanPage() {
               <Plus className={iconClasses.button} />
               Create Custom Schedule
             </ScheduleButton>
-            <ScheduleButton onClick={startAiDesign} active appColor={appColor} accentText={accentText}>
-              <Sparkles className={iconClasses.button} />
-              {hasBlocks ? "Edit with BlueMind AI" : "Design Schedule with BlueMind AI"}
-            </ScheduleButton>
           </div>
         </header>
 
-        <div className={cn("grid min-h-0 flex-1 gap-5", pageColumns)}>
+        <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-1">
           <div className="min-h-[620px]">
             <WeeklyGrid
               isDark={isDark}
@@ -1263,20 +1242,6 @@ export default function SchemanPage() {
               onRequestDelete={setDeleteTarget}
             />
           </div>
-          <AnimatePresence mode="wait">
-            {chatVisible && (
-              <ScheduleAssistant
-                key="schedule-assistant"
-                isDark={isDark}
-                appColor={appColor}
-                blocks={blocks}
-                startSignal={aiStartSignal}
-                startContext={aiStartContext}
-                chatVisible={chatVisible}
-                onImportBlocks={importScheduleBlocks}
-              />
-            )}
-          </AnimatePresence>
         </div>
       </div>
 
