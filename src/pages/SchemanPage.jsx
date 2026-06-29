@@ -917,14 +917,8 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
             Are you ready?
           </h2>
           <p className={cn("mx-auto mt-3 max-w-[340px] text-center font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
-            BlueMind can help you build smart schedules for study, gym, nutrition, business, and more.
+            BlueMind is ready to help you build your perfect schedule.
           </p>
-          <div className="mt-5 px-1 text-center">
-            <p className={cn("font-extrabold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Ready when you are.</p>
-            <p className={cn("mx-auto mt-2 max-w-[320px] font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
-              Type below or upload a schedule image for BlueMind to analyze.
-            </p>
-          </div>
         </div>
       )}
 
