@@ -1,6 +1,51 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Apple, BookOpen, BriefcaseBusiness, Camera, Copy, Dumbbell, FileText, MessageSquare, Mic, Paperclip, Plus, RefreshCcw, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import {
+  Apple,
+  BatteryCharging,
+  Bed,
+  BookOpen,
+  BriefcaseBusiness,
+  Brush,
+  Bus,
+  Calendar,
+  Camera,
+  Car,
+  Check,
+  ChevronDown,
+  Clock,
+  Code2,
+  Coffee,
+  Copy,
+  Droplets,
+  Dumbbell,
+  FileText,
+  Footprints,
+  GraduationCap,
+  HeartPulse,
+  Home,
+  Landmark,
+  Laptop,
+  Leaf,
+  MessageSquare,
+  Mic,
+  Moon,
+  Music,
+  Paperclip,
+  PenLine,
+  Plane,
+  Plus,
+  RefreshCcw,
+  School,
+  ShoppingBag,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  Users,
+  Utensils,
+  WashingMachine,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
@@ -17,17 +62,87 @@ const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const HOURS = Array.from({ length: 25 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
 const ROW_HEIGHT = 48;
-const ICON_OPTIONS = ["Book", "Dumbbell", "Briefcase", "Apple", "Moon", "Clock", "Star"];
-const ICON_SYMBOLS = {
-  Book: "📘",
-  Dumbbell: "🏋️",
-  Briefcase: "💼",
-  Apple: "🍎",
-  Moon: "🌙",
-  Clock: "⏰",
-  Star: "⭐",
-};
-const COLOR_OPTIONS = ["#2563EB", "#16A34A", "#7C3AED", "#EA580C", "#DC2626", "#0891B2", "#9333EA", "#4F46E5"];
+const ICON_OPTIONS = [
+  "Book",
+  "Study",
+  "School",
+  "University",
+  "Pen",
+  "Laptop",
+  "Code",
+  "Dumbbell",
+  "Running",
+  "Yoga",
+  "Bed",
+  "Moon",
+  "Coffee",
+  "Apple",
+  "Meal",
+  "Water",
+  "Briefcase",
+  "Meeting",
+  "Calendar",
+  "Clock",
+  "Car",
+  "Bus",
+  "Shopping",
+  "Cleaning",
+  "Laundry",
+  "Music",
+  "Camera",
+  "Family",
+  "Health",
+  "Rest",
+  "Travel",
+];
+const SCHEDULE_COLORS = [
+  { name: "Sky Blue", value: "#3BA7F5" },
+  { name: "Emerald Green", value: "#34C88A" },
+  { name: "Lavender Purple", value: "#9B7CF6" },
+  { name: "Coral", value: "#FF7A66" },
+  { name: "Soft Orange", value: "#F6A24D" },
+  { name: "Rose", value: "#F472B6" },
+  { name: "Mint", value: "#5ED7B7" },
+  { name: "Indigo", value: "#6675F6" },
+  { name: "Cyan", value: "#22C7D9" },
+  { name: "Warm Yellow", value: "#F2C94C" },
+  { name: "Teal", value: "#2FB7A3" },
+  { name: "Deep Blue", value: "#2F6DEB" },
+];
+const COLOR_OPTIONS = SCHEDULE_COLORS.map((color) => color.value);
+const SCHEDULE_ICON_OPTIONS = [
+  { id: "Book", label: "Book", Icon: BookOpen },
+  { id: "Study", label: "Study", Icon: GraduationCap },
+  { id: "School", label: "School", Icon: School },
+  { id: "University", label: "University", Icon: Landmark },
+  { id: "Pen", label: "Pen", Icon: PenLine },
+  { id: "Laptop", label: "Laptop", Icon: Laptop },
+  { id: "Code", label: "Code", Icon: Code2 },
+  { id: "Dumbbell", label: "Dumbbell", Icon: Dumbbell },
+  { id: "Running", label: "Running", Icon: Footprints },
+  { id: "Yoga", label: "Yoga", Icon: Leaf },
+  { id: "Bed", label: "Bed", Icon: Bed },
+  { id: "Moon", label: "Moon", Icon: Moon },
+  { id: "Coffee", label: "Coffee", Icon: Coffee },
+  { id: "Apple", label: "Apple", Icon: Apple },
+  { id: "Meal", label: "Meal", Icon: Utensils },
+  { id: "Water", label: "Water", Icon: Droplets },
+  { id: "Briefcase", label: "Briefcase", Icon: BriefcaseBusiness },
+  { id: "Meeting", label: "Meeting", Icon: Users },
+  { id: "Calendar", label: "Calendar", Icon: Calendar },
+  { id: "Clock", label: "Clock", Icon: Clock },
+  { id: "Car", label: "Car", Icon: Car },
+  { id: "Bus", label: "Bus", Icon: Bus },
+  { id: "Shopping", label: "Shopping", Icon: ShoppingBag },
+  { id: "Cleaning", label: "Cleaning", Icon: Brush },
+  { id: "Laundry", label: "Laundry", Icon: WashingMachine },
+  { id: "Music", label: "Music", Icon: Music },
+  { id: "Camera", label: "Camera", Icon: Camera },
+  { id: "Family", label: "Family", Icon: Home },
+  { id: "Health", label: "Health", Icon: HeartPulse },
+  { id: "Rest", label: "Rest", Icon: BatteryCharging },
+  { id: "Travel", label: "Travel", Icon: Plane },
+];
 const SCHEDULE_TYPES = [
   {
     id: "study",
@@ -58,16 +173,6 @@ const SCHEDULE_TYPES = [
     assistantPrompt: "The user selected Business Schedule. Start a business scheduling workflow. Ask about employees, working days, working hours, breaks, shift preferences, and coverage needs. Keep it conversational.",
   },
 ];
-const DISPLAY_ICON_SYMBOLS = {
-  Book: "\uD83D\uDCD8",
-  Dumbbell: "\uD83C\uDFCB\uFE0F",
-  Briefcase: "\uD83D\uDCBC",
-  Apple: "\uD83C\uDF4E",
-  Moon: "\uD83D\uDE34",
-  Clock: "\u23F0",
-  Star: "\u2B50",
-};
-
 const TUTORIAL_STEPS = [
   {
     title: "This is your weekly planner.",
@@ -116,6 +221,10 @@ function getTextOnColor(value) {
     .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
 
   return luminance > 0.52 ? "var(--bm-text-primary)" : "#FFFFFF";
+}
+
+function getScheduleIconOption(iconId) {
+  return SCHEDULE_ICON_OPTIONS.find((item) => item.id === iconId) || SCHEDULE_ICON_OPTIONS[0];
 }
 
 function timeToIndex(value) {
@@ -180,12 +289,19 @@ function normalizeScheduleTime(value) {
 
 function guessScheduleIcon(activity = "") {
   const text = activity.toLowerCase();
-  if (/sleep|rest|nap|bed/i.test(text)) return "Moon";
+  if (/sleep|nap|bed/i.test(text)) return "Bed";
+  if (/rest|recover|break/i.test(text)) return "Rest";
   if (/gym|workout|train|cardio|run|fitness/i.test(text)) return "Dumbbell";
   if (/meal|food|breakfast|lunch|dinner|nutrition/i.test(text)) return "Apple";
+  if (/water|drink|hydrate/i.test(text)) return "Water";
   if (/work|meeting|business|shift|office/i.test(text)) return "Briefcase";
-  if (/study|read|math|physics|lesson|school|homework|exam/i.test(text)) return "Book";
-  return "Star";
+  if (/code|program|software|debug/i.test(text)) return "Code";
+  if (/study|read|math|physics|lesson|school|homework|exam/i.test(text)) return "Study";
+  if (/drive|car|commute/i.test(text)) return "Car";
+  if (/bus|transit/i.test(text)) return "Bus";
+  if (/clean/i.test(text)) return "Cleaning";
+  if (/laundry/i.test(text)) return "Laundry";
+  return "Calendar";
 }
 
 function parseScheduleBlocksFromText(text) {
@@ -315,7 +431,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                   const block = getCellBlock(day, hour);
                   const occupied = Boolean(block);
                   const position = block ? getCellPosition(block, hour) : null;
-                  const symbol = block ? (DISPLAY_ICON_SYMBOLS[block.icon] || "\u2B50") : "";
+                  const ScheduleIcon = block ? getScheduleIconOption(block.icon).Icon : null;
                   const activityTextColor = block ? getTextOnColor(block.color) : undefined;
                   return (
                     <div
@@ -354,7 +470,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                           {position.isFirst ? (
                             <>
                               <div className="flex min-w-0 items-center gap-2">
-                                <span className="shrink-0 text-lg leading-none drop-shadow-sm" aria-hidden="true">{symbol}</span>
+                                {ScheduleIcon && <ScheduleIcon className="h-4 w-4 shrink-0 stroke-[2.4]" aria-hidden="true" />}
                                 <span className={cn("truncate font-extrabold leading-tight", typeClasses.small)}>{block.name}</span>
                               </div>
                               {editMode && (
@@ -369,7 +485,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                               )}
                             </>
                           ) : (
-                            <span className="text-lg leading-none drop-shadow-sm" aria-hidden="true">{symbol}</span>
+                            ScheduleIcon && <ScheduleIcon className="h-4 w-4 stroke-[2.4]" aria-hidden="true" />
                           )}
                         </div>
                       )}
@@ -392,10 +508,21 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
   const [days, setDays] = useState(initialDay ? [initialDay] : []);
   const [color, setColor] = useState(COLOR_OPTIONS[0]);
   const [icon, setIcon] = useState(ICON_OPTIONS[0]);
+  const [singleSlot, setSingleSlot] = useState(true);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const selectedIconOption = getScheduleIconOption(icon);
+  const SelectedIcon = selectedIconOption.Icon;
+  const nextHour = HOURS[Math.min(timeToIndex(start) + 1, 24)];
 
   const toggleDay = (day) => {
     setDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
   };
+
+  useEffect(() => {
+    if (singleSlot || timeToIndex(end) <= timeToIndex(start)) {
+      setEnd(nextHour);
+    }
+  }, [end, nextHour, singleSlot, start]);
 
   const save = () => {
     if (!name.trim()) {
@@ -406,7 +533,8 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
       toast.error("Select at least one day.");
       return;
     }
-    if (timeToIndex(end) <= timeToIndex(start)) {
+    const finalEnd = singleSlot ? nextHour : end;
+    if (timeToIndex(finalEnd) <= timeToIndex(start)) {
       toast.error("End time must be after start time.");
       return;
     }
@@ -415,7 +543,7 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
       id: `block-${Date.now().toString(36)}`,
       name: name.trim(),
       start,
-      end,
+      end: finalEnd,
       days,
       color,
       icon,
@@ -451,13 +579,38 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
                 {HOURS.slice(0, -1).map((hour) => <option key={hour} value={hour}>{hour}</option>)}
               </select>
             </label>
+            <div className="grid gap-2">
+              <span className={cn("font-bold", typeClasses.small)}>Use only this time slot?</span>
+              <div className={cn("grid h-12 grid-cols-2 gap-1 rounded-2xl border p-1", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+                {[
+                  { label: "Yes", value: true },
+                  { label: "No", value: false },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => setSingleSlot(item.value)}
+                    className={cn("rounded-xl font-extrabold transition-all duration-200", typeClasses.small, singleSlot === item.value ? "text-white shadow-sm" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]")}
+                    style={singleSlot === item.value ? { backgroundColor: appColor, color: accentText } : undefined}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <span className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+                {singleSlot ? `${start} - ${nextHour}` : "Choose a longer time range below."}
+              </span>
+            </div>
+          </div>
+
+          {!singleSlot && (
             <label className="grid gap-2">
               <span className={cn("font-bold", typeClasses.small)}>End time</span>
               <select value={end} onChange={(event) => setEnd(event.target.value)} className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")}>
-                {HOURS.slice(1).map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+                {HOURS.slice(timeToIndex(start) + 1).map((hour) => <option key={hour} value={hour}>{hour}</option>)}
               </select>
             </label>
-          </div>
+          )}
 
           <div className="grid gap-2">
             <span className={cn("font-bold", typeClasses.small)}>Days</span>
@@ -479,25 +632,83 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-2">
               <span className={cn("font-bold", typeClasses.small)}>Color</span>
-              <div className="flex flex-wrap gap-2">
-                {COLOR_OPTIONS.map((item) => (
+              <div className="grid grid-cols-6 gap-2">
+                {SCHEDULE_COLORS.map((item) => (
                   <button
-                    key={item}
+                    key={item.value}
                     type="button"
-                    onClick={() => setColor(item)}
-                    className={cn("h-9 w-9 rounded-full border-2", color === item ? "border-white ring-2 ring-[var(--bm-primary)]" : "border-transparent")}
-                    style={{ backgroundColor: item }}
-                    aria-label={`Use color ${item}`}
-                  />
+                    onClick={() => setColor(item.value)}
+                    className={cn(
+                      "group relative h-10 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5",
+                      color === item.value ? "border-white shadow-md ring-2 ring-[var(--bm-primary)]" : isDark ? "border-white/[0.10]" : "border-[var(--bm-border)]",
+                    )}
+                    style={{ backgroundColor: item.value }}
+                    aria-label={`Use ${item.name}`}
+                    title={item.name}
+                  >
+                    {color === item.value && (
+                      <Check className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 stroke-[3] text-white drop-shadow" />
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
-            <label className="grid gap-2">
+            <div className="relative grid gap-2">
               <span className={cn("font-bold", typeClasses.small)}>Icon</span>
-              <select value={icon} onChange={(event) => setIcon(event.target.value)} className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")}>
-                {ICON_OPTIONS.map((item) => <option key={item} value={item}>{DISPLAY_ICON_SYMBOLS[item]} {item}</option>)}
-              </select>
-            </label>
+              <button
+                type="button"
+                onClick={() => setIconPickerOpen((value) => !value)}
+                className={cn(
+                  "flex h-12 items-center justify-between gap-3 rounded-2xl border px-4 font-extrabold transition-all duration-200",
+                  isDark ? "border-white/[0.08] bg-white/[0.045] text-white hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)] hover:bg-white",
+                )}
+                aria-expanded={iconPickerOpen}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <SelectedIcon className="h-5 w-5 shrink-0 stroke-[2.4]" />
+                  <span className="truncate">{selectedIconOption.label}</span>
+                </span>
+                <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-200", iconPickerOpen && "rotate-180")} />
+              </button>
+              <AnimatePresence>
+                {iconPickerOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                    className={cn("absolute left-0 right-0 top-[76px] z-20 max-h-64 overflow-y-auto rounded-2xl border p-2 shadow-xl", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)]" : "border-[var(--bm-border)] bg-white")}
+                  >
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {SCHEDULE_ICON_OPTIONS.map((item) => {
+                        const Icon = item.Icon;
+                        const selected = icon === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setIcon(item.id);
+                              setIconPickerOpen(false);
+                            }}
+                            className={cn(
+                              "flex min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-left font-bold transition-all duration-200",
+                              typeClasses.small,
+                              selected ? "text-white" : interactionClasses.menuItem,
+                            )}
+                            style={selected ? { backgroundColor: appColor, color: accentText } : undefined}
+                          >
+                            <Icon className="h-4 w-4 shrink-0 stroke-[2.4]" />
+                            <span className="truncate">{item.label}</span>
+                            {selected && <Check className="ml-auto h-4 w-4 shrink-0 stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
