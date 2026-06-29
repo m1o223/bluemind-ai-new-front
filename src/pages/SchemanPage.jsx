@@ -123,6 +123,16 @@ function timeToIndex(value) {
   return Number.isFinite(hour) ? Math.max(0, Math.min(24, hour)) : 0;
 }
 
+function hexToRgba(value, alpha = 1) {
+  if (!value || !String(value).startsWith("#")) return `rgba(37, 99, 235, ${alpha})`;
+  const normalized = value.replace("#", "").padEnd(6, "0").slice(0, 6);
+  const number = Number.parseInt(normalized, 16);
+  const red = (number >> 16) & 255;
+  const green = (number >> 8) & 255;
+  const blue = number & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 function buildScheduleContext(blocks) {
   if (!blocks.length) return "The weekly schedule grid is currently empty.";
   return blocks.map((block) => (
@@ -254,14 +264,25 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
   const lineClass = isDark ? "border-white/[0.07]" : "border-[var(--bm-border)]";
   const headerBg = isDark ? "bg-white/[0.045]" : "bg-[var(--bm-bg-elevated)]";
   const cellBg = isDark ? "bg-transparent" : "bg-white";
-  const isCellOccupied = (day, hour) => {
+  const getCellBlock = (day, hour) => {
     const hourIndex = timeToIndex(hour);
-    return blocks.some((block) => (
+    return blocks.find((block) => (
       block.days.includes(day)
       && hourIndex >= timeToIndex(block.start)
       && hourIndex < timeToIndex(block.end)
     ));
   };
+
+  const getCellPosition = (block, hour) => {
+    const hourIndex = timeToIndex(hour);
+    const startIndex = timeToIndex(block.start);
+    const endIndex = Math.max(startIndex + 1, timeToIndex(block.end));
+    return {
+      isFirst: hourIndex === startIndex,
+      isLast: hourIndex === endIndex - 1,
+    };
+  };
+
   return (
     <section className={cn("h-full overflow-hidden rounded-[28px] border shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
       <div className="flex h-full flex-col">
@@ -291,17 +312,26 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                   <span>{hour}</span>
                 </div>
                 {DAYS.map((day) => {
-                  const occupied = isCellOccupied(day, hour);
+                  const block = getCellBlock(day, hour);
+                  const occupied = Boolean(block);
+                  const position = block ? getCellPosition(block, hour) : null;
+                  const symbol = block ? (DISPLAY_ICON_SYMBOLS[block.icon] || "\u2B50") : "";
+                  const activityTextColor = block ? getTextOnColor(block.color) : undefined;
                   return (
                     <div
                       key={`${day}-${hour}`}
                       aria-label={`${day} ${hour}`}
                       className={cn(
-                        "relative border-r last:border-r-0",
-                        !occupied && "border-b",
+                        "relative border-b border-r last:border-r-0",
                         lineClass,
-                        occupied ? (isDark ? "bg-[var(--bm-bg-card)]" : "bg-white") : cellBg,
+                        !occupied && cellBg,
+                        occupied && "overflow-hidden",
                       )}
+                      style={occupied ? {
+                        background: `linear-gradient(135deg, ${hexToRgba(block.color, isDark ? 0.84 : 0.76)}, ${hexToRgba(block.color, isDark ? 0.72 : 0.62)})`,
+                        color: activityTextColor,
+                        boxShadow: position.isFirst ? `inset 0 1px 0 ${hexToRgba("#FFFFFF", 0.18)}` : undefined,
+                      } : undefined}
                     >
                       {editMode && hour !== "24:00" && !occupied && (
                       <button
@@ -313,62 +343,41 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                         <Plus className="h-3 w-3 stroke-[3]" />
                       </button>
                       )}
+                      {occupied && (
+                        <div
+                          className={cn(
+                            "flex h-full min-w-0 items-center px-3",
+                            position.isFirst ? "justify-between gap-2 rounded-t-[14px]" : "justify-center",
+                            position.isLast && "rounded-b-[14px]",
+                          )}
+                        >
+                          {position.isFirst ? (
+                            <>
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className="shrink-0 text-lg leading-none drop-shadow-sm" aria-hidden="true">{symbol}</span>
+                                <span className={cn("truncate font-extrabold leading-tight", typeClasses.small)}>{block.name}</span>
+                              </div>
+                              {editMode && (
+                                <button
+                                  type="button"
+                                  onClick={() => onRequestDelete(block)}
+                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/25 text-lg font-black leading-none text-white transition hover:bg-black/40"
+                                  aria-label={`Delete ${block.name}`}
+                                >
+                                  -
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-lg leading-none drop-shadow-sm" aria-hidden="true">{symbol}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             ))}
-
-            {blocks.flatMap((block) => block.days.map((day) => {
-              const dayIndex = DAYS.indexOf(day);
-              const startIndex = timeToIndex(block.start);
-              const endIndex = Math.max(startIndex + 1, timeToIndex(block.end));
-              const duration = Math.max(1, endIndex - startIndex);
-              const symbol = DISPLAY_ICON_SYMBOLS[block.icon] || "\u2B50";
-              if (dayIndex === -1) return null;
-
-              return (
-                <motion.div
-                  key={`${block.id}-${day}`}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  className="z-30 mx-1.5 my-1 overflow-hidden rounded-[24px] text-white shadow-[0_18px_38px_rgba(15,23,42,0.22)] ring-1 ring-white/20"
-                  style={{
-                    gridColumn: dayIndex + 2,
-                    gridRow: `${startIndex + 1} / ${endIndex + 1}`,
-                    background: `linear-gradient(145deg, ${block.color}, #1D4ED8)`,
-                  }}
-                >
-                  {editMode && (
-                    <button
-                      type="button"
-                      onClick={() => onRequestDelete(block)}
-                      className="absolute right-2 top-2 z-40 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-lg font-black leading-none text-white shadow-sm transition hover:bg-black/60"
-                      aria-label={`Delete ${block.name}`}
-                    >
-                      -
-                    </button>
-                  )}
-                  <div
-                    className="grid h-full"
-                    style={{ gridTemplateRows: `repeat(${duration}, minmax(0, 1fr))` }}
-                  >
-                    <div className="flex min-h-0 flex-col justify-center px-4 py-3">
-                      <p className={cn("truncate text-[15px] font-extrabold leading-tight tracking-[0.01em]")}>
-                        <span className="mr-1.5">{symbol}</span>
-                        {block.name}
-                      </p>
-                    </div>
-                    {Array.from({ length: Math.max(0, duration - 1) }, (_, index) => (
-                      <div key={`${block.id}-${day}-continuation-${index}`} className="flex min-h-0 items-center justify-center border-t border-white/10">
-                        <span className="text-xl drop-shadow-sm" aria-hidden="true">{symbol}</span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              );
-            }))}
           </div>
         </div>
       </div>
