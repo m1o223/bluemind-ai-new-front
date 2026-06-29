@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Apple, BookOpen, BriefcaseBusiness, Camera, Dumbbell, FileText, Mic, Paperclip, Plus, X } from "lucide-react";
+import { Apple, BookOpen, BriefcaseBusiness, Camera, Dumbbell, FileText, MessageSquare, Mic, Paperclip, Plus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
@@ -606,8 +606,17 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
+  const textareaRef = useRef(null);
   const canSend = Boolean(input.trim()) && !isSending && !isUploading;
   const hasConversation = messages.length > 0;
+
+  const resizeInput = (element) => {
+    if (!element) return;
+    element.style.height = "auto";
+    const nextHeight = Math.min(Math.max(element.scrollHeight, 56), 116);
+    element.style.height = `${nextHeight}px`;
+    element.style.overflowY = element.scrollHeight > 116 ? "auto" : "hidden";
+  };
 
   const resetConversation = () => {
     setMessages([]);
@@ -701,6 +710,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     if (!canSend || sendLockRef.current) return;
     const value = input.trim();
     setInput("");
+    window.requestAnimationFrame(() => resizeInput(textareaRef.current));
     setAddMenuOpen(false);
     streamAssistant({
       latestText: value,
@@ -880,7 +890,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 18 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className={cn("self-start flex min-h-[330px] w-full flex-col rounded-[28px] border p-4 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
+      className={cn("self-start flex h-[60vh] min-h-[430px] max-h-[680px] w-full flex-col rounded-[28px] border p-4 shadow-sm", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
     >
       <header className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -902,23 +912,23 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       </header>
 
       {!hasConversation && (
-        <div className="pt-6">
+        <div className="flex min-h-0 flex-1 flex-col justify-center py-6">
           <h2 className={cn("text-center font-extrabold tracking-tight", typeClasses.sectionTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
-            What would you like to build today?
+            Are you ready?
           </h2>
           <p className={cn("mx-auto mt-3 max-w-[340px] text-center font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
             BlueMind can help you build smart schedules for study, gym, nutrition, business, and more.
           </p>
-          <div className="mt-5 px-1">
+          <div className="mt-5 px-1 text-center">
             <p className={cn("font-extrabold", typeClasses.body, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Ready when you are.</p>
-            <p className={cn("mt-2 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
+            <p className={cn("mx-auto mt-2 max-w-[320px] font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
               Type below or upload a schedule image for BlueMind to analyze.
             </p>
           </div>
         </div>
       )}
 
-      <div className={cn("min-h-0 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-4 h-[220px]" : "h-0")}>
+      <div className={cn("min-h-0 flex-1 space-y-5 overflow-y-auto pr-1", hasConversation ? "mt-4" : "hidden")}>
         {hasConversation && messages.map((message) => (
             <motion.div
               key={message.id}
@@ -1037,13 +1047,18 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
           </AnimatePresence>
 
           <textarea
+            ref={textareaRef}
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value);
+              resizeInput(event.currentTarget);
+            }}
+            onInput={(event) => resizeInput(event.currentTarget)}
             rows={1}
             placeholder="Tell me what kind of schedule you want to create..."
             className={cn(
               inputClasses.composer,
-              "max-h-[92px] min-h-[52px] flex-1 resize-none bg-transparent px-1 py-3 font-semibold leading-6 outline-none",
+              "max-h-[116px] min-h-[56px] flex-1 resize-none bg-transparent px-1 py-3 font-semibold leading-6 outline-none",
               typeClasses.body,
               isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]",
             )}
@@ -1145,15 +1160,21 @@ export default function SchemanPage() {
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
+  const [chatVisible, setChatVisible] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [scheduleState, setScheduleState] = useState(readScheduleState);
   const [blockModal, setBlockModal] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [scheduleTypeOpen, setScheduleTypeOpen] = useState(false);
+  const [aiStartSignal, setAiStartSignal] = useState(0);
+  const [aiStartContext, setAiStartContext] = useState("");
   const [tutorialOpen, setTutorialOpen] = useState(() => localStorage.getItem(SCHEDULE_TUTORIAL_KEY) !== "true");
 
   const blocks = scheduleState.blocks || [];
   const hasBlocks = blocks.length > 0;
+  const pageColumns = useMemo(() => (
+    chatVisible ? "xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]" : "xl:grid-cols-1"
+  ), [chatVisible]);
 
   useEffect(() => {
     writeScheduleState(scheduleState);
@@ -1181,7 +1202,27 @@ export default function SchemanPage() {
 
   const selectScheduleType = (type) => {
     setScheduleTypeOpen(false);
-    toast.info(`${type.title} selected. The new Schedule assistant UI will be rebuilt next.`);
+    setChatVisible(true);
+    setAiStartContext(type.assistantPrompt);
+    setAiStartSignal((value) => value + 1);
+  };
+
+  const startAiDesign = () => {
+    setChatVisible(true);
+    setAiStartContext(hasBlocks
+      ? "The user wants to edit the existing Schedule with BlueMind AI. Use the current schedule blocks as context, identify possible improvements, and ask what they want to optimize."
+      : "The user wants BlueMind AI to design a Schedule from scratch. Ask what kind of schedule they want to build and guide them conversationally.");
+    setAiStartSignal((value) => value + 1);
+  };
+
+  const importScheduleBlocks = (importedBlocks) => {
+    if (!importedBlocks?.length) return;
+    setScheduleState((current) => ({
+      ...current,
+      blocks: [...(current.blocks || []), ...importedBlocks],
+      updatedAt: new Date().toISOString(),
+    }));
+    setEditMode(false);
   };
 
   const saveBlock = (block) => {
@@ -1219,6 +1260,10 @@ export default function SchemanPage() {
             <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
           </div>
           <div className="flex flex-wrap gap-2.5">
+            <ScheduleButton onClick={() => setChatVisible((value) => !value)} active={chatVisible} appColor={appColor} accentText={accentText}>
+              <MessageSquare className={iconClasses.button} />
+              {chatVisible ? "Close Chat" : "Open Chat"}
+            </ScheduleButton>
             {(hasBlocks || editMode) && (
               <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
                 <Plus className={iconClasses.button} />
@@ -1229,10 +1274,14 @@ export default function SchemanPage() {
               <Plus className={iconClasses.button} />
               Create Custom Schedule
             </ScheduleButton>
+            <ScheduleButton onClick={startAiDesign} active appColor={appColor} accentText={accentText}>
+              <Sparkles className={iconClasses.button} />
+              Edit with BlueMind AI
+            </ScheduleButton>
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-1">
+        <div className={cn("grid min-h-0 flex-1 items-start gap-5", pageColumns)}>
           <div className="min-h-[620px]">
             <WeeklyGrid
               isDark={isDark}
@@ -1242,6 +1291,15 @@ export default function SchemanPage() {
               onRequestDelete={setDeleteTarget}
             />
           </div>
+          <ScheduleAssistant
+            isDark={isDark}
+            appColor={appColor}
+            blocks={blocks}
+            startSignal={aiStartSignal}
+            startContext={aiStartContext}
+            chatVisible={chatVisible}
+            onImportBlocks={importScheduleBlocks}
+          />
         </div>
       </div>
 
