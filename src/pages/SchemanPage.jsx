@@ -62,7 +62,10 @@ const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
 const GENERATED_TEMPLATE_STORAGE_KEY = "bluemind-schedule-generated-templates-v1";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const HOURS = Array.from({ length: 25 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
+const HOURS = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
+const DAY_END_TIME = "23:59";
+const DAY_END_MINUTES = (23 * 60) + 59;
+const END_TIMES = [...HOURS.slice(1), DAY_END_TIME];
 const ROW_HEIGHT = 48;
 const ICON_OPTIONS = [
   "Book",
@@ -368,11 +371,19 @@ function timeToIndex(value) {
 
 function timeToMinutes(value) {
   const match = String(value || "").match(/(\d{1,2})(?::|\.)(\d{2})?/);
-  if (!match) return timeToIndex(value) * 60;
+  if (!match) return Math.min(DAY_END_MINUTES, timeToIndex(value) * 60);
   const hour = Number(match[1]);
   const minute = Number(match[2] || 0);
   if (!Number.isFinite(hour) || !Number.isFinite(minute)) return 0;
-  return Math.max(0, Math.min(24 * 60, hour * 60 + minute));
+  return Math.max(0, Math.min(DAY_END_MINUTES, hour * 60 + minute));
+}
+
+function getNextEndTime(startTime) {
+  return END_TIMES[Math.min(timeToIndex(startTime), END_TIMES.length - 1)] || DAY_END_TIME;
+}
+
+function getEndTimeOptions(startTime) {
+  return END_TIMES.slice(Math.min(timeToIndex(startTime), END_TIMES.length - 1));
 }
 
 function hexToRgba(value, alpha = 1) {
@@ -432,6 +443,8 @@ function normalizeScheduleTime(value) {
   const minute = Number(match[2] ?? 0);
   if (!Number.isFinite(hour) || hour < 0 || hour > 24) return "";
   if (!Number.isFinite(minute) || minute < 0 || minute > 59) return "";
+  if (hour === 24 && minute === 0) return DAY_END_TIME;
+  if (hour === 24) return "";
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
@@ -602,7 +615,8 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
   const cellBg = isDark ? "bg-transparent" : "bg-white";
   const getCellSegments = (day, hour) => {
     const cellStart = timeToMinutes(hour);
-    const cellEnd = Math.min(cellStart + 60, 24 * 60);
+    const cellEnd = Math.min(cellStart + 60, DAY_END_MINUTES);
+    const cellDuration = Math.max(1, cellEnd - cellStart);
     return blocks
       .filter((block) => {
         const blockStart = timeToMinutes(block.start);
@@ -618,6 +632,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
         return {
           block,
           duration,
+          cellDuration,
           offset: Math.max(0, segmentStart - cellStart),
           isFirst: blockStart >= cellStart && blockStart < cellEnd,
           startsInside: blockStart > cellStart,
@@ -669,7 +684,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                         occupied && "overflow-hidden",
                       )}
                     >
-                      {editMode && hour !== "24:00" && !occupied && (
+                      {editMode && !occupied && (
                       <button
                         type="button"
                         onClick={() => onAddCell(day, hour)}
@@ -681,11 +696,11 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                       )}
                       {occupied && (
                         <div className="absolute inset-0">
-                          {segments.map(({ block, duration, offset, isFirst, startsInside, endsInside }) => {
+                          {segments.map(({ block, duration, cellDuration, offset, isFirst, startsInside, endsInside }) => {
                             const ScheduleIcon = getScheduleIconOption(block.icon).Icon;
                             const activityTextColor = getTextOnColor(block.color);
-                            const segmentTop = `${(offset / 60) * 100}%`;
-                            const segmentHeight = `${(duration / 60) * 100}%`;
+                            const segmentTop = `${(offset / cellDuration) * 100}%`;
+                            const segmentHeight = `${(duration / cellDuration) * 100}%`;
                             return (
                               <div
                                 key={`${block.id}-${day}-${hour}`}
@@ -742,7 +757,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
 function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, onClose, onSave }) {
   const [name, setName] = useState("");
   const [start, setStart] = useState(initialStart || "00:00");
-  const [end, setEnd] = useState(HOURS[Math.min(timeToIndex(initialStart || "00:00") + 1, 24)]);
+  const [end, setEnd] = useState(getNextEndTime(initialStart || "00:00"));
   const [days, setDays] = useState(initialDay ? [initialDay] : []);
   const [color, setColor] = useState(COLOR_OPTIONS[0]);
   const [icon, setIcon] = useState(ICON_OPTIONS[0]);
@@ -750,17 +765,17 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const selectedIconOption = getScheduleIconOption(icon);
   const SelectedIcon = selectedIconOption.Icon;
-  const nextHour = HOURS[Math.min(timeToIndex(start) + 1, 24)];
+  const nextEndTime = getNextEndTime(start);
 
   const toggleDay = (day) => {
     setDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
   };
 
   useEffect(() => {
-    if (singleSlot || timeToIndex(end) <= timeToIndex(start)) {
-      setEnd(nextHour);
+    if (singleSlot || timeToMinutes(end) <= timeToMinutes(start)) {
+      setEnd(nextEndTime);
     }
-  }, [end, nextHour, singleSlot, start]);
+  }, [end, nextEndTime, singleSlot, start]);
 
   const save = () => {
     if (!name.trim()) {
@@ -771,8 +786,8 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
       toast.error("Select at least one day.");
       return;
     }
-    const finalEnd = singleSlot ? nextHour : end;
-    if (timeToIndex(finalEnd) <= timeToIndex(start)) {
+    const finalEnd = singleSlot ? nextEndTime : end;
+    if (timeToMinutes(finalEnd) <= timeToMinutes(start)) {
       toast.error("End time must be after start time.");
       return;
     }
@@ -814,7 +829,7 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
             <label className="grid gap-2">
               <span className={cn("font-bold", typeClasses.small)}>Start time</span>
               <select value={start} onChange={(event) => setStart(event.target.value)} className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")}>
-                {HOURS.slice(0, -1).map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+                {HOURS.map((hour) => <option key={hour} value={hour}>{hour}</option>)}
               </select>
             </label>
             <div className="grid gap-2">
@@ -836,7 +851,7 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
                 ))}
               </div>
               <span className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
-                {singleSlot ? `${start} - ${nextHour}` : "Choose a longer time range below."}
+                {singleSlot ? `${start} - ${nextEndTime}` : "Choose a longer time range below."}
               </span>
             </div>
           </div>
@@ -845,7 +860,7 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
             <label className="grid gap-2">
               <span className={cn("font-bold", typeClasses.small)}>End time</span>
               <select value={end} onChange={(event) => setEnd(event.target.value)} className={cn(inputClasses.base, "h-12 rounded-2xl px-4 font-semibold")}>
-                {HOURS.slice(timeToIndex(start) + 1).map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+                {getEndTimeOptions(start).map((hour) => <option key={hour} value={hour}>{hour}</option>)}
               </select>
             </label>
           )}
