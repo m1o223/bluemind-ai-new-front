@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Brain,
@@ -306,6 +306,7 @@ export default function DesktopComposer({
   const [isFocused, setIsFocused] = useState(false);
   const [promptIndex, setPromptIndex] = useState(0);
   const [activeMenu, setActiveMenu] = useState("");
+  const internalInputRef = useRef(null);
   const maxHeightRef = useRef(320);
   const hasText = Boolean(String(value || "").trim());
   const normalizedAttachments = useMemo(() => attachments.filter(Boolean), [attachments]);
@@ -313,6 +314,27 @@ export default function DesktopComposer({
   const activeModel = BLUEMIND_MODELS.find((model) => model.id === modelId) || getBlueMindModelByResponseMode(responseMode);
   const activeThinkingLevel = THINKING_LEVELS.find((level) => level.id === thinkingLevel) || THINKING_LEVELS[1];
   const activePlaceholder = placeholder || ROTATING_PROMPTS[promptIndex];
+
+  const setTextareaRef = useCallback((node) => {
+    internalInputRef.current = node;
+    if (typeof inputRef === "function") {
+      inputRef(node);
+    } else if (inputRef) {
+      inputRef.current = node;
+    }
+  }, [inputRef]);
+
+  const getTextarea = useCallback(() => {
+    return internalInputRef.current || inputRef?.current || null;
+  }, [inputRef]);
+
+  const focusTextarea = useCallback((event) => {
+    const target = event?.target;
+    if (target?.closest?.("button,a,input,select,[role='button'],[role='menuitem'],[contenteditable='true']")) {
+      return;
+    }
+    getTextarea()?.focus({ preventScroll: true });
+  }, [getTextarea]);
 
   useEffect(() => {
     if (placeholder) return undefined;
@@ -332,7 +354,7 @@ export default function DesktopComposer({
   }, []);
 
   useLayoutEffect(() => {
-    const element = inputRef?.current;
+    const element = getTextarea();
     if (!element) return;
     const minHeight = 104;
     const maxHeight = maxHeightRef.current;
@@ -340,7 +362,18 @@ export default function DesktopComposer({
     const nextHeight = Math.max(minHeight, Math.min(element.scrollHeight, maxHeight));
     element.style.height = `${nextHeight}px`;
     element.style.overflowY = element.scrollHeight > maxHeight ? "auto" : "hidden";
-  }, [inputRef, value, hasText]);
+  }, [getTextarea, value, hasText, isListening]);
+
+  useEffect(() => {
+    const element = getTextarea();
+    if (!element) return undefined;
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement !== document.body && activeElement !== document.documentElement && activeElement !== element) {
+      return undefined;
+    }
+    const frame = window.requestAnimationFrame(() => element.focus({ preventScroll: true }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [getTextarea, isListening]);
 
   const handleTextareaInput = (event) => {
     const element = event.currentTarget;
@@ -424,7 +457,7 @@ export default function DesktopComposer({
                 </div>
               )}
 
-              <div className="relative">
+              <div className="relative cursor-text" onPointerDown={focusTextarea} onClick={focusTextarea}>
                 <AnimatePresence mode="wait">
                   {!hasText && !isFocused && (
                     <motion.span
@@ -440,7 +473,7 @@ export default function DesktopComposer({
                   )}
                 </AnimatePresence>
                 <textarea
-                  ref={inputRef}
+                  ref={setTextareaRef}
                   value={value}
                   onChange={onChange}
                   onInput={handleTextareaInput}
@@ -449,7 +482,7 @@ export default function DesktopComposer({
                   onBlur={() => setIsFocused(false)}
                   rows={1}
                   placeholder={isFocused || hasText ? activePlaceholder : ""}
-                  className="desktop-bluemind-composer-input bm-composer-input block w-full resize-none bg-transparent pt-2 text-[18px] font-medium leading-7 text-[var(--bm-text-primary)] outline-none placeholder:text-[var(--bm-text-secondary)]/80"
+                  className="desktop-bluemind-composer-input bm-composer-input relative z-10 block w-full resize-none bg-transparent pt-2 text-[18px] font-medium leading-7 text-[var(--bm-text-primary)] outline-none placeholder:text-[var(--bm-text-secondary)]/80"
                   style={{
                     ...inputDirectionStyle,
                     minHeight: "104px",

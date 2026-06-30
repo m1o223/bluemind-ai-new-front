@@ -604,6 +604,10 @@ select:focus-visible {
 .bm-composer-input {
   color: var(--bm-text-primary);
   caret-color: var(--bm-input-caret);
+  cursor: text;
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .bm-input-reset {

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FileText, Mic, Plus, X } from "lucide-react";
 
@@ -95,6 +95,7 @@ export default function UnifiedComposer({
   testId = "chat-input",
 }) {
   const [isFocused, setIsFocused] = useState(false);
+  const internalInputRef = useRef(null);
   const isMobile = variant === "mobile";
   const hasText = Boolean(String(value || "").trim());
   const hasAttachments = attachments.length > 0 || isUploading;
@@ -109,15 +110,47 @@ export default function UnifiedComposer({
     [attachments],
   );
 
+  const setTextareaRef = useCallback((node) => {
+    internalInputRef.current = node;
+    if (typeof inputRef === "function") {
+      inputRef(node);
+    } else if (inputRef) {
+      inputRef.current = node;
+    }
+  }, [inputRef]);
+
+  const getTextarea = useCallback(() => {
+    return internalInputRef.current || inputRef?.current || null;
+  }, [inputRef]);
+
+  const focusTextarea = useCallback((event) => {
+    const target = event?.target;
+    if (target?.closest?.("button,a,input,select,[role='button'],[role='menuitem'],[contenteditable='true']")) {
+      return;
+    }
+    getTextarea()?.focus({ preventScroll: true });
+  }, [getTextarea]);
+
   useLayoutEffect(() => {
-    const element = inputRef?.current;
+    const element = getTextarea();
     if (!element) return;
 
     element.style.height = "auto";
     const nextHeight = hasText ? Math.min(element.scrollHeight, maxTextHeight) : textareaMinHeight;
     element.style.height = `${Math.max(nextHeight, textareaMinHeight)}px`;
     element.style.overflowY = element.scrollHeight > maxTextHeight ? "auto" : "hidden";
-  }, [hasText, inputRef, maxTextHeight, textareaMinHeight, value]);
+  }, [getTextarea, hasText, isListening, maxTextHeight, textareaMinHeight, value]);
+
+  useEffect(() => {
+    const element = getTextarea();
+    if (!element) return undefined;
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement !== document.body && activeElement !== document.documentElement && activeElement !== element) {
+      return undefined;
+    }
+    const frame = window.requestAnimationFrame(() => element.focus({ preventScroll: true }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [getTextarea, isListening]);
 
   const addButton = (
     <motion.button
@@ -193,8 +226,10 @@ export default function UnifiedComposer({
 
         <motion.div
           layout
+          onPointerDown={focusTextarea}
+          onClick={focusTextarea}
           className={cn(
-            "relative flex min-w-0 flex-1 flex-col border transition-all duration-200",
+            "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
             isMobile
               ? isAttachmentState ? "rounded-[28px] px-3.5 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.14)]" : isTypingState ? "rounded-[27px] px-3.5 py-2.5 shadow-[0_16px_42px_rgba(15,23,42,0.12)]" : "rounded-[26px] px-2.5 py-2 shadow-[0_14px_38px_rgba(15,23,42,0.10)]"
               : isAttachmentState ? "rounded-[32px] px-4 py-3 sm:px-5" : "rounded-[31px] px-4 py-2.5 sm:px-5",
@@ -288,7 +323,7 @@ export default function UnifiedComposer({
                 {isIdleState && addButton}
 
                 <textarea
-                  ref={inputRef}
+                  ref={setTextareaRef}
                   value={value}
                   onChange={onChange}
                   onInput={onInput}
@@ -299,7 +334,7 @@ export default function UnifiedComposer({
                   placeholder={placeholder}
                   className={cn(
                     inputClasses.composer,
-                    "block min-w-0 flex-1 resize-none bg-transparent font-medium outline-none",
+                    "relative z-10 block min-w-0 flex-1 resize-none bg-transparent font-medium outline-none",
                     isMobile ? "text-[16px] leading-6" : "text-[17px] leading-7",
                     isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
                   )}

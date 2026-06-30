@@ -1591,6 +1591,7 @@ export default function ChatPage() {
   const fileInputRef = useRef(null);
   const writeImageInputRef = useRef(null);
   const writeCameraInputRef = useRef(null);
+  const composerInputRef = useRef(null);
   const responseModeMenuRef = useRef(null);
   const quickTemplatesRef = useRef(null);
   const websiteCategoryBarRef = useRef(null);
@@ -4082,6 +4083,7 @@ export default function ChatPage() {
     return (
       <DesktopComposer
             value={input}
+            inputRef={composerInputRef}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
             onSubmit={(event) => {
