@@ -1543,6 +1543,7 @@ export default function ChatPage() {
   const [privateSpaceError, setPrivateSpaceError] = useState("");
   const [privateSpaceForm, setPrivateSpaceForm] = useState({ name: "", pin: "", confirmPin: "" });
   const [privateSpaceActionMenuId, setPrivateSpaceActionMenuId] = useState(null);
+  const [privateSpaceActionMenuPosition, setPrivateSpaceActionMenuPosition] = useState(null);
   const [isCreatingPrivateSpace, setIsCreatingPrivateSpace] = useState(false);
   const [privateSpaceRenameName, setPrivateSpaceRenameName] = useState("");
   const [privateSpacePinForm, setPrivateSpacePinForm] = useState({ currentPin: "", newPin: "", confirmNewPin: "" });
@@ -1612,6 +1613,7 @@ export default function ChatPage() {
     onTranscript: setInput,
     onError: (message) => toast.error(message),
   });
+  const privateSpaceActionMenuTarget = privateSpaces.find((space) => space.privateSpaceId === privateSpaceActionMenuId);
 
   const {
     scrollRef: messagesScrollRef,
@@ -1641,6 +1643,22 @@ export default function ChatPage() {
     window.addEventListener("pointerdown", handlePointerDown);
     return () => window.removeEventListener("pointerdown", handlePointerDown);
   }, [responseModeMenuOpen]);
+
+  useEffect(() => {
+    if (!privateSpaceActionMenuId) return undefined;
+
+    const closeMenu = () => {
+      setPrivateSpaceActionMenuId(null);
+      setPrivateSpaceActionMenuPosition(null);
+    };
+
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+    return () => {
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+    };
+  }, [privateSpaceActionMenuId]);
 
   useEffect(() => {
     localStorage.setItem(RESPONSE_MODE_STORAGE_KEY, responseMode);
@@ -2028,25 +2046,26 @@ export default function ChatPage() {
                         className={cn("absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full", isDark ? "hover:bg-white/10" : "hover:bg-black/5")}
                         onClick={(event) => {
                           event.stopPropagation();
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          const menuWidth = 184;
+                          const menuHeight = 134;
+                          const margin = 12;
+                          const left = Math.min(
+                            Math.max(rect.right - menuWidth, margin),
+                            window.innerWidth - menuWidth - margin,
+                          );
+                          const preferredTop = rect.top;
+                          const top = Math.min(
+                            Math.max(preferredTop, margin),
+                            window.innerHeight - menuHeight - margin,
+                          );
+                          setPrivateSpaceActionMenuPosition({ top, left });
                           setPrivateSpaceActionMenuId((current) => current === space.privateSpaceId ? null : space.privateSpaceId);
                         }}
                         aria-label="Private chat actions"
                       >
                         <MoreVertical className="h-5 w-5" />
                       </button>
-                      {privateSpaceActionMenuId === space.privateSpaceId && (
-                        <div className={cn("absolute right-2 top-12 z-10 w-36 rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[var(--bm-bg-elevated)]" : "border-black/10 bg-white")}>
-                          {[
-                            ["Rename", () => { setSelectedPrivateSpace(space); setPrivateSpaceRenameName(space.name); setPrivateSpaceStep("rename"); }],
-                            ["Change PIN", () => { setSelectedPrivateSpace(space); setPrivateSpacePinForm({ currentPin: "", newPin: "", confirmNewPin: "" }); setPrivateSpaceStep("changePin"); }],
-                            ["Delete", () => { setPrivateSpaceDeleteTarget(space); setPrivateSpaceStep("delete"); }],
-                          ].map(([label, action]) => (
-                            <button key={label} type="button" className={cn("w-full rounded-xl px-3 py-2 text-left text-sm font-medium", label === "Delete" ? "text-red-500" : "")} onClick={() => { setPrivateSpaceActionMenuId(null); action(); }}>
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -2101,6 +2120,51 @@ export default function ChatPage() {
                 <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--bm-primary-hover)]">Unlock</button>
               </form>
             )}
+
+            <AnimatePresence>
+              {privateSpaceActionMenuTarget && privateSpaceActionMenuPosition && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                  transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                  className={cn(
+                    "fixed z-[70] rounded-2xl border p-1.5 shadow-[0_18px_45px_rgba(15,23,42,0.20)]",
+                    isDark ? "border-white/10 bg-[var(--bm-bg-elevated)]" : "border-black/10 bg-white",
+                  )}
+                  style={{
+                    top: privateSpaceActionMenuPosition.top,
+                    left: privateSpaceActionMenuPosition.left,
+                    width: 184,
+                  }}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {[
+                    ["Rename", () => { setSelectedPrivateSpace(privateSpaceActionMenuTarget); setPrivateSpaceRenameName(privateSpaceActionMenuTarget.name); setPrivateSpaceStep("rename"); }],
+                    ["Change PIN", () => { setSelectedPrivateSpace(privateSpaceActionMenuTarget); setPrivateSpacePinForm({ currentPin: "", newPin: "", confirmNewPin: "" }); setPrivateSpaceStep("changePin"); }],
+                    ["Delete Private Chat", () => { setPrivateSpaceDeleteTarget(privateSpaceActionMenuTarget); setPrivateSpaceStep("delete"); }],
+                  ].map(([label, action]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className={cn(
+                        "w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition",
+                        label === "Delete Private Chat"
+                          ? "text-red-500 hover:bg-red-500/10"
+                          : isDark ? "hover:bg-white/10" : "hover:bg-black/5",
+                      )}
+                      onClick={() => {
+                        setPrivateSpaceActionMenuId(null);
+                        setPrivateSpaceActionMenuPosition(null);
+                        action();
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </motion.div>
       )}
