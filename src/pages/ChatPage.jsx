@@ -74,10 +74,12 @@ import {
 } from "@/data/writeEditTemplates";
 import {
   getConversation,
+  generateVoiceSpeech,
   listConversations,
   searchConversations,
   streamChatMessage,
   streamHiddenChatMessage,
+  transcribeVoiceAudio,
 } from "@/services/chatService";
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
@@ -140,6 +142,8 @@ const THINKING_LEVEL_STORAGE_KEY = "bluemind_desktop_thinking_level";
 const DESKTOP_MODEL_STORAGE_KEY = "bluemind_desktop_model";
 const WEBSITE_FAVORITES_STORAGE_KEY = "bluemind_website_favorites";
 const WEBSITE_RECENTS_STORAGE_KEY = "bluemind_website_recents";
+const VOICE_RESPONSE_ENABLED_KEY = "bluemind_voice_response_enabled";
+const VOICE_AUTOPLAY_ENABLED_KEY = "bluemind_voice_autoplay_enabled";
 const WEBSITE_PAGE_SIZE = 10;
 
 function uiTextKey(prefix, value, suffix = "") {
@@ -1585,6 +1589,12 @@ export default function ChatPage() {
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [desktopSettingsOpen, setDesktopSettingsOpen] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("idle");
+  const [voiceError, setVoiceError] = useState("");
+  const [voiceResponseEnabled, setVoiceResponseEnabled] = useState(() => localStorage.getItem(VOICE_RESPONSE_ENABLED_KEY) !== "false");
+  const [voiceAutoplayEnabled, setVoiceAutoplayEnabled] = useState(() => localStorage.getItem(VOICE_AUTOPLAY_ENABLED_KEY) !== "false");
+  const [lastVoiceAudioUrl, setLastVoiceAudioUrl] = useState("");
+  const [lastVoiceText, setLastVoiceText] = useState("");
   const imageInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const pdfInputRef = useRef(null);
@@ -1597,6 +1607,8 @@ export default function ChatPage() {
   const websiteCategoryBarRef = useRef(null);
   const streamAbortRef = useRef(null);
   const activeAiMessageRef = useRef(null);
+  const voiceAudioRef = useRef(null);
+  const voiceSpeechAbortRef = useRef(null);
   const sendLockRef = useRef(false);
   const stopRequestedRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
@@ -1611,8 +1623,11 @@ export default function ChatPage() {
     stop: stopVoiceInput,
     cancel: cancelVoiceInput,
   } = useVoiceInput({
-    onTranscript: setInput,
-    onError: (message) => toast.error(message),
+    onError: (message) => {
+      setVoiceStatus("error");
+      setVoiceError(message);
+      toast.error(message);
+    },
   });
   const privateSpaceActionMenuTarget = privateSpaces.find((space) => space.privateSpaceId === privateSpaceActionMenuId);
 
@@ -1631,7 +1646,23 @@ export default function ChatPage() {
       window.clearTimeout(streamBufferRef.current.timer);
     }
     streamAbortRef.current?.abort();
+    voiceSpeechAbortRef.current?.abort();
+    voiceAudioRef.current?.pause?.();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(VOICE_RESPONSE_ENABLED_KEY, voiceResponseEnabled ? "true" : "false");
+  }, [voiceResponseEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem(VOICE_AUTOPLAY_ENABLED_KEY, voiceAutoplayEnabled ? "true" : "false");
+  }, [voiceAutoplayEnabled]);
+
+  useEffect(() => () => {
+    if (lastVoiceAudioUrl) {
+      URL.revokeObjectURL(lastVoiceAudioUrl);
+    }
+  }, [lastVoiceAudioUrl]);
 
   useEffect(() => {
     if (!responseModeMenuOpen) return undefined;
@@ -2561,13 +2592,91 @@ export default function ChatPage() {
     activeAiMessageRef.current = null;
   }, [flushAiDelta, isAiTyping]);
 
-  const startVoiceInput = useCallback(() => {
-    if (isListening) {
-      stopVoiceInput();
+  const stopVoicePlayback = useCallback(() => {
+    voiceAudioRef.current?.pause?.();
+    voiceAudioRef.current = null;
+    voiceSpeechAbortRef.current?.abort();
+    voiceSpeechAbortRef.current = null;
+    setVoiceStatus((status) => status === "speaking" ? "idle" : status);
+  }, []);
+
+  const playVoiceAudioUrl = useCallback(async (audioUrl) => {
+    if (!audioUrl) return;
+
+    stopVoicePlayback();
+    const audio = new Audio(audioUrl);
+    voiceAudioRef.current = audio;
+    setVoiceStatus("speaking");
+    setVoiceError("");
+
+    audio.onended = () => {
+      if (voiceAudioRef.current === audio) {
+        voiceAudioRef.current = null;
+        setVoiceStatus("idle");
+      }
+    };
+    audio.onerror = () => {
+      if (voiceAudioRef.current === audio) {
+        voiceAudioRef.current = null;
+      }
+      setVoiceStatus("error");
+      setVoiceError("Audio playback failed.");
+      toast.error("Audio playback failed.");
+    };
+
+    try {
+      await audio.play();
+    } catch {
+      setVoiceStatus("error");
+      setVoiceError("Audio playback failed.");
+      toast.error("Audio playback failed.");
+    }
+  }, [stopVoicePlayback]);
+
+  const speakAssistantText = useCallback(async (text, { autoplay = true } = {}) => {
+    if (!voiceResponseEnabled || !String(text || "").trim()) return;
+
+    voiceSpeechAbortRef.current?.abort();
+    const abortController = new AbortController();
+    voiceSpeechAbortRef.current = abortController;
+
+    try {
+      const audioBlob = await generateVoiceSpeech(text, { signal: abortController.signal });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      setLastVoiceText(text);
+      setLastVoiceAudioUrl((previousUrl) => {
+        if (previousUrl) URL.revokeObjectURL(previousUrl);
+        return audioUrl;
+      });
+
+      if (autoplay && voiceAutoplayEnabled) {
+        await playVoiceAudioUrl(audioUrl);
+      } else {
+        setVoiceStatus("idle");
+      }
+    } catch (error) {
+      if (abortController.signal.aborted) return;
+      const message = error?.message || "Voice generation failed.";
+      setVoiceStatus("error");
+      setVoiceError(message);
+      toast.error(message);
+    } finally {
+      if (voiceSpeechAbortRef.current === abortController) {
+        voiceSpeechAbortRef.current = null;
+      }
+    }
+  }, [playVoiceAudioUrl, voiceAutoplayEnabled, voiceResponseEnabled]);
+
+  const handleReplayVoice = useCallback(() => {
+    if (lastVoiceAudioUrl) {
+      void playVoiceAudioUrl(lastVoiceAudioUrl);
       return;
     }
-    startVoiceCapture({ baseText: input, language: prefs.language || navigator.language || "en-US" });
-  }, [input, isListening, prefs.language, startVoiceCapture, stopVoiceInput]);
+
+    if (lastVoiceText) {
+      void speakAssistantText(lastVoiceText, { autoplay: true });
+    }
+  }, [lastVoiceAudioUrl, lastVoiceText, playVoiceAudioUrl, speakAssistantText]);
 
   const handleSend = useCallback(async (options = {}) => {
     const mode = options.mode || activeMode;
@@ -2758,6 +2867,11 @@ export default function ChatPage() {
             ),
           );
 
+          const finalAssistantText = String(payload?.message?.content || "").trim();
+          if (options.voiceRequest && finalAssistantText) {
+            await speakAssistantText(finalAssistantText, { autoplay: true });
+          }
+
           if (currentInput && chatSessionMode !== "hidden") {
             const suggestionResult = await suggestReminder(
               currentInput,
@@ -2810,6 +2924,9 @@ export default function ChatPage() {
       );
     } finally {
       setIsAiTyping(false);
+      if (options.voiceRequest) {
+        setVoiceStatus((status) => status === "thinking" ? "idle" : status);
+      }
       sendLockRef.current = false;
       streamAbortRef.current = null;
       activeAiMessageRef.current = null;
@@ -2831,12 +2948,71 @@ export default function ChatPage() {
     refreshHistory,
     responseMode,
     scrollToBottom,
+    speakAssistantText,
     thinkingLevel,
     privateSpaceAccessToken,
     stopVoiceInput,
     t,
     writeFiles,
   ]);
+
+  const handleFinishVoiceInput = useCallback(async () => {
+    setVoiceStatus("processing");
+    setVoiceError("");
+    const audioBlob = await stopVoiceInput();
+
+    if (!audioBlob) {
+      setVoiceStatus("idle");
+      return;
+    }
+
+    if (audioBlob.size < 512) {
+      setVoiceStatus("error");
+      setVoiceError("Empty audio or no speech detected.");
+      toast.error("Empty audio or no speech detected.");
+      return;
+    }
+
+    try {
+      const result = await transcribeVoiceAudio(audioBlob);
+      const text = String(result?.text || "").trim();
+
+      if (!text) {
+        throw new Error("Empty audio or no speech detected.");
+      }
+
+      setInput(text);
+      setVoiceStatus("thinking");
+      await handleSend({
+        message: text,
+        metadata: { source: "voice", transcriptionModel: result?.model },
+        voiceRequest: true,
+      });
+    } catch (error) {
+      const message = error?.message || "Transcription failed.";
+      setVoiceStatus("error");
+      setVoiceError(message);
+      toast.error(message);
+    }
+  }, [handleSend, stopVoiceInput]);
+
+  const handleCancelVoiceInput = useCallback(() => {
+    setVoiceStatus("idle");
+    setVoiceError("");
+    void cancelVoiceInput();
+  }, [cancelVoiceInput]);
+
+  const startVoiceInput = useCallback(() => {
+    if (isListening) {
+      void handleFinishVoiceInput();
+      return;
+    }
+
+    stopVoicePlayback();
+    setVoiceStatus("listening");
+    setVoiceError("");
+    void startVoiceCapture();
+  }, [handleFinishVoiceInput, isListening, startVoiceCapture, stopVoicePlayback]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -3987,6 +4163,14 @@ export default function ChatPage() {
       setAttachments([]);
     };
     const composerMode = activeMode !== "default" ? (CHAT_MODES[activeMode] || CHAT_MODES.default) : null;
+    const voiceStatusLabel = {
+      idle: "Voice ready",
+      listening: "Listening...",
+      processing: "Processing voice...",
+      thinking: "BlueMind is thinking...",
+      speaking: "Speaking...",
+      error: "Voice needs attention",
+    }[voiceStatus] || "Voice ready";
     const modePill = composerMode ? {
       label: t(composerMode.labelKey),
       icon: composerMode.icon,
@@ -4093,7 +4277,7 @@ export default function ChatPage() {
                 return;
               }
               if (isListening) {
-                stopVoiceInput();
+                void handleFinishVoiceInput();
                 return;
               }
               handleSend();
@@ -4120,11 +4304,21 @@ export default function ChatPage() {
             onVoice={startVoiceInput}
             isListening={isListening}
             voiceAudioLevels={voiceAudioLevels}
-            onCancelVoice={cancelVoiceInput}
-            onFinishVoice={stopVoiceInput}
+            onCancelVoice={handleCancelVoiceInput}
+            onFinishVoice={handleFinishVoiceInput}
+            voiceStatus={voiceStatus}
+            voiceStatusLabel={voiceStatusLabel}
+            voiceError={voiceError}
+            voiceResponseEnabled={voiceResponseEnabled}
+            voiceAutoplayEnabled={voiceAutoplayEnabled}
+            onToggleVoiceResponse={() => setVoiceResponseEnabled((value) => !value)}
+            onToggleVoiceAutoplay={() => setVoiceAutoplayEnabled((value) => !value)}
+            onStopVoicePlayback={stopVoicePlayback}
+            onReplayVoice={handleReplayVoice}
+            canReplayVoice={Boolean(lastVoiceAudioUrl || lastVoiceText)}
             isBusy={isAiTyping || isListening}
             canSend={Boolean(input.trim() || composerAttachments.length)}
-            onSendAction={isAiTyping ? handleStopStreaming : isListening ? stopVoiceInput : undefined}
+            onSendAction={isAiTyping ? handleStopStreaming : isListening ? handleFinishVoiceInput : undefined}
             addLabel={t("addAttachment")}
             voiceLabel={isListening ? t("stopVoiceInput") : t("startVoiceInput")}
             sendLabel={t("sendMessage")}

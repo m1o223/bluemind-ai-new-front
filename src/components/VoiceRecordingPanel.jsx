@@ -39,23 +39,29 @@ export default function VoiceRecordingPanel({
       </button>
 
       <div className="flex min-w-0 flex-1 items-center justify-center gap-[3px]" aria-label="Live microphone waveform">
-        {levels.map((level, index) => {
-          const height = Math.max(compact ? 6 : 8, Math.round((compact ? 38 : 58) * level));
-          const opacity = 0.36 + Math.min(0.5, level * 0.7);
-          return (
-            <motion.span
-              key={`${index}-${levels.length}`}
-              animate={{ height, opacity }}
-              transition={{ duration: 0.08, ease: "linear" }}
-              className="w-[3px] rounded-full"
-              style={{
-                backgroundColor: index > levels.length * 0.36 && index < levels.length * 0.64
-                  ? appColor
-                  : isDark ? "rgba(255,255,255,0.72)" : "rgba(25,59,104,0.46)",
-              }}
-            />
-          );
-        })}
+        <div className="min-w-[112px] text-center">
+          <p className={cn("text-sm font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Listening...</p>
+          <p className={cn("mt-1 text-xs font-semibold", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>Speak naturally</p>
+        </div>
+        <div className="flex flex-1 items-center justify-center gap-[3px]">
+          {levels.map((level, index) => {
+            const height = Math.max(compact ? 6 : 8, Math.round((compact ? 38 : 58) * level));
+            const opacity = 0.36 + Math.min(0.5, level * 0.7);
+            return (
+              <motion.span
+                key={`${index}-${levels.length}`}
+                animate={{ height, opacity }}
+                transition={{ duration: 0.08, ease: "linear" }}
+                className="w-[3px] rounded-full"
+                style={{
+                  backgroundColor: index > levels.length * 0.36 && index < levels.length * 0.64
+                    ? appColor
+                    : isDark ? "rgba(255,255,255,0.72)" : "rgba(25,59,104,0.46)",
+                }}
+              />
+            );
+          })}
+        </div>
       </div>
 
       <button

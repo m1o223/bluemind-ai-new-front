@@ -9,8 +9,12 @@ import {
   Lightbulb,
   Mic,
   Plus,
+  RotateCcw,
   Search,
   Sparkles,
+  Square,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 
@@ -284,6 +288,16 @@ export default function DesktopComposer({
   voiceAudioLevels = [],
   onCancelVoice,
   onFinishVoice,
+  voiceStatus = "idle",
+  voiceStatusLabel = "",
+  voiceError = "",
+  voiceResponseEnabled = true,
+  voiceAutoplayEnabled = true,
+  onToggleVoiceResponse,
+  onToggleVoiceAutoplay,
+  onStopVoicePlayback,
+  onReplayVoice,
+  canReplayVoice = false,
   isBusy = false,
   canSend = false,
   onSendAction,
@@ -314,6 +328,7 @@ export default function DesktopComposer({
   const activeModel = BLUEMIND_MODELS.find((model) => model.id === modelId) || getBlueMindModelByResponseMode(responseMode);
   const activeThinkingLevel = THINKING_LEVELS.find((level) => level.id === thinkingLevel) || THINKING_LEVELS[1];
   const activePlaceholder = placeholder || ROTATING_PROMPTS[promptIndex];
+  const showVoiceControls = voiceStatus !== "idle" || canReplayVoice || voiceError;
 
   const setTextareaRef = useCallback((node) => {
     internalInputRef.current = node;
@@ -396,6 +411,70 @@ export default function DesktopComposer({
         className="overflow-visible rounded-[36px] bg-[var(--bm-bg-card)] px-6 py-6 text-[var(--bm-text-primary)]"
         data-testid="desktop-bluemind-composer"
       >
+        {showVoiceControls && !isListening && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[var(--bm-hover-bg)] px-3 py-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bm-primary)]/12 text-[var(--bm-primary)]">
+                {voiceStatus === "speaking" ? <Volume2 className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {["processing", "thinking", "speaking"].includes(voiceStatus) && (
+                  <span className="absolute inset-0 animate-ping rounded-full bg-[var(--bm-primary)]/20" />
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-extrabold text-[var(--bm-text-primary)]">
+                  {voiceError || voiceStatusLabel || "Voice ready"}
+                </span>
+                <span className="block text-xs font-semibold text-[var(--bm-text-secondary)]">
+                  Voice {voiceResponseEnabled ? "on" : "off"} - Auto-play {voiceAutoplayEnabled ? "on" : "off"}
+                </span>
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={onToggleVoiceResponse}
+                className={cn(
+                  "h-8 rounded-full px-3 text-xs font-extrabold transition-colors",
+                  voiceResponseEnabled ? "bg-[var(--bm-primary)] text-white" : "bg-[var(--bm-bg-card)] text-[var(--bm-text-secondary)]",
+                )}
+              >
+                Voice
+              </button>
+              <button
+                type="button"
+                onClick={onToggleVoiceAutoplay}
+                className={cn(
+                  "h-8 rounded-full px-3 text-xs font-extrabold transition-colors",
+                  voiceAutoplayEnabled ? "bg-[var(--bm-primary)] text-white" : "bg-[var(--bm-bg-card)] text-[var(--bm-text-secondary)]",
+                )}
+              >
+                Auto
+              </button>
+              {voiceStatus === "speaking" && (
+                <button
+                  type="button"
+                  onClick={onStopVoicePlayback}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-active-bg)]"
+                  aria-label="Stop AI voice playback"
+                >
+                  <Square className="h-3.5 w-3.5 fill-current" />
+                </button>
+              )}
+              {canReplayVoice && (
+                <button
+                  type="button"
+                  onClick={onReplayVoice}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] transition-colors hover:bg-[var(--bm-active-bg)]"
+                  aria-label="Replay AI voice response"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {isListening ? (
             <VoiceRecordingPanel
@@ -524,10 +603,13 @@ export default function DesktopComposer({
                   <button
                     type="button"
                     onClick={onVoice}
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-secondary)] transition-colors hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]"
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-[var(--bm-hover-bg)] hover:text-[var(--bm-text-primary)]",
+                      voiceResponseEnabled ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-muted)]",
+                    )}
                     aria-label={voiceLabel}
                   >
-                    <Mic className="h-5 w-5" />
+                    {voiceResponseEnabled ? <Mic className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                   </button>
                   <BlueMindSendButton
                     isBusy={isBusy}

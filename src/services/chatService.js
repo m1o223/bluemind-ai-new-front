@@ -75,6 +75,32 @@ function createStreamRequest(payload, signal, path = "/chat/stream") {
   });
 }
 
+function createAuthedRequest(path, options = {}) {
+  const token = localStorage.getItem(STORAGE_KEYS.token);
+
+  return fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    credentials: "include",
+  });
+}
+
+async function authedRequestWithRefresh(path, options = {}) {
+  let response = await createAuthedRequest(path, options);
+
+  if (response.status === 401) {
+    const session = await refreshAccessToken();
+    if (session?.token) {
+      response = await createAuthedRequest(path, options);
+    }
+  }
+
+  return response;
+}
+
 export async function streamChatMessage({
   message,
   imageIds = [],
@@ -211,6 +237,53 @@ export async function streamHiddenChatMessage(options) {
       }
     }
   }
+}
+
+export async function transcribeVoiceAudio(audioBlob, { signal } = {}) {
+  if (!audioBlob || audioBlob.size < 512) {
+    throw new Error("Empty audio or no speech detected.");
+  }
+
+  const response = await authedRequestWithRefresh("/chat/voice/transcribe", {
+    method: "POST",
+    headers: {
+      "Content-Type": audioBlob.type || "audio/webm",
+    },
+    body: audioBlob,
+    signal,
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error?.message || "Transcription failed");
+  }
+
+  const payload = await response.json();
+  return unwrapApiResponse({ data: payload });
+}
+
+export async function generateVoiceSpeech(text, { signal } = {}) {
+  const cleanText = String(text || "").trim();
+
+  if (!cleanText) {
+    throw new Error("Voice generation failed");
+  }
+
+  const response = await authedRequestWithRefresh("/chat/voice/speech", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text: cleanText }),
+    signal,
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error?.message || "Voice generation failed");
+  }
+
+  return response.blob();
 }
 
 export async function getLatestConversation() {
