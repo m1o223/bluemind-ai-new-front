@@ -55,6 +55,7 @@ import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
 import { streamChatMessage } from "@/services/chatService";
+import { analyzeScheduleDocument } from "@/services/documentService";
 import { analyzeImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
@@ -63,19 +64,38 @@ const GENERATED_TEMPLATE_STORAGE_KEY = "bluemind-schedule-generated-templates-v1
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DAY_ALIASES = {
-  Monday: ["Monday", "Mon", "Måndag", "Mandag", "Mån", "Man"],
+  Monday: ["Monday", "Mon", "Mandag", "Man"],
   Tuesday: ["Tuesday", "Tue", "Tues", "Tisdag", "Tis"],
   Wednesday: ["Wednesday", "Wed", "Onsdag", "Ons"],
   Thursday: ["Thursday", "Thu", "Thur", "Thurs", "Torsdag", "Tor"],
   Friday: ["Friday", "Fri", "Fredag", "Fre"],
-  Saturday: ["Saturday", "Sat", "Lördag", "Lordag", "Lör", "Lor"],
-  Sunday: ["Sunday", "Sun", "Söndag", "Sondag", "Sön", "Son"],
+  Saturday: ["Saturday", "Sat", "Lordag", "Lor"],
+  Sunday: ["Sunday", "Sun", "Sondag", "Son"],
 };
 const HOURS = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
 const DAY_END_TIME = "23:59";
 const DAY_END_MINUTES = (23 * 60) + 59;
 const END_TIMES = [...HOURS.slice(1), DAY_END_TIME];
 const ROW_HEIGHT = 48;
+const DOCUMENT_UPLOAD_ACCEPT = [
+  "application/pdf",
+  ".pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  ".xlsx",
+  ".xls",
+  "text/csv",
+  ".csv",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
+  ".docx",
+  ".doc",
+  "text/plain",
+  ".txt",
+  "application/rtf",
+  "text/rtf",
+  ".rtf",
+].join(",");
 const ICON_OPTIONS = [
   "Book",
   "Study",
@@ -463,23 +483,61 @@ function abbreviateScheduleName(name = "") {
   const text = String(name || "").trim();
   const lower = text.toLowerCase();
   const known = [
-    [/mathematics|maths|math\b|matte|matematik/i, "MA"],
-    [/biology|biologi/i, "BI"],
-    [/physics|fysik/i, "PH"],
-    [/chemistry|kemi/i, "CH"],
-    [/english|engelska/i, "EN"],
-    [/swedish|svenska/i, "SW"],
-    [/history|historia/i, "HI"],
-    [/geography|geografi/i, "GE"],
-    [/art|bild/i, "AR"],
+    [/mathematics|maths|math\b|matte|matematik/i, "Math"],
+    [/english|engelska/i, "Eng"],
+    [/science|naturkunskap/i, "Sci"],
+    [/swedish|svenska/i, "Swe"],
+    [/biology|biologi/i, "Bio"],
+    [/physics|fysik/i, "Phys"],
+    [/chemistry|kemi/i, "Chem"],
+    [/history|historia/i, "Hist"],
+    [/geography|geografi/i, "Geo"],
     [/sport|pe|idrott|gymnastik/i, "PE"],
-    [/break|rest|rast|lunch/i, "BR"],
+    [/homework|assignment/i, "Homework"],
+    [/lunch|meal/i, "Lunch"],
+    [/break|rest|rast|pause/i, "Break"],
+    [/morning shift/i, "Morning"],
+    [/evening shift/i, "Evening"],
+    [/night shift/i, "Night"],
+    [/shift|work shift/i, "Shift"],
+    [/meeting/i, "Meeting"],
+    [/overtime/i, "Overtime"],
+    [/office/i, "Office"],
   ];
   const match = known.find(([pattern]) => pattern.test(lower));
   if (match) return match[1];
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length > 1) return words.map((word) => word[0]).join("").slice(0, 3).toUpperCase();
   return text.length > 8 ? text.slice(0, 3).toUpperCase() : text;
+}
+
+function classifyScheduleActivity(activity = "") {
+  const text = activity.toLowerCase();
+  if (/break|rest|rast|pause/.test(text)) return "break";
+  if (/math|english|science|biology|chemistry|physics|history|geography|swedish|school|class|lesson|study|homework|exam|course|lecture|seminar/.test(text)) return "education";
+  if (/shift|office|meeting|work|overtime|employee|roster|standup|client|project/.test(text)) return "work";
+  if (/gym|workout|fitness|training|run|cardio|sport|pe|yoga/.test(text)) return "fitness";
+  if (/meal|food|breakfast|lunch|dinner|nutrition|water|snack/.test(text)) return "nutrition";
+  if (/doctor|therapy|health|medicine|appointment/.test(text)) return "health";
+  if (/clean|laundry|home|chores/.test(text)) return "home";
+  if (/travel|flight|train|bus|commute|drive/.test(text)) return "travel";
+  return "personal";
+}
+
+function getScheduleColorForActivity(activity = "", fallbackIndex = 0) {
+  const category = classifyScheduleActivity(activity);
+  const colorByCategory = {
+    education: "#3BA7F5",
+    work: "#6675F6",
+    fitness: "#34C88A",
+    nutrition: "#F6A24D",
+    break: "#F2C94C",
+    health: "#F472B6",
+    home: "#5ED7B7",
+    travel: "#22C7D9",
+    personal: "#9B7CF6",
+  };
+  return colorByCategory[category] || COLOR_OPTIONS[fallbackIndex % COLOR_OPTIONS.length];
 }
 
 function guessScheduleIcon(activity = "") {
@@ -489,9 +547,12 @@ function guessScheduleIcon(activity = "") {
   if (/gym|workout|train|cardio|run|fitness/i.test(text)) return "Dumbbell";
   if (/meal|food|breakfast|lunch|dinner|nutrition/i.test(text)) return "Apple";
   if (/water|drink|hydrate/i.test(text)) return "Water";
-  if (/work|meeting|business|shift|office/i.test(text)) return "Briefcase";
+  if (/meeting|standup|team/i.test(text)) return "Meeting";
+  if (/work|business|shift|office|overtime|roster/i.test(text)) return "Briefcase";
   if (/code|program|software|debug/i.test(text)) return "Code";
-  if (/study|read|math|physics|lesson|school|homework|exam/i.test(text)) return "Study";
+  if (/university|college|lecture|seminar/i.test(text)) return "University";
+  if (/school|class|lesson|teacher/i.test(text)) return "School";
+  if (/study|read|math|physics|chemistry|biology|science|english|history|geography|homework|exam/i.test(text)) return "Study";
   if (/drive|car|commute/i.test(text)) return "Car";
   if (/bus|transit/i.test(text)) return "Bus";
   if (/clean/i.test(text)) return "Cleaning";
@@ -532,12 +593,13 @@ function classifyPurposeText(text = "") {
 }
 
 function normalizeImportedBlocks(blocks, classification = "unclear") {
+  void classification;
   const colorByName = new Map();
   return blocks.map((block) => {
-    const displayName = classification === "official" ? abbreviateScheduleName(block.name) : block.name;
+    const displayName = abbreviateScheduleName(block.name);
     const colorKey = displayName.toLowerCase();
     if (!colorByName.has(colorKey)) {
-      colorByName.set(colorKey, COLOR_OPTIONS[colorByName.size % COLOR_OPTIONS.length]);
+      colorByName.set(colorKey, getScheduleColorForActivity(displayName || block.name, colorByName.size));
     }
     return {
       ...block,
@@ -573,7 +635,7 @@ function findScheduleDay(value = "") {
   const text = String(value || "");
   for (const day of DAYS) {
     for (const alias of DAY_ALIASES[day]) {
-      const pattern = new RegExp(`(^|[^A-Za-zÀ-ÖØ-öø-ÿ])(${escapeScheduleRegex(alias)})(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ])`, "i");
+      const pattern = new RegExp(`(^|[^A-Za-z])(${escapeScheduleRegex(alias)})(?=$|[^A-Za-z])`, "i");
       const match = text.match(pattern);
       if (match) return { day, matchText: match[2] };
     }
@@ -590,7 +652,7 @@ function findScheduleDay(value = "") {
 }
 
 function parseScheduleTimeRange(value = "") {
-  const match = String(value || "").match(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:[-–—]|to|until|till)\s*(\d{1,2}(?::|\.)?\d{0,2})/i);
+  const match = String(value || "").match(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:[-\u2013\u2014]|to|until|till)\s*(\d{1,2}(?::|\.)?\d{0,2})/i);
   if (!match) return null;
   const start = normalizeScheduleTime(match[1]);
   const end = normalizeScheduleTime(match[2]);
@@ -723,6 +785,27 @@ async function extractReadableFileText(file) {
     .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, 9000);
+}
+
+function getScheduleDocumentType(file) {
+  const name = String(file?.name || "").toLowerCase();
+  const type = String(file?.type || "").toLowerCase();
+  if (type === "application/pdf" || name.endsWith(".pdf")) return "PDF";
+  if (type.includes("spreadsheet") || type.includes("excel") || /\.(xlsx|xls)$/.test(name)) return "Spreadsheet";
+  if (type.includes("word") || /\.(docx|doc)$/.test(name)) return "Word";
+  if (type.includes("csv") || name.endsWith(".csv")) return "CSV";
+  if (type.includes("rtf") || name.endsWith(".rtf")) return "RTF";
+  if (type.startsWith("text/") || /\.(txt|md|tsv)$/.test(name)) return "Text";
+  return "";
+}
+
+function isSupportedScheduleDocument(file) {
+  return Boolean(getScheduleDocumentType(file));
+}
+
+function getAttachmentKindLabel(attachment) {
+  if (attachment.type === "image") return "Image";
+  return attachment.documentType || (attachment.type === "pdf" ? "PDF" : "Document");
 }
 
 function ScheduleButton({ children, active = false, appColor, accentText, className, ...props }) {
@@ -1413,7 +1496,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
   const pendingAttachmentsRef = useRef([]);
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
-  const pdfInputRef = useRef(null);
+  const documentInputRef = useRef(null);
   const textareaRef = useRef(null);
   const canSend = Boolean(input.trim() || pendingAttachments.length) && !isSending && !isUploading;
   const hasConversation = messages.length > 0;
@@ -1571,7 +1654,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     const nextAttachments = [];
     selectedFiles.slice(0, 4).forEach((file) => {
       const isImage = file.type.startsWith("image/");
-      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      const documentType = getScheduleDocumentType(file);
 
       if ((preferredType === "image" || preferredType === "camera" || preferredType === "mixed") && isImage) {
         if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
@@ -1593,12 +1676,17 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
         return;
       }
 
-      if ((preferredType === "pdf" || preferredType === "mixed") && isPdf) {
+      if ((preferredType === "document" || preferredType === "mixed") && isSupportedScheduleDocument(file)) {
+        if (file.size > 12 * 1024 * 1024) {
+          toast.error(`${file.name} is larger than 12MB.`);
+          return;
+        }
         nextAttachments.push({
-          id: `pending-pdf-${Date.now()}-${file.name}-${file.size}`,
+          id: `pending-document-${Date.now()}-${file.name}-${file.size}`,
           file,
           name: file.name,
-          type: "pdf",
+          type: "document",
+          documentType,
           size: file.size,
           source,
         });
@@ -1617,7 +1705,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     const imageIds = [];
     const contextParts = [];
     const imageFiles = attachments.filter((attachment) => attachment.type === "image");
-    const pdfFiles = attachments.filter((attachment) => attachment.type === "pdf");
+    const documentFiles = attachments.filter((attachment) => attachment.type === "document");
 
     if (imageFiles.length) {
       const uploadedImages = [];
@@ -1634,7 +1722,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
               "Detect schedule type, days, exact times including partial times, activities, activity names, breaks, repeated activities, and whether it looks official or personal.",
               "Decide whether it should be imported directly or discussed first.",
               "If it is official, preserve the schedule exactly.",
-              "If it is a school schedule, identify subjects and use short labels when possible: Mathematics=MA, Biology=BI, Physics=PH, English=EN, Swedish=SW, History=HI, Art=AR, PE/Sport=PE, Break=BR.",
+              "If it is a school schedule, identify subjects and use clean labels when possible: Mathematics=Math, English=Eng, Science=Sci, Swedish=Swe, Biology=Bio, Chemistry=Chem, History=Hist, Geography=Geo, PE/Sport=PE, Lunch=Lunch, Break=Break.",
               "In extractedText, include an IMPORTABLE SCHEDULE section with one line per visible block using exactly this format: SCHEDULE_IMPORT: Monday | 09:00 | 09:50 | Mathematics.",
               "Include Monday through Friday or all available days. Include breaks and lunch when visible. Do not omit repeated activities.",
             ].join(" "),
@@ -1661,9 +1749,10 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
         .join("\n\n");
       const classification = classifyScheduleText(analysisText);
       const importedBlocks = parseScheduleBlocksFromText(analysisText, { classification });
-      if (classification === "official" && importedBlocks.length > 0) {
+      if (importedBlocks.length > 0) {
         onImportBlocks?.(importedBlocks);
-        toast.success(`${importedBlocks.length} official schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from image.`);
+        setPendingImport(null);
+        toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from image.`);
       } else if (uploadedImages.length) {
         setPendingImport({
           source: "image",
@@ -1679,8 +1768,8 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
         contextParts.push([
           `Analyze the uploaded ${source} (${uploadedImages.length === 1 ? uploadedImages[0].name : `${uploadedImages.length} images`}) as a schedule, not just OCR.`,
           `Detected schedule category: ${classification}.`,
-          classification === "official" && importedBlocks.length > 0
-            ? "This looks official, so it was imported exactly as provided. Acknowledge that and do not suggest changes unless the user asks."
+          importedBlocks.length > 0
+            ? "The schedule was imported automatically into the grid. Acknowledge that it was reconstructed from the whole image."
             : classification === "personal"
               ? "This looks personal. Ask: What is the goal of this schedule? Then compare the schedule to that goal and ask before suggesting improvements."
               : "The purpose is not fully clear. Ask: What is this schedule for? Offer examples: School, University, Work, Gym, Weight loss, Meal plan, Study plan, Travel, Business, Personal routine.",
@@ -1689,45 +1778,78 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       }
     }
 
-    if (pdfFiles.length) {
-      const extracted = [];
-      for (const attachment of pdfFiles.slice(0, 3)) {
-        const text = await extractReadableFileText(attachment.file);
-        extracted.push({ attachment, text });
+    if (documentFiles.length) {
+      const analyzedDocuments = [];
+      for (const attachment of documentFiles.slice(0, 3)) {
+        let result = null;
+        let fallbackText = "";
+        try {
+          result = await analyzeScheduleDocument(attachment.file);
+        } catch (error) {
+          fallbackText = await extractReadableFileText(attachment.file);
+          toast.error(error?.message || `${attachment.name} could not be fully analyzed. Using readable text fallback.`);
+        }
+
+        const analysis = result?.analysis || {};
+        const document = result?.document || {};
+        const extractedText = [
+          analysis.scheduleText,
+          analysis.extractedText,
+          analysis.structure,
+          document.extractedText,
+          fallbackText,
+        ].filter(Boolean).join("\n\n");
+
+        analyzedDocuments.push({
+          attachment,
+          result,
+          analysis,
+          text: extractedText,
+        });
+
         messageAttachments.push({
           id: attachment.id,
           name: attachment.name,
-          type: "pdf",
+          type: "document",
+          documentType: analysis.documentType || document.detectedType || attachment.documentType || "Document",
           size: attachment.size,
         });
       }
 
-      const combinedText = extracted.map(({ attachment, text }) => `File: ${attachment.name}\n${text || "No readable embedded text was extracted."}`).join("\n\n");
-      const classification = classifyScheduleText(combinedText);
+      const combinedText = analyzedDocuments.map(({ attachment, analysis, text }) => [
+        `File: ${attachment.name}`,
+        `Detected document type: ${analysis.documentType || attachment.documentType || "Document"}`,
+        `Schedule type: ${analysis.scheduleKind || "unknown"}`,
+        `Summary: ${analysis.summary || ""}`,
+        text || "No readable embedded text was extracted.",
+      ].filter(Boolean).join("\n")).join("\n\n");
+      const aiClassification = analyzedDocuments.find(({ analysis }) => analysis.classification)?.analysis?.classification;
+      const classification = aiClassification || classifyScheduleText(combinedText);
       const importedBlocks = parseScheduleBlocksFromText(combinedText, { classification });
-      if (classification === "official" && importedBlocks.length > 0) {
+
+      if (importedBlocks.length > 0) {
         onImportBlocks?.(importedBlocks);
-        toast.success(`${importedBlocks.length} official schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from PDF.`);
+        setPendingImport(null);
+        toast.success(`${importedBlocks.length} schedule ${importedBlocks.length === 1 ? "block" : "blocks"} imported from document.`);
       } else {
         setPendingImport({
-          source: "pdf",
+          source: "document",
           classification,
           blocks: importedBlocks,
           analysisText: combinedText,
         });
-        toast.info(classification === "personal" ? "BlueMind analyzed the PDF. It will discuss the goal before importing." : "BlueMind analyzed the PDF. It needs the schedule purpose before importing.");
+        toast.info("BlueMind analyzed the document, but it needs clearer schedule times before importing.");
       }
 
-      const names = pdfFiles.map((attachment) => `${attachment.name}${formatScheduleFileSize(attachment.size) ? ` (${formatScheduleFileSize(attachment.size)})` : ""}`).join(", ");
+      const names = documentFiles.map((attachment) => `${attachment.name}${formatScheduleFileSize(attachment.size) ? ` (${formatScheduleFileSize(attachment.size)})` : ""}`).join(", ");
       contextParts.push([
-        `The user uploaded PDF schedule file(s): ${names}. Analyze the extracted text and help build or improve the Schedule.`,
+        `The user uploaded schedule document file(s): ${names}.`,
+        "BlueMind detected the document type automatically and analyzed rows, columns, dates, times, merged cells, empty cells, and recurring events where available.",
         `Detected schedule category: ${classification}.`,
-        classification === "official" && importedBlocks.length > 0
-          ? "This looks official, so it was imported exactly as provided. Acknowledge that and do not suggest changes unless the user asks."
-          : classification === "personal"
-            ? "This looks personal. Ask what the goal is, compare the uploaded schedule to the goal, and ask whether the user wants improvements before changing it."
-            : "The purpose is unclear. Ask what this schedule is for before importing or optimizing.",
-        `Extracted PDF text:\n${combinedText || "No readable text extracted."}`,
+        importedBlocks.length > 0
+          ? "The schedule was imported automatically into the grid. Acknowledge that it was reconstructed from the uploaded document."
+          : "No reliable importable blocks were found. Ask for a clearer file or ask one concise clarification about the missing times/days.",
+        `Document analysis:\n${combinedText || "No readable text extracted."}`,
       ].join("\n\n"));
     }
 
@@ -1866,11 +1988,11 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     addPendingFiles(selectedFiles, "image", "upload");
   };
 
-  const handlePdfFileSelect = async (event) => {
+  const handleDocumentFileSelect = async (event) => {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
     if (!selectedFiles.length) return;
-    addPendingFiles(selectedFiles, "pdf", "upload");
+    addPendingFiles(selectedFiles, "document", "upload");
   };
 
   if (!chatVisible) return null;
@@ -2045,7 +2167,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
                   <div className="min-w-0 px-2 pr-7">
                     <p className={cn("truncate font-extrabold", typeClasses.small, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{attachment.name}</p>
                     <p className={cn("mt-0.5 truncate font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
-                      {attachment.type === "pdf" ? "PDF" : "Image"} {formatScheduleFileSize(attachment.size || attachment.file?.size)}
+                      {getAttachmentKindLabel(attachment)} {formatScheduleFileSize(attachment.size || attachment.file?.size)}
                     </p>
                   </div>
                   <button
@@ -2107,12 +2229,12 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
                   type="button"
                   onClick={() => {
                     setAddMenuOpen(false);
-                    pdfInputRef.current?.click();
+                    documentInputRef.current?.click();
                   }}
                   className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
                 >
                   <FileText className={iconClasses.button} />
-                  Upload PDF
+                  Upload Document
                 </button>
               </motion.div>
             )}
@@ -2170,12 +2292,12 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
           onChange={handleUploadFileSelect}
         />
         <input
-          ref={pdfInputRef}
+          ref={documentInputRef}
           type="file"
-          accept="application/pdf,.pdf"
+          accept={DOCUMENT_UPLOAD_ACCEPT}
           multiple
           className="hidden"
-          onChange={handlePdfFileSelect}
+          onChange={handleDocumentFileSelect}
         />
       </form>
     </motion.aside>
