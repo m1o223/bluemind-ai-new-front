@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Apple,
@@ -62,6 +62,15 @@ const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
 const GENERATED_TEMPLATE_STORAGE_KEY = "bluemind-schedule-generated-templates-v1";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAY_ALIASES = {
+  Monday: ["Monday", "Mon", "Måndag", "Mandag", "Mån", "Man"],
+  Tuesday: ["Tuesday", "Tue", "Tues", "Tisdag", "Tis"],
+  Wednesday: ["Wednesday", "Wed", "Onsdag", "Ons"],
+  Thursday: ["Thursday", "Thu", "Thur", "Thurs", "Torsdag", "Tor"],
+  Friday: ["Friday", "Fri", "Fredag", "Fre"],
+  Saturday: ["Saturday", "Sat", "Lördag", "Lordag", "Lör", "Lor"],
+  Sunday: ["Sunday", "Sun", "Söndag", "Sondag", "Sön", "Son"],
+};
 const HOURS = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
 const DAY_END_TIME = "23:59";
 const DAY_END_MINUTES = (23 * 60) + 59;
@@ -414,6 +423,8 @@ function buildSchedulePrompt({ messages, latestText, blocks, initial = false }) 
     "Use the same real BlueMind AI reasoning style as the main chat, but focus only on helping the user design a weekly schedule.",
     "Do not behave like a form. Understand answers, ask follow-up questions, detect missing information, recommend improvements, and explain why.",
     "When a schedule image or PDF is uploaded, first understand the schedule type, days, times, activities, breaks, repeated activities, and whether it looks official or personal.",
+    "For timetable images, inspect every day column and every time row. Never summarize only the first day. Preserve day/time/activity mapping exactly.",
+    "When extraction text contains SCHEDULE_IMPORT lines, treat them as the authoritative layout map for importing into the grid.",
     "Official schedules such as school timetables, university timetables, company shift schedules, and employer-provided schedules should be imported exactly as provided. Do not suggest changing official schedules unless the user asks.",
     "Personal schedules such as gym plans, meal plans, personal study plans, travel plans, and daily routines should be discussed first. Ask the goal, compare the schedule with that goal, and ask before suggesting improvements.",
     "If the schedule purpose is unclear, ask: What is this schedule for? Offer examples such as School, University, Work, Gym, Weight loss, Meal plan, Study plan, Travel, Business, and Personal routine.",
@@ -537,47 +548,171 @@ function normalizeImportedBlocks(blocks, classification = "unclear") {
   });
 }
 
+function escapeScheduleRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function stripScheduleMarkdown(value = "") {
+  return String(value || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/[*_`#>]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeScheduleComparable(value = "") {
+  return stripScheduleMarkdown(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function findScheduleDay(value = "") {
+  const text = String(value || "");
+  for (const day of DAYS) {
+    for (const alias of DAY_ALIASES[day]) {
+      const pattern = new RegExp(`(^|[^A-Za-zÀ-ÖØ-öø-ÿ])(${escapeScheduleRegex(alias)})(?=$|[^A-Za-zÀ-ÖØ-öø-ÿ])`, "i");
+      const match = text.match(pattern);
+      if (match) return { day, matchText: match[2] };
+    }
+  }
+
+  const comparable = normalizeScheduleComparable(text);
+  for (const day of DAYS) {
+    if (DAY_ALIASES[day].some((alias) => comparable === normalizeScheduleComparable(alias))) {
+      return { day, matchText: text };
+    }
+  }
+
+  return null;
+}
+
+function parseScheduleTimeRange(value = "") {
+  const match = String(value || "").match(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:[-–—]|to|until|till)\s*(\d{1,2}(?::|\.)?\d{0,2})/i);
+  if (!match) return null;
+  const start = normalizeScheduleTime(match[1]);
+  const end = normalizeScheduleTime(match[2]);
+  if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) return null;
+  return { start, end, text: match[0] };
+}
+
+function cleanImportedActivityName(value = "") {
+  return stripScheduleMarkdown(value)
+    .replace(/^schedule_import\s*:?\s*/i, "")
+    .replace(/^\W+|\W+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 64);
+}
+
+function splitScheduleTableLine(line = "") {
+  return String(line || "")
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => stripScheduleMarkdown(cell));
+}
+
+function isScheduleTableSeparator(cells = []) {
+  return cells.length > 0 && cells.every((cell) => /^:?-{2,}:?$/.test(String(cell || "").replace(/\s/g, "")));
+}
+
 function parseScheduleBlocksFromText(text, options = {}) {
   const content = String(text || "");
   if (!content.trim()) return [];
 
   const blocks = [];
-  const dayPattern = DAYS.join("|");
+  const seen = new Set();
+  const classification = options.classification || classifyScheduleText(content);
+
+  const addBlock = ({ day, start, end, name }, index) => {
+    if (!day || !start || !end || timeToMinutes(end) <= timeToMinutes(start)) return;
+    const cleanName = cleanImportedActivityName(name) || "Imported activity";
+    const key = `${day}|${start}|${end}|${cleanName.toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    blocks.push({
+      id: `imported-${Date.now().toString(36)}-${blocks.length}-${index}`,
+      name: cleanName,
+      start,
+      end,
+      days: [day],
+      color: COLOR_OPTIONS[blocks.length % COLOR_OPTIONS.length],
+      icon: guessScheduleIcon(cleanName),
+    });
+  };
+
   const lines = content
     .split(/\n|;|\r/)
     .map((line) => line.trim())
     .filter(Boolean);
 
-  lines.forEach((line, index) => {
-    const dayMatch = line.match(new RegExp(`\\b(${dayPattern})\\b`, "i"));
-    const rangeMatch = line.match(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:[^\dA-Za-z]+|to|until|till)\s*(\d{1,2}(?::|\.)?\d{0,2})/i);
-    if (!dayMatch || !rangeMatch) return;
+  const tableLines = lines.filter((line) => line.includes("|"));
+  tableLines.forEach((line, lineIndex) => {
+    if (!/^schedule_import\s*:/i.test(line)) return;
+    const cells = splitScheduleTableLine(line.replace(/^schedule_import\s*:?\s*/i, ""));
+    const day = findScheduleDay(cells[0])?.day;
+    const range = parseScheduleTimeRange(cells[1] || "");
+    if (day && range && cells.length >= 3) {
+      addBlock({ day, start: range.start, end: range.end, name: cells.slice(2).join(" ") }, `import-${lineIndex}`);
+      return;
+    }
 
-    const start = normalizeScheduleTime(rangeMatch[1]);
-    const end = normalizeScheduleTime(rangeMatch[2]);
-    if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) return;
-
-    const day = DAYS.find((item) => item.toLowerCase() === dayMatch[1].toLowerCase());
-    const name = line
-      .replace(dayMatch[0], "")
-      .replace(rangeMatch[0], "")
-      .replace(/[^\w\s]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 48) || "Imported activity";
-
-    blocks.push({
-      id: `imported-${Date.now().toString(36)}-${index}`,
-      name,
-      start,
-      end,
-      days: [day],
-      color: COLOR_OPTIONS[blocks.length % COLOR_OPTIONS.length],
-      icon: guessScheduleIcon(name),
-    });
+    const start = normalizeScheduleTime(cells[1]);
+    const end = normalizeScheduleTime(cells[2]);
+    if (day && start && end && cells.length >= 4) {
+      addBlock({ day, start, end, name: cells.slice(3).join(" ") }, `import-${lineIndex}`);
+    }
   });
 
-  return normalizeImportedBlocks(blocks.slice(0, 32), options.classification || classifyScheduleText(content));
+  tableLines.forEach((line, headerIndex) => {
+    const headerCells = splitScheduleTableLine(line);
+    if (isScheduleTableSeparator(headerCells)) return;
+    const dayColumns = headerCells
+      .map((cell, index) => ({ index, day: findScheduleDay(cell)?.day }))
+      .filter((cell) => cell.day);
+    if (dayColumns.length < 2) return;
+
+    for (let rowIndex = headerIndex + 1; rowIndex < tableLines.length; rowIndex += 1) {
+      const rowCells = splitScheduleTableLine(tableLines[rowIndex]);
+      if (isScheduleTableSeparator(rowCells)) continue;
+      const timeCellIndex = rowCells.findIndex((cell) => parseScheduleTimeRange(cell));
+      if (timeCellIndex === -1) {
+        const nextHeaderDays = rowCells.filter((cell) => findScheduleDay(cell)).length;
+        if (nextHeaderDays >= 2) break;
+        continue;
+      }
+      const range = parseScheduleTimeRange(rowCells[timeCellIndex]);
+      if (!range) continue;
+
+      dayColumns.forEach(({ index, day }) => {
+        const rawActivity = rowCells[index] || "";
+        const activityParts = rawActivity
+          .split(/\n|\/{2,}| {2,}/)
+          .map((item) => cleanImportedActivityName(item))
+          .filter(Boolean);
+        activityParts.forEach((name, partIndex) => {
+          addBlock({ day, start: range.start, end: range.end, name }, `table-${rowIndex}-${index}-${partIndex}`);
+        });
+      });
+    }
+  });
+
+  lines.forEach((line, index) => {
+    const dayMatch = findScheduleDay(line);
+    const range = parseScheduleTimeRange(line);
+    if (!dayMatch || !range) return;
+
+    const name = line
+      .replace(dayMatch.matchText, "")
+      .replace(range.text, "");
+    addBlock({ day: dayMatch.day, start: range.start, end: range.end, name }, `line-${index}`);
+  });
+
+  return normalizeImportedBlocks(blocks.slice(0, 168), classification);
 }
 
 async function extractReadableFileText(file) {
@@ -1224,6 +1359,44 @@ function ScheduleTypeDialog({ isDark, appColor, accentText, onClose, onSelect })
   );
 }
 
+function ScheduleImagePreview({ image, isDark, onClose }) {
+  if (!image?.src) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        className={cn("relative max-h-[92vh] w-full max-w-5xl rounded-[24px] border p-3 shadow-2xl", isDark ? "border-white/[0.12] bg-[var(--bm-bg-modal)]" : "border-white/20 bg-white")}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/65 text-white transition hover:bg-black/80"
+          aria-label="Close image preview"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <img
+          src={image.src}
+          alt={image.name || "Schedule image preview"}
+          className="mx-auto max-h-[82vh] w-full rounded-[18px] object-contain"
+        />
+        {image.name && (
+          <p className={cn("mt-2 truncate px-1 font-bold", typeClasses.small, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{image.name}</p>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
 function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext, chatVisible, onImportBlocks }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
@@ -1233,6 +1406,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const [pendingImport, setPendingImport] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
   const messagesEndRef = useRef(null);
   const sendLockRef = useRef(false);
   const lastStartSignalRef = useRef(0);
@@ -1243,6 +1417,14 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
   const textareaRef = useRef(null);
   const canSend = Boolean(input.trim() || pendingAttachments.length) && !isSending && !isUploading;
   const hasConversation = messages.length > 0;
+
+  const focusTextarea = useCallback((event) => {
+    const target = event?.target;
+    if (target?.closest?.("button,a,input,select,[role='button'],[role='menuitem'],[contenteditable='true']")) {
+      return;
+    }
+    textareaRef.current?.focus({ preventScroll: true });
+  }, []);
 
   const resizeInput = (element) => {
     if (!element) return;
@@ -1263,6 +1445,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       return [];
     });
     setPendingImport(null);
+    setPreviewImage(null);
     setAddMenuOpen(false);
     sendLockRef.current = false;
   };
@@ -1351,6 +1534,20 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     pendingAttachmentsRef.current = pendingAttachments;
   }, [pendingAttachments]);
 
+  useEffect(() => {
+    if (!chatVisible) return undefined;
+    const element = textareaRef.current;
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement !== document.body && activeElement !== document.documentElement && activeElement !== element) {
+      return undefined;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+      resizeInput(textareaRef.current);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [chatVisible, hasConversation]);
+
   useEffect(() => () => {
     pendingAttachmentsRef.current.forEach((attachment) => {
       if (attachment.localPreviewUrl) URL.revokeObjectURL(attachment.localPreviewUrl);
@@ -1361,6 +1558,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     setPendingAttachments((current) => {
       const attachment = current.find((item) => item.id === attachmentId);
       if (attachment?.localPreviewUrl) URL.revokeObjectURL(attachment.localPreviewUrl);
+      if (previewImage?.id === attachmentId) setPreviewImage(null);
       return current.filter((item) => item.id !== attachmentId);
     });
   };
@@ -1430,12 +1628,15 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
           const analysis = await analyzeImage(
             image.id,
             [
-              "Analyze this uploaded schedule completely.",
+              "Analyze this uploaded schedule completely at high detail. Inspect the entire image from edge to edge; do not stop after the first day, first column, or first page area.",
+              "Read every visible day or column, every time slot or row, every class, subject, break, lunch, free period, and activity.",
+              "Preserve the original layout by mapping each activity to its exact day and exact start/end time.",
               "Detect schedule type, days, exact times including partial times, activities, activity names, breaks, repeated activities, and whether it looks official or personal.",
               "Decide whether it should be imported directly or discussed first.",
               "If it is official, preserve the schedule exactly.",
               "If it is a school schedule, identify subjects and use short labels when possible: Mathematics=MA, Biology=BI, Physics=PH, English=EN, Swedish=SW, History=HI, Art=AR, PE/Sport=PE, Break=BR.",
-              "Return readable extraction lines using this style when possible: Monday 09:00-09:30 Mathematics.",
+              "In extractedText, include an IMPORTABLE SCHEDULE section with one line per visible block using exactly this format: SCHEDULE_IMPORT: Monday | 09:00 | 09:50 | Mathematics.",
+              "Include Monday through Friday or all available days. Include breaks and lunch when visible. Do not omit repeated activities.",
             ].join(" "),
           );
           if (analysis?.analysis) analyses.push(analysis.analysis);
@@ -1455,7 +1656,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       }
 
       const analysisText = analyses
-        .map((analysis) => [analysis.description, analysis.extractedText, Array.isArray(analysis.objects) ? analysis.objects.join(", ") : ""].filter(Boolean).join("\n"))
+        .map((analysis) => [analysis.extractedText, analysis.description, Array.isArray(analysis.objects) ? analysis.objects.join(", ") : ""].filter(Boolean).join("\n"))
         .filter(Boolean)
         .join("\n\n");
       const classification = classifyScheduleText(analysisText);
@@ -1560,7 +1761,10 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     const attachmentsToSend = pendingAttachments;
     setInput("");
     setPendingAttachments([]);
-    window.requestAnimationFrame(() => resizeInput(textareaRef.current));
+    window.requestAnimationFrame(() => {
+      resizeInput(textareaRef.current);
+      textareaRef.current?.focus({ preventScroll: true });
+    });
     setAddMenuOpen(false);
     setIsUploading(Boolean(attachmentsToSend.length));
 
@@ -1672,6 +1876,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
   if (!chatVisible) return null;
 
   return (
+    <>
     <motion.aside
       initial={{ opacity: 0, x: 18 }}
       animate={{ opacity: 1, x: 0 }}
@@ -1748,15 +1953,26 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
               ) : (
                 <div className="flex max-w-[88%] flex-col items-end gap-2">
                   {Array.isArray(message.attachments) && message.attachments.length > 0 && (
-                    <div className="flex max-w-full flex-wrap justify-end gap-2">
+                    <div className="flex max-w-full flex-wrap justify-end gap-3">
                       {message.attachments.map((attachment) => (
-                        <div key={attachment.id || attachment.name} className={cn("overflow-hidden rounded-2xl border", isDark ? "border-white/[0.12] bg-white/[0.06]" : "border-[var(--bm-border)] bg-white")}>
+                        <div key={attachment.id || attachment.name} className={cn("overflow-hidden rounded-[22px] border", isDark ? "border-white/[0.12] bg-white/[0.06]" : "border-[var(--bm-border)] bg-white")}>
                           {attachment.type === "image" ? (
-                            <img
-                              src={attachment.localPreviewUrl || attachment.previewUrl}
-                              alt={attachment.name || "Uploaded schedule image"}
-                              className="h-20 w-24 object-cover"
-                            />
+                            <button
+                              type="button"
+                              onClick={() => setPreviewImage({
+                                id: attachment.id || attachment.imageId,
+                                src: attachment.localPreviewUrl || attachment.previewUrl,
+                                name: attachment.name || "Uploaded schedule image",
+                              })}
+                              className="block max-w-full bg-black/5"
+                              aria-label={`Preview ${attachment.name || "uploaded schedule image"}`}
+                            >
+                              <img
+                                src={attachment.localPreviewUrl || attachment.previewUrl}
+                                alt={attachment.name || "Uploaded schedule image"}
+                                className="max-h-[360px] min-h-[180px] w-full min-w-[260px] max-w-[420px] object-contain"
+                              />
+                            </button>
                           ) : (
                             <div className="flex max-w-[180px] items-center gap-2 px-3 py-2">
                               <Paperclip className={iconClasses.button} />
@@ -1784,6 +2000,8 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
 
       <form
         className={cn("mt-auto shrink-0 rounded-[26px] border p-2.5 transition-all duration-200", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
+        onPointerDown={focusTextarea}
+        onClick={focusTextarea}
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -1808,7 +2026,17 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
                   className={cn("relative flex h-16 max-w-[180px] items-center overflow-hidden rounded-2xl border", isDark ? "border-white/[0.12] bg-white/[0.06]" : "border-[var(--bm-border)] bg-white")}
                 >
                   {attachment.type === "image" ? (
-                    <img src={attachment.localPreviewUrl} alt={attachment.name} className="h-full w-20 object-cover" />
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setPreviewImage({ id: attachment.id, src: attachment.localPreviewUrl, name: attachment.name });
+                      }}
+                      className="h-full w-20 shrink-0 overflow-hidden"
+                      aria-label={`Preview ${attachment.name}`}
+                    >
+                      <img src={attachment.localPreviewUrl} alt={attachment.name} className="h-full w-full object-cover" />
+                    </button>
                   ) : (
                     <div className="flex h-full w-20 items-center justify-center bg-[var(--bm-primary)]/10">
                       <FileText className="h-6 w-6 text-[var(--bm-primary)]" />
@@ -1834,7 +2062,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
           )}
         </AnimatePresence>
 
-        <div className="relative flex items-end gap-2">
+        <div className="relative flex cursor-text items-end gap-2">
           <button
             type="button"
             onClick={() => setAddMenuOpen((value) => !value)}
@@ -1902,10 +2130,11 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
             placeholder="Describe your schedule..."
             className={cn(
               inputClasses.composer,
-              "max-h-[112px] min-h-[52px] flex-1 resize-none bg-transparent px-2 py-3.5 font-semibold leading-6 outline-none transition-[height] duration-150",
+              "relative z-10 max-h-[112px] min-h-[52px] flex-1 resize-none bg-transparent px-2 py-3.5 font-semibold leading-6 outline-none transition-[height] duration-150",
               typeClasses.body,
               isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]",
             )}
+            style={{ caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)", pointerEvents: "auto" }}
           />
 
           <div className="mb-1 flex shrink-0 items-center gap-2">
@@ -1950,6 +2179,16 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
         />
       </form>
     </motion.aside>
+    <AnimatePresence>
+      {previewImage && (
+        <ScheduleImagePreview
+          image={previewImage}
+          isDark={isDark}
+          onClose={() => setPreviewImage(null)}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }
 
