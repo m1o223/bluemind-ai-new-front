@@ -526,6 +526,9 @@ export default function MobileChat() {
   const isDark = resolvedTheme === "dark";
   const [menuOpen, setMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
+  const [responseModeMenuPlacement, setResponseModeMenuPlacement] = useState("header");
+  const [isComposerKeyboardOpen, setIsComposerKeyboardOpen] = useState(false);
+  const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -664,6 +667,42 @@ export default function MobileChat() {
     watch: [messages, isChatSending],
     isStreaming: isChatSending,
   });
+
+  useEffect(() => {
+    const updateKeyboardState = () => {
+      const viewport = window.visualViewport;
+      const activeElement = document.activeElement;
+      const composerFocused = activeElement === composerInputRef.current;
+
+      if (!viewport) {
+        setIsComposerKeyboardOpen(composerFocused);
+        setComposerKeyboardOffset(0);
+        return;
+      }
+
+      const viewportBottom = viewport.height + viewport.offsetTop;
+      const keyboardOffset = Math.max(0, Math.round(window.innerHeight - viewportBottom));
+      const keyboardOpen = composerFocused && keyboardOffset > 48;
+
+      setIsComposerKeyboardOpen(keyboardOpen);
+      setComposerKeyboardOffset(keyboardOpen ? keyboardOffset : 0);
+    };
+
+    updateKeyboardState();
+    window.visualViewport?.addEventListener("resize", updateKeyboardState);
+    window.visualViewport?.addEventListener("scroll", updateKeyboardState);
+    window.addEventListener("focusin", updateKeyboardState);
+    window.addEventListener("focusout", updateKeyboardState);
+    window.addEventListener("resize", updateKeyboardState);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateKeyboardState);
+      window.visualViewport?.removeEventListener("scroll", updateKeyboardState);
+      window.removeEventListener("focusin", updateKeyboardState);
+      window.removeEventListener("focusout", updateKeyboardState);
+      window.removeEventListener("resize", updateKeyboardState);
+    };
+  }, []);
 
   const resizeChatComposer = useCallback((node = composerInputRef.current) => {
     if (!node || isImageMode || isWriteEditMode) return;
@@ -1786,6 +1825,9 @@ export default function MobileChat() {
 
     if (!keepComposer) {
       setMessage("");
+      composerInputRef.current?.blur();
+      setIsComposerKeyboardOpen(false);
+      setComposerKeyboardOffset(0);
       setActiveWriteTask(null);
       setPendingWriteTemplate(null);
       setWriteAttachmentChoiceOpen(false);
@@ -2223,6 +2265,83 @@ export default function MobileChat() {
       setAttachmentSheetOpen(true);
     };
 
+    const composerModelSelector = (
+      <div className="relative min-w-0">
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            setResponseModeMenuPlacement("composer");
+            setResponseModeMenuOpen((open) => responseModeMenuPlacement === "composer" ? !open : true);
+          }}
+          className={isDark ? "flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-full bg-white/[0.07] px-3 text-xs font-extrabold text-white active:bg-white/[0.12]" : "flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-full bg-[var(--bm-hover-bg)] px-3 text-xs font-extrabold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
+          aria-label="Select BlueMind model"
+          aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "composer"}
+        >
+          {(() => {
+            const SelectedModeIcon = getAiMode(responseMode).icon;
+            return <SelectedModeIcon className="h-4 w-4 shrink-0 stroke-[2.25]" />;
+          })()}
+          <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${responseModeMenuOpen && responseModeMenuPlacement === "composer" ? "rotate-180" : ""}`} />
+        </button>
+
+        <AnimatePresence>
+          {responseModeMenuOpen && responseModeMenuPlacement === "composer" && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.16 }}
+              onPointerDown={(event) => event.stopPropagation()}
+              className={`absolute bottom-[calc(100%+10px)] left-1/2 z-50 w-[292px] -translate-x-1/2 overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
+                isDark
+                  ? "border-white/[0.12] bg-[var(--bm-bg-card)]/95"
+                  : "border-black/[0.06] bg-white/95"
+              }`}
+            >
+              {AI_MODES.map((mode) => {
+                const ModeIcon = mode.icon;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      selectResponseMode(mode.id);
+                    }}
+                    className={`flex min-h-[64px] w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left transition-colors duration-200 ${
+                      responseMode === mode.id
+                        ? isDark
+                          ? "bg-white/[0.11] text-white"
+                          : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]"
+                        : isDark
+                          ? "text-white active:bg-white/[0.075]"
+                          : "text-[var(--bm-text-primary)] active:bg-[var(--bm-bg-elevated)]"
+                    }`}
+                  >
+                    <span className="flex min-w-0 flex-1 items-center gap-3">
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/[0.075] text-[var(--bm-primary)]"}`}>
+                        <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[15px] font-bold leading-5">{getAiSpecializationLabel(mode)}</span>
+                        <span className={`mt-1 line-clamp-1 block text-xs font-semibold leading-4 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
+                          {mode.description}
+                        </span>
+                      </span>
+                    </span>
+                    {responseMode === mode.id && <Check className="h-[18px] w-[18px] shrink-0 stroke-[2.2]" />}
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+
     return (
     <motion.div
       layout
@@ -2326,6 +2445,8 @@ export default function MobileChat() {
         onSendAction={isChatSending ? stopChatGeneration : isListening ? stopVoiceInput : undefined}
         isDark={isDark}
         variant="mobile"
+        modelSelector={composerModelSelector}
+        isKeyboardOpen={isComposerKeyboardOpen}
         minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
         maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
         testId="mobile-chat-input"
@@ -2457,21 +2578,24 @@ export default function MobileChat() {
         <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
           <button
             type="button"
-            onClick={() => setResponseModeMenuOpen((open) => !open)}
+            onClick={() => {
+              setResponseModeMenuPlacement("header");
+              setResponseModeMenuOpen((open) => responseModeMenuPlacement === "header" ? !open : true);
+            }}
             className={isDark ? "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.055] px-3 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-[var(--bm-border)] bg-white px-3 text-sm font-bold capitalize text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"}
             aria-label="Select AI mode"
-            aria-expanded={responseModeMenuOpen}
+            aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "header"}
           >
             {(() => {
               const SelectedModeIcon = getAiMode(responseMode).icon;
               return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
             })()}
             <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen && responseModeMenuPlacement === "header" ? "rotate-180" : ""}`} />
           </button>
 
           <AnimatePresence>
-            {responseModeMenuOpen && (
+            {responseModeMenuOpen && responseModeMenuPlacement === "header" && (
               <motion.div
                 initial={{ opacity: 0, y: -4, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2547,7 +2671,7 @@ export default function MobileChat() {
       <section className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={messagesScrollRef}
-          className={isEmptyChat ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"}
+          className={isEmptyChat ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[168px] pt-5" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[168px] pt-4"}
         >
           {generatedImages.length > 0 && (
             <div className="mb-5 space-y-3">
@@ -2977,7 +3101,10 @@ export default function MobileChat() {
         </div>
 
         {shouldPinComposer && (
-          <div className="fixed inset-x-0 bottom-0 z-20">
+          <div
+            className="fixed inset-x-0 z-20 transition-[bottom] duration-200 ease-out"
+            style={{ bottom: `${composerKeyboardOffset}px` }}
+          >
             <div className="mx-auto w-full max-w-[430px] pt-3">
               {renderComposerArea(false, isEmptyChat)}
             </div>
@@ -2995,7 +3122,7 @@ export default function MobileChat() {
               className={`fixed left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl ${
                 isDark ? "border-white/[0.12] bg-[var(--bm-bg-elevated)]/90 text-white active:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[var(--bm-primary)] active:bg-white"
               }`}
-              style={{ bottom: "calc(env(safe-area-inset-bottom) + 128px)" }}
+              style={{ bottom: `calc(env(safe-area-inset-bottom) + ${composerKeyboardOffset + 146}px)` }}
               aria-label="Scroll to bottom"
             >
               <ChevronDown className="h-5 w-5 stroke-[2.4]" />
