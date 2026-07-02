@@ -1708,7 +1708,7 @@ export default function MobileChat() {
       return;
     }
 
-    const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+    const files = Array.from(event.target.files || []);
     event.target.value = "";
     if (files.length === 0) {
       return;
@@ -1735,23 +1735,28 @@ export default function MobileChat() {
 
     try {
       for (const file of filesToUpload) {
-        const localPreviewUrl = URL.createObjectURL(file);
+        if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+          toast.error(t("invalidImageType"));
+          continue;
+        }
+
+        if (file.size > 8 * 1024 * 1024) {
+          toast.error(t("invalidImageSize"));
+          continue;
+        }
+
         try {
           const image = await uploadChatImage(file, activeConversationId);
           if (image?.id) {
             uploadedImages.push({
               id: image.id,
-              imageId: image.id,
+              name: file.name,
+              previewUrl: URL.createObjectURL(file),
               file,
-              name: image.originalName || file.name || "Uploaded image",
-              type: "image",
-              previewUrl: getImageUrl(image.id),
             });
           }
         } catch (error) {
-          toast.error(error.message || "Image upload failed");
-        } finally {
-          URL.revokeObjectURL(localPreviewUrl);
+          toast.error(error.message || t("imageUploadFailed"));
         }
       }
 
@@ -1905,8 +1910,20 @@ export default function MobileChat() {
       : visibleMessage;
     const isSearchHandoff = String(metadata?.source || metadata?.searchContext?.source || "").toLowerCase() === "search";
     const canStartFromContext = isSearchHandoff && metadata?.intent && (metadata?.category || metadata?.searchContext?.category);
+    const userDisplayAttachments = displayAttachments.length ? displayAttachments : writeAttachments;
+    const displayAttachmentImageIds = userDisplayAttachments
+      .map((attachment) => attachment?.id)
+      .filter(Boolean);
+    const writeAttachmentImageIds = writeAttachments.map((file) => file.imageId).filter(Boolean);
+    const requestImageIds = imageIds.length
+      ? imageIds
+      : activeWriteTask
+        ? writeAttachmentImageIds
+        : displayAttachmentImageIds.length
+          ? displayAttachmentImageIds
+          : [];
     if (
-      (!currentMessage && !canStartFromContext)
+      (!currentMessage && !requestImageIds.length && !canStartFromContext)
       || isGeneratingImage
       || (!allowWhileBusy && isChatSending)
       || (!prelocked && sendLockRef.current)
@@ -1937,18 +1954,6 @@ export default function MobileChat() {
       chatMode: activeWriteTask ? "write_edit" : metadata.chatMode || "chat",
       writeEditTask: activeWriteTask || undefined,
     };
-    const userDisplayAttachments = displayAttachments.length ? displayAttachments : writeAttachments;
-    const displayAttachmentImageIds = userDisplayAttachments
-      .map((attachment) => attachment?.imageId || (attachment?.type === "image" ? attachment?.id : null))
-      .filter(Boolean);
-    const writeAttachmentImageIds = writeAttachments.map((file) => file.imageId).filter(Boolean);
-    const requestImageIds = imageIds.length
-      ? imageIds
-      : displayAttachmentImageIds.length
-        ? displayAttachmentImageIds
-        : activeWriteTask
-          ? writeAttachmentImageIds
-          : [];
     const userDisplayMessages = hideUserMessage
       ? []
       : (visibleMessage || userDisplayAttachments.length ? [{
@@ -2155,6 +2160,8 @@ export default function MobileChat() {
       keepComposer: true,
       mode: previousUser.metadata?.aiMode || previousUser.metadata?.mode || previousUser.metadata?.responseMode || responseMode,
       metadata: previousUser.metadata || {},
+      imageIds: (previousUser.attachments || []).map((attachment) => attachment.id).filter(Boolean),
+      displayAttachments: previousUser.attachments || [],
     });
   }, [isChatSending, messages, responseMode, sendChatPrompt, t]);
 
@@ -2241,7 +2248,7 @@ export default function MobileChat() {
       if (!currentMessage && attachedImages.length === 0) return;
       await sendChatPrompt({
         prompt: currentMessage || "Please analyze these images.",
-        imageIds: attachedImages.map((image) => image.imageId || image.id).filter(Boolean),
+        imageIds: attachedImages.map((image) => image.id).filter(Boolean),
         displayAttachments: attachedImages,
         metadata: isSearchMode ? { chatMode: "web_search" } : {},
       });
@@ -3265,7 +3272,7 @@ export default function MobileChat() {
                       {item.role === "user" ? (
                         <>
                           <MobileMessageAttachments attachments={item.attachments || []} />
-                          {hasText ? <div className="whitespace-pre-wrap">{item.content}</div> : null}
+                          {hasText ? <MessageResponse message={item} previousUserContent={getPreviousUserContent(index)} /> : null}
                         </>
                       ) : item.isStreaming && !item.content ? (
                         <ThinkingIndicator responseMode={item.metadata?.aiMode || item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
