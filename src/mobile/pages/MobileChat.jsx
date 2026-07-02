@@ -2828,10 +2828,9 @@ export default function MobileChat() {
             className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
             aria-label="Open menu"
           >
-            <span className="flex h-5 w-6 flex-col items-center justify-center gap-[4px]" aria-hidden="true">
+            <span className="flex h-5 w-6 flex-col items-start justify-center gap-[6px]" aria-hidden="true">
               <span className="block h-[2px] w-6 rounded-full bg-current" />
-              <span className="block h-[2px] w-[18px] rounded-full bg-current" />
-              <span className="block h-[2px] w-3 rounded-full bg-current" />
+              <span className="block h-[2px] w-[15px] rounded-full bg-current" />
             </span>
           </button>
         </div>
