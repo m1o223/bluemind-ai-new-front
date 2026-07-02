@@ -89,7 +89,7 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
 
               {/* Search */}
               <div className={cn("px-5 py-3 border-b", isDark ? "border-[var(--bm-bg-elevated)]" : "border-[var(--bm-border)]")}>
-                <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-xl border", isDark ? "bg-[var(--bm-bg-app)] border-[var(--bm-bg-elevated)]" : "bg-[var(--bm-bg-elevated)] border-[var(--bm-border)]")}>
+                <div className={cn("bm-search-shell flex items-center gap-2 px-3 py-2.5 rounded-xl border", isDark ? "bg-[var(--bm-bg-app)] border-[var(--bm-bg-elevated)]" : "bg-[var(--bm-bg-elevated)] border-[var(--bm-border)]")}>
                   <Search className={cn("w-4 h-4 flex-shrink-0", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")} />
                   <input
                     ref={searchRef}
@@ -97,7 +97,7 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={t("searchLanguages")}
-                    className={cn("flex-1 bg-transparent outline-none text-sm", isDark ? "text-white placeholder-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder-[var(--bm-text-muted)]")}
+                    className={cn("bm-search-input flex-1 bg-transparent outline-none text-sm", isDark ? "text-white placeholder-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder-[var(--bm-text-muted)]")}
                     data-testid="language-search-input"
                   />
                 </div>

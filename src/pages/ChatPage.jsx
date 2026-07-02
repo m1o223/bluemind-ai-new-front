@@ -3670,10 +3670,10 @@ export default function ChatPage() {
             </div>
             <label
               className={cn(
-                "flex h-12 w-full items-center gap-2 rounded-full border px-4 transition-colors lg:w-96",
+                "bm-search-shell flex h-12 w-full items-center gap-2 rounded-full border px-4 transition-colors lg:w-96",
                 isDark
-                  ? "border-white/[0.08] bg-white/[0.06] text-white focus-within:border-white/[0.18]"
-                  : "border-black/[0.06] bg-white/85 text-[var(--bm-text-primary)] shadow-sm shadow-slate-200/60 focus-within:border-[var(--bm-border-strong)]"
+                  ? "border-white/[0.08] bg-white/[0.06] text-white"
+                  : "border-black/[0.06] bg-white/85 text-[var(--bm-text-primary)] shadow-sm shadow-slate-200/60"
               )}
             >
               <Search className={cn("h-4 w-4 flex-shrink-0", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")} />
@@ -3683,7 +3683,7 @@ export default function ChatPage() {
                 onChange={(event) => setWebsiteSearchQuery(event.target.value)}
                 placeholder={t("searchForWebsite")}
                 className={cn(
-                  "min-w-0 flex-1 bg-transparent text-sm font-medium outline-none",
+                  "bm-search-input min-w-0 flex-1 bg-transparent text-sm font-medium outline-none",
                   isDark ? "placeholder:text-[var(--bm-text-muted)]" : "placeholder:text-[var(--bm-text-muted)]"
                 )}
                 data-testid="website-search-input"

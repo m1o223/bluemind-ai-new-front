@@ -1914,7 +1914,7 @@ function ScheduleTypeDialog({ isDark, appColor, accentText, onClose, onSelect })
           </button>
         </div>
 
-        <div className={cn("mt-5 flex h-12 items-center gap-3 rounded-2xl border px-4", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+        <div className={cn("bm-search-shell mt-5 flex h-12 items-center gap-3 rounded-2xl border px-4", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
           <Search className="h-5 w-5 shrink-0 text-[var(--bm-text-muted)]" />
           <input
             value={query}
@@ -1923,7 +1923,7 @@ function ScheduleTypeDialog({ isDark, appColor, accentText, onClose, onSelect })
               setActiveCategory(null);
             }}
             placeholder="Search schedules..."
-            className={cn("h-full min-w-0 flex-1 bg-transparent font-semibold outline-none", typeClasses.body, isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]")}
+            className={cn("bm-search-input h-full min-w-0 flex-1 bg-transparent font-semibold outline-none", typeClasses.body, isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]")}
           />
         </div>
 

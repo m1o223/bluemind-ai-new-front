@@ -4012,14 +4012,14 @@ Everything will be deleted when you leave.</p>
             </div>
 
             <div className="shrink-0 px-5 pb-4">
-              <label className={`flex h-14 items-center rounded-[24px] border px-4 shadow-sm ${iconClasses.iconText} ${isDark ? "border-white/[0.08] bg-white/[0.07]" : "border-[var(--bm-border)] bg-white"}`}>
+              <label className={`bm-search-shell flex h-14 items-center rounded-[24px] border px-4 shadow-sm ${iconClasses.iconText} ${isDark ? "border-white/[0.08] bg-white/[0.07]" : "border-[var(--bm-border)] bg-white"}`}>
                 <Search className={isDark ? `shrink-0 text-white ${iconClasses.sidebar}` : `shrink-0 text-[var(--bm-primary)] ${iconClasses.sidebar}`} />
                 <input
                   ref={searchInputRef}
                   value={menuSearchQuery}
                   onChange={(event) => setMenuSearchQuery(event.target.value)}
                   placeholder={t("searchConversations")}
-                  className={`min-w-0 flex-1 bg-transparent font-semibold outline-none placeholder:text-[var(--bm-text-muted)] ${typeClasses.body} ${textColor}`}
+                  className={`bm-search-input min-w-0 flex-1 bg-transparent font-semibold outline-none placeholder:text-[var(--bm-text-muted)] ${typeClasses.body} ${textColor}`}
                 />
                 {menuSearchQuery && (
                   <button type="button" onClick={() => setMenuSearchQuery("")} className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}>

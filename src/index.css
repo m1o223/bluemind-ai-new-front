@@ -359,6 +359,30 @@ select {
   border-radius: 999px;
 }
 
+.bm-field-search:focus,
+.bm-field-search:focus-visible,
+.bm-field-search:focus-within,
+.bm-search-shell:focus,
+.bm-search-shell:focus-visible,
+.bm-search-shell:focus-within {
+  outline: none !important;
+  outline-color: transparent !important;
+  outline-offset: 0 !important;
+  border-color: color-mix(in srgb, var(--bm-border) 86%, var(--bm-text-muted) 14%) !important;
+  box-shadow: none !important;
+}
+
+.bm-search-input:focus,
+.bm-search-input:focus-visible,
+.bm-search-shell :where(input, textarea, select):focus,
+.bm-search-shell :where(input, textarea, select):focus-visible {
+  outline: none !important;
+  outline-color: transparent !important;
+  outline-offset: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 .bm-textarea {
   min-height: 112px;
   padding: var(--bm-input-padding-y) var(--bm-input-padding-x);
