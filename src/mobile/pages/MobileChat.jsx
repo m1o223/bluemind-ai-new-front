@@ -2862,48 +2862,56 @@ export default function MobileChat() {
 
           <AnimatePresence>
             {responseModeMenuOpen && responseModeMenuPlacement === "header" && (
-              <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                className={`absolute left-1/2 top-12 z-50 w-[260px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-hidden rounded-[18px] border p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.24)] ${
-                  isDark
-                    ? "border-white/[0.1] bg-[#202020] text-white"
-                    : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]"
-                }`}
-                role="menu"
-              >
-                {AI_MODES.map((mode) => {
-                  const ModeIcon = mode.icon;
-                  const selected = responseMode === mode.id;
-                  return (
-                    <button
-                      key={mode.id}
-                      type="button"
-                      onClick={() => selectResponseMode(mode.id)}
-                      className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors ${
-                        selected
-                          ? isDark
-                            ? "bg-white/[0.1] text-white"
-                            : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
-                          : isDark
-                            ? "text-white hover:bg-white/[0.07]"
-                            : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
-                      }`}
-                      title={mode.description}
-                      role="menuitemradio"
-                      aria-checked={selected}
-                    >
-                      <span className="flex min-w-0 items-center gap-2.5">
-                        <ModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
-                        <span className="truncate">{getAiSpecializationLabel(mode)}</span>
-                      </span>
-                      {selected && <Check className={`h-[18px] w-[18px] shrink-0 stroke-[2.5] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
-                    </button>
-                  );
-                })}
-              </motion.div>
+              <>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-[45] cursor-default"
+                  onClick={() => setResponseModeMenuOpen(false)}
+                  aria-label="Close AI mode menu"
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                  transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                  className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+5.75rem)] z-50 w-[260px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-hidden rounded-[18px] border p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.24)] ${
+                    isDark
+                      ? "border-white/[0.1] bg-[#202020] text-white"
+                      : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]"
+                  }`}
+                  role="menu"
+                >
+                  {AI_MODES.map((mode) => {
+                    const ModeIcon = mode.icon;
+                    const selected = responseMode === mode.id;
+                    return (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => selectResponseMode(mode.id)}
+                        className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors ${
+                          selected
+                            ? isDark
+                              ? "bg-white/[0.1] text-white"
+                              : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                            : isDark
+                              ? "text-white hover:bg-white/[0.07]"
+                              : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
+                        }`}
+                        title={mode.description}
+                        role="menuitemradio"
+                        aria-checked={selected}
+                      >
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <ModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
+                          <span className="truncate">{getAiSpecializationLabel(mode)}</span>
+                        </span>
+                        {selected && <Check className={`h-[18px] w-[18px] shrink-0 stroke-[2.5] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              </>
             )}
           </AnimatePresence>
         </div>
