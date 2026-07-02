@@ -2683,6 +2683,45 @@ export default function MobileChat() {
     );
   };
 
+  const renderHomeQuickActions = () => {
+    const quickActions = [
+      { label: "Create Image", icon: Image, onClick: enterImageMode },
+      { label: "Write / Edit", icon: Edit3, onClick: enterWriteEditMode },
+      { label: "Search", icon: Search, onClick: enterSearchMode },
+    ];
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 6 }}
+        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-3 flex flex-wrap items-center justify-center gap-2 px-4"
+        data-testid="mobile-home-quick-actions"
+      >
+        {quickActions.map((action) => {
+          const ActionIcon = action.icon;
+
+          return (
+            <button
+              key={action.label}
+              type="button"
+              onClick={action.onClick}
+              className={`inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-[13px] font-bold transition-colors active:scale-[0.99] ${
+                isDark
+                  ? "border-white/[0.08] bg-white/[0.06] text-white shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:bg-white/[0.11]"
+                  : "border-[var(--bm-border)] bg-white/90 text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"
+              }`}
+            >
+              <ActionIcon className={`h-4 w-4 shrink-0 stroke-[2.2] ${isDark ? "text-white/85" : "text-[var(--bm-primary)]"}`} />
+              <span className="whitespace-nowrap">{action.label}</span>
+            </button>
+          );
+        })}
+      </motion.div>
+    );
+  };
+
   const renderMobileConversationRow = (item, context = "menu") => {
     const menuId = `${context}:${item.conversationId}`;
     const isActive = item.conversationId === activeConversationId;
@@ -3309,20 +3348,6 @@ export default function MobileChat() {
             </div>
           )}
 
-          {isEmptyChat && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              className="mx-auto flex min-h-full w-full max-w-[430px] items-center justify-center pb-8 pt-5"
-            >
-              <div className="bluemind-mobile-waves" aria-hidden="true">
-                <span className="bluemind-mobile-wave bluemind-mobile-wave--top" />
-                <span className="bluemind-mobile-wave bluemind-mobile-wave--middle" />
-                <span className="bluemind-mobile-wave bluemind-mobile-wave--bottom" />
-              </div>
-            </motion.div>
-          )}
         </div>
 
         {shouldPinComposer && (
@@ -3331,6 +3356,7 @@ export default function MobileChat() {
             style={{ bottom: `${composerKeyboardOffset}px` }}
           >
             <div className="mx-auto w-full max-w-[430px] pt-3">
+              <AnimatePresence>{isEmptyChat && renderHomeQuickActions()}</AnimatePresence>
               {renderComposerArea(false, isEmptyChat)}
             </div>
           </div>
