@@ -64,6 +64,7 @@ import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/li
 import { streamChatMessage } from "@/services/chatService";
 import { analyzeScheduleDocument } from "@/services/documentService";
 import { analyzeImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import { formatStreamErrorForDisplay, logStreamError } from "@/services/streamErrorUtils";
 
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
 const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
@@ -2462,10 +2463,10 @@ function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startS
         },
       });
     } catch (error) {
-      console.error("Schedule assistant stream failed", error);
+      logStreamError("schedule_assistant", error);
       setMessages((current) => current.map((message) => (
         message.id === assistantId
-          ? { ...message, content: "I could not connect to BlueMind AI right now. Please try again.", isThinking: false, error: true }
+          ? { ...message, content: formatStreamErrorForDisplay(error, "Schedule AI request failed."), isThinking: false, error: true }
           : message
       )));
       toast.error(error?.message || "Schedule AI request failed.");

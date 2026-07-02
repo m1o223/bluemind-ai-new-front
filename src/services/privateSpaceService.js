@@ -1,5 +1,6 @@
 import api, { API_BASE_URL, getApiErrorMessage, unwrapApiResponse } from "./api";
 import { readStoredRefreshSession, STORAGE_KEYS, storeRefreshSession, storeUser } from "./storageKeys";
+import { createStreamError, logStreamError } from "./streamErrorUtils";
 
 function privateHeaders(accessToken) {
   return accessToken ? { "x-private-space-token": accessToken } : {};
@@ -60,6 +61,35 @@ function createPrivateStreamRequest(privateSpaceId, accessToken, payload, signal
     body: JSON.stringify(payload),
     signal,
   });
+}
+
+function getPrivateStreamEndpoint(privateSpaceId) {
+  return `${API_BASE_URL}/private-spaces/${privateSpaceId}/messages/stream`;
+}
+
+async function openPrivateStreamRequest(privateSpaceId, accessToken, payload, signal) {
+  const endpoint = getPrivateStreamEndpoint(privateSpaceId);
+  try {
+    const response = await createPrivateStreamRequest(privateSpaceId, accessToken, payload, signal);
+    return { response, endpoint };
+  } catch (networkError) {
+    const error = createStreamError({ fallback: "Private chat stream failed", endpoint, networkError });
+    logStreamError("private_network", error);
+    throw error;
+  }
+}
+
+async function throwPrivateStreamResponseError(response, endpoint) {
+  const payload = await response.json().catch(() => null);
+  const error = createStreamError({
+    fallback: "Private chat stream failed",
+    status: response.status,
+    statusText: response.statusText,
+    payload,
+    endpoint,
+  });
+  logStreamError("private_http_response", error);
+  throw error;
 }
 
 export async function listPrivateSpaces() {
@@ -187,18 +217,17 @@ export async function streamPrivateSpaceMessage({
   if (metadata && Object.keys(metadata).length > 0) payload.metadata = metadata;
   if (mode) payload.mode = mode;
 
-  let response = await createPrivateStreamRequest(privateSpaceId, accessToken, payload, signal);
+  let { response, endpoint } = await openPrivateStreamRequest(privateSpaceId, accessToken, payload, signal);
 
   if (response.status === 401) {
     const session = await refreshAccessToken();
     if (session?.token) {
-      response = await createPrivateStreamRequest(privateSpaceId, accessToken, payload, signal);
+      ({ response, endpoint } = await openPrivateStreamRequest(privateSpaceId, accessToken, payload, signal));
     }
   }
 
   if (!response.ok || !response.body) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error?.message || "Private chat stream failed");
+    await throwPrivateStreamResponseError(response, endpoint);
   }
 
   const reader = response.body.getReader();
@@ -222,7 +251,9 @@ export async function streamPrivateSpaceMessage({
       if (parsed.event === "complete") onComplete?.(parsed.data);
       if (parsed.event === "error") {
         onError?.(parsed.data);
-        throw new Error(parsed.data?.message || "Private chat stream failed");
+        const error = createStreamError({ fallback: "Private chat stream failed", eventData: parsed.data, endpoint });
+        logStreamError("private_sse_event", error);
+        throw error;
       }
     }
   }

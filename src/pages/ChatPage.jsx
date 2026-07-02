@@ -101,6 +101,7 @@ import {
   suggestReminder,
 } from "@/services/reminderService";
 import { updatePreferences } from "@/services/profileService";
+import { formatStreamErrorForDisplay, logStreamError } from "@/services/streamErrorUtils";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 import useVoiceInput from "@/hooks/useVoiceInput";
 
@@ -2911,12 +2912,14 @@ export default function ChatPage() {
         return;
       }
 
+      logStreamError("main_chat", error);
+
       setMessages((prev) =>
         prev.map((message) =>
           message.id === aiMessageId
             ? {
                 ...message,
-                content: error.message || t("aiFailed"),
+                content: formatStreamErrorForDisplay(error, t("aiFailed")),
                 isStreaming: false,
               }
             : message,

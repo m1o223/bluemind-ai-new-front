@@ -1,5 +1,6 @@
 import api, { API_BASE_URL, getApiErrorMessage, unwrapApiResponse } from "./api";
 import { readStoredRefreshSession, STORAGE_KEYS, storeRefreshSession, storeUser } from "./storageKeys";
+import { createStreamError, logStreamError } from "./streamErrorUtils";
 
 function parseSseBlock(block) {
   const lines = block.split("\n");
@@ -60,10 +61,14 @@ async function refreshAccessToken() {
   return persistStreamSession(payload?.data ?? payload);
 }
 
+function getStreamEndpoint(path = "/chat/stream") {
+  return `${API_BASE_URL}${path}`;
+}
+
 function createStreamRequest(payload, signal, path = "/chat/stream") {
   const token = localStorage.getItem(STORAGE_KEYS.token);
 
-  return fetch(`${API_BASE_URL}${path}`, {
+  return fetch(getStreamEndpoint(path), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -73,6 +78,31 @@ function createStreamRequest(payload, signal, path = "/chat/stream") {
     body: JSON.stringify(payload),
     signal,
   });
+}
+
+async function openStreamRequest(payload, signal, path, fallback) {
+  const endpoint = getStreamEndpoint(path);
+  try {
+    const response = await createStreamRequest(payload, signal, path);
+    return { response, endpoint };
+  } catch (networkError) {
+    const error = createStreamError({ fallback, endpoint, networkError });
+    logStreamError("network", error);
+    throw error;
+  }
+}
+
+async function throwStreamResponseError(response, endpoint, fallback) {
+  const payload = await response.json().catch(() => null);
+  const error = createStreamError({
+    fallback,
+    status: response.status,
+    statusText: response.statusText,
+    payload,
+    endpoint,
+  });
+  logStreamError("http_response", error);
+  throw error;
 }
 
 function createAuthedRequest(path, options = {}) {
@@ -136,19 +166,18 @@ export async function streamChatMessage({
     payload.mode = mode;
   }
 
-  let response = await createStreamRequest(payload, signal);
+  let { response, endpoint } = await openStreamRequest(payload, signal, "/chat/stream", "AI stream failed");
 
   if (response.status === 401) {
     const session = await refreshAccessToken();
 
     if (session?.token) {
-      response = await createStreamRequest(payload, signal);
+      ({ response, endpoint } = await openStreamRequest(payload, signal, "/chat/stream", "AI stream failed"));
     }
   }
 
   if (!response.ok || !response.body) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error?.message || "AI stream failed");
+    await throwStreamResponseError(response, endpoint, "AI stream failed");
   }
 
   const reader = response.body.getReader();
@@ -172,7 +201,9 @@ export async function streamChatMessage({
       if (parsed.event === "complete") onComplete?.(parsed.data);
       if (parsed.event === "error") {
         onError?.(parsed.data);
-        throw new Error(parsed.data?.message || "AI stream failed");
+        const error = createStreamError({ fallback: "AI stream failed", eventData: parsed.data, endpoint });
+        logStreamError("sse_event", error);
+        throw error;
       }
     }
   }
@@ -198,18 +229,17 @@ export async function streamHiddenChatMessage(options) {
   if (metadata && Object.keys(metadata).length > 0) payload.metadata = metadata;
   if (mode) payload.mode = mode;
 
-  let response = await createStreamRequest(payload, signal, "/chat/hidden/stream");
+  let { response, endpoint } = await openStreamRequest(payload, signal, "/chat/hidden/stream", "Hidden chat stream failed");
 
   if (response.status === 401) {
     const session = await refreshAccessToken();
     if (session?.token) {
-      response = await createStreamRequest(payload, signal, "/chat/hidden/stream");
+      ({ response, endpoint } = await openStreamRequest(payload, signal, "/chat/hidden/stream", "Hidden chat stream failed"));
     }
   }
 
   if (!response.ok || !response.body) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error?.message || "Hidden chat stream failed");
+    await throwStreamResponseError(response, endpoint, "Hidden chat stream failed");
   }
 
   const reader = response.body.getReader();
@@ -233,7 +263,9 @@ export async function streamHiddenChatMessage(options) {
       if (parsed.event === "complete") onComplete?.(parsed.data);
       if (parsed.event === "error") {
         onError?.(parsed.data);
-        throw new Error(parsed.data?.message || "Hidden chat stream failed");
+        const error = createStreamError({ fallback: "Hidden chat stream failed", eventData: parsed.data, endpoint });
+        logStreamError("hidden_sse_event", error);
+        throw error;
       }
     }
   }
