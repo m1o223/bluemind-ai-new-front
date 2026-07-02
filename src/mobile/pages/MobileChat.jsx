@@ -9,6 +9,7 @@ import {
   Brain,
   Camera,
   ChevronDown,
+  ChevronRight,
   Check,
   Clock3,
   Clipboard,
@@ -81,6 +82,109 @@ import useVoiceInput from "@/hooks/useVoiceInput";
 import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 
 const MAX_IMAGE_ATTACHMENTS = 6;
+const MOBILE_MODEL_STORAGE_KEY = "bluemind_mobile_model";
+const MOBILE_THINKING_LEVEL_STORAGE_KEY = "bluemind_mobile_thinking_level";
+
+const MOBILE_BLUEMIND_MODELS = [
+  {
+    id: "lite",
+    label: "BlueMind Lite",
+    description: "Fast everyday help",
+    responseMode: "general",
+    icon: Sparkles,
+  },
+  {
+    id: "core",
+    label: "BlueMind Core",
+    description: "Balanced study and work",
+    responseMode: "work",
+    icon: Brain,
+  },
+  {
+    id: "pro",
+    label: "BlueMind Pro",
+    description: "Deeper reasoning",
+    responseMode: "study",
+    icon: BookOpen,
+  },
+  {
+    id: "research",
+    label: "BlueMind Research",
+    description: "Careful research answers",
+    responseMode: "research",
+    icon: Search,
+  },
+  {
+    id: "vision",
+    label: "BlueMind Vision",
+    description: "Best with images and files",
+    responseMode: "writing",
+    icon: Sparkles,
+  },
+];
+
+const MOBILE_THINKING_LEVELS = [
+  { id: "quick", label: "Quick", description: "Shortest reasoning path" },
+  { id: "balanced", label: "Balanced", description: "Good default depth" },
+  { id: "deep", label: "Deep", description: "More careful reasoning" },
+  { id: "expert", label: "Expert", description: "Detailed expert pass" },
+  { id: "max", label: "Max", description: "Maximum effort" },
+];
+
+function clampNumber(value, min, max) {
+  if (max < min) return min;
+  return Math.min(Math.max(value, min), max);
+}
+
+function getMobileModelByResponseMode(responseMode) {
+  return MOBILE_BLUEMIND_MODELS.find((model) => model.responseMode === responseMode);
+}
+
+function getMobileModelById(modelId, responseMode) {
+  return MOBILE_BLUEMIND_MODELS.find((model) => model.id === modelId)
+    || getMobileModelByResponseMode(responseMode)
+    || MOBILE_BLUEMIND_MODELS[1];
+}
+
+function getComposerModelMenuLayout(triggerElement) {
+  if (typeof window === "undefined" || !triggerElement) return null;
+
+  const rect = triggerElement.getBoundingClientRect();
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 360;
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
+  const margin = 24;
+  const gap = 8;
+  const availableWidth = Math.max(248, viewportWidth - margin * 2);
+  const menuWidth = Math.min(236, Math.max(208, Math.floor(availableWidth * 0.62)));
+  const submenuWidth = Math.min(164, Math.max(120, availableWidth - menuWidth - gap));
+  const totalWidth = menuWidth + gap + submenuWidth;
+  const centeredLeft = rect.left + rect.width / 2 - menuWidth / 2;
+
+  let submenuSide = centeredLeft + totalWidth <= viewportWidth - margin ? "right" : "left";
+  let minLeft = margin;
+  let maxLeft = viewportWidth - menuWidth - margin;
+
+  if (submenuSide === "right") {
+    maxLeft = viewportWidth - totalWidth - margin;
+  } else {
+    minLeft = margin + submenuWidth + gap;
+  }
+
+  if (minLeft > maxLeft) {
+    submenuSide = "right";
+    minLeft = margin;
+    maxLeft = Math.max(margin, viewportWidth - totalWidth - margin);
+  }
+
+  return {
+    bottom: Math.max(margin, viewportHeight - rect.top + 8),
+    left: clampNumber(centeredLeft, minLeft, maxLeft),
+    maxHeight: Math.max(220, Math.min(322, rect.top - margin - 8)),
+    menuWidth,
+    submenuSide,
+    submenuWidth,
+  };
+}
 
 const WRITE_EDIT_ARTWORK_PALETTES = [
   WRITE_EDIT_ARTWORK_COLORS.writing,
@@ -527,6 +631,8 @@ export default function MobileChat() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [responseModeMenuPlacement, setResponseModeMenuPlacement] = useState("header");
+  const [composerThinkingMenuOpen, setComposerThinkingMenuOpen] = useState(false);
+  const [composerModelMenuLayout, setComposerModelMenuLayout] = useState(null);
   const [isComposerKeyboardOpen, setIsComposerKeyboardOpen] = useState(false);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
@@ -567,6 +673,8 @@ export default function MobileChat() {
     const storedMode = localStorage.getItem("bluemind-response-mode");
     return normalizeAiModeId(storedMode);
   });
+  const [mobileModelId, setMobileModelId] = useState(() => localStorage.getItem(MOBILE_MODEL_STORAGE_KEY) || "core");
+  const [thinkingLevel, setThinkingLevel] = useState(() => localStorage.getItem(MOBILE_THINKING_LEVEL_STORAGE_KEY) || "balanced");
   const [isImageMode, setIsImageMode] = useState(false);
   const [isWriteEditMode, setIsWriteEditMode] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -593,6 +701,7 @@ export default function MobileChat() {
   const sheetTouchStartYRef = useRef(null);
   const searchInputRef = useRef(null);
   const composerInputRef = useRef(null);
+  const composerModelButtonRef = useRef(null);
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -602,6 +711,10 @@ export default function MobileChat() {
   const sendLockRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
   const loadedConversationRef = useRef(null);
+
+  const updateComposerModelMenuLayout = useCallback(() => {
+    setComposerModelMenuLayout(getComposerModelMenuLayout(composerModelButtonRef.current));
+  }, []);
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
@@ -854,6 +967,30 @@ export default function MobileChat() {
   }, [responseMode]);
 
   useEffect(() => {
+    localStorage.setItem(MOBILE_MODEL_STORAGE_KEY, mobileModelId);
+  }, [mobileModelId]);
+
+  useEffect(() => {
+    localStorage.setItem(MOBILE_THINKING_LEVEL_STORAGE_KEY, thinkingLevel);
+  }, [thinkingLevel]);
+
+  useEffect(() => {
+    if (!responseModeMenuOpen || responseModeMenuPlacement !== "composer") {
+      setComposerThinkingMenuOpen(false);
+      return undefined;
+    }
+
+    updateComposerModelMenuLayout();
+    window.addEventListener("resize", updateComposerModelMenuLayout);
+    window.addEventListener("scroll", updateComposerModelMenuLayout, true);
+
+    return () => {
+      window.removeEventListener("resize", updateComposerModelMenuLayout);
+      window.removeEventListener("scroll", updateComposerModelMenuLayout, true);
+    };
+  }, [responseModeMenuOpen, responseModeMenuPlacement, updateComposerModelMenuLayout]);
+
+  useEffect(() => {
     const savedMode = normalizeAiModeId(prefs.aiMode || localStorage.getItem("bluemind-response-mode"));
     if (savedMode !== responseMode) {
       setResponseMode(savedMode);
@@ -929,6 +1066,18 @@ export default function MobileChat() {
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Could not save AI mode"));
     }
+  };
+
+  const selectMobileModel = (model) => {
+    setMobileModelId(model.id);
+    setComposerThinkingMenuOpen(false);
+    void selectResponseMode(model.responseMode);
+  };
+
+  const selectMobileThinkingLevel = (level) => {
+    setThinkingLevel(level.id);
+    setComposerThinkingMenuOpen(false);
+    setResponseModeMenuOpen(false);
   };
 
   const goTo = (path) => {
@@ -1782,6 +1931,8 @@ export default function MobileChat() {
       mode: selectedMode,
       responseMode: selectedMode,
       aiMode: selectedMode,
+      blueMindModel: mobileModelId,
+      thinkingLevel,
       chatMode: activeWriteTask ? "write_edit" : metadata.chatMode || "chat",
       writeEditTask: activeWriteTask || undefined,
     };
@@ -1927,7 +2078,7 @@ export default function MobileChat() {
       setIsChatSending(false);
       sendLockRef.current = false;
     }
-  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, isChatSending, isGeneratingImage, isListening, privateSpaceAccessToken, queueAiDelta, responseMode, scrollToBottom, setSearchParams, stopVoiceInput, writeAttachments]);
+  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, isChatSending, isGeneratingImage, isListening, mobileModelId, privateSpaceAccessToken, queueAiDelta, responseMode, scrollToBottom, setSearchParams, stopVoiceInput, thinkingLevel, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -2265,78 +2416,154 @@ export default function MobileChat() {
       setAttachmentSheetOpen(true);
     };
 
+    const activeMobileModel = getMobileModelById(mobileModelId, responseMode);
+    const activeThinkingLevel = MOBILE_THINKING_LEVELS.find((level) => level.id === thinkingLevel) || MOBILE_THINKING_LEVELS[1];
+    const composerModelMenuOpen = responseModeMenuOpen && responseModeMenuPlacement === "composer";
+    const composerMenuLayout = composerModelMenuLayout || getComposerModelMenuLayout(composerModelButtonRef.current);
+    const selectedModelRowClass = isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]";
+    const idleModelRowClass = isDark ? "text-white hover:bg-white/[0.07]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]";
+    const dropdownSurfaceClass = isDark
+      ? "bg-[var(--bm-bg-card)] text-white ring-white/[0.08] shadow-[0_12px_28px_rgba(0,0,0,0.28)]"
+      : "bg-white text-[var(--bm-text-primary)] ring-[var(--bm-border)] shadow-[0_12px_28px_rgba(15,23,42,0.10)]";
+
     const composerModelSelector = (
       <div className="relative min-w-0">
         <button
+          ref={composerModelButtonRef}
           type="button"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation();
             setResponseModeMenuPlacement("composer");
-            setResponseModeMenuOpen((open) => responseModeMenuPlacement === "composer" ? !open : true);
+            setResponseModeMenuOpen((open) => {
+              const nextOpen = responseModeMenuPlacement === "composer" ? !open : true;
+              if (nextOpen) {
+                window.requestAnimationFrame(updateComposerModelMenuLayout);
+              }
+              return nextOpen;
+            });
           }}
-          className={isDark ? "flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-full bg-white/[0.07] px-3 text-xs font-extrabold text-white active:bg-white/[0.12]" : "flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-full bg-[var(--bm-hover-bg)] px-3 text-xs font-extrabold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
+          className={isDark ? "flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full bg-white/[0.07] px-3 text-sm font-bold text-white active:bg-white/[0.12]" : "flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full bg-[var(--bm-hover-bg)] px-3 text-sm font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
           aria-label="Select BlueMind model"
-          aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "composer"}
+          aria-expanded={composerModelMenuOpen}
         >
-          {(() => {
-            const SelectedModeIcon = getAiMode(responseMode).icon;
-            return <SelectedModeIcon className="h-4 w-4 shrink-0 stroke-[2.25]" />;
-          })()}
-          <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${responseModeMenuOpen && responseModeMenuPlacement === "composer" ? "rotate-180" : ""}`} />
+          <span className="truncate">{activeMobileModel.label}</span>
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${composerModelMenuOpen ? "rotate-180" : ""}`} />
         </button>
 
         <AnimatePresence>
-          {responseModeMenuOpen && responseModeMenuPlacement === "composer" && (
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.16 }}
-              onPointerDown={(event) => event.stopPropagation()}
-              className={`absolute bottom-[calc(100%+10px)] left-1/2 z-50 w-[292px] -translate-x-1/2 overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
-                isDark
-                  ? "border-white/[0.12] bg-[var(--bm-bg-card)]/95"
-                  : "border-black/[0.06] bg-white/95"
-              }`}
-            >
-              {AI_MODES.map((mode) => {
-                const ModeIcon = mode.icon;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      selectResponseMode(mode.id);
-                    }}
-                    className={`flex min-h-[64px] w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left transition-colors duration-200 ${
-                      responseMode === mode.id
-                        ? isDark
-                          ? "bg-white/[0.11] text-white"
-                          : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]"
-                        : isDark
-                          ? "text-white active:bg-white/[0.075]"
-                          : "text-[var(--bm-text-primary)] active:bg-[var(--bm-bg-elevated)]"
-                    }`}
-                  >
-                    <span className="flex min-w-0 flex-1 items-center gap-3">
-                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/[0.075] text-[var(--bm-primary)]"}`}>
-                        <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[15px] font-bold leading-5">{getAiSpecializationLabel(mode)}</span>
-                        <span className={`mt-1 line-clamp-1 block text-xs font-semibold leading-4 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
-                          {mode.description}
+          {composerModelMenuOpen && (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-40 cursor-default"
+                onClick={() => {
+                  setComposerThinkingMenuOpen(false);
+                  setResponseModeMenuOpen(false);
+                }}
+                aria-label="Close BlueMind model menu"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="fixed z-50 overflow-visible"
+                style={{
+                  bottom: `${composerMenuLayout?.bottom ?? 72}px`,
+                  left: `${composerMenuLayout?.left ?? 16}px`,
+                  width: `${composerMenuLayout?.menuWidth ?? 220}px`,
+                }}
+              >
+                <div
+                  className={`overflow-y-auto rounded-[20px] p-1.5 ring-1 ${dropdownSurfaceClass}`}
+                  style={{ maxHeight: `${composerMenuLayout?.maxHeight ?? 300}px` }}
+                >
+                  {MOBILE_BLUEMIND_MODELS.map((model) => {
+                    const selected = activeMobileModel.id === model.id;
+                    return (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onMouseEnter={() => setComposerThinkingMenuOpen(false)}
+                        onFocus={() => setComposerThinkingMenuOpen(false)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          selectMobileModel(model);
+                        }}
+                        className={`flex min-h-[42px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${selected ? selectedModelRowClass : idleModelRowClass}`}
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
                         </span>
-                      </span>
-                    </span>
-                    {responseMode === mode.id && <Check className="h-[18px] w-[18px] shrink-0 stroke-[2.2]" />}
+                        <span className="min-w-0 flex-1 truncate">{model.label}</span>
+                      </button>
+                    );
+                  })}
+
+                  <div className={`my-1.5 h-px ${isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]"}`} />
+
+                  <button
+                    type="button"
+                    onMouseEnter={() => setComposerThinkingMenuOpen(true)}
+                    onFocus={() => setComposerThinkingMenuOpen(true)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setComposerThinkingMenuOpen((open) => !open);
+                    }}
+                    className={`flex min-h-[42px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${composerThinkingMenuOpen ? selectedModelRowClass : idleModelRowClass}`}
+                    aria-haspopup="menu"
+                    aria-expanded={composerThinkingMenuOpen}
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center" />
+                    <span className="min-w-0 flex-1 truncate">Thinking</span>
+                    <ChevronRight className={`h-4 w-4 shrink-0 ${isDark ? "text-white/70" : "text-[var(--bm-text-muted)]"}`} />
                   </button>
-                );
-              })}
-            </motion.div>
+                </div>
+
+                <AnimatePresence>
+                  {composerThinkingMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, x: composerMenuLayout?.submenuSide === "left" ? 4 : -4, scale: 0.98 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: composerMenuLayout?.submenuSide === "left" ? 4 : -4, scale: 0.98 }}
+                      transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                      className={`absolute bottom-0 z-50 rounded-[20px] p-1.5 ring-1 ${dropdownSurfaceClass}`}
+                      style={{
+                        maxHeight: `${composerMenuLayout?.maxHeight ?? 300}px`,
+                        width: `${composerMenuLayout?.submenuWidth ?? 132}px`,
+                        ...(composerMenuLayout?.submenuSide === "left"
+                          ? { right: "calc(100% + 6px)" }
+                          : { left: "calc(100% + 6px)" }),
+                      }}
+                      onMouseEnter={() => setComposerThinkingMenuOpen(true)}
+                    >
+                      {MOBILE_THINKING_LEVELS.map((level) => {
+                        const selected = activeThinkingLevel.id === level.id;
+                        return (
+                          <button
+                            key={level.id}
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              selectMobileThinkingLevel(level);
+                            }}
+                            className={`flex min-h-[40px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${selected ? selectedModelRowClass : idleModelRowClass}`}
+                          >
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                              {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate">{level.label}</span>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
       </div>
@@ -2597,45 +2824,43 @@ export default function MobileChat() {
           <AnimatePresence>
             {responseModeMenuOpen && responseModeMenuPlacement === "header" && (
               <motion.div
-                initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                transition={{ duration: 0.16 }}
-                className={`absolute left-1/2 top-12 z-50 w-[292px] -translate-x-1/2 overflow-hidden rounded-[24px] border p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${
+                exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                className={`absolute left-1/2 top-12 z-50 w-[260px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-hidden rounded-[18px] border p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.24)] ${
                   isDark
-                    ? "border-white/[0.12] bg-[var(--bm-bg-card)]/95"
-                    : "border-black/[0.06] bg-white/90"
+                    ? "border-white/[0.1] bg-[#202020] text-white"
+                    : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]"
                 }`}
+                role="menu"
               >
                 {AI_MODES.map((mode) => {
                   const ModeIcon = mode.icon;
+                  const selected = responseMode === mode.id;
                   return (
                     <button
                       key={mode.id}
                       type="button"
                       onClick={() => selectResponseMode(mode.id)}
-                      className={`flex min-h-[72px] w-full items-center justify-between gap-3 rounded-2xl px-3.5 py-3.5 text-left transition-colors duration-200 ${
-                        responseMode === mode.id
+                      className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors ${
+                        selected
                           ? isDark
-                            ? "bg-white/[0.11] text-white"
-                            : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]"
+                            ? "bg-white/[0.1] text-white"
+                            : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
                           : isDark
-                            ? "text-white active:bg-white/[0.075]"
-                            : "text-[var(--bm-text-primary)] active:bg-[var(--bm-bg-elevated)]"
+                            ? "text-white hover:bg-white/[0.07]"
+                            : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
                       }`}
+                      title={mode.description}
+                      role="menuitemradio"
+                      aria-checked={selected}
                     >
-                      <span className="flex min-w-0 flex-1 items-center gap-3">
-                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/[0.075] text-[var(--bm-primary)]"}`}>
-                          <ModeIcon className="h-[18px] w-[18px] stroke-[2.2]" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-[15px] font-bold leading-5">{getAiSpecializationLabel(mode)}</span>
-                          <span className={`mt-1 block text-xs font-semibold leading-4 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
-                            {mode.description}
-                          </span>
-                        </span>
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <ModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
+                        <span className="truncate">{getAiSpecializationLabel(mode)}</span>
                       </span>
-                      {responseMode === mode.id && <Check className="h-[18px] w-[18px] shrink-0 stroke-[2.2]" />}
+                      {selected && <Check className={`h-[18px] w-[18px] shrink-0 stroke-[2.5] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
                     </button>
                   );
                 })}
