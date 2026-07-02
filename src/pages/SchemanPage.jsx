@@ -34,6 +34,7 @@ import {
   MessageSquare,
   Mic,
   Moon,
+  MoreVertical,
   Music,
   Paperclip,
   PenLine,
@@ -2908,125 +2909,128 @@ function ScheduleTutorial({ isDark, appColor, accentText, onComplete }) {
   );
 }
 
-function formatSavedScheduleDate(value) {
-  const date = new Date(value || "");
-  if (Number.isNaN(date.getTime())) return "Unknown";
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
 function sortSchedulesByDate(records = []) {
   return [...records].sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0));
 }
 
-function ScheduleActionCard({ title, description, icon: Icon, onClick, appColor, accentText, isDark }) {
-  return (
-    <motion.button
-      type="button"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-      onClick={onClick}
-      className={cn(
-        "group flex min-h-[180px] flex-col rounded-[24px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
-        isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-white hover:bg-[var(--bm-bg-elevated)]",
-      )}
-    >
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-[0_12px_26px_rgba(25,59,104,0.18)]" style={{ backgroundColor: appColor, color: accentText }}>
-        <Icon className={iconClasses.card} />
-      </span>
-      <span className={cn("mt-5 block font-extrabold", typeClasses.cardTitle)}>{title}</span>
-      <span className={cn("mt-2 block max-w-lg font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{description}</span>
-      <span className={cn("mt-auto pt-5 font-extrabold", typeClasses.small, "text-[var(--bm-primary)]")}>Open</span>
-    </motion.button>
-  );
+function formatScheduleUpdatedLabel(value) {
+  const date = new Date(value || "");
+  if (Number.isNaN(date.getTime())) return "Updated unknown";
+  const today = startOfLocalDay(new Date());
+  const updatedDay = startOfLocalDay(date);
+  const dayDelta = Math.round((today.getTime() - updatedDay.getTime()) / (24 * 60 * 60 * 1000));
+  if (dayDelta === 0) return "Updated today";
+  if (dayDelta === 1) return "Updated yesterday";
+  if (dayDelta > 1 && dayDelta < 7) return `Updated ${dayDelta} days ago`;
+  return `Updated ${date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
 }
 
-function ScheduleMiniButton({ children, onClick, danger = false, active = false, title }) {
+function getScheduleCardIcon(schedule = {}) {
+  const blockIcon = schedule.blocks?.[0]?.icon;
+  return getScheduleIconOption(blockIcon || guessScheduleIcon(schedule.name)).Icon;
+}
+
+function ScheduleToolbarButton({ children, onClick, active = false, appColor, accentText }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      title={title}
       className={cn(
-        "inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 font-bold transition-all duration-200",
+        "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3.5 font-extrabold transition-all duration-200",
         typeClasses.small,
-        danger
-          ? "bg-red-500/10 text-red-600 hover:bg-red-500/15"
-          : active
-            ? "bg-[var(--bm-primary)] text-white shadow-sm"
-            : interactionClasses.control,
+        active ? "text-white shadow-[0_10px_22px_rgba(25,59,104,0.16)]" : interactionClasses.control,
       )}
+      style={active ? { backgroundColor: appColor, color: accentText } : undefined}
     >
       {children}
     </button>
   );
 }
 
-function SavedScheduleRow({ schedule, isDark, isRenaming, renameValue, onRenameValue, onStartRename, onCancelRename, onSaveRename, onOpen, onDuplicate, onTogglePin, onDelete }) {
-  const Icon = schedule.pinned ? Star : Calendar;
+function ScheduleCardMenu({ schedule, isDark, onOpen, onRename, onDuplicate, onTogglePin, onDelete }) {
+  const itemClass = cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-bold transition-colors", typeClasses.small);
   return (
-    <div className={cn("rounded-[22px] border p-4", isDark ? "border-white/[0.08] bg-white/[0.035]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", schedule.pinned ? "bg-[var(--bm-primary)] text-white" : isDark ? "bg-white/[0.07] text-white" : "bg-white text-[var(--bm-text-primary)]")}>
-            <Icon className={iconClasses.button} fill={schedule.pinned ? "currentColor" : "none"} />
+    <div
+      className={cn("absolute right-0 top-10 z-30 w-44 rounded-2xl border p-1.5 shadow-xl", isDark ? "border-white/[0.10] bg-[var(--bm-bg-modal)]" : "border-[var(--bm-border)] bg-white")}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <button type="button" onClick={onOpen} className={cn(itemClass, interactionClasses.menuItem)}>
+        <Calendar className={iconClasses.button} />
+        Open
+      </button>
+      <button type="button" onClick={onRename} className={cn(itemClass, interactionClasses.menuItem)}>
+        <PenLine className={iconClasses.button} />
+        Rename
+      </button>
+      <button type="button" onClick={onDuplicate} className={cn(itemClass, interactionClasses.menuItem)}>
+        <Copy className={iconClasses.button} />
+        Duplicate
+      </button>
+      <button type="button" onClick={onTogglePin} className={cn(itemClass, interactionClasses.menuItem)}>
+        <Star className={iconClasses.button} fill={schedule.pinned ? "currentColor" : "none"} />
+        {schedule.pinned ? "Unpin" : "Pin"}
+      </button>
+      <button type="button" onClick={onDelete} className={cn(itemClass, "text-red-600 hover:bg-red-500/10")}>
+        <Trash2 className={iconClasses.button} />
+        Delete
+      </button>
+    </div>
+  );
+}
+
+function SavedScheduleCard({ schedule, isDark, menuOpen, onToggleMenu, onOpen, onRename, onDuplicate, onTogglePin, onDelete }) {
+  const Icon = getScheduleCardIcon(schedule);
+  return (
+    <motion.div
+      layout
+      className={cn(
+        "group relative min-h-[96px] rounded-[20px] border p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white",
+      )}
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") onOpen();
+      }}
+    >
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleMenu();
+        }}
+        className={cn("absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full opacity-80 transition hover:opacity-100", interactionClasses.control)}
+        aria-label={`Open menu for ${schedule.name}`}
+        aria-expanded={menuOpen}
+      >
+        <MoreVertical className="h-4 w-4 stroke-[2.4]" />
+      </button>
+
+      <div className="flex h-full min-w-0 flex-col justify-center pr-9">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", schedule.pinned ? "bg-[var(--bm-primary)] text-white" : isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}>
+            <Icon className={iconClasses.button} />
           </span>
           <div className="min-w-0">
-            {isRenaming ? (
-              <input
-                value={renameValue}
-                onChange={(event) => onRenameValue(event.target.value)}
-                className={cn(inputClasses.base, "h-10 min-w-[220px] rounded-xl px-3 font-extrabold")}
-                autoFocus
-              />
-            ) : (
-              <h3 className={cn("truncate font-extrabold", typeClasses.cardTitle)}>{schedule.name}</h3>
-            )}
-            <div className={cn("mt-1 flex flex-wrap gap-x-4 gap-y-1 font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
-              <span>{schedule.blocks.length} activities</span>
-              <span>Last modified {formatSavedScheduleDate(schedule.updatedAt)}</span>
-              <span>Created {formatSavedScheduleDate(schedule.createdAt)}</span>
-            </div>
+            <h3 className={cn("truncate font-extrabold", typeClasses.body)}>{schedule.name}</h3>
+            <p className={cn("mt-0.5 truncate font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{formatScheduleUpdatedLabel(schedule.updatedAt)}</p>
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <ScheduleMiniButton onClick={onOpen}>
-            <Calendar className={iconClasses.button} />
-            Open
-          </ScheduleMiniButton>
-          {isRenaming ? (
-            <>
-              <ScheduleMiniButton onClick={onSaveRename}>
-                <Check className={iconClasses.button} />
-                Save
-              </ScheduleMiniButton>
-              <ScheduleMiniButton onClick={onCancelRename}>
-                <X className={iconClasses.button} />
-                Cancel
-              </ScheduleMiniButton>
-            </>
-          ) : (
-            <ScheduleMiniButton onClick={onStartRename}>
-              <PenLine className={iconClasses.button} />
-              Rename
-            </ScheduleMiniButton>
-          )}
-          <ScheduleMiniButton onClick={onDuplicate}>
-            <Copy className={iconClasses.button} />
-            Duplicate
-          </ScheduleMiniButton>
-          <ScheduleMiniButton onClick={onTogglePin} active={schedule.pinned}>
-            <Star className={iconClasses.button} fill={schedule.pinned ? "currentColor" : "none"} />
-            {schedule.pinned ? "Unpin" : "Pin"}
-          </ScheduleMiniButton>
-          <ScheduleMiniButton onClick={onDelete} danger>
-            <Trash2 className={iconClasses.button} />
-            Delete
-          </ScheduleMiniButton>
-        </div>
       </div>
-    </div>
+
+      {menuOpen && (
+        <ScheduleCardMenu
+          schedule={schedule}
+          isDark={isDark}
+          onOpen={onOpen}
+          onRename={onRename}
+          onDuplicate={onDuplicate}
+          onTogglePin={onTogglePin}
+          onDelete={onDelete}
+        />
+      )}
+    </motion.div>
   );
 }
 
@@ -3042,11 +3046,18 @@ export function ScheduleHomePage() {
   const workspacePath = `${basePath}/workspace`;
   const customPath = `${basePath}/custom`;
   const [scheduleRecords, setScheduleRecords] = useState(readScheduleLibrary);
-  const [renamingId, setRenamingId] = useState("");
-  const [renameValue, setRenameValue] = useState("");
+  const [openMenuId, setOpenMenuId] = useState("");
   const sortedSchedules = useMemo(() => sortSchedulesByDate(scheduleRecords), [scheduleRecords]);
   const pinnedSchedules = useMemo(() => sortedSchedules.filter((schedule) => schedule.pinned).slice(0, 2), [sortedSchedules]);
-  const unpinnedSchedules = useMemo(() => sortedSchedules.filter((schedule) => !schedule.pinned), [sortedSchedules]);
+  const pinnedScheduleIds = useMemo(() => new Set(pinnedSchedules.map((schedule) => schedule.id)), [pinnedSchedules]);
+  const savedSchedules = useMemo(() => sortedSchedules.filter((schedule) => !pinnedScheduleIds.has(schedule.id)), [pinnedScheduleIds, sortedSchedules]);
+
+  useEffect(() => {
+    if (!openMenuId) return undefined;
+    const closeMenu = () => setOpenMenuId("");
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
+  }, [openMenuId]);
 
   const persistSchedules = (records) => {
     setScheduleRecords(records);
@@ -3066,27 +3077,24 @@ export function ScheduleHomePage() {
     navigate(workspacePath, { state: { fromScheduleHome: true, scheduleId: record.id } });
   };
 
-  const startRename = (record) => {
-    setRenamingId(record.id);
-    setRenameValue(record.name);
-  };
-
-  const saveRename = (record) => {
-    const nextName = renameValue.trim();
+  const renameSchedule = (record) => {
+    const nextName = window.prompt("Rename schedule", record.name)?.trim();
+    setOpenMenuId("");
+    if (nextName === undefined) return;
     if (!nextName) {
       toast.error("Schedule name is required.");
       return;
     }
+    if (nextName === record.name) return;
     const now = new Date().toISOString();
     const nextRecords = scheduleRecords.map((item) => item.id === record.id ? { ...item, name: nextName, updatedAt: now } : item);
     persistSchedules(nextRecords);
     if (getActiveScheduleId() === record.id) activateScheduleRecord({ ...record, name: nextName, updatedAt: now });
-    setRenamingId("");
-    setRenameValue("");
     toast.success("Schedule renamed.");
   };
 
   const duplicateSchedule = (record) => {
+    setOpenMenuId("");
     const duplicate = createScheduleRecord({
       name: `${record.name} Copy`,
       blocks: record.blocks,
@@ -3097,6 +3105,7 @@ export function ScheduleHomePage() {
   };
 
   const togglePin = (record) => {
+    setOpenMenuId("");
     if (!record.pinned && scheduleRecords.filter((item) => item.pinned).length >= 2) {
       toast.error("Only two schedules can be pinned.");
       return;
@@ -3106,6 +3115,7 @@ export function ScheduleHomePage() {
   };
 
   const deleteSchedule = (record) => {
+    setOpenMenuId("");
     if (!window.confirm(`Delete ${record.name}?`)) return;
     const nextRecords = scheduleRecords.filter((item) => item.id !== record.id);
     persistSchedules(nextRecords);
@@ -3120,21 +3130,18 @@ export function ScheduleHomePage() {
     toast.success("Schedule deleted.");
   };
 
-  const renderScheduleRows = (records) => records.map((schedule) => (
-    <SavedScheduleRow
+  const renderScheduleCards = (records) => records.map((schedule) => (
+    <SavedScheduleCard
       key={schedule.id}
       schedule={schedule}
       isDark={isDark}
-      isRenaming={renamingId === schedule.id}
-      renameValue={renameValue}
-      onRenameValue={setRenameValue}
-      onStartRename={() => startRename(schedule)}
-      onCancelRename={() => {
-        setRenamingId("");
-        setRenameValue("");
+      menuOpen={openMenuId === schedule.id}
+      onToggleMenu={() => setOpenMenuId((current) => current === schedule.id ? "" : schedule.id)}
+      onOpen={() => {
+        setOpenMenuId("");
+        openWorkspaceForRecord(schedule);
       }}
-      onSaveRename={() => saveRename(schedule)}
-      onOpen={() => openWorkspaceForRecord(schedule)}
+      onRename={() => renameSchedule(schedule)}
       onDuplicate={() => duplicateSchedule(schedule)}
       onTogglePin={() => togglePin(schedule)}
       onDelete={() => deleteSchedule(schedule)}
@@ -3143,65 +3150,47 @@ export function ScheduleHomePage() {
 
   return (
     <main className={cn("min-h-screen px-4 py-5 sm:px-6 lg:px-8", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")} data-testid="schedule-home-page">
-      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1180px] flex-col gap-6">
-        <header>
-          <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>Schedule</p>
-          <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule Home</h1>
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1180px] flex-col gap-7">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className={cn("font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule Home</h1>
+          <div className="flex flex-wrap gap-2">
+            <ScheduleToolbarButton onClick={createNewSchedule} active appColor={appColor} accentText={accentText}>
+              <Plus className={iconClasses.button} />
+              New
+            </ScheduleToolbarButton>
+            <ScheduleToolbarButton onClick={() => navigate(customPath)} appColor={appColor} accentText={accentText}>
+              <Sparkles className={iconClasses.button} />
+              Custom
+            </ScheduleToolbarButton>
+          </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2">
-          <ScheduleActionCard
-            title="Create New Schedule"
-            description="Create a normal weekly schedule and open the weekly calendar workspace."
-            icon={Calendar}
-            onClick={createNewSchedule}
-            appColor={appColor}
-            accentText={accentText}
-            isDark={isDark}
-          />
-          <ScheduleActionCard
-            title="Custom Schedule"
-            description="Open all custom templates, including study, work, fitness, travel, habits, medication, and AI generated templates."
-            icon={Sparkles}
-            onClick={() => navigate(customPath)}
-            appColor={appColor}
-            accentText={accentText}
-            isDark={isDark}
-          />
+        <section>
+          <div className="flex items-center gap-2">
+            <Star className="h-4 w-4 fill-[var(--bm-primary)] stroke-[2.4] text-[var(--bm-primary)]" />
+            <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Pinned Schedules</h2>
+            <span className={cn("font-bold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{pinnedSchedules.length}/2</span>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pinnedSchedules.length ? renderScheduleCards(pinnedSchedules) : (
+              <div className={cn("rounded-[20px] border border-dashed p-5 font-semibold", typeClasses.small, isDark ? "border-white/[0.10] text-white/70" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
+                No pinned schedules
+              </div>
+            )}
+          </div>
         </section>
 
-        <section className={cn("rounded-[28px] border p-5", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
-          <div className="flex flex-col gap-1">
+        <section>
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 stroke-[2.4] text-[var(--bm-text-muted)]" />
             <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Saved Schedules</h2>
-            <p className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>Pinned schedules stay at the top. All other saved schedules appear below in chronological order.</p>
           </div>
-
-          <div className="mt-5">
-            <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 fill-[var(--bm-primary)] stroke-[2.4] text-[var(--bm-primary)]" />
-              <h3 className={cn("font-extrabold", typeClasses.cardTitle)}>Pinned schedules</h3>
-              <span className={cn("font-bold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{pinnedSchedules.length}/2</span>
-            </div>
-            <div className="mt-3 grid gap-3">
-              {pinnedSchedules.length ? renderScheduleRows(pinnedSchedules) : (
-                <div className={cn("rounded-[22px] border border-dashed p-5 font-semibold", typeClasses.small, isDark ? "border-white/[0.10] text-white/70" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
-                  Pin up to two favorite schedules.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={cn("my-6 h-px", isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]")} />
-
-          <div>
-            <h3 className={cn("font-extrabold", typeClasses.cardTitle)}>All Saved Schedules</h3>
-            <div className="mt-3 grid gap-3">
-              {unpinnedSchedules.length ? renderScheduleRows(unpinnedSchedules) : (
-                <div className={cn("rounded-[22px] border border-dashed p-5 font-semibold", typeClasses.small, isDark ? "border-white/[0.10] text-white/70" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
-                  {scheduleRecords.length ? "All saved schedules are currently pinned." : "No saved schedules yet. Create a new schedule to begin."}
-                </div>
-              )}
-            </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {savedSchedules.length ? renderScheduleCards(savedSchedules) : (
+              <div className={cn("rounded-[20px] border border-dashed p-5 font-semibold", typeClasses.small, isDark ? "border-white/[0.10] text-white/70" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
+                {scheduleRecords.length ? "All schedules are pinned" : "No saved schedules"}
+              </div>
+            )}
           </div>
         </section>
       </div>
