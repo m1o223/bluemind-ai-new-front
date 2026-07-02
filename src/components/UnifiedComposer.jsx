@@ -106,7 +106,7 @@ export default function UnifiedComposer({
   const isIdleState = isMobile ? !isTypingState : !isAttachmentState && !isTypingState;
   const textareaMinHeight = isMobile ? (isTypingState ? 22 : 24) : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
-  const isCompactMobileIdle = isMobile && isIdleState && !isAttachmentState && !hasText;
+  const isSingleRowMobileComposer = isMobile && !isAttachmentState;
 
   const normalizedAttachments = useMemo(
     () => attachments.filter(Boolean),
@@ -168,7 +168,7 @@ export default function UnifiedComposer({
       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
-        isMobile ? "h-11 w-11" : "h-11 w-11",
+        isMobile ? "h-9 w-9" : "h-11 w-11",
         isIdleState
           ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)]"
           : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
@@ -179,7 +179,7 @@ export default function UnifiedComposer({
       }}
       aria-label={addLabel}
     >
-      <Plus className={isMobile ? "h-[18px] w-[18px]" : "h-[21px] w-[21px]"} />
+      <Plus className={isMobile ? "h-4 w-4" : "h-[21px] w-[21px]"} />
     </motion.button>
   );
 
@@ -212,7 +212,7 @@ export default function UnifiedComposer({
       sendLabel={sendLabel}
       stopLabel={stopLabel}
       compact={isMobile}
-      className={cn("ml-1.5", !isMobile && "h-[42px] w-[42px]")}
+      className={cn(isMobile ? "ml-0.5" : "ml-1.5 h-[42px] w-[42px]")}
     />
   );
 
@@ -227,6 +227,43 @@ export default function UnifiedComposer({
       isDark
         ? "border-white/[0.09] bg-[var(--bm-bg-card)]/[0.97] focus-within:bg-[var(--bm-bg-elevated)]"
         : "border-[var(--bm-border)] bg-white/96 focus-within:border-[var(--bm-border)]",
+    );
+
+    const mobileSingleRow = (
+      <div className="flex min-h-9 w-full min-w-0 items-center gap-1.5">
+        {addButton}
+        <textarea
+          ref={setTextareaRef}
+          value={value}
+          onChange={onChange}
+          onInput={onInput}
+          onKeyDown={onKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          rows={1}
+          placeholder={placeholder}
+          className={cn(
+            inputClasses.composer,
+            "relative z-10 block min-w-0 flex-[1_1_70%] resize-none bg-transparent px-0.5 py-1 text-[16px] font-medium leading-6 outline-none",
+            isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
+          )}
+          style={{
+            ...inputDirectionStyle,
+            letterSpacing: "0",
+            caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
+            maxHeight: `${maxTextHeight}px`,
+            minHeight: `${textareaMinHeight}px`,
+          }}
+          data-testid={testId}
+        />
+        <div className="min-w-0 shrink-0" style={{ maxWidth: "clamp(104px, 30vw, 136px)" }}>
+          {modelSelector}
+        </div>
+        <div className="flex shrink-0 items-center">
+          {voiceButton}
+          {sendButton}
+        </div>
+      </div>
     );
 
     return (
@@ -285,42 +322,9 @@ export default function UnifiedComposer({
                   </div>
                 )}
 
-                <div className="flex min-h-[38px] w-full items-end gap-2">
-                  {addButton}
-                  <textarea
-                    ref={setTextareaRef}
-                    value={value}
-                    onChange={onChange}
-                    onInput={onInput}
-                    onKeyDown={onKeyDown}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    rows={1}
-                    placeholder={placeholder}
-                    className={cn(
-                      inputClasses.composer,
-                      "relative z-10 block min-w-0 flex-1 resize-none bg-transparent py-1 text-[16px] font-medium leading-6 outline-none",
-                      isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
-                    )}
-                    style={{
-                      ...inputDirectionStyle,
-                      letterSpacing: "0",
-                      caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
-                      maxHeight: `${maxTextHeight}px`,
-                      minHeight: `${textareaMinHeight}px`,
-                    }}
-                    data-testid={testId}
-                  />
-                  <div className="flex shrink-0 items-end">
-                    {voiceButton}
-                    {sendButton}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                {isCompactMobileIdle ? (
-                  <>
+                {isSingleRowMobileComposer ? mobileSingleRow : (
+                  <div className="flex min-h-[38px] w-full items-end gap-2">
+                    {addButton}
                     <textarea
                       ref={setTextareaRef}
                       value={value}
@@ -331,26 +335,30 @@ export default function UnifiedComposer({
                       onBlur={() => setIsFocused(false)}
                       rows={1}
                       placeholder={placeholder}
-                      className={cn(inputClasses.composer, "sr-only")}
+                      className={cn(
+                        inputClasses.composer,
+                        "relative z-10 block min-w-0 flex-1 resize-none bg-transparent py-1 text-[16px] font-medium leading-6 outline-none",
+                        isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
+                      )}
                       style={{
                         ...inputDirectionStyle,
                         letterSpacing: "0",
                         caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
+                        maxHeight: `${maxTextHeight}px`,
+                        minHeight: `${textareaMinHeight}px`,
                       }}
                       data-testid={testId}
                     />
-
-                    <div className="flex min-h-9 w-full items-center gap-2">
-                      <div className="min-w-0 flex-1">
-                        {modelSelector}
-                      </div>
-                      <div className="flex shrink-0 items-center">
-                        {voiceButton}
-                        {sendButton}
-                      </div>
+                    <div className="flex shrink-0 items-end">
+                      {voiceButton}
+                      {sendButton}
                     </div>
-                  </>
-                ) : (
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {isSingleRowMobileComposer ? mobileSingleRow : (
                   <>
                     {modePill && (
                       <div className="mb-2 flex items-center gap-2" data-testid="composer-tool-state">

@@ -2427,7 +2427,7 @@ export default function MobileChat() {
       : "bg-white text-[var(--bm-text-primary)] ring-[var(--bm-border)] shadow-[0_12px_28px_rgba(15,23,42,0.10)]";
 
     const composerModelSelector = (
-      <div className="relative min-w-0">
+      <div className="relative inline-flex min-w-0 shrink-0">
         <button
           ref={composerModelButtonRef}
           type="button"
@@ -2443,7 +2443,7 @@ export default function MobileChat() {
               return nextOpen;
             });
           }}
-          className={isDark ? "flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full bg-white/[0.07] px-3 text-sm font-bold text-white active:bg-white/[0.12]" : "flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full bg-[var(--bm-hover-bg)] px-3 text-sm font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
+          className={isDark ? "inline-flex h-9 max-w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-white/[0.07] px-2.5 text-[13px] font-bold text-white active:bg-white/[0.12]" : "inline-flex h-9 max-w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--bm-hover-bg)] px-2.5 text-[13px] font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
           aria-label="Select BlueMind model"
           aria-expanded={composerModelMenuOpen}
         >
