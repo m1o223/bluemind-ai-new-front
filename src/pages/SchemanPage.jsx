@@ -15,6 +15,8 @@ import {
   Car,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Code2,
   Coffee,
@@ -66,13 +68,13 @@ const GENERATED_TEMPLATE_STORAGE_KEY = "bluemind-schedule-generated-templates-v1
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DAY_ALIASES = {
-  Monday: ["Monday", "Mon", "Mandag", "Man"],
+  Monday: ["Monday", "Mon", "Mandag", "Man", "Mån", "Mån.", "Maan"],
   Tuesday: ["Tuesday", "Tue", "Tues", "Tisdag", "Tis"],
   Wednesday: ["Wednesday", "Wed", "Onsdag", "Ons"],
   Thursday: ["Thursday", "Thu", "Thur", "Thurs", "Torsdag", "Tor"],
   Friday: ["Friday", "Fri", "Fredag", "Fre"],
-  Saturday: ["Saturday", "Sat", "Lordag", "Lor"],
-  Sunday: ["Sunday", "Sun", "Sondag", "Son"],
+  Saturday: ["Saturday", "Sat", "Lordag", "Lor", "Lör", "Lör.", "Loer"],
+  Sunday: ["Sunday", "Sun", "Sondag", "Son", "Sön", "Sön.", "Soen"],
 };
 const HOURS = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
 const DAY_END_TIME = "23:59";
@@ -268,11 +270,269 @@ const TUTORIAL_STEPS = [
   },
 ];
 
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_ALIASES = {
+  jan: 0,
+  january: 0,
+  januari: 0,
+  feb: 1,
+  february: 1,
+  februari: 1,
+  mar: 2,
+  march: 2,
+  mars: 2,
+  apr: 3,
+  april: 3,
+  may: 4,
+  maj: 4,
+  jun: 5,
+  june: 5,
+  juni: 5,
+  jul: 6,
+  july: 6,
+  juli: 6,
+  aug: 7,
+  august: 7,
+  sep: 8,
+  sept: 8,
+  september: 8,
+  oct: 9,
+  okt: 9,
+  october: 9,
+  oktober: 9,
+  nov: 10,
+  november: 10,
+  dec: 11,
+  december: 11,
+};
+
+function padDatePart(value) {
+  return String(value).padStart(2, "0");
+}
+
+function startOfLocalDay(value = new Date()) {
+  const date = value instanceof Date ? new Date(value) : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  }
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function buildLocalDate(year, monthIndex, day) {
+  const date = new Date(year, monthIndex, day);
+  if (date.getFullYear() !== year || date.getMonth() !== monthIndex || date.getDate() !== day) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function toDateKey(value) {
+  const date = startOfLocalDay(value);
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+}
+
+function parseDateKey(value = "") {
+  const match = String(value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  return buildLocalDate(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function normalizeDateYear(value) {
+  const year = Number(value);
+  if (!Number.isFinite(year)) return null;
+  if (year >= 1000) return year;
+  return year >= 70 ? 1900 + year : 2000 + year;
+}
+
+function addDays(value, amount) {
+  const date = startOfLocalDay(value);
+  date.setDate(date.getDate() + amount);
+  return date;
+}
+
+function getWeekdayName(value) {
+  const date = startOfLocalDay(value);
+  return DAYS[(date.getDay() + 6) % 7];
+}
+
+function startOfIsoWeek(value = new Date()) {
+  const date = startOfLocalDay(value);
+  return addDays(date, -((date.getDay() + 6) % 7));
+}
+
+function getCurrentWeekStart() {
+  return startOfIsoWeek(new Date());
+}
+
+function getIsoWeekInfo(value = new Date()) {
+  const date = startOfLocalDay(value);
+  const dayIndex = (date.getDay() + 6) % 7;
+  const thursday = addDays(date, 3 - dayIndex);
+  const weekYear = thursday.getFullYear();
+  const firstWeekStart = startOfIsoWeek(new Date(weekYear, 0, 4));
+  const week = 1 + Math.round((startOfIsoWeek(date).getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  return { week, year: weekYear };
+}
+
+function formatDayMonth(value) {
+  const date = startOfLocalDay(value);
+  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`;
+}
+
+function formatWeekRange(weekStart) {
+  const start = startOfIsoWeek(weekStart);
+  const end = addDays(start, 6);
+  const startText = start.getFullYear() === end.getFullYear()
+    ? formatDayMonth(start)
+    : `${formatDayMonth(start)} ${start.getFullYear()}`;
+  return `${startText} - ${formatDayMonth(end)} ${end.getFullYear()}`;
+}
+
+function getWeekDays(weekStart) {
+  const start = startOfIsoWeek(weekStart);
+  const todayKey = toDateKey(new Date());
+  return DAYS.map((weekday, index) => {
+    const date = addDays(start, index);
+    const dateKey = toDateKey(date);
+    return {
+      weekday,
+      shortWeekday: weekday.slice(0, 3),
+      date,
+      dateKey,
+      dayOfMonth: date.getDate(),
+      label: `${weekday} ${formatDayMonth(date)}`,
+      shortLabel: `${weekday.slice(0, 3)} ${date.getDate()}`,
+      isToday: dateKey === todayKey,
+    };
+  });
+}
+
+function getWeekDateForDay(day, weekStart) {
+  const normalizedDay = findScheduleDay(day)?.day || day;
+  const index = DAYS.indexOf(normalizedDay);
+  if (index === -1) return null;
+  const date = addDays(startOfIsoWeek(weekStart), index);
+  return {
+    date,
+    dateKey: toDateKey(date),
+    weekday: normalizedDay,
+  };
+}
+
+function parseScheduleDate(value = "", options = {}) {
+  const text = String(value || "");
+  if (!text.trim()) return "";
+
+  const direct = parseDateKey(text);
+  if (direct) return toDateKey(direct);
+
+  const candidates = [];
+  const pushCandidate = (year, month, day) => {
+    const normalizedYear = normalizeDateYear(year);
+    const monthIndex = Number(month) - 1;
+    const dayNumber = Number(day);
+    if (!normalizedYear || monthIndex < 0 || monthIndex > 11 || dayNumber < 1 || dayNumber > 31) return;
+    const date = buildLocalDate(normalizedYear, monthIndex, dayNumber);
+    if (date) candidates.push(toDateKey(date));
+  };
+
+  for (const match of text.matchAll(/\b(19\d{2}|20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b/g)) {
+    pushCandidate(match[1], match[2], match[3]);
+  }
+
+  for (const match of text.matchAll(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})\b/g)) {
+    pushCandidate(match[3], match[2], match[1]);
+  }
+
+  for (const match of text.matchAll(/\b(\d{8}|\d{6})\b/g)) {
+    const raw = match[1];
+    if (raw.length === 8) {
+      pushCandidate(raw.slice(0, 4), raw.slice(4, 6), raw.slice(6, 8));
+      pushCandidate(raw.slice(4, 8), raw.slice(2, 4), raw.slice(0, 2));
+    } else {
+      pushCandidate(raw.slice(0, 2), raw.slice(2, 4), raw.slice(4, 6));
+    }
+  }
+
+  const monthPattern = Object.keys(MONTH_ALIASES).join("|");
+  const dayMonthPattern = new RegExp(`\\b(\\d{1,2})\\s+(${monthPattern})\\s*(\\d{2}|\\d{4})?\\b`, "gi");
+  for (const match of text.matchAll(dayMonthPattern)) {
+    const inferredYear = match[3] || options.year || getIsoWeekInfo(options.fallbackWeekStart || new Date()).year;
+    const monthIndex = MONTH_ALIASES[match[2].toLowerCase()];
+    pushCandidate(inferredYear, monthIndex + 1, match[1]);
+  }
+
+  const monthDayPattern = new RegExp(`\\b(${monthPattern})\\s+(\\d{1,2})(?:,)?\\s*(\\d{2}|\\d{4})?\\b`, "gi");
+  for (const match of text.matchAll(monthDayPattern)) {
+    const inferredYear = match[3] || options.year || getIsoWeekInfo(options.fallbackWeekStart || new Date()).year;
+    const monthIndex = MONTH_ALIASES[match[1].toLowerCase()];
+    pushCandidate(inferredYear, monthIndex + 1, match[2]);
+  }
+
+  return candidates[0] || "";
+}
+
+function getBlockTitle(block = {}) {
+  return block.title || block.name || block.label || block.activity || "Imported activity";
+}
+
+function getBlockStart(block = {}) {
+  return normalizeScheduleTime(block.startTime || block.start || block.begin || "");
+}
+
+function getBlockEnd(block = {}) {
+  return normalizeScheduleTime(block.endTime || block.end || block.finish || "");
+}
+
+function normalizeScheduleBlock(block = {}, options = {}) {
+  const title = cleanImportedActivityName(getBlockTitle(block)) || "Imported activity";
+  const start = getBlockStart(block);
+  const end = getBlockEnd(block);
+  const parsedDate = parseScheduleDate(block.date || block.dateKey || block.sourceCell || "", {
+    fallbackWeekStart: options.fallbackWeekStart,
+  });
+  const dayFromBlock = findScheduleDay(block.weekday || block.day || block.days?.[0] || "")?.day;
+  const fallbackDate = !parsedDate && dayFromBlock && options.fallbackWeekStart
+    ? getWeekDateForDay(dayFromBlock, options.fallbackWeekStart)?.dateKey
+    : "";
+  const date = parsedDate || fallbackDate;
+  const dateValue = parseDateKey(date);
+  const weekday = dateValue ? getWeekdayName(dateValue) : dayFromBlock || "";
+  const category = String(block.category || classifyScheduleActivity(title)).toLowerCase();
+
+  return {
+    ...block,
+    id: block.id || `block-${Date.now().toString(36)}-${options.index || 0}`,
+    name: title,
+    title,
+    category,
+    date,
+    weekday,
+    start,
+    end,
+    startTime: start,
+    endTime: end,
+    days: weekday ? [weekday] : [],
+    color: block.color || getScheduleColorForActivity(title, options.index || 0),
+    icon: block.icon || guessScheduleIcon(title),
+  };
+}
+
 function readScheduleState() {
   try {
     const value = JSON.parse(localStorage.getItem(SCHEDULE_STORAGE_KEY) || "null");
+    const fallbackWeekStart = getCurrentWeekStart();
     return value && typeof value === "object"
-      ? { blocks: Array.isArray(value.blocks) ? value.blocks : [], updatedAt: value.updatedAt || "" }
+      ? {
+          blocks: Array.isArray(value.blocks)
+            ? value.blocks
+                .map((block, index) => normalizeScheduleBlock(block, { fallbackWeekStart, index }))
+                .filter((block) => block.date && block.start && block.end)
+            : [],
+          updatedAt: value.updatedAt || "",
+        }
       : { blocks: [], updatedAt: "" };
   } catch {
     return { blocks: [], updatedAt: "" };
@@ -430,25 +690,29 @@ function hexToRgba(value, alpha = 1) {
 }
 
 function buildScheduleContext(blocks) {
-  if (!blocks.length) return "The weekly schedule grid is currently empty.";
+  if (!blocks.length) return "The dated schedule calendar is currently empty.";
   return blocks.map((block) => (
-    `- ${block.name}: ${block.start} to ${block.end} on ${block.days.join(", ")}`
+    `- ${getBlockTitle(block)}: ${block.date || "no date"} ${block.weekday || block.days?.join(", ") || ""} ${getBlockStart(block)} to ${getBlockEnd(block)}`
   )).join("\n");
 }
 
-function buildSchedulePrompt({ messages, latestText, blocks, initial = false }) {
+function buildSchedulePrompt({ messages, latestText, blocks, selectedWeekStart, initial = false }) {
   const recentContext = messages
     .slice(-8)
     .map((message) => `${message.role === "assistant" ? "BlueMind" : "User"}: ${message.content}`)
     .join("\n");
+  const weekStart = selectedWeekStart || getCurrentWeekStart();
+  const weekInfo = getIsoWeekInfo(weekStart);
+  const weekDays = getWeekDays(weekStart);
 
   return [
     "You are BlueMind AI inside the Schedule feature.",
-    "Use the same real BlueMind AI reasoning style as the main chat, but focus only on helping the user design a weekly schedule.",
+    "Use the same real BlueMind AI reasoning style as the main chat, but focus only on helping the user design a dated weekly calendar.",
     "Do not behave like a form. Understand answers, ask follow-up questions, detect missing information, recommend improvements, and explain why.",
-    "When a schedule image or PDF is uploaded, first understand the schedule type, days, times, activities, breaks, repeated activities, and whether it looks official or personal.",
-    "For timetable images, inspect every day column and every time row. Never summarize only the first day. Preserve day/time/activity mapping exactly.",
-    "When extraction text contains SCHEDULE_IMPORT lines, treat them as the authoritative layout map for importing into the grid.",
+    "When a schedule image, PDF, spreadsheet, Word document, or screenshot is uploaded, first understand the schedule type, week number, real dates, weekdays, times, activities, breaks, repeated activities, and whether it looks official or personal.",
+    "For timetable images, inspect every date/day column and every time row. Never summarize only the first day. Preserve date/day/time/activity mapping exactly.",
+    "When extraction text contains SCHEDULE_IMPORT lines, treat them as the authoritative layout map for importing into the dated grid.",
+    "SCHEDULE_IMPORT lines should use this date-aware format when possible: SCHEDULE_IMPORT: 2026-07-27 | Monday | 06:45 | 16:00 | Work.",
     "Official schedules such as school timetables, university timetables, company shift schedules, and employer-provided schedules should be imported exactly as provided. Do not suggest changing official schedules unless the user asks.",
     "Personal schedules such as gym plans, meal plans, personal study plans, travel plans, and daily routines should be discussed first. Ask the goal, compare the schedule with that goal, and ask before suggesting improvements.",
     "If the schedule purpose is unclear, ask: What is this schedule for? Offer examples such as School, University, Work, Gym, Weight loss, Meal plan, Study plan, Travel, Business, and Personal routine.",
@@ -456,6 +720,8 @@ function buildSchedulePrompt({ messages, latestText, blocks, initial = false }) 
     "For school schedules, use short block labels such as MA, BI, PH, EN, SW, HI, AR, PE, and BR.",
     "Ask concise, useful questions based on what the user wants to build.",
     "",
+    `Selected calendar week: Week ${weekInfo.week}, ${formatWeekRange(weekStart)}.`,
+    `Visible dates: ${weekDays.map((day) => `${day.weekday} ${day.dateKey}`).join(", ")}.`,
     `Current schedule blocks:\n${buildScheduleContext(blocks)}`,
     recentContext ? `Conversation so far:\n${recentContext}` : "Conversation so far: none.",
     initial
@@ -596,22 +862,27 @@ function classifyPurposeText(text = "") {
   return "unclear";
 }
 
-function normalizeImportedBlocks(blocks, classification = "unclear") {
+function normalizeImportedBlocks(blocks, classification = "unclear", options = {}) {
   void classification;
+  const fallbackWeekStart = options.fallbackWeekStart || getCurrentWeekStart();
   const colorByName = new Map();
-  return blocks.map((block) => {
-    const displayName = abbreviateScheduleName(block.name);
+  return blocks.map((block, index) => {
+    const normalizedBlock = normalizeScheduleBlock(block, { fallbackWeekStart, index });
+    const sourceName = getBlockTitle(block);
+    const displayName = abbreviateScheduleName(normalizedBlock.name);
     const colorKey = displayName.toLowerCase();
     if (!colorByName.has(colorKey)) {
-      colorByName.set(colorKey, getScheduleColorForActivity(displayName || block.name, colorByName.size));
+      colorByName.set(colorKey, getScheduleColorForActivity(sourceName || displayName, colorByName.size));
     }
     return {
-      ...block,
+      ...normalizedBlock,
       name: displayName,
+      title: displayName,
+      category: normalizedBlock.category || classifyScheduleActivity(sourceName),
       color: colorByName.get(colorKey),
-      icon: guessScheduleIcon(displayName),
+      icon: block.icon || guessScheduleIcon(sourceName || displayName),
     };
-  });
+  }).filter((block) => block.date && block.start && block.end);
 }
 
 function escapeScheduleRegex(value) {
@@ -656,17 +927,24 @@ function findScheduleDay(value = "") {
 }
 
 function parseScheduleTimeRange(value = "") {
-  const match = String(value || "").match(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:[-\u2013\u2014]|to|until|till)\s*(\d{1,2}(?::|\.)?\d{0,2})/i);
-  if (!match) return null;
-  const start = normalizeScheduleTime(match[1]);
-  const end = normalizeScheduleTime(match[2]);
-  if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) return null;
-  return { start, end, text: match[0] };
+  const matches = String(value || "").matchAll(/(\d{1,2}(?::|\.)?\d{0,2})\s*(?:[-\u2013\u2014]|to|until|till)\s*(\d{1,2}(?::|\.)?\d{0,2})/gi);
+  for (const match of matches) {
+    const start = normalizeScheduleTime(match[1]);
+    const end = normalizeScheduleTime(match[2]);
+    if (start && end && timeToMinutes(end) > timeToMinutes(start)) {
+      return { start, end, text: match[0] };
+    }
+  }
+  return null;
 }
 
 function cleanImportedActivityName(value = "") {
   return stripScheduleMarkdown(value)
     .replace(/^schedule_import\s*:?\s*/i, "")
+    .replace(/\b(19\d{2}|20\d{2})[-/.]\d{1,2}[-/.]\d{1,2}\b/g, "")
+    .replace(/\b\d{1,2}[-/.]\d{1,2}[-/.](\d{2}|\d{4})\b/g, "")
+    .replace(/\b(?:\d{6}|\d{8})\b/g, "")
+    .replace(/\bweek\s*\d{1,2}\b/gi, "")
     .replace(/^\W+|\W+$/g, "")
     .replace(/\s+/g, " ")
     .trim()
@@ -686,6 +964,71 @@ function isScheduleTableSeparator(cells = []) {
   return cells.length > 0 && cells.every((cell) => /^:?-{2,}:?$/.test(String(cell || "").replace(/\s/g, "")));
 }
 
+function getDateFromDayOrDate({ day, date, fallbackWeekStart }) {
+  const parsedDate = parseScheduleDate(date || "", { fallbackWeekStart });
+  if (parsedDate) {
+    const dateValue = parseDateKey(parsedDate);
+    return {
+      date: parsedDate,
+      weekday: dateValue ? getWeekdayName(dateValue) : day,
+    };
+  }
+
+  if (day && fallbackWeekStart) {
+    const dateInfo = getWeekDateForDay(day, fallbackWeekStart);
+    if (dateInfo) return { date: dateInfo.dateKey, weekday: dateInfo.weekday };
+  }
+
+  return { date: "", weekday: day || "" };
+}
+
+function parseScheduleImportCells(cells = [], options = {}) {
+  if (!cells.length) return null;
+  const fallbackWeekStart = options.fallbackWeekStart || getCurrentWeekStart();
+  const dateIndex = cells.findIndex((cell) => parseScheduleDate(cell, { fallbackWeekStart }));
+  const dayIndex = cells.findIndex((cell) => findScheduleDay(cell));
+  const rangeIndex = cells.findIndex((cell) => parseScheduleTimeRange(cell));
+  const usedIndexes = new Set();
+  const day = dayIndex >= 0 ? findScheduleDay(cells[dayIndex])?.day : "";
+  const date = dateIndex >= 0 ? parseScheduleDate(cells[dateIndex], { fallbackWeekStart }) : "";
+  let start = "";
+  let end = "";
+
+  if (dateIndex >= 0) usedIndexes.add(dateIndex);
+  if (dayIndex >= 0) usedIndexes.add(dayIndex);
+
+  if (rangeIndex >= 0) {
+    const range = parseScheduleTimeRange(cells[rangeIndex]);
+    start = range?.start || "";
+    end = range?.end || "";
+    usedIndexes.add(rangeIndex);
+  } else {
+    const timeCells = cells
+      .map((cell, index) => ({ index, time: usedIndexes.has(index) ? "" : normalizeScheduleTime(cell) }))
+      .filter((cell) => cell.time);
+    const [startCell, endCell] = timeCells;
+    start = startCell?.time || "";
+    end = endCell?.time || "";
+    if (startCell) usedIndexes.add(startCell.index);
+    if (endCell) usedIndexes.add(endCell.index);
+  }
+
+  if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) return null;
+
+  const dateInfo = getDateFromDayOrDate({ day, date, fallbackWeekStart });
+  const name = cells
+    .filter((_cell, index) => !usedIndexes.has(index))
+    .join(" ");
+
+  return {
+    day: dateInfo.weekday || day,
+    date: dateInfo.date,
+    start,
+    end,
+    name,
+  };
+}
+
 function parseScheduleBlocksFromText(text, options = {}) {
   const content = String(text || "");
   if (!content.trim()) return [];
@@ -693,19 +1036,28 @@ function parseScheduleBlocksFromText(text, options = {}) {
   const blocks = [];
   const seen = new Set();
   const classification = options.classification || classifyScheduleText(content);
+  const fallbackWeekStart = options.fallbackWeekStart || getCurrentWeekStart();
 
-  const addBlock = ({ day, start, end, name }, index) => {
+  const addBlock = ({ day, date, start, end, name, category }, index) => {
     if (!day || !start || !end || timeToMinutes(end) <= timeToMinutes(start)) return;
+    const dateInfo = getDateFromDayOrDate({ day, date, fallbackWeekStart });
+    if (!dateInfo.date) return;
     const cleanName = cleanImportedActivityName(name) || "Imported activity";
-    const key = `${day}|${start}|${end}|${cleanName.toLowerCase()}`;
+    const key = `${dateInfo.date}|${start}|${end}|${cleanName.toLowerCase()}`;
     if (seen.has(key)) return;
     seen.add(key);
     blocks.push({
       id: `imported-${Date.now().toString(36)}-${blocks.length}-${index}`,
       name: cleanName,
+      title: cleanName,
+      category: category || classifyScheduleActivity(cleanName),
+      date: dateInfo.date,
+      weekday: dateInfo.weekday,
       start,
       end,
-      days: [day],
+      startTime: start,
+      endTime: end,
+      days: [dateInfo.weekday],
       color: COLOR_OPTIONS[blocks.length % COLOR_OPTIONS.length],
       icon: guessScheduleIcon(cleanName),
     });
@@ -720,26 +1072,26 @@ function parseScheduleBlocksFromText(text, options = {}) {
   tableLines.forEach((line, lineIndex) => {
     if (!/^schedule_import\s*:/i.test(line)) return;
     const cells = splitScheduleTableLine(line.replace(/^schedule_import\s*:?\s*/i, ""));
-    const day = findScheduleDay(cells[0])?.day;
-    const range = parseScheduleTimeRange(cells[1] || "");
-    if (day && range && cells.length >= 3) {
-      addBlock({ day, start: range.start, end: range.end, name: cells.slice(2).join(" ") }, `import-${lineIndex}`);
-      return;
-    }
-
-    const start = normalizeScheduleTime(cells[1]);
-    const end = normalizeScheduleTime(cells[2]);
-    if (day && start && end && cells.length >= 4) {
-      addBlock({ day, start, end, name: cells.slice(3).join(" ") }, `import-${lineIndex}`);
-    }
+    const parsed = parseScheduleImportCells(cells, { fallbackWeekStart });
+    if (parsed) addBlock(parsed, `import-${lineIndex}`);
   });
 
   tableLines.forEach((line, headerIndex) => {
     const headerCells = splitScheduleTableLine(line);
     if (isScheduleTableSeparator(headerCells)) return;
     const dayColumns = headerCells
-      .map((cell, index) => ({ index, day: findScheduleDay(cell)?.day }))
-      .filter((cell) => cell.day);
+      .map((cell, index) => {
+        const day = findScheduleDay(cell)?.day;
+        const date = parseScheduleDate(cell, { fallbackWeekStart });
+        const dateValue = parseDateKey(date);
+        const weekday = dateValue ? getWeekdayName(dateValue) : day;
+        return {
+          index,
+          day: weekday,
+          date: date || (weekday ? getWeekDateForDay(weekday, fallbackWeekStart)?.dateKey : ""),
+        };
+      })
+      .filter((cell) => cell.day && cell.date);
     if (dayColumns.length < 2) return;
 
     for (let rowIndex = headerIndex + 1; rowIndex < tableLines.length; rowIndex += 1) {
@@ -754,14 +1106,14 @@ function parseScheduleBlocksFromText(text, options = {}) {
       const range = parseScheduleTimeRange(rowCells[timeCellIndex]);
       if (!range) continue;
 
-      dayColumns.forEach(({ index, day }) => {
+      dayColumns.forEach(({ index, day, date }) => {
         const rawActivity = rowCells[index] || "";
         const activityParts = rawActivity
           .split(/\n|\/{2,}| {2,}/)
           .map((item) => cleanImportedActivityName(item))
           .filter(Boolean);
         activityParts.forEach((name, partIndex) => {
-          addBlock({ day, start: range.start, end: range.end, name }, `table-${rowIndex}-${index}-${partIndex}`);
+          addBlock({ day, date, start: range.start, end: range.end, name }, `table-${rowIndex}-${index}-${partIndex}`);
         });
       });
     }
@@ -769,16 +1121,19 @@ function parseScheduleBlocksFromText(text, options = {}) {
 
   lines.forEach((line, index) => {
     const dayMatch = findScheduleDay(line);
+    const date = parseScheduleDate(line, { fallbackWeekStart });
     const range = parseScheduleTimeRange(line);
-    if (!dayMatch || !range) return;
+    const dayFromDate = date ? getWeekdayName(parseDateKey(date)) : "";
+    if ((!dayMatch && !dayFromDate) || !range) return;
 
     const name = line
-      .replace(dayMatch.matchText, "")
+      .replace(dayMatch?.matchText || "", "")
+      .replace(date || "", "")
       .replace(range.text, "");
-    addBlock({ day: dayMatch.day, start: range.start, end: range.end, name }, `line-${index}`);
+    addBlock({ day: dayMatch?.day || dayFromDate, date, start: range.start, end: range.end, name }, `line-${index}`);
   });
 
-  return normalizeImportedBlocks(blocks.slice(0, 168), classification);
+  return normalizeImportedBlocks(blocks.slice(0, 168), classification, { fallbackWeekStart });
 }
 
 async function extractReadableFileText(file) {
@@ -831,11 +1186,11 @@ function ScheduleButton({ children, active = false, appColor, accentText, classN
   );
 }
 
-function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
+function WeeklyGrid({ isDark, appColor, blocks, weekDays, editMode, onAddCell, onRequestDelete }) {
   const lineClass = isDark ? "border-white/[0.07]" : "border-[var(--bm-border)]";
   const headerBg = isDark ? "bg-white/[0.045]" : "bg-[var(--bm-bg-elevated)]";
   const cellBg = isDark ? "bg-transparent" : "bg-white";
-  const getCellSegments = (day, hour) => {
+  const getCellSegments = (dateInfo, hour) => {
     const cellStart = timeToMinutes(hour);
     const cellEnd = Math.min(cellStart + 60, DAY_END_MINUTES);
     const cellDuration = Math.max(1, cellEnd - cellStart);
@@ -843,7 +1198,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
       .filter((block) => {
         const blockStart = timeToMinutes(block.start);
         const blockEnd = timeToMinutes(block.end);
-        return block.days.includes(day) && blockStart < cellEnd && blockEnd > cellStart;
+        return block.date === dateInfo.dateKey && blockStart < cellEnd && blockEnd > cellStart;
       })
       .map((block) => {
         const blockStart = timeToMinutes(block.start);
@@ -869,9 +1224,22 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
       <div className="flex h-full flex-col">
         <div className={cn("grid grid-cols-[76px_repeat(7,minmax(116px,1fr))] border-b", lineClass, headerBg)}>
           <div className={cn("sticky left-0 z-40 flex h-14 items-center justify-center border-r font-bold", typeClasses.small, lineClass, headerBg, "text-[var(--bm-text-muted)]")}>Time</div>
-          {DAYS.map((day) => (
-            <div key={day} className={cn("flex h-14 items-center justify-center border-r px-3 text-center font-extrabold last:border-r-0", typeClasses.small, lineClass, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
-              {day}
+          {weekDays.map((dayInfo) => (
+            <div
+              key={dayInfo.dateKey}
+              className={cn(
+                "flex h-14 flex-col items-center justify-center border-r px-3 text-center font-extrabold last:border-r-0",
+                typeClasses.small,
+                lineClass,
+                dayInfo.isToday ? "relative" : "",
+                isDark ? "text-white" : "text-[var(--bm-text-primary)]",
+              )}
+              style={dayInfo.isToday ? { boxShadow: `inset 0 3px 0 ${appColor}` } : undefined}
+            >
+              <span>{dayInfo.shortWeekday} {dayInfo.dayOfMonth}</span>
+              <span className={cn("mt-0.5 font-bold", typeClasses.small, dayInfo.isToday ? "text-[var(--bm-primary)]" : "text-[var(--bm-text-muted)]")}>
+                {MONTH_NAMES[dayInfo.date.getMonth()]}{dayInfo.isToday ? " - Today" : ""}
+              </span>
             </div>
           ))}
         </div>
@@ -892,26 +1260,26 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                 )}>
                   <span>{hour}</span>
                 </div>
-                {DAYS.map((day) => {
-                  const segments = getCellSegments(day, hour);
+                {weekDays.map((dayInfo) => {
+                  const segments = getCellSegments(dayInfo, hour);
                   const occupied = segments.length > 0;
                   return (
                     <div
-                      key={`${day}-${hour}`}
-                      aria-label={`${day} ${hour}`}
+                      key={`${dayInfo.dateKey}-${hour}`}
+                      aria-label={`${dayInfo.label} ${hour}`}
                       className={cn(
                         "relative border-b border-r last:border-r-0",
                         lineClass,
-                        !occupied && cellBg,
+                        !occupied && (dayInfo.isToday ? (isDark ? "bg-white/[0.03]" : "bg-[var(--bm-bg-elevated)]") : cellBg),
                         occupied && "overflow-hidden",
                       )}
                     >
                       {editMode && !occupied && (
                       <button
                         type="button"
-                        onClick={() => onAddCell(day, hour)}
+                        onClick={() => onAddCell(dayInfo, hour)}
                         className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--bm-primary)] text-white opacity-80 shadow-sm transition hover:opacity-100"
-                        aria-label={`Add activity on ${day} at ${hour}`}
+                        aria-label={`Add activity on ${dayInfo.label} at ${hour}`}
                       >
                         <Plus className="h-3 w-3 stroke-[3]" />
                       </button>
@@ -925,7 +1293,7 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
                             const segmentHeight = `${(duration / cellDuration) * 100}%`;
                             return (
                               <div
-                                key={`${block.id}-${day}-${hour}`}
+                                key={`${block.id}-${dayInfo.dateKey}-${hour}`}
                                 className={cn(
                                   "group absolute left-0.5 right-0.5 flex min-h-[12px] min-w-0 items-center px-2",
                                   isFirst ? "justify-between gap-1.5" : "justify-center",
@@ -976,11 +1344,18 @@ function WeeklyGrid({ isDark, blocks, editMode, onAddCell, onRequestDelete }) {
   );
 }
 
-function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, onClose, onSave }) {
+function BlockModal({ isDark, appColor, accentText, weekDays, initialDay, initialDate, initialStart, onClose, onSave }) {
   const [name, setName] = useState("");
   const [start, setStart] = useState(initialStart || "00:00");
   const [end, setEnd] = useState(getNextEndTime(initialStart || "00:00"));
-  const [days, setDays] = useState(initialDay ? [initialDay] : []);
+  const [dateKeys, setDateKeys] = useState(() => {
+    if (initialDate) return [initialDate];
+    if (initialDay) {
+      const match = (weekDays || []).find((day) => day.weekday === initialDay);
+      return match ? [match.dateKey] : [];
+    }
+    return [];
+  });
   const [color, setColor] = useState(COLOR_OPTIONS[0]);
   const [icon, setIcon] = useState(ICON_OPTIONS[0]);
   const [singleSlot, setSingleSlot] = useState(true);
@@ -988,9 +1363,10 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
   const selectedIconOption = getScheduleIconOption(icon);
   const SelectedIcon = selectedIconOption.Icon;
   const nextEndTime = getNextEndTime(start);
+  const visibleWeekDays = weekDays || getWeekDays(getCurrentWeekStart());
 
-  const toggleDay = (day) => {
-    setDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
+  const toggleDate = (dateKey) => {
+    setDateKeys((current) => current.includes(dateKey) ? current.filter((item) => item !== dateKey) : [...current, dateKey]);
   };
 
   useEffect(() => {
@@ -1004,8 +1380,8 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
       toast.error("Activity name is required.");
       return;
     }
-    if (!days.length) {
-      toast.error("Select at least one day.");
+    if (!dateKeys.length) {
+      toast.error("Select at least one date.");
       return;
     }
     const finalEnd = singleSlot ? nextEndTime : end;
@@ -1014,15 +1390,23 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
       return;
     }
 
-    onSave({
-      id: `block-${Date.now().toString(36)}`,
-      name: name.trim(),
+    const title = name.trim();
+    const selectedDates = visibleWeekDays.filter((day) => dateKeys.includes(day.dateKey));
+    onSave(selectedDates.map((dateInfo, index) => ({
+      id: `block-${Date.now().toString(36)}-${index}`,
+      name: title,
+      title,
+      category: classifyScheduleActivity(title),
+      date: dateInfo.dateKey,
+      weekday: dateInfo.weekday,
       start,
       end: finalEnd,
-      days,
+      startTime: start,
+      endTime: finalEnd,
+      days: [dateInfo.weekday],
       color,
       icon,
-    });
+    })));
   };
 
   return (
@@ -1088,17 +1472,17 @@ function BlockModal({ isDark, appColor, accentText, initialDay, initialStart, on
           )}
 
           <div className="grid gap-2">
-            <span className={cn("font-bold", typeClasses.small)}>Days</span>
+            <span className={cn("font-bold", typeClasses.small)}>Dates this week</span>
             <div className="flex flex-wrap gap-2">
-              {DAYS.map((day) => (
+              {visibleWeekDays.map((dayInfo) => (
                 <button
-                  key={day}
+                  key={dayInfo.dateKey}
                   type="button"
-                  onClick={() => toggleDay(day)}
-                  className={cn("rounded-full px-3 py-2 font-bold", typeClasses.small, days.includes(day) ? "text-white" : interactionClasses.control)}
-                  style={days.includes(day) ? { backgroundColor: appColor, color: accentText } : undefined}
+                  onClick={() => toggleDate(dayInfo.dateKey)}
+                  className={cn("rounded-full px-3 py-2 font-bold", typeClasses.small, dateKeys.includes(dayInfo.dateKey) ? "text-white" : interactionClasses.control)}
+                  style={dateKeys.includes(dayInfo.dateKey) ? { backgroundColor: appColor, color: accentText } : undefined}
                 >
-                  {day.slice(0, 3)}
+                  {dayInfo.shortLabel}
                 </button>
               ))}
             </div>
@@ -1484,7 +1868,7 @@ function ScheduleImagePreview({ image, isDark, onClose }) {
   );
 }
 
-function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext, chatVisible, onImportBlocks }) {
+function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startSignal, startContext, chatVisible, onImportBlocks }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState("");
@@ -1504,6 +1888,8 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
   const textareaRef = useRef(null);
   const canSend = Boolean(input.trim() || pendingAttachments.length) && !isSending && !isUploading;
   const hasConversation = messages.length > 0;
+  const selectedWeekInfo = getIsoWeekInfo(selectedWeekStart || getCurrentWeekStart());
+  const selectedWeekRange = formatWeekRange(selectedWeekStart || getCurrentWeekStart());
 
   const focusTextarea = useCallback((event) => {
     const target = event?.target;
@@ -1554,7 +1940,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
     let streamedText = "";
     try {
       await streamChatMessage({
-        message: buildSchedulePrompt({ messages: baseMessages, latestText, blocks, initial }),
+        message: buildSchedulePrompt({ messages: baseMessages, latestText, blocks, selectedWeekStart, initial }),
         imageIds,
         conversationId,
         mode: "work",
@@ -1563,7 +1949,12 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
           schedule: true,
           scheduleAssistant: true,
           uploadedImageIds: imageIds,
-          scheduleBlocks: blocks.map(({ id, name, start, end, days, color, icon }) => ({ id, name, start, end, days, color, icon })),
+          selectedWeek: {
+            week: selectedWeekInfo.week,
+            year: selectedWeekInfo.year,
+            range: selectedWeekRange,
+          },
+          scheduleBlocks: blocks.map(({ id, name, title, category, date, weekday, start, startTime, end, endTime, days, color, icon }) => ({ id, name, title, category, date, weekday, start, startTime, end, endTime, days, color, icon })),
         },
         onReady: (payload) => {
           const nextConversationId = payload?.conversation?.conversationId;
@@ -1721,13 +2112,15 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
             image.id,
             [
               "Analyze this uploaded schedule completely at high detail. Inspect the entire image from edge to edge; do not stop after the first day, first column, or first page area.",
-              "Read every visible day or column, every time slot or row, every class, subject, break, lunch, free period, and activity.",
-              "Preserve the original layout by mapping each activity to its exact day and exact start/end time.",
-              "Detect schedule type, days, exact times including partial times, activities, activity names, breaks, repeated activities, and whether it looks official or personal.",
+              "Read every visible date/day column, every time slot or row, every class, subject, break, lunch, free period, and activity.",
+              "Preserve the original layout by mapping each activity to its exact real date, weekday, and exact start/end time.",
+              "Detect schedule type, week number, dates, weekdays, exact times including partial times, activities, activity names, breaks, repeated activities, and whether it looks official or personal.",
+              "If headers use compact dates such as 260727, interpret them as YYMMDD and convert to ISO dates such as 2026-07-27.",
               "Decide whether it should be imported directly or discussed first.",
               "If it is official, preserve the schedule exactly.",
               "If it is a school schedule, identify subjects and use clean labels when possible: Mathematics=Math, English=Eng, Science=Sci, Swedish=Swe, Biology=Bio, Chemistry=Chem, History=Hist, Geography=Geo, PE/Sport=PE, Lunch=Lunch, Break=Break.",
-              "In extractedText, include an IMPORTABLE SCHEDULE section with one line per visible block using exactly this format: SCHEDULE_IMPORT: Monday | 09:00 | 09:50 | Mathematics.",
+              "In extractedText, include an IMPORTABLE SCHEDULE section with one line per visible block using exactly this format: SCHEDULE_IMPORT: 2026-07-27 | Monday | 09:00 | 09:50 | Mathematics.",
+              `If the source has no dates, use the visible workspace week as fallback only: Week ${selectedWeekInfo.week}, ${selectedWeekRange}.`,
               "Include Monday through Friday or all available days. Include breaks and lunch when visible. Do not omit repeated activities.",
             ].join(" "),
           );
@@ -1752,7 +2145,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
         .filter(Boolean)
         .join("\n\n");
       const classification = classifyScheduleText(analysisText);
-      const importedBlocks = parseScheduleBlocksFromText(analysisText, { classification });
+      const importedBlocks = parseScheduleBlocksFromText(analysisText, { classification, fallbackWeekStart: selectedWeekStart });
       if (importedBlocks.length > 0) {
         onImportBlocks?.(importedBlocks);
         setPendingImport(null);
@@ -1829,7 +2222,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
       ].filter(Boolean).join("\n")).join("\n\n");
       const aiClassification = analyzedDocuments.find(({ analysis }) => analysis.classification)?.analysis?.classification;
       const classification = aiClassification || classifyScheduleText(combinedText);
-      const importedBlocks = parseScheduleBlocksFromText(combinedText, { classification });
+      const importedBlocks = parseScheduleBlocksFromText(combinedText, { classification, fallbackWeekStart: selectedWeekStart });
 
       if (importedBlocks.length > 0) {
         onImportBlocks?.(importedBlocks);
@@ -1940,7 +2333,7 @@ function ScheduleAssistant({ isDark, appColor, blocks, startSignal, startContext
           ].join("\n\n");
         }
       } else if (purposeClassification === "official" && pendingImport.blocks.length > 0) {
-        onImportBlocks?.(normalizeImportedBlocks(pendingImport.blocks, "official"));
+        onImportBlocks?.(normalizeImportedBlocks(pendingImport.blocks, "official", { fallbackWeekStart: selectedWeekStart }));
         setPendingImport(null);
         pendingContext = [
           "The user clarified this is an official schedule.",
@@ -2373,7 +2766,7 @@ export function ScheduleHomePage() {
   const accentText = getTextOnColor(appColor);
   const [scheduleState] = useState(readScheduleState);
   const [generatedTemplates] = useState(readGeneratedScheduleTemplates);
-  const blocks = scheduleState.blocks || [];
+  const blocks = useMemo(() => scheduleState.blocks || [], [scheduleState.blocks]);
   const isMobileRoute = location.pathname.startsWith("/mobile");
   const basePath = isMobileRoute ? "/mobile/schedule" : "/schedule";
   const workspacePath = `${basePath}/workspace`;
@@ -2541,10 +2934,16 @@ export default function SchemanPage() {
   const [scheduleTypeOpen, setScheduleTypeOpen] = useState(false);
   const [aiStartSignal, setAiStartSignal] = useState(0);
   const [aiStartContext, setAiStartContext] = useState("");
+  const [selectedWeekStart, setSelectedWeekStart] = useState(getCurrentWeekStart);
   const [tutorialOpen, setTutorialOpen] = useState(() => localStorage.getItem(SCHEDULE_TUTORIAL_KEY) !== "true");
 
-  const blocks = scheduleState.blocks || [];
+  const blocks = useMemo(() => scheduleState.blocks || [], [scheduleState.blocks]);
   const hasBlocks = blocks.length > 0;
+  const weekDays = useMemo(() => getWeekDays(selectedWeekStart), [selectedWeekStart]);
+  const weekDateKeys = useMemo(() => new Set(weekDays.map((day) => day.dateKey)), [weekDays]);
+  const visibleBlocks = useMemo(() => blocks.filter((block) => weekDateKeys.has(block.date)), [blocks, weekDateKeys]);
+  const selectedWeekInfo = useMemo(() => getIsoWeekInfo(selectedWeekStart), [selectedWeekStart]);
+  const selectedWeekRange = useMemo(() => formatWeekRange(selectedWeekStart), [selectedWeekStart]);
   const pageColumns = useMemo(() => (
     chatVisible ? "xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]" : "xl:grid-cols-1"
   ), [chatVisible]);
@@ -2557,6 +2956,10 @@ export default function SchemanPage() {
 
     navigate(scheduleHomePath, { replace: true });
   };
+
+  const goToPreviousWeek = () => setSelectedWeekStart((current) => addDays(current, -7));
+  const goToNextWeek = () => setSelectedWeekStart((current) => addDays(current, 7));
+  const goToCurrentWeek = () => setSelectedWeekStart(getCurrentWeekStart());
 
   useEffect(() => {
     writeScheduleState(scheduleState);
@@ -2625,23 +3028,30 @@ export default function SchemanPage() {
 
   const importScheduleBlocks = (importedBlocks) => {
     if (!importedBlocks?.length) return;
+    const normalizedBlocks = normalizeImportedBlocks(importedBlocks, "official", { fallbackWeekStart: selectedWeekStart });
+    const firstImportedDate = normalizedBlocks.map((block) => parseDateKey(block.date)).find(Boolean);
     setScheduleState((current) => ({
       ...current,
-      blocks: [...(current.blocks || []), ...importedBlocks],
+      blocks: [...(current.blocks || []), ...normalizedBlocks],
       updatedAt: new Date().toISOString(),
     }));
+    if (firstImportedDate) setSelectedWeekStart(startOfIsoWeek(firstImportedDate));
     setEditMode(false);
   };
 
   const saveBlock = (block) => {
+    const nextBlocks = (Array.isArray(block) ? block : [block])
+      .map((item, index) => normalizeScheduleBlock(item, { fallbackWeekStart: selectedWeekStart, index }))
+      .filter((item) => item.date && item.start && item.end);
+    if (!nextBlocks.length) return;
     setScheduleState((current) => ({
       ...current,
-      blocks: [...(current.blocks || []), block],
+      blocks: [...(current.blocks || []), ...nextBlocks],
       updatedAt: new Date().toISOString(),
     }));
     setBlockModal(null);
     setEditMode(true);
-    toast.success("Schedule block added.");
+    toast.success(`${nextBlocks.length} schedule ${nextBlocks.length === 1 ? "block" : "blocks"} added.`);
   };
 
   const deleteActivity = (activity) => {
@@ -2674,7 +3084,24 @@ export default function SchemanPage() {
             </button>
             <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
           </div>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className={cn("flex min-h-[52px] items-center rounded-2xl border p-1", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-white")}>
+              <button type="button" onClick={goToPreviousWeek} className={cn("flex h-10 w-10 items-center justify-center rounded-xl", interactionClasses.control)} aria-label="Previous week">
+                <ChevronLeft className={iconClasses.button} />
+              </button>
+              <button
+                type="button"
+                onClick={goToCurrentWeek}
+                className={cn("mx-1 flex min-w-[236px] flex-col items-center justify-center rounded-xl px-3 py-1 text-center font-extrabold", typeClasses.small, isDark ? "text-white hover:bg-white/[0.06]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]")}
+                aria-label="Go to current week"
+              >
+                <span>Week {selectedWeekInfo.week}</span>
+                <span className={cn("font-bold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{selectedWeekRange}</span>
+              </button>
+              <button type="button" onClick={goToNextWeek} className={cn("flex h-10 w-10 items-center justify-center rounded-xl", interactionClasses.control)} aria-label="Next week">
+                <ChevronRight className={iconClasses.button} />
+              </button>
+            </div>
             <ScheduleButton onClick={() => setChatVisible((value) => !value)} active={chatVisible} appColor={appColor} accentText={accentText}>
               <MessageSquare className={iconClasses.button} />
               {chatVisible ? "Close Chat" : "Open Chat"}
@@ -2700,9 +3127,11 @@ export default function SchemanPage() {
           <div className="min-h-[620px]">
             <WeeklyGrid
               isDark={isDark}
-              blocks={blocks}
+              appColor={appColor}
+              blocks={visibleBlocks}
+              weekDays={weekDays}
               editMode={editMode}
-              onAddCell={(day, hour) => setBlockModal({ day, hour })}
+              onAddCell={(dayInfo, hour) => setBlockModal({ day: dayInfo.weekday, date: dayInfo.dateKey, hour })}
               onRequestDelete={setDeleteTarget}
             />
           </div>
@@ -2710,6 +3139,7 @@ export default function SchemanPage() {
             isDark={isDark}
             appColor={appColor}
             blocks={blocks}
+            selectedWeekStart={selectedWeekStart}
             startSignal={aiStartSignal}
             startContext={aiStartContext}
             chatVisible={chatVisible}
@@ -2732,7 +3162,9 @@ export default function SchemanPage() {
             isDark={isDark}
             appColor={appColor}
             accentText={accentText}
+            weekDays={weekDays}
             initialDay={blockModal.day}
+            initialDate={blockModal.date}
             initialStart={blockModal.hour}
             onClose={() => setBlockModal(null)}
             onSave={saveBlock}
