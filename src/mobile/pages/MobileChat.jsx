@@ -546,31 +546,6 @@ function resolveMobileAttachmentPreview(attachment) {
   return "";
 }
 
-function splitMobileUserImageTextMessage(message) {
-  const attachments = Array.isArray(message?.attachments) ? message.attachments.filter((attachment) => resolveMobileAttachmentPreview(attachment)) : [];
-  const content = String(message?.content || "").trim();
-
-  if (message?.role !== "user" || !attachments.length || !content) {
-    return [message];
-  }
-
-  return [
-    {
-      ...message,
-      id: `${message.id}:images`,
-      content: "",
-      attachments,
-      metadata: { ...(message.metadata || {}), splitFromMessageId: message.id, splitKind: "images" },
-    },
-    {
-      ...message,
-      id: `${message.id}:text`,
-      attachments: [],
-      metadata: { ...(message.metadata || {}), splitFromMessageId: message.id, splitKind: "text" },
-    },
-  ];
-}
-
 function MobileMessageAttachments({ attachments = [] }) {
   const visibleAttachments = attachments.filter((attachment) => resolveMobileAttachmentPreview(attachment));
 
@@ -620,7 +595,7 @@ function mapMobileConversationMessages(conversation) {
       ...attachment,
       previewUrl: resolveMobileAttachmentPreview(attachment),
     })),
-  })).flatMap(splitMobileUserImageTextMessage);
+  }));
 }
 
 export default function MobileChat() {
@@ -684,6 +659,7 @@ export default function MobileChat() {
   const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
   const [pendingImageTemplate, setPendingImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [activeWriteTask, setActiveWriteTask] = useState(null);
   const [pendingWriteTemplate, setPendingWriteTemplate] = useState(null);
   const [writeAttachments, setWriteAttachments] = useState([]);
@@ -1726,15 +1702,15 @@ export default function MobileChat() {
     setWriteAttachments((current) => [...current, ...accepted].slice(0, 10));
   };
 
-  const handleImageSelection = (event) => {
+  const handleImageSelection = async (event) => {
     if (pendingWriteTemplate) {
       void handleWriteAttachmentSelection(event);
       return;
     }
 
     const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+    event.target.value = "";
     if (files.length === 0) {
-      event.target.value = "";
       return;
     }
 
@@ -1749,18 +1725,46 @@ export default function MobileChat() {
       setPendingImageTemplate(null);
     }
     setImageModeError("");
-    setAttachedImages((current) => {
-      const availableSlots = Math.max(0, MAX_IMAGE_ATTACHMENTS - current.length);
-      const nextImages = files.slice(0, availableSlots).map((file) => ({
-        id: `${file.name}-${file.lastModified}-${globalThis.crypto?.randomUUID?.() || Date.now()}`,
-        file,
-        previewUrl: URL.createObjectURL(file),
-      }));
-      return isCameraCapture
-        ? [...nextImages, ...current].slice(0, MAX_IMAGE_ATTACHMENTS)
-        : [...current, ...nextImages].slice(0, MAX_IMAGE_ATTACHMENTS);
-    });
-    event.target.value = "";
+
+    const availableSlots = Math.max(0, MAX_IMAGE_ATTACHMENTS - attachedImagesRef.current.length);
+    const filesToUpload = files.slice(0, availableSlots);
+    if (!filesToUpload.length) return;
+
+    setIsUploadingImages(true);
+    const uploadedImages = [];
+
+    try {
+      for (const file of filesToUpload) {
+        const localPreviewUrl = URL.createObjectURL(file);
+        try {
+          const image = await uploadChatImage(file, activeConversationId);
+          if (image?.id) {
+            uploadedImages.push({
+              id: image.id,
+              imageId: image.id,
+              file,
+              name: image.originalName || file.name || "Uploaded image",
+              type: "image",
+              previewUrl: getImageUrl(image.id),
+            });
+          }
+        } catch (error) {
+          toast.error(error.message || "Image upload failed");
+        } finally {
+          URL.revokeObjectURL(localPreviewUrl);
+        }
+      }
+
+      if (uploadedImages.length) {
+        setAttachedImages((current) => (
+          isCameraCapture
+            ? [...uploadedImages, ...current]
+            : [...current, ...uploadedImages]
+        ).slice(0, MAX_IMAGE_ATTACHMENTS));
+      }
+    } finally {
+      setIsUploadingImages(false);
+    }
   };
 
   const removeAttachedImage = (imageId) => {
@@ -1947,22 +1951,16 @@ export default function MobileChat() {
           : [];
     const userDisplayMessages = hideUserMessage
       ? []
-      : [
-          ...(userDisplayAttachments.length ? [{
-            id: crypto.randomUUID(),
-            role: "user",
-            content: "",
-            attachments: userDisplayAttachments,
-            metadata: { ...userMetadata, splitKind: "images" },
-          }] : []),
-          ...(visibleMessage ? [{
-            id: userMessageId,
-            role: "user",
-            content: visibleMessage,
-            attachments: [],
-            metadata: { ...userMetadata, splitKind: "text" },
-          }] : []),
-        ];
+      : (visibleMessage || userDisplayAttachments.length ? [{
+          id: userMessageId,
+          role: "user",
+          content: visibleMessage,
+          attachments: userDisplayAttachments,
+          metadata: {
+            ...userMetadata,
+            splitKind: userDisplayAttachments.length && visibleMessage ? "image_text" : userDisplayAttachments.length ? "images" : "text",
+          },
+        }] : []);
 
     setMessages((current) => [
       ...current,
@@ -2236,47 +2234,16 @@ export default function MobileChat() {
 
   const handleComposerSubmit = async (event) => {
     event.preventDefault();
-    if (!hasComposerContent || isGeneratingImage || isChatSending || sendLockRef.current) return;
+    if (!hasComposerContent || isGeneratingImage || isUploadingImages || isChatSending || sendLockRef.current) return;
 
     if (!isImageMode) {
       const currentMessage = message.trim();
       if (!currentMessage && attachedImages.length === 0) return;
-      const uploadedImages = [];
-      if (attachedImages.length > 0) {
-        sendLockRef.current = true;
-        setIsChatSending(true);
-        try {
-          for (const attachment of attachedImages) {
-            const image = await uploadChatImage(attachment.file, activeConversationId);
-            if (image) {
-              uploadedImages.push({
-                ...image,
-                localName: attachment.file?.name || attachment.name || "Uploaded image",
-              });
-            }
-          }
-        } catch (error) {
-          sendLockRef.current = false;
-          setIsChatSending(false);
-          toast.error(error.message || "Image upload failed");
-          return;
-        }
-      }
       await sendChatPrompt({
         prompt: currentMessage || "Please analyze these images.",
-        imageIds: uploadedImages.map((image) => image.id),
-        displayAttachments: uploadedImages.length
-          ? uploadedImages.map((image) => ({
-              id: image.id,
-              imageId: image.id,
-              name: image.originalName || image.localName || "Uploaded image",
-              type: "image",
-              previewUrl: getImageUrl(image.id),
-            }))
-          : attachedImages,
+        imageIds: attachedImages.map((image) => image.imageId || image.id).filter(Boolean),
+        displayAttachments: attachedImages,
         metadata: isSearchMode ? { chatMode: "web_search" } : {},
-        prelocked: attachedImages.length > 0,
-        allowWhileBusy: attachedImages.length > 0,
       });
       return;
     }
@@ -2657,6 +2624,7 @@ export default function MobileChat() {
         attachments={composerAttachments}
         onRemoveAttachment={removeComposerAttachment}
         onClearAttachments={clearComposerAttachments}
+        isUploading={isUploadingImages}
         onAdd={openComposerAttachment}
         onVoice={startVoiceInput}
         isListening={isListening}
