@@ -1288,6 +1288,335 @@ function parseScheduleBlocksFromText(text, options = {}) {
   return normalizeImportedBlocks(blocks.slice(0, 168), classification, { fallbackWeekStart });
 }
 
+function resolveCommandDate(value = "", fallbackWeekStart = getCurrentWeekStart()) {
+  const date = parseScheduleDate(value, { fallbackWeekStart });
+  if (date) return date;
+
+  const day = findScheduleDay(value)?.day;
+  if (!day) return "";
+  return getWeekDateForDay(day, fallbackWeekStart)?.dateKey || "";
+}
+
+function resolveCommandDateRange(value = "", fallbackWeekStart = getCurrentWeekStart()) {
+  const text = String(value || "");
+  const toIndex = text.toLowerCase().lastIndexOf(" to ");
+  if (toIndex === -1) {
+    return {
+      fromDate: resolveCommandDate(text, fallbackWeekStart),
+      toDate: "",
+      beforeTo: text,
+      afterTo: "",
+    };
+  }
+
+  const beforeTo = text.slice(0, toIndex);
+  const afterTo = text.slice(toIndex + 4);
+  return {
+    fromDate: resolveCommandDate(beforeTo, fallbackWeekStart),
+    toDate: resolveCommandDate(afterTo, fallbackWeekStart),
+    beforeTo,
+    afterTo,
+  };
+}
+
+function inferScheduleCommandTarget(value = "") {
+  const text = String(value || "").toLowerCase();
+  const targets = [
+    { pattern: /\b(work|job|office|overtime)\b/, title: "Work", category: "work", term: "work" },
+    { pattern: /\b(shift|morning shift|evening shift|night shift)\b/, title: "Shift", category: "work", term: "shift" },
+    { pattern: /\b(meeting|standup)\b/, title: "Meeting", category: "work", term: "meeting" },
+    { pattern: /\b(math|mathematics)\b/, title: "Math", category: "education", term: "math" },
+    { pattern: /\b(english|eng)\b/, title: "Eng", category: "education", term: "english" },
+    { pattern: /\b(science|biology|chemistry|physics|history|geography|swedish|class|lesson|lecture|study|homework)\b/, title: "Study", category: "education", term: "study" },
+    { pattern: /\b(gym|workout|training|run|fitness)\b/, title: "Gym", category: "fitness", term: "gym" },
+    { pattern: /\b(lunch|meal|breakfast|dinner|snack)\b/, title: "Lunch", category: "nutrition", term: "lunch" },
+    { pattern: /\b(break|rest|pause|rast)\b/, title: "Break", category: "break", term: "break" },
+    { pattern: /\b(doctor|therapy|medication|medicine|appointment)\b/, title: "Appointment", category: "health", term: "appointment" },
+    { pattern: /\b(cleaning|clean|laundry|chores)\b/, title: "Cleaning", category: "home", term: "cleaning" },
+    { pattern: /\b(travel|flight|train|bus|trip)\b/, title: "Travel", category: "travel", term: "travel" },
+  ];
+  return targets.find((target) => target.pattern.test(text)) || null;
+}
+
+function cleanScheduleCommandTitle(value = "") {
+  return cleanImportedActivityName(String(value || "")
+    .replace(/\b(add|create|schedule|please|my|an|a|the|event|activity|on|at|from|to|for|rename|delete|remove|move|change|set|update|duplicate|copy|clear)\b/gi, " ")
+    .replace(/\d{1,2}(?::|\.)\d{2}/g, " ")
+    .replace(/\s+/g, " "));
+}
+
+function inferScheduleCommandTitle(value = "", fallback = "Event") {
+  const target = inferScheduleCommandTarget(value);
+  if (target?.title) return target.title;
+  const cleanTitle = cleanScheduleCommandTitle(value);
+  return cleanTitle || fallback;
+}
+
+function blockMatchesScheduleTarget(block, target) {
+  if (!target) return true;
+  const title = getBlockTitle(block).toLowerCase();
+  const category = String(block.category || classifyScheduleActivity(title)).toLowerCase();
+  return category === target.category || title.includes(target.term) || title.includes(target.title.toLowerCase());
+}
+
+function findScheduleCommandMatches(blocks = [], { date = "", target = null, range = null, weekStart = null } = {}) {
+  const weekDateKeys = weekStart ? new Set(getWeekDays(weekStart).map((day) => day.dateKey)) : null;
+  return blocks.filter((block) => {
+    if (date && block.date !== date) return false;
+    if (!date && weekDateKeys && !weekDateKeys.has(block.date)) return false;
+    if (!blockMatchesScheduleTarget(block, target)) return false;
+    if (range) {
+      const blockStart = getBlockStart(block);
+      const blockEnd = getBlockEnd(block);
+      return blockStart === range.start && blockEnd === range.end;
+    }
+    return true;
+  });
+}
+
+function resolveSingleScheduleCommandMatch(blocks, criteria, actionLabel) {
+  const matches = findScheduleCommandMatches(blocks, criteria);
+  if (matches.length === 1) return { block: matches[0], message: "" };
+  if (!matches.length) return { block: null, message: `I could not find a matching event to ${actionLabel}.` };
+  return { block: null, message: `I found ${matches.length} matching events. Please include the exact time or event name so I do not change the wrong one.` };
+}
+
+function findScheduleCommandOverlap(blocks = [], candidate = {}, ignoredId = "") {
+  const date = candidate.date;
+  const start = timeToMinutes(candidate.startTime || candidate.start);
+  const end = timeToMinutes(candidate.endTime || candidate.end);
+  if (!date || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+
+  return blocks.find((block) => {
+    if (block.id === ignoredId || block.date !== date) return false;
+    const blockStart = timeToMinutes(getBlockStart(block));
+    const blockEnd = timeToMinutes(getBlockEnd(block));
+    return blockStart < end && blockEnd > start;
+  }) || null;
+}
+
+function getScheduleCommandOverlapMessage(candidate, overlap) {
+  const date = candidate.date || overlap?.date || "that day";
+  const start = candidate.startTime || candidate.start || "";
+  const end = candidate.endTime || candidate.end || "";
+  return `That would overlap with ${getBlockTitle(overlap)} on ${date}${start && end ? ` from ${start} to ${end}` : ""}. Please give a different time or tell me which event to move first.`;
+}
+
+function buildScheduleCommandBlock({ title, date, start, end, colorIndex = 0 }) {
+  const dateValue = parseDateKey(date);
+  const weekday = dateValue ? getWeekdayName(dateValue) : "";
+  const category = classifyScheduleActivity(title);
+  return normalizeScheduleBlock({
+    id: `ai-command-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    name: title,
+    title,
+    category,
+    date,
+    weekday,
+    start,
+    end,
+    startTime: start,
+    endTime: end,
+    days: weekday ? [weekday] : [],
+    color: getScheduleColorForActivity(title, colorIndex),
+    icon: guessScheduleIcon(title),
+  }, { fallbackWeekStart: startOfIsoWeek(dateValue || new Date()), index: colorIndex });
+}
+
+function updateScheduleCommandBlock(block, updates = {}) {
+  const nextTitle = updates.title || getBlockTitle(block);
+  const nextDate = updates.date || block.date;
+  const dateValue = parseDateKey(nextDate);
+  const weekday = dateValue ? getWeekdayName(dateValue) : block.weekday;
+  const nextCategory = updates.category || block.category || classifyScheduleActivity(nextTitle);
+  const nextStart = updates.start || getBlockStart(block);
+  const nextEnd = updates.end || getBlockEnd(block);
+  return {
+    ...block,
+    ...updates,
+    name: nextTitle,
+    title: nextTitle,
+    category: nextCategory,
+    date: nextDate,
+    weekday,
+    start: nextStart,
+    end: nextEnd,
+    startTime: nextStart,
+    endTime: nextEnd,
+    days: weekday ? [weekday] : [],
+    color: updates.color || block.color || getScheduleColorForActivity(nextTitle),
+    icon: updates.icon || block.icon || guessScheduleIcon(nextTitle),
+  };
+}
+
+function buildScheduleCommandResult(text, blocks = [], selectedWeekStart = getCurrentWeekStart()) {
+  const command = String(text || "").trim();
+  if (!command) return { handled: false };
+  const lower = command.toLowerCase();
+  const range = parseScheduleTimeRange(command);
+  const target = inferScheduleCommandTarget(command);
+  const date = resolveCommandDate(command, selectedWeekStart);
+  const isExplicitCommand = /\b(add|create|delete|remove|cancel|move|reschedule|rename|change|update|set|duplicate|copy|clear)\b/.test(lower);
+  const isScheduleAddCommand = /\bschedule\b/.test(lower) && Boolean(range) && Boolean(date || findScheduleDay(command));
+  if (!isExplicitCommand && !isScheduleAddCommand) return { handled: false };
+
+  const weekStartForDate = date ? startOfIsoWeek(parseDateKey(date)) : selectedWeekStart;
+  const selectedWeekDateKeys = new Set(getWeekDays(weekStartForDate).map((day) => day.dateKey));
+
+  if (/\bclear\b/.test(lower) && /\bweek\b/.test(lower)) {
+    const nextBlocks = blocks.filter((block) => !selectedWeekDateKeys.has(block.date));
+    const removed = blocks.length - nextBlocks.length;
+    if (!removed) return { handled: true, status: "needs_clarification", message: "This week is already clear." };
+    return { handled: true, status: "applied", blocks: nextBlocks, focusDate: toDateKey(weekStartForDate), message: `Cleared ${removed} event${removed === 1 ? "" : "s"} from this week.`, toast: "Week cleared." };
+  }
+
+  if (/\bclear\b/.test(lower) && (date || findScheduleDay(command))) {
+    const dayDate = date || resolveCommandDate(command, selectedWeekStart);
+    const nextBlocks = blocks.filter((block) => block.date !== dayDate);
+    const removed = blocks.length - nextBlocks.length;
+    if (!removed) return { handled: true, status: "needs_clarification", message: "That day is already clear." };
+    return { handled: true, status: "applied", blocks: nextBlocks, focusDate: dayDate, message: `Cleared ${removed} event${removed === 1 ? "" : "s"} from ${dayDate}.`, toast: "Day cleared." };
+  }
+
+  if (/\b(add|create|schedule)\b/.test(lower) && !/\b(delete|remove|move|rename|duplicate|copy|clear)\b/.test(lower)) {
+    if (!date || !range) {
+      return { handled: true, status: "needs_clarification", message: "Please include a real date and start/end time, for example: Add work on January 4 from 07:00 to 14:00." };
+    }
+    const title = inferScheduleCommandTitle(command, "Event");
+    const newBlock = buildScheduleCommandBlock({ title, date, start: range.start, end: range.end, colorIndex: blocks.length });
+    const overlap = findScheduleCommandOverlap(blocks, newBlock);
+    if (overlap) {
+      return { handled: true, status: "needs_clarification", message: getScheduleCommandOverlapMessage(newBlock, overlap) };
+    }
+    return {
+      handled: true,
+      status: "applied",
+      blocks: [...blocks, newBlock],
+      focusDate: date,
+      message: `Added ${newBlock.title} on ${date} from ${newBlock.startTime} to ${newBlock.endTime}.`,
+      toast: "Event added.",
+    };
+  }
+
+  if (/\b(delete|remove|cancel)\b/.test(lower)) {
+    const { block, message } = resolveSingleScheduleCommandMatch(blocks, { date, target, range, weekStart: date ? null : selectedWeekStart }, "delete");
+    if (!block) return { handled: true, status: "needs_clarification", message };
+    return {
+      handled: true,
+      status: "applied",
+      blocks: blocks.filter((item) => item.id !== block.id),
+      focusDate: block.date,
+      message: `Deleted ${getBlockTitle(block)} on ${block.date}.`,
+      toast: "Event deleted.",
+    };
+  }
+
+  if (/\b(move|reschedule)\b/.test(lower)) {
+    const moveDates = resolveCommandDateRange(command, selectedWeekStart);
+    const fromDate = moveDates.fromDate || date;
+    const toDate = moveDates.toDate;
+    if (!toDate) return { handled: true, status: "needs_clarification", message: "Please include the new real date or weekday for the move." };
+    const moveTarget = inferScheduleCommandTarget(moveDates.beforeTo) || target;
+    const { block, message } = resolveSingleScheduleCommandMatch(blocks, { date: fromDate, target: moveTarget, weekStart: fromDate ? null : selectedWeekStart }, "move");
+    if (!block) return { handled: true, status: "needs_clarification", message };
+    const nextRange = parseScheduleTimeRange(moveDates.afterTo);
+    const movedBlock = updateScheduleCommandBlock(block, { date: toDate, start: nextRange?.start, end: nextRange?.end });
+    const overlap = findScheduleCommandOverlap(blocks, movedBlock, block.id);
+    if (overlap) {
+      return { handled: true, status: "needs_clarification", message: getScheduleCommandOverlapMessage(movedBlock, overlap) };
+    }
+    const nextBlocks = blocks.map((item) => item.id === block.id
+      ? movedBlock
+      : item);
+    return {
+      handled: true,
+      status: "applied",
+      blocks: nextBlocks,
+      focusDate: toDate,
+      message: `Moved ${getBlockTitle(block)} to ${toDate}${nextRange ? ` from ${nextRange.start} to ${nextRange.end}` : ""}.`,
+      toast: "Event moved.",
+    };
+  }
+
+  if (/\b(duplicate|copy)\b/.test(lower)) {
+    const copyDates = resolveCommandDateRange(command, selectedWeekStart);
+    const sourceDate = copyDates.fromDate || date;
+    const targetDate = copyDates.toDate || sourceDate;
+    const { block, message } = resolveSingleScheduleCommandMatch(blocks, { date: sourceDate, target, range, weekStart: sourceDate ? null : selectedWeekStart }, "duplicate");
+    if (!block) return { handled: true, status: "needs_clarification", message };
+    const duplicate = updateScheduleCommandBlock({
+      ...block,
+      id: `ai-command-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    }, { date: targetDate });
+    const overlap = findScheduleCommandOverlap(blocks, duplicate);
+    if (overlap) {
+      return { handled: true, status: "needs_clarification", message: getScheduleCommandOverlapMessage(duplicate, overlap) };
+    }
+    return {
+      handled: true,
+      status: "applied",
+      blocks: [...blocks, duplicate],
+      focusDate: targetDate,
+      message: `Duplicated ${getBlockTitle(block)}${targetDate ? ` to ${targetDate}` : ""}.`,
+      toast: "Event duplicated.",
+    };
+  }
+
+  if (/\brename\b/.test(lower)) {
+    const split = command.match(/\bto\s+(.+)$/i);
+    const newTitle = cleanImportedActivityName(split?.[1] || "");
+    if (!newTitle) return { handled: true, status: "needs_clarification", message: "What should I rename it to?" };
+    const beforeTo = split ? command.slice(0, split.index) : command;
+    const renameDate = resolveCommandDate(beforeTo, selectedWeekStart) || date;
+    const renameTarget = inferScheduleCommandTarget(beforeTo) || target;
+    const { block, message } = resolveSingleScheduleCommandMatch(blocks, { date: renameDate, target: renameTarget, weekStart: renameDate ? null : selectedWeekStart }, "rename");
+    if (!block) return { handled: true, status: "needs_clarification", message };
+    const nextBlocks = blocks.map((item) => item.id === block.id ? updateScheduleCommandBlock(item, { title: newTitle, category: classifyScheduleActivity(newTitle), icon: guessScheduleIcon(newTitle) }) : item);
+    return { handled: true, status: "applied", blocks: nextBlocks, focusDate: block.date, message: `Renamed ${getBlockTitle(block)} to ${newTitle}.`, toast: "Event renamed." };
+  }
+
+  if (/\b(change|update|set)\b/.test(lower)) {
+    const categoryMatch = lower.match(/\b(?:category|type)\b.*\bto\s+([a-z ]+)$/i);
+    const nextRange = range;
+    if (categoryMatch) {
+      const categoryText = categoryMatch[1] || "";
+      const nextCategory = classifyScheduleActivity(categoryText);
+      const { block, message } = resolveSingleScheduleCommandMatch(blocks, { date, target, weekStart: date ? null : selectedWeekStart }, "change the category for");
+      if (!block) return { handled: true, status: "needs_clarification", message };
+      const nextTitle = getBlockTitle(block);
+      const nextBlocks = blocks.map((item) => item.id === block.id ? updateScheduleCommandBlock(item, { category: nextCategory, color: getScheduleColorForActivity(categoryText), icon: guessScheduleIcon(categoryText || nextTitle) }) : item);
+      return { handled: true, status: "applied", blocks: nextBlocks, focusDate: block.date, message: `Changed ${nextTitle} to ${nextCategory}.`, toast: "Category updated." };
+    }
+
+    if (nextRange) {
+      const { block, message } = resolveSingleScheduleCommandMatch(blocks, { date, target, weekStart: date ? null : selectedWeekStart }, "change the time for");
+      if (!block) return { handled: true, status: "needs_clarification", message };
+      const updatedBlock = updateScheduleCommandBlock(block, { start: nextRange.start, end: nextRange.end });
+      const overlap = findScheduleCommandOverlap(blocks, updatedBlock, block.id);
+      if (overlap) {
+        return { handled: true, status: "needs_clarification", message: getScheduleCommandOverlapMessage(updatedBlock, overlap) };
+      }
+      const nextBlocks = blocks.map((item) => item.id === block.id ? updatedBlock : item);
+      return { handled: true, status: "applied", blocks: nextBlocks, focusDate: block.date, message: `Changed ${getBlockTitle(block)} to ${nextRange.start}-${nextRange.end}.`, toast: "Time updated." };
+    }
+
+    const commandDates = resolveCommandDateRange(command, selectedWeekStart);
+    if (commandDates.toDate) {
+      const { block, message } = resolveSingleScheduleCommandMatch(blocks, { date: commandDates.fromDate || date, target, weekStart: commandDates.fromDate || date ? null : selectedWeekStart }, "change the date for");
+      if (!block) return { handled: true, status: "needs_clarification", message };
+      const updatedBlock = updateScheduleCommandBlock(block, { date: commandDates.toDate });
+      const overlap = findScheduleCommandOverlap(blocks, updatedBlock, block.id);
+      if (overlap) {
+        return { handled: true, status: "needs_clarification", message: getScheduleCommandOverlapMessage(updatedBlock, overlap) };
+      }
+      const nextBlocks = blocks.map((item) => item.id === block.id ? updatedBlock : item);
+      return { handled: true, status: "applied", blocks: nextBlocks, focusDate: commandDates.toDate, message: `Changed ${getBlockTitle(block)} to ${commandDates.toDate}.`, toast: "Date updated." };
+    }
+  }
+
+  return { handled: false };
+}
+
 async function extractReadableFileText(file) {
   const raw = await file.text().catch(() => "");
   return raw
@@ -2020,7 +2349,7 @@ function ScheduleImagePreview({ image, isDark, onClose }) {
   );
 }
 
-function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startSignal, startContext, chatVisible, onImportBlocks }) {
+function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startSignal, startContext, chatVisible, onImportBlocks, onApplyCommand }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState("");
@@ -2461,6 +2790,31 @@ function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startS
       ? processed.messageAttachments.map((attachment) => attachment.name).join(", ")
       : "";
     const displayText = value || (attachmentLabel ? `Uploaded ${attachmentLabel}` : "");
+    if (!attachmentsToSend.length && !pendingImport && value) {
+      const commandResult = onApplyCommand?.(value);
+      if (commandResult?.handled) {
+        const timestamp = Date.now();
+        setMessages((current) => [
+          ...current,
+          {
+            id: `user-${timestamp}`,
+            role: "user",
+            content: displayText,
+            attachments: [],
+          },
+          {
+            id: `assistant-${timestamp}`,
+            role: "assistant",
+            content: commandResult.message || "Done. I updated the schedule.",
+            isThinking: false,
+          },
+        ]);
+        sendLockRef.current = false;
+        window.requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
+        return;
+      }
+    }
+
     let pendingContext = "";
     if (!attachmentsToSend.length && pendingImport && value) {
       const purposeClassification = classifyPurposeText(value);
@@ -3395,31 +3749,14 @@ export default function SchemanPage() {
       return;
     }
 
-    if (!hasBlocks) {
-      setScheduleTypeOpen(true);
-      return;
-    }
-
     setEditMode(true);
     toast.success("Schedule edit mode enabled.");
-  };
-
-  const createCustomSchedule = () => {
-    setScheduleTypeOpen(true);
   };
 
   const selectScheduleType = (type) => {
     setScheduleTypeOpen(false);
     setChatVisible(true);
     setAiStartContext(type.assistantPrompt);
-    setAiStartSignal((value) => value + 1);
-  };
-
-  const startAiDesign = () => {
-    setChatVisible(true);
-    setAiStartContext(hasBlocks
-      ? "The user wants to edit the existing Schedule with BlueMind AI. Use the current schedule blocks as context, identify possible improvements, and ask what they want to optimize."
-      : "The user wants BlueMind AI to design a Schedule from scratch. Ask what kind of schedule they want to build and guide them conversationally.");
     setAiStartSignal((value) => value + 1);
   };
 
@@ -3434,6 +3771,25 @@ export default function SchemanPage() {
     }));
     if (firstImportedDate) setSelectedWeekStart(startOfIsoWeek(firstImportedDate));
     setEditMode(false);
+  };
+
+  const applyScheduleCommand = (commandText) => {
+    const result = buildScheduleCommandResult(commandText, blocks, selectedWeekStart);
+    if (!result?.handled) return result;
+
+    if (result.status === "applied" && Array.isArray(result.blocks)) {
+      setScheduleState((current) => ({
+        ...current,
+        blocks: result.blocks,
+        updatedAt: new Date().toISOString(),
+      }));
+      const focusDate = parseDateKey(result.focusDate);
+      if (focusDate) setSelectedWeekStart(startOfIsoWeek(focusDate));
+      setEditMode(false);
+      toast.success(result.toast || "Schedule updated.");
+    }
+
+    return result;
   };
 
   const saveBlock = (block) => {
@@ -3469,27 +3825,39 @@ export default function SchemanPage() {
   return (
     <main className={cn("min-h-screen px-4 py-5 sm:px-6 lg:px-8", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")} data-testid="schedule-page">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1600px] flex-col gap-5">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <button
-              type="button"
-              onClick={handleBackToScheduleHome}
-              className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)}
-              aria-label="Back to Schedule Home"
-            >
-              <ArrowLeft className={iconClasses.button} />
-            </button>
-            <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
+        <header className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <button
+                type="button"
+                onClick={handleBackToScheduleHome}
+                className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)}
+                aria-label="Back to Schedule Home"
+              >
+                <ArrowLeft className={iconClasses.button} />
+              </button>
+              <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 lg:justify-end">
+              <ScheduleButton onClick={() => setChatVisible((value) => !value)} active={chatVisible} appColor={appColor} accentText={accentText}>
+                <MessageSquare className={iconClasses.button} />
+                {chatVisible ? "Close Chat" : "Open Chat"}
+              </ScheduleButton>
+              <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
+                {editMode ? <Check className={iconClasses.button} /> : <PenLine className={iconClasses.button} />}
+                {editMode ? "Save Changes" : "Edit Schedule"}
+              </ScheduleButton>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className={cn("flex min-h-[52px] items-center rounded-2xl border p-1", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-white")}>
+          <div className="flex justify-start">
+            <div className={cn("flex min-h-[52px] w-full items-center rounded-2xl border p-1 sm:w-auto", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-white")}>
               <button type="button" onClick={goToPreviousWeek} className={cn("flex h-10 w-10 items-center justify-center rounded-xl", interactionClasses.control)} aria-label="Previous week">
                 <ChevronLeft className={iconClasses.button} />
               </button>
               <button
                 type="button"
                 onClick={goToCurrentWeek}
-                className={cn("mx-1 flex min-w-[236px] flex-col items-center justify-center rounded-xl px-3 py-1 text-center font-extrabold", typeClasses.small, isDark ? "text-white hover:bg-white/[0.06]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]")}
+                className={cn("mx-1 flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-3 py-1 text-center font-extrabold sm:min-w-[236px]", typeClasses.small, isDark ? "text-white hover:bg-white/[0.06]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-bg-elevated)]")}
                 aria-label="Go to current week"
               >
                 <span>Week {selectedWeekInfo.week}</span>
@@ -3499,24 +3867,6 @@ export default function SchemanPage() {
                 <ChevronRight className={iconClasses.button} />
               </button>
             </div>
-            <ScheduleButton onClick={() => setChatVisible((value) => !value)} active={chatVisible} appColor={appColor} accentText={accentText}>
-              <MessageSquare className={iconClasses.button} />
-              {chatVisible ? "Close Chat" : "Open Chat"}
-            </ScheduleButton>
-            {(hasBlocks || editMode) && (
-              <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
-                <Plus className={iconClasses.button} />
-                {editMode ? "Save Changes" : "Edit Schedule"}
-              </ScheduleButton>
-            )}
-            <ScheduleButton onClick={createCustomSchedule} appColor={appColor} accentText={accentText}>
-              <Plus className={iconClasses.button} />
-              Create Custom Schedule
-            </ScheduleButton>
-            <ScheduleButton onClick={startAiDesign} active appColor={appColor} accentText={accentText}>
-              <Sparkles className={iconClasses.button} />
-              Edit with BlueMind AI
-            </ScheduleButton>
           </div>
         </header>
 
@@ -3541,6 +3891,7 @@ export default function SchemanPage() {
             startContext={aiStartContext}
             chatVisible={chatVisible}
             onImportBlocks={importScheduleBlocks}
+            onApplyCommand={applyScheduleCommand}
           />
         </div>
       </div>
