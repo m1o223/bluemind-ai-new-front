@@ -3338,7 +3338,7 @@ function SavedScheduleCard({ schedule, isDark, menuOpen, onToggleMenu, onOpen, o
     <motion.div
       layout
       className={cn(
-        "group relative min-h-[96px] rounded-[20px] border p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        "group relative min-h-[116px] rounded-[22px] border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
         isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white",
       )}
       onClick={onOpen}
@@ -3348,42 +3348,44 @@ function SavedScheduleCard({ schedule, isDark, menuOpen, onToggleMenu, onOpen, o
         if (event.key === "Enter" || event.key === " ") onOpen();
       }}
     >
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onToggleMenu();
-        }}
-        className={cn("absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full opacity-80 transition hover:opacity-100", interactionClasses.control)}
-        aria-label={`Open menu for ${schedule.name}`}
-        aria-expanded={menuOpen}
-      >
-        <MoreVertical className="h-4 w-4 stroke-[2.4]" />
-      </button>
-
-      <div className="flex h-full min-w-0 flex-col justify-center pr-9">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", schedule.pinned ? "bg-[var(--bm-primary)] text-white" : isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}>
+      <div className="flex min-w-0 items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3.5">
+          <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", schedule.pinned ? "bg-[var(--bm-primary)] text-white" : isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}>
             <Icon className={iconClasses.button} />
           </span>
           <div className="min-w-0">
-            <h3 className={cn("truncate font-extrabold", typeClasses.body)}>{schedule.name}</h3>
-            <p className={cn("mt-0.5 truncate font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{formatScheduleUpdatedLabel(schedule.updatedAt)}</p>
+            <h3 className={cn("truncate font-black leading-6", typeClasses.body)}>{schedule.name}</h3>
+            <p className={cn("mt-2 truncate font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{formatScheduleUpdatedLabel(schedule.updatedAt)}</p>
           </div>
         </div>
-      </div>
 
-      {menuOpen && (
-        <ScheduleCardMenu
-          schedule={schedule}
-          isDark={isDark}
-          onOpen={onOpen}
-          onRename={onRename}
-          onDuplicate={onDuplicate}
-          onTogglePin={onTogglePin}
-          onDelete={onDelete}
-        />
-      )}
+        <div className="relative -mr-1 -mt-1 shrink-0">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleMenu();
+            }}
+            className={cn("flex h-9 w-9 items-center justify-center rounded-full opacity-80 transition hover:opacity-100", interactionClasses.control)}
+            aria-label={`Open menu for ${schedule.name}`}
+            aria-expanded={menuOpen}
+          >
+            <MoreVertical className="h-4 w-4 stroke-[2.4]" />
+          </button>
+
+          {menuOpen && (
+            <ScheduleCardMenu
+              schedule={schedule}
+              isDark={isDark}
+              onOpen={onOpen}
+              onRename={onRename}
+              onDuplicate={onDuplicate}
+              onTogglePin={onTogglePin}
+              onDelete={onDelete}
+            />
+          )}
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -3504,7 +3506,7 @@ export function ScheduleHomePage() {
 
   return (
     <main className={cn("min-h-screen px-4 py-5 sm:px-6 lg:px-8", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")} data-testid="schedule-home-page">
-      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1180px] flex-col gap-7">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1280px] flex-col gap-8">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className={cn("font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule Home</h1>
           <div className="flex flex-wrap gap-2">
@@ -3525,7 +3527,7 @@ export function ScheduleHomePage() {
             <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Pinned Schedules</h2>
             <span className={cn("font-bold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{pinnedSchedules.length}/2</span>
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {pinnedSchedules.length ? renderScheduleCards(pinnedSchedules) : (
               <div className={cn("rounded-[20px] border border-dashed p-5 font-semibold", typeClasses.small, isDark ? "border-white/[0.10] text-white/70" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
                 No pinned schedules
@@ -3539,7 +3541,7 @@ export function ScheduleHomePage() {
             <FileText className="h-4 w-4 stroke-[2.4] text-[var(--bm-text-muted)]" />
             <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Saved Schedules</h2>
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {savedSchedules.length ? renderScheduleCards(savedSchedules) : (
               <div className={cn("rounded-[20px] border border-dashed p-5 font-semibold", typeClasses.small, isDark ? "border-white/[0.10] text-white/70" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
                 {scheduleRecords.length ? "All schedules are pinned" : "No saved schedules"}
