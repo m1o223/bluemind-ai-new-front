@@ -122,7 +122,7 @@ webpackConfig.devServer = (devServerConfig, context) => {
         middleware: (req, _res, next) => {
           if (
             req.method === "GET" &&
-            /^\/(auth|chat|reminders|profile|learning|feedback)(\/.*)?$/.test(req.url)
+            /^\/(auth|chat|reminders|profile|learning|feedback|schedule|scheman|mobile)(\/.*)?$/.test(req.url)
           ) {
             req.url = "/";
           }

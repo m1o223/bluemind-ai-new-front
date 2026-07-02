@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Apple,
+  ArrowLeft,
   BatteryCharging,
   Bed,
   BookOpen,
@@ -269,9 +271,11 @@ const TUTORIAL_STEPS = [
 function readScheduleState() {
   try {
     const value = JSON.parse(localStorage.getItem(SCHEDULE_STORAGE_KEY) || "null");
-    return value && typeof value === "object" ? { blocks: Array.isArray(value.blocks) ? value.blocks : [] } : { blocks: [] };
+    return value && typeof value === "object"
+      ? { blocks: Array.isArray(value.blocks) ? value.blocks : [], updatedAt: value.updatedAt || "" }
+      : { blocks: [], updatedAt: "" };
   } catch {
-    return { blocks: [] };
+    return { blocks: [], updatedAt: "" };
   }
 }
 
@@ -2360,11 +2364,175 @@ function ScheduleTutorial({ isDark, appColor, accentText, onComplete }) {
   );
 }
 
-export default function SchemanPage() {
+export function ScheduleHomePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { prefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
+  const [scheduleState] = useState(readScheduleState);
+  const [generatedTemplates] = useState(readGeneratedScheduleTemplates);
+  const blocks = scheduleState.blocks || [];
+  const isMobileRoute = location.pathname.startsWith("/mobile");
+  const basePath = isMobileRoute ? "/mobile/schedule" : "/schedule";
+  const workspacePath = `${basePath}/workspace`;
+  const hasBlocks = blocks.length > 0;
+  const lastUpdated = scheduleState.updatedAt
+    ? new Date(scheduleState.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "Local";
+
+  const openWorkspace = (scheduleAction) => {
+    navigate(workspacePath, { state: { fromScheduleHome: true, ...(scheduleAction ? { scheduleAction } : {}) } });
+  };
+
+  const homeCards = [
+    {
+      id: "saved",
+      title: hasBlocks ? "Saved schedule" : "No saved schedule yet",
+      description: hasBlocks ? `${blocks.length} activities saved. Continue editing your weekly schedule.` : "Create your first schedule or import a timetable.",
+      icon: Calendar,
+      actionLabel: hasBlocks ? "Open workspace" : "Create schedule",
+      onClick: () => openWorkspace(hasBlocks ? undefined : "create"),
+      meta: hasBlocks ? `Updated ${lastUpdated}` : "Ready to start",
+    },
+    {
+      id: "new",
+      title: "Create new schedule",
+      description: "Start from schedule templates, a custom workflow, or a blank weekly grid.",
+      icon: Plus,
+      actionLabel: "Create",
+      onClick: () => openWorkspace("create"),
+      meta: "Templates",
+    },
+    {
+      id: "custom",
+      title: "Custom schedule",
+      description: "Tell BlueMind what you want to organize and build a private workflow.",
+      icon: Sparkles,
+      actionLabel: "Start with AI",
+      onClick: () => openWorkspace("ai"),
+      meta: "AI generated",
+    },
+    {
+      id: "import",
+      title: "Imported schedules",
+      description: "Upload timetables, rosters, PDFs, spreadsheets, Word files, or screenshots.",
+      icon: FileText,
+      actionLabel: "Import",
+      onClick: () => openWorkspace("import"),
+      meta: "Documents",
+    },
+  ];
+
+  const templateHighlights = [...BASE_SCHEDULE_TEMPLATES.slice(0, 4), ...generatedTemplates.slice(0, 2)].slice(0, 6);
+
+  return (
+    <main className={cn("min-h-screen px-4 py-5 sm:px-6 lg:px-8", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")} data-testid="schedule-home-page">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1320px] flex-col gap-6">
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>Schedule</p>
+            <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule Home</h1>
+            <p className={cn("mt-2 max-w-2xl font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
+              Manage saved schedules, start a new timetable, or import a document before opening the editing workspace.
+            </p>
+          </div>
+          <ScheduleButton onClick={() => openWorkspace(hasBlocks ? undefined : "create")} active appColor={appColor} accentText={accentText}>
+            <Calendar className={iconClasses.button} />
+            {hasBlocks ? "Open Workspace" : "Create Schedule"}
+          </ScheduleButton>
+        </header>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {homeCards.map((card, index) => {
+            const Icon = card.icon;
+            return (
+              <motion.button
+                key={card.id}
+                type="button"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18, delay: index * 0.03, ease: [0.22, 1, 0.36, 1] }}
+                onClick={card.onClick}
+                className={cn("group flex min-h-[210px] flex-col rounded-[24px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-white hover:bg-[var(--bm-bg-elevated)]")}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-[0_12px_26px_rgba(25,59,104,0.18)]" style={{ backgroundColor: appColor, color: accentText }}>
+                    <Icon className={iconClasses.card} />
+                  </span>
+                  <span className={cn("rounded-full px-2.5 py-1 font-extrabold", typeClasses.small, isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]")}>{card.meta}</span>
+                </div>
+                <span className={cn("mt-5 block font-extrabold", typeClasses.cardTitle)}>{card.title}</span>
+                <span className={cn("mt-2 block flex-1 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{card.description}</span>
+                <span className={cn("mt-5 inline-flex items-center gap-2 font-extrabold", typeClasses.small, "text-[var(--bm-primary)]")}>{card.actionLabel}</span>
+              </motion.button>
+            );
+          })}
+        </section>
+
+        <section className={cn("rounded-[28px] border p-5", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Schedule templates</h2>
+              <p className={cn("mt-1 font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>Choose a starting point, then refine it in the workspace.</p>
+            </div>
+            <button type="button" onClick={() => openWorkspace("create")} className={cn("inline-flex h-11 items-center justify-center rounded-2xl px-4 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.control)}>
+              <Plus className={iconClasses.button} />
+              Browse all
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {templateHighlights.map((template) => {
+              const Icon = getScheduleIconOption(template.icon).Icon;
+              return (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => openWorkspace("create")}
+                  className={cn("flex items-start gap-3 rounded-[22px] border p-4 text-left transition-colors", isDark ? "border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] hover:bg-white")}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: appColor, color: accentText }}>
+                    <Icon className={iconClasses.button} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className={cn("block truncate font-extrabold", typeClasses.body)}>{template.title}</span>
+                    <span className={cn("mt-1 block line-clamp-2 font-semibold leading-5", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{template.description}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-3">
+          {[
+            ["Recent schedules", hasBlocks ? "Your weekly schedule is available in the workspace." : "Recent schedules will appear here after you create or import one."],
+            ["AI generated schedules", generatedTemplates.length ? `${generatedTemplates.length} generated template${generatedTemplates.length === 1 ? "" : "s"} saved locally.` : "AI-generated templates will appear here."],
+            ["Imported schedules", "Uploaded documents and timetable imports are handled inside the workspace."],
+          ].map(([title, description]) => (
+            <div key={title} className={cn("rounded-[24px] border p-5", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
+              <h3 className={cn("font-extrabold", typeClasses.cardTitle)}>{title}</h3>
+              <p className={cn("mt-2 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{description}</p>
+            </div>
+          ))}
+        </section>
+      </div>
+    </main>
+  );
+}
+
+export default function SchemanPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { prefs, resolvedTheme } = useApp();
+  const isDark = resolvedTheme === "dark";
+  const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
+  const accentText = getTextOnColor(appColor);
+  const isMobileRoute = location.pathname.startsWith("/mobile");
+  const scheduleHomePath = isMobileRoute ? "/mobile/schedule" : "/schedule";
+  const initialRouteActionHandledRef = useRef(false);
   const [chatVisible, setChatVisible] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [scheduleState, setScheduleState] = useState(readScheduleState);
@@ -2381,9 +2549,44 @@ export default function SchemanPage() {
     chatVisible ? "xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]" : "xl:grid-cols-1"
   ), [chatVisible]);
 
+  const handleBackToScheduleHome = () => {
+    if (location.state?.fromScheduleHome) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(scheduleHomePath, { replace: true });
+  };
+
   useEffect(() => {
     writeScheduleState(scheduleState);
   }, [scheduleState]);
+
+  useEffect(() => {
+    if (initialRouteActionHandledRef.current) return;
+    initialRouteActionHandledRef.current = true;
+    const action = location.state?.scheduleAction;
+
+    if (action === "create") {
+      setScheduleTypeOpen(true);
+      return;
+    }
+
+    if (action === "ai") {
+      setChatVisible(true);
+      setAiStartContext(hasBlocks
+        ? "The user opened Schedule from Schedule Home and wants BlueMind AI to improve the current saved schedule. Use the current schedule blocks as context and ask what they want to optimize."
+        : "The user opened Schedule from Schedule Home and wants BlueMind AI to create a custom schedule. Ask what they want to organize and guide them conversationally.");
+      setAiStartSignal((value) => value + 1);
+      return;
+    }
+
+    if (action === "import") {
+      setChatVisible(true);
+      setAiStartContext("The user opened Schedule from Schedule Home to import a timetable, roster, calendar, PDF, spreadsheet, Word document, image, or screenshot. Invite them to upload the file with the attachment button and explain that BlueMind will reconstruct it into the Schedule Workspace.");
+      setAiStartSignal((value) => value + 1);
+    }
+  }, [hasBlocks, location.state]);
 
   const handlePrimaryScheduleAction = () => {
     if (editMode) {
@@ -2461,7 +2664,14 @@ export default function SchemanPage() {
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1600px] flex-col gap-5">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>Schedule</p>
+            <button
+              type="button"
+              onClick={handleBackToScheduleHome}
+              className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)}
+              aria-label="Back to Schedule Home"
+            >
+              <ArrowLeft className={iconClasses.button} />
+            </button>
             <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
           </div>
           <div className="flex flex-wrap gap-2.5">
