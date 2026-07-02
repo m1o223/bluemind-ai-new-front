@@ -3828,31 +3828,19 @@ export default function SchemanPage() {
   return (
     <main className={cn("min-h-screen px-4 py-5 sm:px-6 lg:px-8", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")} data-testid="schedule-page">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1600px] flex-col gap-5">
-        <header className="flex flex-col gap-3">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <button
-                type="button"
-                onClick={handleBackToScheduleHome}
-                className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)}
-                aria-label="Back to Schedule Home"
-              >
-                <ArrowLeft className={iconClasses.button} />
-              </button>
-              <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
-            </div>
-            <div className="flex flex-wrap items-center gap-2.5 lg:justify-end">
-              <ScheduleButton onClick={() => setChatVisible((value) => !value)} active={chatVisible} appColor={appColor} accentText={accentText}>
-                <MessageSquare className={iconClasses.button} />
-                {chatVisible ? "Close Chat" : "Open Chat"}
-              </ScheduleButton>
-              <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
-                {editMode ? <Check className={iconClasses.button} /> : <PenLine className={iconClasses.button} />}
-                {editMode ? "Save Changes" : "Edit Schedule"}
-              </ScheduleButton>
-            </div>
+        <header className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-start">
+          <div className="lg:col-start-1 lg:row-start-1">
+            <button
+              type="button"
+              onClick={handleBackToScheduleHome}
+              className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)}
+              aria-label="Back to Schedule Home"
+            >
+              <ArrowLeft className={iconClasses.button} />
+            </button>
+            <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
           </div>
-          <div className="flex justify-start">
+          <div className="flex justify-center lg:col-start-2 lg:row-start-1 lg:pt-1">
             <div className={cn("flex min-h-[52px] w-full items-center rounded-2xl border p-1 sm:w-auto", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-white")}>
               <button type="button" onClick={goToPreviousWeek} className={cn("flex h-10 w-10 items-center justify-center rounded-xl", interactionClasses.control)} aria-label="Previous week">
                 <ChevronLeft className={iconClasses.button} />
@@ -3870,6 +3858,16 @@ export default function SchemanPage() {
                 <ChevronRight className={iconClasses.button} />
               </button>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 lg:col-start-3 lg:row-start-1 lg:justify-end">
+            <ScheduleButton onClick={() => setChatVisible((value) => !value)} active={chatVisible} appColor={appColor} accentText={accentText}>
+              <MessageSquare className={iconClasses.button} />
+              {chatVisible ? "Close Chat" : "Open Chat"}
+            </ScheduleButton>
+            <ScheduleButton onClick={handlePrimaryScheduleAction} active={editMode} appColor={appColor} accentText={accentText}>
+              {editMode ? <Check className={iconClasses.button} /> : <PenLine className={iconClasses.button} />}
+              {editMode ? "Save Changes" : "Edit Schedule"}
+            </ScheduleButton>
           </div>
         </header>
 
