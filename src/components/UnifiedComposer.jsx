@@ -93,7 +93,6 @@ export default function UnifiedComposer({
   actionMenu,
   pendingPanel,
   modelSelector,
-  isKeyboardOpen = false,
   testId = "chat-input",
 }) {
   const [isFocused, setIsFocused] = useState(false);
@@ -102,11 +101,11 @@ export default function UnifiedComposer({
   const hasText = Boolean(String(value || "").trim());
   const hasAttachments = attachments.length > 0 || isUploading;
   const isAttachmentState = hasAttachments || Boolean(modePill);
-  const isTypingState = isMobile ? isKeyboardOpen || hasText : !isAttachmentState && (isFocused || hasText);
+  const isTypingState = isMobile ? hasText : !isAttachmentState && (isFocused || hasText);
   const isIdleState = isMobile ? !isTypingState : !isAttachmentState && !isTypingState;
-  const textareaMinHeight = isMobile ? (isTypingState ? 22 : 24) : (isIdleState ? 30 : 38);
+  const textareaMinHeight = isMobile ? 50 : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
-  const isSingleRowMobileComposer = isMobile && !isAttachmentState;
+  const useSubtleAddButton = isMobile || isIdleState;
 
   const normalizedAttachments = useMemo(
     () => attachments.filter(Boolean),
@@ -169,7 +168,7 @@ export default function UnifiedComposer({
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
         isMobile ? "h-9 w-9" : "h-11 w-11",
-        isIdleState
+        useSubtleAddButton
           ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)]"
           : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
       )}
@@ -219,51 +218,11 @@ export default function UnifiedComposer({
   if (isMobile) {
     const mobileBoxClasses = cn(
       "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
-      isTypingState
-        ? "rounded-[25px] px-2.5 py-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.14)]"
-        : "min-h-[52px] rounded-[26px] px-2.5 py-2 shadow-[0_12px_32px_rgba(15,23,42,0.12)]",
-      hasAttachments && isTypingState && "min-h-[116px]",
-      hasAttachments && !isTypingState && "min-h-[148px]",
+      "rounded-[26px] px-2.5 py-2 shadow-[0_12px_32px_rgba(15,23,42,0.12)]",
+      hasAttachments ? "min-h-[148px]" : "min-h-[92px]",
       isDark
         ? "border-white/[0.09] bg-[var(--bm-bg-card)]/[0.97] focus-within:bg-[var(--bm-bg-elevated)]"
         : "border-[var(--bm-border)] bg-white/96 focus-within:border-[var(--bm-border)]",
-    );
-
-    const mobileSingleRow = (
-      <div className="flex min-h-9 w-full min-w-0 items-center gap-1.5">
-        {addButton}
-        <textarea
-          ref={setTextareaRef}
-          value={value}
-          onChange={onChange}
-          onInput={onInput}
-          onKeyDown={onKeyDown}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          rows={1}
-          placeholder={placeholder}
-          className={cn(
-            inputClasses.composer,
-            "relative z-10 block min-w-0 flex-[1_1_70%] resize-none bg-transparent px-0.5 py-1 text-[16px] font-medium leading-6 outline-none",
-            isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
-          )}
-          style={{
-            ...inputDirectionStyle,
-            letterSpacing: "0",
-            caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
-            maxHeight: `${maxTextHeight}px`,
-            minHeight: `${textareaMinHeight}px`,
-          }}
-          data-testid={testId}
-        />
-        <div className="min-w-0 shrink-0" style={{ maxWidth: "clamp(104px, 30vw, 136px)" }}>
-          {modelSelector}
-        </div>
-        <div className="flex shrink-0 items-center">
-          {voiceButton}
-          {sendButton}
-        </div>
-      </div>
     );
 
     return (
@@ -297,11 +256,30 @@ export default function UnifiedComposer({
                 appColor={appColor}
                 compact
               />
-            ) : isTypingState ? (
+            ) : (
               <>
+                {modePill && (
+                  <div className="mb-2 flex items-center gap-2" data-testid="composer-tool-state">
+                    <button
+                      type="button"
+                      onClick={modePill.onClear}
+                      className={cn(
+                        "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
+                        isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] active:bg-[var(--bm-active-bg)]",
+                      )}
+                      aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
+                      data-testid="composer-mode-pill"
+                    >
+                      {modePill.icon && <modePill.icon className="h-3.5 w-3.5" />}
+                      <span className="truncate">{modePill.label}</span>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 {hasAttachments && (
                   <div
-                    className="mb-2 flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="mb-3 flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                     data-testid="composer-attachment-strip"
                   >
                     {normalizedAttachments.map((attachment) => (
@@ -319,139 +297,57 @@ export default function UnifiedComposer({
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
                       </div>
                     )}
-                  </div>
-                )}
 
-                {isSingleRowMobileComposer ? mobileSingleRow : (
-                  <div className="flex min-h-[38px] w-full items-end gap-2">
-                    {addButton}
-                    <textarea
-                      ref={setTextareaRef}
-                      value={value}
-                      onChange={onChange}
-                      onInput={onInput}
-                      onKeyDown={onKeyDown}
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
-                      rows={1}
-                      placeholder={placeholder}
-                      className={cn(
-                        inputClasses.composer,
-                        "relative z-10 block min-w-0 flex-1 resize-none bg-transparent py-1 text-[16px] font-medium leading-6 outline-none",
-                        isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
-                      )}
-                      style={{
-                        ...inputDirectionStyle,
-                        letterSpacing: "0",
-                        caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
-                        maxHeight: `${maxTextHeight}px`,
-                        minHeight: `${textareaMinHeight}px`,
-                      }}
-                      data-testid={testId}
-                    />
-                    <div className="flex shrink-0 items-end">
-                      {voiceButton}
-                      {sendButton}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {isSingleRowMobileComposer ? mobileSingleRow : (
-                  <>
-                    {modePill && (
-                      <div className="mb-2 flex items-center gap-2" data-testid="composer-tool-state">
-                        <button
-                          type="button"
-                          onClick={modePill.onClear}
-                          className={cn(
-                            "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
-                            isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] active:bg-[var(--bm-active-bg)]",
-                          )}
-                          aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
-                          data-testid="composer-mode-pill"
-                        >
-                          {modePill.icon && <modePill.icon className="h-3.5 w-3.5" />}
-                          <span className="truncate">{modePill.label}</span>
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
-
-                    {hasAttachments && (
-                      <div
-                        className="mb-3 flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                        data-testid="composer-attachment-strip"
+                    {normalizedAttachments.length > 1 && onClearAttachments && (
+                      <button
+                        type="button"
+                        onClick={onClearAttachments}
+                        className={cn(
+                          "h-9 shrink-0 rounded-full px-3 text-xs font-bold",
+                          isDark ? "bg-white/[0.07] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] hover:bg-[var(--bm-active-bg)]",
+                        )}
                       >
-                        {normalizedAttachments.map((attachment) => (
-                          <AttachmentPreview
-                            key={attachment.id || getAttachmentPreview(attachment) || attachment.name}
-                            attachment={attachment}
-                            isDark={isDark}
-                            isMobile
-                            onRemove={onRemoveAttachment}
-                          />
-                        ))}
-
-                        {isUploading && (
-                          <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85")}>
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
-                          </div>
-                        )}
-
-                        {normalizedAttachments.length > 1 && onClearAttachments && (
-                          <button
-                            type="button"
-                            onClick={onClearAttachments}
-                            className={cn(
-                              "h-9 shrink-0 rounded-full px-3 text-xs font-bold",
-                              isDark ? "bg-white/[0.07] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)] hover:bg-[var(--bm-active-bg)]",
-                            )}
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
+                        Clear
+                      </button>
                     )}
-
-                    <textarea
-                      ref={setTextareaRef}
-                      value={value}
-                      onChange={onChange}
-                      onInput={onInput}
-                      onKeyDown={onKeyDown}
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
-                      rows={1}
-                      placeholder={placeholder}
-                      className={cn(
-                        inputClasses.composer,
-                        "relative z-10 block w-full resize-none bg-transparent px-1 pb-1 text-[16px] font-medium leading-6 outline-none",
-                        isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
-                      )}
-                      style={{
-                        ...inputDirectionStyle,
-                        letterSpacing: "0",
-                        caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
-                        maxHeight: `${maxTextHeight}px`,
-                        minHeight: `${textareaMinHeight}px`,
-                      }}
-                      data-testid={testId}
-                    />
-
-                    <div className="mt-2 flex min-h-10 w-full items-center gap-2">
-                      {addButton}
-                      <div className="min-w-0 flex-1">
-                        {modelSelector}
-                      </div>
-                      <div className="flex shrink-0 items-center">
-                        {voiceButton}
-                        {sendButton}
-                      </div>
-                    </div>
-                  </>
+                  </div>
                 )}
+
+                <textarea
+                  ref={setTextareaRef}
+                  value={value}
+                  onChange={onChange}
+                  onInput={onInput}
+                  onKeyDown={onKeyDown}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  rows={1}
+                  placeholder={placeholder}
+                  className={cn(
+                    inputClasses.composer,
+                    "relative z-10 block w-full resize-none bg-transparent px-1 pb-1 text-[16px] font-medium leading-6 outline-none",
+                    isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
+                  )}
+                  style={{
+                    ...inputDirectionStyle,
+                    letterSpacing: "0",
+                    caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
+                    maxHeight: `${maxTextHeight}px`,
+                    minHeight: `${textareaMinHeight}px`,
+                  }}
+                  data-testid={testId}
+                />
+
+                <div className="mt-2 flex min-h-10 w-full items-center gap-2">
+                  {addButton}
+                  <div className="min-w-0 flex-1">
+                    {modelSelector}
+                  </div>
+                  <div className="flex shrink-0 items-center">
+                    {voiceButton}
+                    {sendButton}
+                  </div>
+                </div>
               </>
             )}
           </motion.div>

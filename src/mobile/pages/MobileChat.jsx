@@ -633,7 +633,6 @@ export default function MobileChat() {
   const [responseModeMenuPlacement, setResponseModeMenuPlacement] = useState("header");
   const [composerThinkingMenuOpen, setComposerThinkingMenuOpen] = useState(false);
   const [composerModelMenuLayout, setComposerModelMenuLayout] = useState(null);
-  const [isComposerKeyboardOpen, setIsComposerKeyboardOpen] = useState(false);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
@@ -788,7 +787,6 @@ export default function MobileChat() {
       const composerFocused = activeElement === composerInputRef.current;
 
       if (!viewport) {
-        setIsComposerKeyboardOpen(composerFocused);
         setComposerKeyboardOffset(0);
         return;
       }
@@ -797,7 +795,6 @@ export default function MobileChat() {
       const keyboardOffset = Math.max(0, Math.round(window.innerHeight - viewportBottom));
       const keyboardOpen = composerFocused && keyboardOffset > 48;
 
-      setIsComposerKeyboardOpen(keyboardOpen);
       setComposerKeyboardOffset(keyboardOpen ? keyboardOffset : 0);
     };
 
@@ -1977,7 +1974,6 @@ export default function MobileChat() {
     if (!keepComposer) {
       setMessage("");
       composerInputRef.current?.blur();
-      setIsComposerKeyboardOpen(false);
       setComposerKeyboardOffset(0);
       setActiveWriteTask(null);
       setPendingWriteTemplate(null);
@@ -2673,7 +2669,6 @@ export default function MobileChat() {
         isDark={isDark}
         variant="mobile"
         modelSelector={composerModelSelector}
-        isKeyboardOpen={isComposerKeyboardOpen}
         minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
         maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
         testId="mobile-chat-input"
