@@ -19,7 +19,7 @@ import FeedbackPage from "@/pages/FeedbackPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LearningPage from "@/pages/LearningPage";
 import AIPlansPage from "@/pages/AIPlansPage";
-import SchemanPage, { ScheduleHomePage } from "@/pages/SchemanPage";
+import SchemanPage, { ScheduleCustomPage, ScheduleHomePage } from "@/pages/SchemanPage";
 import MobileLayout from "@/mobile/layouts/MobileLayout";
 import MobileChat from "@/mobile/pages/MobileChat";
 import MobileSearch from "@/mobile/pages/MobileSearch";
@@ -145,8 +145,10 @@ function AppContent() {
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
           <Route path="/ai-plans" element={<ProtectedRoute><AIPlansPage /></ProtectedRoute>} />
           <Route path="/schedule" element={<ProtectedRoute><ScheduleHomePage /></ProtectedRoute>} />
+          <Route path="/schedule/custom" element={<ProtectedRoute><ScheduleCustomPage /></ProtectedRoute>} />
           <Route path="/schedule/workspace" element={<ProtectedRoute><SchemanPage /></ProtectedRoute>} />
           <Route path="/scheman" element={<ProtectedRoute><Navigate to="/schedule" replace /></ProtectedRoute>} />
+          <Route path="/scheman/custom" element={<ProtectedRoute><Navigate to="/schedule/custom" replace /></ProtectedRoute>} />
           <Route path="/scheman/workspace" element={<ProtectedRoute><Navigate to="/schedule/workspace" replace /></ProtectedRoute>} />
           <Route path="/mobile" element={<MobileLayout />}>
             <Route index element={<MobileWelcome />} />
@@ -166,8 +168,10 @@ function AppContent() {
             <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
             <Route path="ai-plans" element={<MobileAccessRoute><AIPlansPage /></MobileAccessRoute>} />
             <Route path="schedule" element={<MobileAccessRoute><ScheduleHomePage /></MobileAccessRoute>} />
+            <Route path="schedule/custom" element={<MobileAccessRoute><ScheduleCustomPage /></MobileAccessRoute>} />
             <Route path="schedule/workspace" element={<MobileAccessRoute><SchemanPage /></MobileAccessRoute>} />
             <Route path="scheman" element={<MobileAccessRoute><Navigate to="/mobile/schedule" replace /></MobileAccessRoute>} />
+            <Route path="scheman/custom" element={<MobileAccessRoute><Navigate to="/mobile/schedule/custom" replace /></MobileAccessRoute>} />
             <Route path="scheman/workspace" element={<MobileAccessRoute><Navigate to="/mobile/schedule/workspace" replace /></MobileAccessRoute>} />
           </Route>
         </Routes>

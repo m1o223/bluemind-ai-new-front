@@ -44,8 +44,10 @@ import {
   Search,
   ShoppingBag,
   Sparkles,
+  Star,
   ThumbsDown,
   ThumbsUp,
+  Trash2,
   Users,
   Utensils,
   WashingMachine,
@@ -65,6 +67,8 @@ import { analyzeImage, getImageUrl, uploadChatImage } from "@/services/imageServ
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
 const SCHEDULE_TUTORIAL_KEY = "bluemind-schedule-tutorial-complete-v1";
 const GENERATED_TEMPLATE_STORAGE_KEY = "bluemind-schedule-generated-templates-v1";
+const SCHEDULE_LIBRARY_STORAGE_KEY = "bluemind-schedule-library-v1";
+const ACTIVE_SCHEDULE_ID_STORAGE_KEY = "bluemind-active-schedule-id-v1";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DAY_ALIASES = {
@@ -520,28 +524,175 @@ function normalizeScheduleBlock(block = {}, options = {}) {
   };
 }
 
-function readScheduleState() {
+function normalizeStoredScheduleState(value) {
+  const fallbackWeekStart = getCurrentWeekStart();
+  return value && typeof value === "object"
+    ? {
+        blocks: Array.isArray(value.blocks)
+          ? value.blocks
+              .map((block, index) => normalizeScheduleBlock(block, { fallbackWeekStart, index }))
+              .filter((block) => block.date && block.start && block.end)
+          : [],
+        updatedAt: value.updatedAt || "",
+      }
+    : { blocks: [], updatedAt: "" };
+}
+
+function readStoredScheduleState() {
   try {
     const value = JSON.parse(localStorage.getItem(SCHEDULE_STORAGE_KEY) || "null");
-    const fallbackWeekStart = getCurrentWeekStart();
-    return value && typeof value === "object"
-      ? {
-          blocks: Array.isArray(value.blocks)
-            ? value.blocks
-                .map((block, index) => normalizeScheduleBlock(block, { fallbackWeekStart, index }))
-                .filter((block) => block.date && block.start && block.end)
-            : [],
-          updatedAt: value.updatedAt || "",
-        }
-      : { blocks: [], updatedAt: "" };
+    return normalizeStoredScheduleState(value);
   } catch {
     return { blocks: [], updatedAt: "" };
   }
 }
 
+function readRawScheduleLibrary() {
+  try {
+    const value = JSON.parse(localStorage.getItem(SCHEDULE_LIBRARY_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeScheduleLibrary(records) {
+  try {
+    localStorage.setItem(SCHEDULE_LIBRARY_STORAGE_KEY, JSON.stringify(records));
+  } catch {
+    // Local persistence is best-effort until Schedule backend storage is added.
+  }
+}
+
+function getActiveScheduleId() {
+  try {
+    return localStorage.getItem(ACTIVE_SCHEDULE_ID_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function setActiveScheduleId(scheduleId) {
+  try {
+    if (scheduleId) localStorage.setItem(ACTIVE_SCHEDULE_ID_STORAGE_KEY, scheduleId);
+    else localStorage.removeItem(ACTIVE_SCHEDULE_ID_STORAGE_KEY);
+  } catch {
+    // Active schedule tracking is local-only.
+  }
+}
+
+function inferScheduleRecordName(blocks = []) {
+  const names = blocks.map((block) => getBlockTitle(block)).join(" ").toLowerCase();
+  if (/shift|office|meeting|work|overtime|employee|roster/.test(names)) return "Work Schedule";
+  if (/math|english|science|school|class|lesson|study|homework|exam|course|lecture/.test(names)) return "School Schedule";
+  if (/gym|workout|fitness|training|run|cardio/.test(names)) return "Gym Schedule";
+  if (/meal|lunch|dinner|nutrition|water|snack/.test(names)) return "Nutrition Schedule";
+  return "Weekly Schedule";
+}
+
+function createScheduleRecord({ name = "Weekly Schedule", blocks = [], pinned = false, source = "manual", createdAt, updatedAt } = {}) {
+  const now = new Date().toISOString();
+  return {
+    id: `schedule-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    name: String(name || "Weekly Schedule").trim() || "Weekly Schedule",
+    blocks,
+    pinned: Boolean(pinned),
+    source,
+    createdAt: createdAt || now,
+    updatedAt: updatedAt || createdAt || now,
+  };
+}
+
+function normalizeScheduleRecord(record = {}, index = 0) {
+  const now = new Date().toISOString();
+  const blocks = Array.isArray(record.blocks)
+    ? record.blocks
+        .map((block, blockIndex) => normalizeScheduleBlock(block, { fallbackWeekStart: getCurrentWeekStart(), index: blockIndex }))
+        .filter((block) => block.date && block.start && block.end)
+    : [];
+
+  return {
+    id: record.id || `schedule-legacy-${index}`,
+    name: String(record.name || inferScheduleRecordName(blocks)).trim() || "Weekly Schedule",
+    blocks,
+    pinned: Boolean(record.pinned),
+    source: record.source || "manual",
+    createdAt: record.createdAt || record.updatedAt || now,
+    updatedAt: record.updatedAt || record.createdAt || now,
+  };
+}
+
+function readScheduleLibrary() {
+  const records = readRawScheduleLibrary().map(normalizeScheduleRecord);
+  if (records.length) return records;
+
+  const activeState = readStoredScheduleState();
+  if (!activeState.blocks.length) return [];
+
+  const migratedRecord = createScheduleRecord({
+    name: inferScheduleRecordName(activeState.blocks),
+    blocks: activeState.blocks,
+    source: "legacy",
+    createdAt: activeState.updatedAt,
+    updatedAt: activeState.updatedAt,
+  });
+  writeScheduleLibrary([migratedRecord]);
+  setActiveScheduleId(migratedRecord.id);
+  return [migratedRecord];
+}
+
+function activateScheduleRecord(record) {
+  if (!record) return;
+  setActiveScheduleId(record.id);
+  const nextState = {
+    blocks: record.blocks || [],
+    updatedAt: record.updatedAt || new Date().toISOString(),
+    scheduleId: record.id,
+    scheduleName: record.name,
+  };
+  try {
+    localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(nextState));
+  } catch {
+    // Local persistence is best-effort until Schedule backend storage is added.
+  }
+}
+
+function readScheduleState() {
+  const activeId = getActiveScheduleId();
+  if (activeId) {
+    const activeRecord = readRawScheduleLibrary()
+      .map(normalizeScheduleRecord)
+      .find((record) => record.id === activeId);
+    if (activeRecord) {
+      return {
+        blocks: activeRecord.blocks,
+        updatedAt: activeRecord.updatedAt,
+        scheduleId: activeRecord.id,
+        scheduleName: activeRecord.name,
+      };
+    }
+  }
+
+  return readStoredScheduleState();
+}
+
 function writeScheduleState(state) {
   try {
     localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(state));
+    const activeId = getActiveScheduleId();
+    if (!activeId) return;
+
+    const records = readRawScheduleLibrary().map(normalizeScheduleRecord);
+    const recordIndex = records.findIndex((record) => record.id === activeId);
+    if (recordIndex === -1) return;
+
+    const updatedAt = state.updatedAt || new Date().toISOString();
+    records[recordIndex] = {
+      ...records[recordIndex],
+      blocks: Array.isArray(state.blocks) ? state.blocks : [],
+      updatedAt,
+    };
+    writeScheduleLibrary(records);
   } catch {
     // Local persistence is best-effort until Schedule backend storage is added.
   }
@@ -2757,6 +2908,128 @@ function ScheduleTutorial({ isDark, appColor, accentText, onComplete }) {
   );
 }
 
+function formatSavedScheduleDate(value) {
+  const date = new Date(value || "");
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function sortSchedulesByDate(records = []) {
+  return [...records].sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0));
+}
+
+function ScheduleActionCard({ title, description, icon: Icon, onClick, appColor, accentText, isDark }) {
+  return (
+    <motion.button
+      type="button"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      onClick={onClick}
+      className={cn(
+        "group flex min-h-[180px] flex-col rounded-[24px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
+        isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-white hover:bg-[var(--bm-bg-elevated)]",
+      )}
+    >
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-[0_12px_26px_rgba(25,59,104,0.18)]" style={{ backgroundColor: appColor, color: accentText }}>
+        <Icon className={iconClasses.card} />
+      </span>
+      <span className={cn("mt-5 block font-extrabold", typeClasses.cardTitle)}>{title}</span>
+      <span className={cn("mt-2 block max-w-lg font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{description}</span>
+      <span className={cn("mt-auto pt-5 font-extrabold", typeClasses.small, "text-[var(--bm-primary)]")}>Open</span>
+    </motion.button>
+  );
+}
+
+function ScheduleMiniButton({ children, onClick, danger = false, active = false, title }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={cn(
+        "inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 font-bold transition-all duration-200",
+        typeClasses.small,
+        danger
+          ? "bg-red-500/10 text-red-600 hover:bg-red-500/15"
+          : active
+            ? "bg-[var(--bm-primary)] text-white shadow-sm"
+            : interactionClasses.control,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SavedScheduleRow({ schedule, isDark, isRenaming, renameValue, onRenameValue, onStartRename, onCancelRename, onSaveRename, onOpen, onDuplicate, onTogglePin, onDelete }) {
+  const Icon = schedule.pinned ? Star : Calendar;
+  return (
+    <div className={cn("rounded-[22px] border p-4", isDark ? "border-white/[0.08] bg-white/[0.035]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", schedule.pinned ? "bg-[var(--bm-primary)] text-white" : isDark ? "bg-white/[0.07] text-white" : "bg-white text-[var(--bm-text-primary)]")}>
+            <Icon className={iconClasses.button} fill={schedule.pinned ? "currentColor" : "none"} />
+          </span>
+          <div className="min-w-0">
+            {isRenaming ? (
+              <input
+                value={renameValue}
+                onChange={(event) => onRenameValue(event.target.value)}
+                className={cn(inputClasses.base, "h-10 min-w-[220px] rounded-xl px-3 font-extrabold")}
+                autoFocus
+              />
+            ) : (
+              <h3 className={cn("truncate font-extrabold", typeClasses.cardTitle)}>{schedule.name}</h3>
+            )}
+            <div className={cn("mt-1 flex flex-wrap gap-x-4 gap-y-1 font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>
+              <span>{schedule.blocks.length} activities</span>
+              <span>Last modified {formatSavedScheduleDate(schedule.updatedAt)}</span>
+              <span>Created {formatSavedScheduleDate(schedule.createdAt)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <ScheduleMiniButton onClick={onOpen}>
+            <Calendar className={iconClasses.button} />
+            Open
+          </ScheduleMiniButton>
+          {isRenaming ? (
+            <>
+              <ScheduleMiniButton onClick={onSaveRename}>
+                <Check className={iconClasses.button} />
+                Save
+              </ScheduleMiniButton>
+              <ScheduleMiniButton onClick={onCancelRename}>
+                <X className={iconClasses.button} />
+                Cancel
+              </ScheduleMiniButton>
+            </>
+          ) : (
+            <ScheduleMiniButton onClick={onStartRename}>
+              <PenLine className={iconClasses.button} />
+              Rename
+            </ScheduleMiniButton>
+          )}
+          <ScheduleMiniButton onClick={onDuplicate}>
+            <Copy className={iconClasses.button} />
+            Duplicate
+          </ScheduleMiniButton>
+          <ScheduleMiniButton onClick={onTogglePin} active={schedule.pinned}>
+            <Star className={iconClasses.button} fill={schedule.pinned ? "currentColor" : "none"} />
+            {schedule.pinned ? "Unpin" : "Pin"}
+          </ScheduleMiniButton>
+          <ScheduleMiniButton onClick={onDelete} danger>
+            <Trash2 className={iconClasses.button} />
+            Delete
+          </ScheduleMiniButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ScheduleHomePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -2764,152 +3037,274 @@ export function ScheduleHomePage() {
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
-  const [scheduleState] = useState(readScheduleState);
-  const [generatedTemplates] = useState(readGeneratedScheduleTemplates);
-  const blocks = useMemo(() => scheduleState.blocks || [], [scheduleState.blocks]);
   const isMobileRoute = location.pathname.startsWith("/mobile");
   const basePath = isMobileRoute ? "/mobile/schedule" : "/schedule";
   const workspacePath = `${basePath}/workspace`;
-  const hasBlocks = blocks.length > 0;
-  const lastUpdated = scheduleState.updatedAt
-    ? new Date(scheduleState.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-    : "Local";
+  const customPath = `${basePath}/custom`;
+  const [scheduleRecords, setScheduleRecords] = useState(readScheduleLibrary);
+  const [renamingId, setRenamingId] = useState("");
+  const [renameValue, setRenameValue] = useState("");
+  const sortedSchedules = useMemo(() => sortSchedulesByDate(scheduleRecords), [scheduleRecords]);
+  const pinnedSchedules = useMemo(() => sortedSchedules.filter((schedule) => schedule.pinned).slice(0, 2), [sortedSchedules]);
+  const unpinnedSchedules = useMemo(() => sortedSchedules.filter((schedule) => !schedule.pinned), [sortedSchedules]);
 
-  const openWorkspace = (scheduleAction) => {
-    navigate(workspacePath, { state: { fromScheduleHome: true, ...(scheduleAction ? { scheduleAction } : {}) } });
+  const persistSchedules = (records) => {
+    setScheduleRecords(records);
+    writeScheduleLibrary(records);
   };
 
-  const homeCards = [
-    {
-      id: "saved",
-      title: hasBlocks ? "Saved schedule" : "No saved schedule yet",
-      description: hasBlocks ? `${blocks.length} activities saved. Continue editing your weekly schedule.` : "Create your first schedule or import a timetable.",
-      icon: Calendar,
-      actionLabel: hasBlocks ? "Open workspace" : "Create schedule",
-      onClick: () => openWorkspace(hasBlocks ? undefined : "create"),
-      meta: hasBlocks ? `Updated ${lastUpdated}` : "Ready to start",
-    },
-    {
-      id: "new",
-      title: "Create new schedule",
-      description: "Start from schedule templates, a custom workflow, or a blank weekly grid.",
-      icon: Plus,
-      actionLabel: "Create",
-      onClick: () => openWorkspace("create"),
-      meta: "Templates",
-    },
-    {
-      id: "custom",
-      title: "Custom schedule",
-      description: "Tell BlueMind what you want to organize and build a private workflow.",
-      icon: Sparkles,
-      actionLabel: "Start with AI",
-      onClick: () => openWorkspace("ai"),
-      meta: "AI generated",
-    },
-    {
-      id: "import",
-      title: "Imported schedules",
-      description: "Upload timetables, rosters, PDFs, spreadsheets, Word files, or screenshots.",
-      icon: FileText,
-      actionLabel: "Import",
-      onClick: () => openWorkspace("import"),
-      meta: "Documents",
-    },
-  ];
+  const openWorkspaceForRecord = (record) => {
+    activateScheduleRecord(record);
+    navigate(workspacePath, { state: { fromScheduleHome: true, scheduleId: record.id } });
+  };
 
-  const templateHighlights = [...BASE_SCHEDULE_TEMPLATES.slice(0, 4), ...generatedTemplates.slice(0, 2)].slice(0, 6);
+  const createNewSchedule = () => {
+    const record = createScheduleRecord({ name: "Weekly Schedule", blocks: [], source: "weekly" });
+    const nextRecords = [record, ...scheduleRecords];
+    persistSchedules(nextRecords);
+    activateScheduleRecord(record);
+    navigate(workspacePath, { state: { fromScheduleHome: true, scheduleId: record.id } });
+  };
+
+  const startRename = (record) => {
+    setRenamingId(record.id);
+    setRenameValue(record.name);
+  };
+
+  const saveRename = (record) => {
+    const nextName = renameValue.trim();
+    if (!nextName) {
+      toast.error("Schedule name is required.");
+      return;
+    }
+    const now = new Date().toISOString();
+    const nextRecords = scheduleRecords.map((item) => item.id === record.id ? { ...item, name: nextName, updatedAt: now } : item);
+    persistSchedules(nextRecords);
+    if (getActiveScheduleId() === record.id) activateScheduleRecord({ ...record, name: nextName, updatedAt: now });
+    setRenamingId("");
+    setRenameValue("");
+    toast.success("Schedule renamed.");
+  };
+
+  const duplicateSchedule = (record) => {
+    const duplicate = createScheduleRecord({
+      name: `${record.name} Copy`,
+      blocks: record.blocks,
+      source: record.source || "manual",
+    });
+    persistSchedules([duplicate, ...scheduleRecords]);
+    toast.success("Schedule duplicated.");
+  };
+
+  const togglePin = (record) => {
+    if (!record.pinned && scheduleRecords.filter((item) => item.pinned).length >= 2) {
+      toast.error("Only two schedules can be pinned.");
+      return;
+    }
+    const nextRecords = scheduleRecords.map((item) => item.id === record.id ? { ...item, pinned: !item.pinned, updatedAt: new Date().toISOString() } : item);
+    persistSchedules(nextRecords);
+  };
+
+  const deleteSchedule = (record) => {
+    if (!window.confirm(`Delete ${record.name}?`)) return;
+    const nextRecords = scheduleRecords.filter((item) => item.id !== record.id);
+    persistSchedules(nextRecords);
+    if (getActiveScheduleId() === record.id) {
+      const nextActive = nextRecords[0];
+      if (nextActive) activateScheduleRecord(nextActive);
+      else {
+        setActiveScheduleId("");
+        writeScheduleState({ blocks: [], updatedAt: new Date().toISOString() });
+      }
+    }
+    toast.success("Schedule deleted.");
+  };
+
+  const renderScheduleRows = (records) => records.map((schedule) => (
+    <SavedScheduleRow
+      key={schedule.id}
+      schedule={schedule}
+      isDark={isDark}
+      isRenaming={renamingId === schedule.id}
+      renameValue={renameValue}
+      onRenameValue={setRenameValue}
+      onStartRename={() => startRename(schedule)}
+      onCancelRename={() => {
+        setRenamingId("");
+        setRenameValue("");
+      }}
+      onSaveRename={() => saveRename(schedule)}
+      onOpen={() => openWorkspaceForRecord(schedule)}
+      onDuplicate={() => duplicateSchedule(schedule)}
+      onTogglePin={() => togglePin(schedule)}
+      onDelete={() => deleteSchedule(schedule)}
+    />
+  ));
 
   return (
     <main className={cn("min-h-screen px-4 py-5 sm:px-6 lg:px-8", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")} data-testid="schedule-home-page">
-      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1320px] flex-col gap-6">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>Schedule</p>
-            <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule Home</h1>
-            <p className={cn("mt-2 max-w-2xl font-semibold leading-7", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
-              Manage saved schedules, start a new timetable, or import a document before opening the editing workspace.
-            </p>
-          </div>
-          <ScheduleButton onClick={() => openWorkspace(hasBlocks ? undefined : "create")} active appColor={appColor} accentText={accentText}>
-            <Calendar className={iconClasses.button} />
-            {hasBlocks ? "Open Workspace" : "Create Schedule"}
-          </ScheduleButton>
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1180px] flex-col gap-6">
+        <header>
+          <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>Schedule</p>
+          <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule Home</h1>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {homeCards.map((card, index) => {
-            const Icon = card.icon;
-            return (
-              <motion.button
-                key={card.id}
-                type="button"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.18, delay: index * 0.03, ease: [0.22, 1, 0.36, 1] }}
-                onClick={card.onClick}
-                className={cn("group flex min-h-[210px] flex-col rounded-[24px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-white hover:bg-[var(--bm-bg-elevated)]")}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-[0_12px_26px_rgba(25,59,104,0.18)]" style={{ backgroundColor: appColor, color: accentText }}>
-                    <Icon className={iconClasses.card} />
-                  </span>
-                  <span className={cn("rounded-full px-2.5 py-1 font-extrabold", typeClasses.small, isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]")}>{card.meta}</span>
-                </div>
-                <span className={cn("mt-5 block font-extrabold", typeClasses.cardTitle)}>{card.title}</span>
-                <span className={cn("mt-2 block flex-1 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{card.description}</span>
-                <span className={cn("mt-5 inline-flex items-center gap-2 font-extrabold", typeClasses.small, "text-[var(--bm-primary)]")}>{card.actionLabel}</span>
-              </motion.button>
-            );
-          })}
+        <section className="grid gap-4 md:grid-cols-2">
+          <ScheduleActionCard
+            title="Create New Schedule"
+            description="Create a normal weekly schedule and open the weekly calendar workspace."
+            icon={Calendar}
+            onClick={createNewSchedule}
+            appColor={appColor}
+            accentText={accentText}
+            isDark={isDark}
+          />
+          <ScheduleActionCard
+            title="Custom Schedule"
+            description="Open all custom templates, including study, work, fitness, travel, habits, medication, and AI generated templates."
+            icon={Sparkles}
+            onClick={() => navigate(customPath)}
+            appColor={appColor}
+            accentText={accentText}
+            isDark={isDark}
+          />
         </section>
 
         <section className={cn("rounded-[28px] border p-5", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Schedule templates</h2>
-              <p className={cn("mt-1 font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>Choose a starting point, then refine it in the workspace.</p>
-            </div>
-            <button type="button" onClick={() => openWorkspace("create")} className={cn("inline-flex h-11 items-center justify-center rounded-2xl px-4 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.control)}>
-              <Plus className={iconClasses.button} />
-              Browse all
-            </button>
+          <div className="flex flex-col gap-1">
+            <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Saved Schedules</h2>
+            <p className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>Pinned schedules stay at the top. All other saved schedules appear below in chronological order.</p>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {templateHighlights.map((template) => {
-              const Icon = getScheduleIconOption(template.icon).Icon;
-              return (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => openWorkspace("create")}
-                  className={cn("flex items-start gap-3 rounded-[22px] border p-4 text-left transition-colors", isDark ? "border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] hover:bg-white")}
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: appColor, color: accentText }}>
-                    <Icon className={iconClasses.button} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className={cn("block truncate font-extrabold", typeClasses.body)}>{template.title}</span>
-                    <span className={cn("mt-1 block line-clamp-2 font-semibold leading-5", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{template.description}</span>
-                  </span>
-                </button>
-              );
-            })}
+          <div className="mt-5">
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 fill-[var(--bm-primary)] stroke-[2.4] text-[var(--bm-primary)]" />
+              <h3 className={cn("font-extrabold", typeClasses.cardTitle)}>Pinned schedules</h3>
+              <span className={cn("font-bold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{pinnedSchedules.length}/2</span>
+            </div>
+            <div className="mt-3 grid gap-3">
+              {pinnedSchedules.length ? renderScheduleRows(pinnedSchedules) : (
+                <div className={cn("rounded-[22px] border border-dashed p-5 font-semibold", typeClasses.small, isDark ? "border-white/[0.10] text-white/70" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
+                  Pin up to two favorite schedules.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={cn("my-6 h-px", isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]")} />
+
+          <div>
+            <h3 className={cn("font-extrabold", typeClasses.cardTitle)}>All Saved Schedules</h3>
+            <div className="mt-3 grid gap-3">
+              {unpinnedSchedules.length ? renderScheduleRows(unpinnedSchedules) : (
+                <div className={cn("rounded-[22px] border border-dashed p-5 font-semibold", typeClasses.small, isDark ? "border-white/[0.10] text-white/70" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
+                  {scheduleRecords.length ? "All saved schedules are currently pinned." : "No saved schedules yet. Create a new schedule to begin."}
+                </div>
+              )}
+            </div>
           </div>
         </section>
+      </div>
+    </main>
+  );
+}
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          {[
-            ["Recent schedules", hasBlocks ? "Your weekly schedule is available in the workspace." : "Recent schedules will appear here after you create or import one."],
-            ["AI generated schedules", generatedTemplates.length ? `${generatedTemplates.length} generated template${generatedTemplates.length === 1 ? "" : "s"} saved locally.` : "AI-generated templates will appear here."],
-            ["Imported schedules", "Uploaded documents and timetable imports are handled inside the workspace."],
-          ].map(([title, description]) => (
-            <div key={title} className={cn("rounded-[24px] border p-5", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
-              <h3 className={cn("font-extrabold", typeClasses.cardTitle)}>{title}</h3>
-              <p className={cn("mt-2 font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{description}</p>
-            </div>
-          ))}
+export function ScheduleCustomPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { prefs, resolvedTheme } = useApp();
+  const isDark = resolvedTheme === "dark";
+  const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
+  const accentText = getTextOnColor(appColor);
+  const isMobileRoute = location.pathname.startsWith("/mobile");
+  const basePath = isMobileRoute ? "/mobile/schedule" : "/schedule";
+  const workspacePath = `${basePath}/workspace`;
+  const [generatedTemplates] = useState(readGeneratedScheduleTemplates);
+  const allTemplates = useMemo(() => [...BASE_SCHEDULE_TEMPLATES, ...generatedTemplates], [generatedTemplates]);
+  const groupedTemplates = useMemo(() => SCHEDULE_TEMPLATE_CATEGORIES
+    .map((category) => ({
+      ...category,
+      templates: allTemplates.filter((template) => template.category === category.id),
+    }))
+    .filter((category) => category.templates.length), [allTemplates]);
+
+  const openTemplate = (template) => {
+    const record = createScheduleRecord({ name: template.title, blocks: [], source: "template" });
+    const records = [record, ...readScheduleLibrary()];
+    writeScheduleLibrary(records);
+    activateScheduleRecord(record);
+    navigate(workspacePath, {
+      state: {
+        fromScheduleHome: true,
+        scheduleId: record.id,
+        scheduleAction: "template",
+        templateId: template.id,
+      },
+    });
+  };
+
+  const openAiGenerated = () => {
+    const record = createScheduleRecord({ name: "AI Generated Schedule", blocks: [], source: "ai" });
+    const records = [record, ...readScheduleLibrary()];
+    writeScheduleLibrary(records);
+    activateScheduleRecord(record);
+    navigate(workspacePath, { state: { fromScheduleHome: true, scheduleId: record.id, scheduleAction: "ai" } });
+  };
+
+  return (
+    <main className={cn("min-h-screen px-4 py-5 sm:px-6 lg:px-8", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")} data-testid="schedule-custom-page">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1180px] flex-col gap-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <button type="button" onClick={() => navigate(basePath)} className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)} aria-label="Back to Schedule Home">
+              <ArrowLeft className={iconClasses.button} />
+            </button>
+            <h1 className={cn("mt-2 font-extrabold tracking-tight", typeClasses.pageTitle)}>Custom Schedule</h1>
+          </div>
+          <ScheduleButton onClick={openAiGenerated} active appColor={appColor} accentText={accentText}>
+            <Sparkles className={iconClasses.button} />
+            AI Generated Templates
+          </ScheduleButton>
+        </header>
+
+        <section className="grid gap-5">
+          {groupedTemplates.map((category) => {
+            const CategoryIcon = getScheduleIconOption(category.icon).Icon;
+            return (
+              <div key={category.id} className={cn("rounded-[28px] border p-5", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: appColor, color: accentText }}>
+                    <CategoryIcon className={iconClasses.button} />
+                  </span>
+                  <div>
+                    <h2 className={cn("font-extrabold", typeClasses.cardTitle)}>{category.title}</h2>
+                    <p className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{category.description}</p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {category.templates.map((template) => {
+                    const TemplateIcon = getScheduleIconOption(template.icon).Icon;
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => openTemplate(template)}
+                        className={cn("flex min-h-[116px] items-start gap-3 rounded-[22px] border p-4 text-left transition-all duration-200 hover:-translate-y-0.5", isDark ? "border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)] hover:bg-white")}
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: appColor, color: accentText }}>
+                          <TemplateIcon className={iconClasses.button} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className={cn("block font-extrabold", typeClasses.body)}>{template.title}</span>
+                          <span className={cn("mt-1 block font-semibold leading-5", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{template.description}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </section>
       </div>
     </main>
@@ -2972,6 +3367,19 @@ export default function SchemanPage() {
 
     if (action === "create") {
       setScheduleTypeOpen(true);
+      return;
+    }
+
+    if (action === "template") {
+      const templateId = location.state?.templateId;
+      const template = [...BASE_SCHEDULE_TEMPLATES, ...readGeneratedScheduleTemplates()].find((item) => item.id === templateId);
+      if (template) {
+        setChatVisible(true);
+        setAiStartContext(buildTemplateAssistantPrompt(template));
+        setAiStartSignal((value) => value + 1);
+      } else {
+        setScheduleTypeOpen(true);
+      }
       return;
     }
 
