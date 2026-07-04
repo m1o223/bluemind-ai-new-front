@@ -47,6 +47,7 @@ import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
 import DesktopSettingsPanel from "@/components/settings/DesktopSettingsPanel";
 import { getDirectionalStyle } from "@/components/MarkdownText";
 import MessageResponse from "@/components/MessageResponse";
+import ChatImageAttachments, { resolveAttachmentPreviewUrl } from "@/components/ChatImageAttachments";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import DesktopComposer from "@/components/DesktopComposer";
@@ -82,7 +83,7 @@ import {
   transcribeVoiceAudio,
 } from "@/services/chatService";
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
-import { generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import { generateImage, uploadChatImage } from "@/services/imageService";
 import {
   createPrivateSpace,
   changePrivateSpacePin,
@@ -411,21 +412,6 @@ const IMAGE_IDEAS = [
     thumbnail: createIdeaThumbnail("concept-art", "#1E1B4B", "#4338CA", "#FB7185"),
   },
 ];
-
-function isAbsoluteUrl(url) {
-  return /^(https?:|blob:|data:)/i.test(String(url || ""));
-}
-
-function resolveAttachmentPreviewUrl(attachment) {
-  if (!attachment) return "";
-  if (attachment.previewUrl) return attachment.previewUrl;
-  if (isAbsoluteUrl(attachment.url)) return attachment.url;
-  if (attachment.thumbnail) return attachment.thumbnail;
-  if (attachment.src) return attachment.src;
-  if (attachment.imageId) return getImageUrl(attachment.imageId);
-  if (attachment.id) return getImageUrl(attachment.id);
-  return attachment.url || "";
-}
 
 function splitUserImageTextMessage(message) {
   const attachments = Array.isArray(message?.attachments) ? message.attachments.filter((attachment) => resolveAttachmentPreviewUrl(attachment)) : [];
@@ -1385,40 +1371,6 @@ function DislikeFeedbackPopover({ messageId, isDark, onSelect, onClose, t }) {
   );
 }
 
-function ChatImage({ attachment, isDark, onExpand }) {
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const src = resolveAttachmentPreviewUrl(attachment);
-
-  if (!src || failed) return null;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onExpand?.({ src, name: attachment.name || attachment.prompt || "image" })}
-      className={cn(
-        "group relative block overflow-hidden rounded-3xl text-left shadow-sm transition-transform hover:scale-[1.01]",
-        isDark ? "border border-white/10 bg-white/5" : "border border-[var(--bm-border)] bg-white",
-      )}
-    >
-      {!loaded && (
-        <div className={cn("absolute inset-0 animate-pulse", isDark ? "bg-white/10" : "bg-[var(--bm-hover-bg)]")} />
-      )}
-      <img
-        src={src}
-        alt={attachment.name || "attachment"}
-        className="max-h-[360px] w-full max-w-sm object-cover"
-        loading="lazy"
-        onLoad={() => setLoaded(true)}
-        onError={() => {
-          setLoaded(true);
-          setFailed(true);
-        }}
-      />
-    </button>
-  );
-}
-
 const ChatMessage = memo(function ChatMessage({
   message,
   isLatestAi,
@@ -1469,18 +1421,12 @@ const ChatMessage = memo(function ChatMessage({
           )}
           style={isUser && !isImageOnlyUser ? { backgroundColor: prefs.chatColor || "var(--bm-primary)", ...directionStyle } : directionStyle}
         >
-          {hasAttachments && (
-            <div className={cn("grid max-w-sm grid-cols-1 gap-3", hasText ? "mb-4" : "mb-0")}>
-              {message.attachments.map((attachment) => (
-                <ChatImage
-                  key={attachment.id || attachment.previewUrl}
-                  attachment={attachment}
-                  isDark={isDark}
-                  onExpand={onExpandImage}
-                />
-              ))}
-            </div>
-          )}
+          <ChatImageAttachments
+            attachments={message.attachments || []}
+            hasText={hasText}
+            isDark={isDark}
+            onExpand={onExpandImage}
+          />
 
           {hasText && <MessageResponse message={message} previousUserContent={previousUserContent} />}
 

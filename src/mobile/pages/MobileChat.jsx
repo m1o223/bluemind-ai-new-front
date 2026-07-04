@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 
 import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
+import ChatImageAttachments, { resolveAttachmentPreviewUrl } from "@/components/ChatImageAttachments";
 import MessageResponse from "@/components/MessageResponse";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
@@ -536,54 +537,6 @@ function formatConversationTime(value, language = "en") {
   }).format(date);
 }
 
-function resolveMobileAttachmentPreview(attachment) {
-  if (!attachment) return "";
-  if (attachment.previewUrl) return attachment.previewUrl;
-  if (attachment.url) return attachment.url;
-  if (attachment.thumbnail) return attachment.thumbnail;
-  if (attachment.src) return attachment.src;
-  if (attachment.id || attachment.imageId) return getImageUrl(attachment.id || attachment.imageId);
-  return "";
-}
-
-function MobileMessageAttachments({ attachments = [] }) {
-  const visibleAttachments = attachments.filter((attachment) => resolveMobileAttachmentPreview(attachment));
-
-  if (!visibleAttachments.length) return null;
-
-  return (
-    <div
-      className={`mb-2 grid gap-2 ${visibleAttachments.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
-      data-testid="mobile-message-attachments"
-    >
-      {visibleAttachments.map((attachment) => {
-        const src = resolveMobileAttachmentPreview(attachment);
-        const label = attachment.name || attachment.fileName || "Uploaded image";
-
-        return (
-          <button
-            key={attachment.id || attachment.imageId || src}
-            type="button"
-            className="block overflow-hidden rounded-[16px] bg-black/15"
-            aria-label={label}
-          >
-            <img
-              src={src}
-              alt={label}
-              className="max-h-[210px] w-full object-cover"
-              draggable="false"
-              loading="lazy"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
-            />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function mapMobileConversationMessages(conversation) {
   return (conversation?.messages || []).map((item) => ({
     id: item.id,
@@ -593,7 +546,7 @@ function mapMobileConversationMessages(conversation) {
     createdAt: item.createdAt,
     attachments: (item.metadata?.attachments || item.attachments || []).map((attachment) => ({
       ...attachment,
-      previewUrl: resolveMobileAttachmentPreview(attachment),
+      previewUrl: resolveAttachmentPreviewUrl(attachment),
     })),
   }));
 }
@@ -1982,10 +1935,7 @@ export default function MobileChat() {
       setPendingWriteTemplate(null);
       setWriteAttachmentChoiceOpen(false);
       setWriteAttachments([]);
-      setAttachedImages((current) => {
-        current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
-        return [];
-      });
+      setAttachedImages([]);
       setIsImageMode(false);
       setSelectedImageTemplate(null);
       setPendingImageTemplate(null);
@@ -3271,7 +3221,15 @@ export default function MobileChat() {
                     >
                       {item.role === "user" ? (
                         <>
-                          <MobileMessageAttachments attachments={item.attachments || []} />
+                          <ChatImageAttachments
+                            attachments={item.attachments || []}
+                            hasText={hasText}
+                            isDark={isDark}
+                            className="mb-2 gap-2"
+                            imageClassName="max-h-[210px]"
+                            buttonClassName="rounded-[16px] bg-black/15"
+                            testId="mobile-message-attachments"
+                          />
                           {hasText ? <MessageResponse message={item} previousUserContent={getPreviousUserContent(index)} /> : null}
                         </>
                       ) : item.isStreaming && !item.content ? (
