@@ -37,6 +37,7 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
+  PenLine,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -147,6 +148,37 @@ const WEBSITE_RECENTS_STORAGE_KEY = "bluemind_website_recents";
 const VOICE_RESPONSE_ENABLED_KEY = "bluemind_voice_response_enabled";
 const VOICE_AUTOPLAY_ENABLED_KEY = "bluemind_voice_autoplay_enabled";
 const WEBSITE_PAGE_SIZE = 10;
+
+const WRITING_SUGGESTIONS = [
+  { id: "email", label: "Email", icon: "📧", prompt: "Help me write an email." },
+  { id: "school", label: "School", icon: "🎓", prompt: "I need help with school writing." },
+  { id: "essay", label: "Essay", icon: "📄", prompt: "Help me write an essay." },
+  { id: "story", label: "Story", icon: "📖", prompt: "Help me write a story." },
+  { id: "message", label: "Message", icon: "📱", prompt: "Help me write a message." },
+  { id: "job_application", label: "Job Application", icon: "💼", prompt: "Help me write a job application." },
+  { id: "report", label: "Report", icon: "📑", prompt: "Help me write a report." },
+  { id: "complaint", label: "Complaint", icon: "📝", prompt: "Help me write a complaint." },
+  { id: "social_media", label: "Social Media", icon: "📢", prompt: "Help me write a social media post." },
+  { id: "personal_letter", label: "Personal Letter", icon: "❤️", prompt: "Help me write a personal letter." },
+  { id: "cv", label: "CV", icon: "📄", prompt: "Help me write a CV." },
+];
+
+function getConversationWorkspace(item) {
+  const rawWorkspace = String(item?.chatSessionMode || item?.workspace || item?.metadata?.chatSessionMode || item?.metadata?.workspace || "normal").toLowerCase();
+  return rawWorkspace === "writing" ? "writing" : "normal";
+}
+
+function filterConversationsForSession(items, sessionMode) {
+  if (!Array.isArray(items)) return [];
+  if (sessionMode === "writing") {
+    return items.filter((item) => getConversationWorkspace(item) === "writing");
+  }
+  return items.filter((item) => getConversationWorkspace(item) !== "writing");
+}
+
+function isSchoolWritingRequest(text = "") {
+  return /\b(school|assignment|homework|essay|subject|grade|teacher|class)\b/i.test(text);
+}
 
 function uiTextKey(prefix, value, suffix = "") {
   const slug = String(value || "")
@@ -661,6 +693,7 @@ function Sidebar({
   chatSessionMode,
   privateSpaceName,
   onSelectNormalChat,
+  onSelectWritingMode,
   onOpenPrivateChat,
   onOpenHiddenChat,
 }) {
@@ -694,7 +727,7 @@ function Sidebar({
     setIsSearching(true);
     const timer = window.setTimeout(async () => {
       try {
-        if (chatSessionMode !== "normal") {
+        if (chatSessionMode !== "normal" && chatSessionMode !== "writing") {
           if (!cancelled) {
             setSearchResults([]);
           }
@@ -703,7 +736,7 @@ function Sidebar({
 
         const result = await searchConversations(query, 20);
         if (!cancelled) {
-          setSearchResults(Array.isArray(result?.items) ? result.items : []);
+          setSearchResults(filterConversationsForSession(result?.items, chatSessionMode));
         }
       } catch (error) {
         if (!cancelled) {
@@ -778,6 +811,13 @@ function Sidebar({
       label: "Private Chat",
       action: onOpenPrivateChat,
       active: chatSessionMode === "private",
+    },
+    {
+      id: "writing_mode",
+      icon: PenLine,
+      label: "Writing Mode",
+      action: onSelectWritingMode,
+      active: chatSessionMode === "writing",
     },
     {
       id: "hidden_chat",
@@ -1488,6 +1528,8 @@ export default function ChatPage() {
   const [thinkingLevel, setThinkingLevel] = useState(() => localStorage.getItem(THINKING_LEVEL_STORAGE_KEY) || "balanced");
   const [activeMode, setActiveMode] = useState("default");
   const [chatSessionMode, setChatSessionMode] = useState("normal");
+  const [writingSchoolFlowActive, setWritingSchoolFlowActive] = useState(false);
+  const [writingSchoolContext, setWritingSchoolContext] = useState("");
   const [privateSpaceModalOpen, setPrivateSpaceModalOpen] = useState(false);
   const [privateSpaceStep, setPrivateSpaceStep] = useState("list");
   const [privateSpaces, setPrivateSpaces] = useState([]);
@@ -1755,7 +1797,7 @@ export default function ChatPage() {
         const data = await listConversations();
 
         if (!cancelled) {
-          setHistory(Array.isArray(data?.items) ? data.items : []);
+          setHistory(filterConversationsForSession(data?.items, "normal"));
         }
       } catch (error) {
         console.warn("Could not load chat history", error);
@@ -1779,11 +1821,18 @@ export default function ChatPage() {
     setConversationId(null);
     setActiveConversationId(null);
     setIsAiTyping(false);
+    setWritingSchoolFlowActive(false);
+    setWritingSchoolContext("");
   };
 
   const loadNormalHistory = async () => {
     const data = await listConversations();
-    setHistory(Array.isArray(data?.items) ? data.items : []);
+    setHistory(filterConversationsForSession(data?.items, "normal"));
+  };
+
+  const loadWritingHistory = async () => {
+    const data = await listConversations();
+    setHistory(filterConversationsForSession(data?.items, "writing"));
   };
 
   const handleSelectNormalChat = () => {
@@ -1794,6 +1843,18 @@ export default function ChatPage() {
     setHiddenChatModalOpen(false);
     handleNewChat();
     loadNormalHistory().catch(() => {});
+  };
+
+  const handleSelectWritingMode = () => {
+    setChatSessionMode("writing");
+    setResponseMode("writing");
+    setActiveMode("default");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    setPrivateSpaceModalOpen(false);
+    setHiddenChatModalOpen(false);
+    handleNewChat();
+    loadWritingHistory().catch(() => {});
   };
 
   const handleExitPrivateSpace = () => {
@@ -1842,7 +1903,10 @@ export default function ChatPage() {
     const data = chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken
       ? await listPrivateSpaceChats(activePrivateSpace.privateSpaceId, privateSpaceAccessToken)
       : await listConversations();
-    setHistory(Array.isArray(data?.items) ? data.items : []);
+    setHistory(chatSessionMode === "private"
+      ? (Array.isArray(data?.items) ? data.items : [])
+      : filterConversationsForSession(data?.items, chatSessionMode)
+    );
   }, [activePrivateSpace?.privateSpaceId, chatSessionMode, privateSpaceAccessToken]);
 
   const loadPrivateSpaces = useCallback(async () => {
@@ -2644,21 +2708,83 @@ export default function ChatPage() {
     }
   }, [lastVoiceAudioUrl, lastVoiceText, playVoiceAudioUrl, speakAssistantText]);
 
+  const startWritingSchoolFlow = useCallback((requestText = "School") => {
+    const userMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: requestText,
+      attachments: [],
+      metadata: {
+        chatMode: "writing",
+        chatSessionMode: "writing",
+        workspace: "writing",
+        responseMode: "writing",
+        aiMode: "writing",
+      },
+    };
+    const assistantMessage = {
+      id: crypto.randomUUID(),
+      role: "ai",
+      content: [
+        "Before I write it, I need a few school details:",
+        "",
+        "1. What grade are you in?",
+        "2. What subject is this?",
+        "3. What language should I write in?",
+      ].join("\n"),
+      metadata: {
+        chatMode: "writing",
+        chatSessionMode: "writing",
+        workspace: "writing",
+        responseMode: "writing",
+        aiMode: "writing",
+        writingFlow: "school",
+      },
+    };
+
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
+    setInput("");
+    setAttachments([]);
+    setWritingSchoolFlowActive(true);
+    setWritingSchoolContext(requestText);
+    window.requestAnimationFrame(() => scrollToBottom("smooth"));
+  }, [scrollToBottom]);
+
   const handleSend = useCallback(async (options = {}) => {
     const mode = options.mode || activeMode;
-    const selectedResponseMode = normalizeAiModeId(options.responseMode || responseMode);
+    const selectedResponseMode = normalizeAiModeId(options.responseMode || (chatSessionMode === "writing" ? "writing" : responseMode));
     const sourceMessage = options.message;
     const sourceAttachments = options.attachments;
     const visibleInput = String(sourceMessage ?? input).trim();
     const currentInput = mode === "write_edit"
       ? buildWriteEditMessage(visibleInput, writeFiles)
       : visibleInput;
+    const requestInput = chatSessionMode === "writing" && writingSchoolFlowActive && writingSchoolContext
+      ? [
+          `The user started a school writing request: ${writingSchoolContext}`,
+          "You asked for these details: grade, subject, and writing language.",
+          `The user answered: ${currentInput}`,
+          "Continue the writing workflow naturally. Do not ignore these school details.",
+        ].join("\n\n")
+      : currentInput;
     const currentAttachments = sourceAttachments ?? attachments;
     const requestMetadata = options.metadata || {};
     const isSearchHandoff = String(requestMetadata?.source || requestMetadata?.searchContext?.source || "").toLowerCase() === "search";
     const canStartFromContext = isSearchHandoff && requestMetadata?.intent && (requestMetadata?.category || requestMetadata?.searchContext?.category);
 
     if ((!currentInput && currentAttachments.length === 0 && !canStartFromContext) || isAiTyping || sendLockRef.current) return;
+
+    if (
+      chatSessionMode === "writing" &&
+      mode === "default" &&
+      currentAttachments.length === 0 &&
+      !writingSchoolFlowActive &&
+      isSchoolWritingRequest(visibleInput)
+    ) {
+      startWritingSchoolFlow(visibleInput);
+      return;
+    }
+
     sendLockRef.current = true;
     if (isListening) stopVoiceInput();
 
@@ -2671,6 +2797,9 @@ export default function ChatPage() {
       blueMindModel: desktopModelId,
       thinkingLevel,
       writeEditTask: mode === "write_edit" ? activeWriteTask : undefined,
+      chatSessionMode,
+      workspace: chatSessionMode === "writing" ? "writing" : undefined,
+      writingMode: chatSessionMode === "writing" || undefined,
     };
     const userDisplayMessages = options.hideUserMessage
       ? []
@@ -2716,6 +2845,10 @@ export default function ChatPage() {
       setOpenSearchMenuItemId(null);
       setExpandedSearchItemId(null);
       setSearchConfirm(null);
+      if (chatSessionMode === "writing" && writingSchoolFlowActive) {
+        setWritingSchoolFlowActive(false);
+        setWritingSchoolContext("");
+      }
     }
     setIsAiTyping(true);
     stopRequestedRef.current = false;
@@ -2755,7 +2888,7 @@ export default function ChatPage() {
           ? streamPrivateSpaceMessage
           : streamChatMessage;
       const streamOptions = {
-        message: currentInput,
+        message: requestInput,
         imageIds,
         conversationId: chatSessionMode === "hidden" ? undefined : conversationId,
         privateSpaceId: activePrivateSpace?.privateSpaceId,
@@ -2765,6 +2898,9 @@ export default function ChatPage() {
           ...requestMetadata,
           chatMode: mode,
           chatSessionMode,
+          workspace: chatSessionMode === "writing" ? "writing" : undefined,
+          writingMode: chatSessionMode === "writing" || undefined,
+          writingSchoolFlow: chatSessionMode === "writing" && writingSchoolFlowActive ? "school" : undefined,
           privateSpaceId: chatSessionMode === "private" ? activePrivateSpace?.privateSpaceId : undefined,
           hiddenChat: chatSessionMode === "hidden" || undefined,
           mode: selectedResponseMode,
@@ -2829,7 +2965,7 @@ export default function ChatPage() {
             await speakAssistantText(finalAssistantText, { autoplay: true });
           }
 
-          if (currentInput && chatSessionMode !== "hidden") {
+          if (currentInput && chatSessionMode === "normal") {
             const suggestionResult = await suggestReminder(
               currentInput,
               payload?.conversation?.conversationId || conversationId,
@@ -2908,11 +3044,14 @@ export default function ChatPage() {
     responseMode,
     scrollToBottom,
     speakAssistantText,
+    startWritingSchoolFlow,
     thinkingLevel,
     privateSpaceAccessToken,
     stopVoiceInput,
     t,
     writeFiles,
+    writingSchoolFlowActive,
+    writingSchoolContext,
   ]);
 
   const handleFinishVoiceInput = useCallback(async () => {
@@ -2979,6 +3118,26 @@ export default function ChatPage() {
       handleSend();
     }
   };
+
+  const handleWritingSuggestionSelect = useCallback((suggestion) => {
+    setResponseMode("writing");
+    setActiveMode("default");
+
+    if (suggestion.id === "school") {
+      startWritingSchoolFlow(suggestion.prompt);
+      return;
+    }
+
+    void handleSend({
+      message: suggestion.prompt,
+      responseMode: "writing",
+      metadata: {
+        writingSuggestion: suggestion.id,
+        chatSessionMode: "writing",
+        workspace: "writing",
+      },
+    });
+  }, [handleSend, startWritingSchoolFlow]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((prev) => ({
@@ -4096,6 +4255,27 @@ export default function ChatPage() {
     </div>
   );
 
+  const renderWritingSuggestions = () => (
+    <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+      {WRITING_SUGGESTIONS.map((suggestion) => (
+        <button
+          key={suggestion.id}
+          type="button"
+          onClick={() => handleWritingSuggestionSelect(suggestion)}
+          className={cn(
+            "inline-flex h-10 items-center gap-2 rounded-full px-3.5 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0",
+            isDark
+              ? "bg-white/[0.055] text-white hover:bg-white/[0.1]"
+              : "bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-black/[0.06] hover:bg-[var(--bm-hover-bg)]",
+          )}
+        >
+          <span aria-hidden="true">{suggestion.icon}</span>
+          <span>{suggestion.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+
   const handleResponseModeSelect = async (nextMode, model) => {
     const normalizedMode = normalizeAiModeId(nextMode);
     if (model?.id) setDesktopModelId(model.id);
@@ -4250,6 +4430,8 @@ export default function ChatPage() {
                     ? t("searchWebOrChooseWebsite")
                     : activeMode === "write_edit"
                       ? t("writePasteOrChooseTool")
+                      : chatSessionMode === "writing"
+                        ? "Tell BlueMind what to write..."
                       : attachments.length
                         ? "Ask about these images..."
                       : t("askAnything")
@@ -4536,6 +4718,7 @@ export default function ChatPage() {
           chatSessionMode={chatSessionMode}
           privateSpaceName={activePrivateSpace?.name}
           onSelectNormalChat={handleSelectNormalChat}
+          onSelectWritingMode={handleSelectWritingMode}
           onOpenPrivateChat={openPrivateSpaceModal}
           onOpenHiddenChat={() => setHiddenChatModalOpen(true)}
         />
@@ -4638,6 +4821,13 @@ export default function ChatPage() {
                 <button type="button" className="ml-1 underline underline-offset-2" onClick={handleExitHiddenMode}>Exit Hidden Chat</button>
               </div>
             )}
+            {chatSessionMode === "writing" && (
+              <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
+                <PenLine className="h-3.5 w-3.5" />
+                <span>Writing Mode</span>
+                <button type="button" className="ml-1 underline underline-offset-2" onClick={handleSelectNormalChat}>Exit Writing Mode</button>
+              </div>
+            )}
           </div>
           <button
             onClick={handleNewChat}
@@ -4661,7 +4851,17 @@ export default function ChatPage() {
                 activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "justify-start pt-8 sm:pt-10" : "justify-center",
               )}
             >
-              {activeMode === "default" ? (
+              {chatSessionMode === "writing" && activeMode === "default" ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 text-center sm:mb-8"
+                >
+                  <h1 className={cn("text-[26px] font-semibold leading-tight tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
+                    ✍️ What would you like me to write today?
+                  </h1>
+                </motion.div>
+              ) : activeMode === "default" ? (
                 <div className="mb-5 h-[88px] overflow-hidden text-center sm:mb-8 sm:h-[104px]">
                   <RotatingChatSuggestion
                     iconClassName="h-6 w-6 sm:h-8 sm:w-8"
@@ -4688,7 +4888,9 @@ export default function ChatPage() {
 
               <div className={cn("w-full", activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "max-w-7xl" : "max-w-4xl")}>
                 {renderInput()}
-                {activeMode === "create_image" ? renderImageIdeas() : activeMode === "web_search" ? renderWebsiteDiscovery() : activeMode === "write_edit" ? renderWriteEditWorkspace() : renderHomeTools()}
+                {chatSessionMode === "writing" && activeMode === "default"
+                  ? renderWritingSuggestions()
+                  : activeMode === "create_image" ? renderImageIdeas() : activeMode === "web_search" ? renderWebsiteDiscovery() : activeMode === "write_edit" ? renderWriteEditWorkspace() : renderHomeTools()}
               </div>
             </div>
           ) : (
