@@ -102,6 +102,11 @@ import {
   createSuggestedReminder,
   suggestReminder,
 } from "@/services/reminderService";
+import {
+  analyzeWritingProfile,
+  confirmWritingProfile,
+  getWritingProfile,
+} from "@/services/writingProfileService";
 import { updatePreferences } from "@/services/profileService";
 import { formatStreamErrorForDisplay, logStreamError } from "@/services/streamErrorUtils";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
@@ -178,6 +183,10 @@ function filterConversationsForSession(items, sessionMode) {
 
 function isSchoolWritingRequest(text = "") {
   return /\b(school|assignment|homework|essay|subject|grade|teacher|class)\b/i.test(text);
+}
+
+function wantsOwnWritingStyle(text = "") {
+  return /\b(yes|yeah|yep|sure|own style|my style|like me|my writing|natural style)\b/i.test(text);
 }
 
 function uiTextKey(prefix, value, suffix = "") {
@@ -1575,6 +1584,13 @@ export default function ChatPage() {
   const [activeWriteTask, setActiveWriteTask] = useState(null);
   const [pendingWriteTemplate, setPendingWriteTemplate] = useState(null);
   const [writeAttachmentChoiceOpen, setWriteAttachmentChoiceOpen] = useState(false);
+  const [writingProfile, setWritingProfile] = useState(null);
+  const [isWritingProfileLoading, setIsWritingProfileLoading] = useState(false);
+  const [isWritingProfileSaving, setIsWritingProfileSaving] = useState(false);
+  const [writingStylePanelOpen, setWritingStylePanelOpen] = useState(false);
+  const [writingSampleText, setWritingSampleText] = useState("");
+  const [writingUpdateReason, setWritingUpdateReason] = useState("");
+  const [writingAdjustmentText, setWritingAdjustmentText] = useState("");
   const [messageFeedback, setMessageFeedback] = useState({});
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -1726,6 +1742,23 @@ export default function ChatPage() {
   useEffect(() => {
     localStorage.setItem(WEBSITE_RECENTS_STORAGE_KEY, JSON.stringify(recentWebsiteIds));
   }, [recentWebsiteIds]);
+
+  const loadWritingProfile = useCallback(async () => {
+    setIsWritingProfileLoading(true);
+    try {
+      const profile = await getWritingProfile();
+      setWritingProfile(profile);
+    } catch (error) {
+      console.warn("Could not load Writing Profile", error);
+    } finally {
+      setIsWritingProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (chatSessionMode !== "writing") return;
+    loadWritingProfile();
+  }, [chatSessionMode, loadWritingProfile]);
 
   useEffect(() => {
     setWebsitePage(0);
@@ -2731,6 +2764,7 @@ export default function ChatPage() {
         "1. What grade are you in?",
         "2. What subject is this?",
         "3. What language should I write in?",
+        "4. Do you want it in your own writing style?",
       ].join("\n"),
       metadata: {
         chatMode: "writing",
@@ -2762,7 +2796,7 @@ export default function ChatPage() {
     const requestInput = chatSessionMode === "writing" && writingSchoolFlowActive && writingSchoolContext
       ? [
           `The user started a school writing request: ${writingSchoolContext}`,
-          "You asked for these details: grade, subject, and writing language.",
+          "You asked for these details: grade, subject, writing language, and whether they want their own writing style.",
           `The user answered: ${currentInput}`,
           "Continue the writing workflow naturally. Do not ignore these school details.",
         ].join("\n\n")
@@ -2782,6 +2816,47 @@ export default function ChatPage() {
       isSchoolWritingRequest(visibleInput)
     ) {
       startWritingSchoolFlow(visibleInput);
+      return;
+    }
+
+    if (
+      chatSessionMode === "writing" &&
+      writingSchoolFlowActive &&
+      wantsOwnWritingStyle(visibleInput) &&
+      writingProfile?.status !== "ready"
+    ) {
+      const userMessage = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: visibleInput,
+        attachments: [],
+        metadata: {
+          chatMode: "writing",
+          chatSessionMode: "writing",
+          workspace: "writing",
+          responseMode: "writing",
+          aiMode: "writing",
+          writingFlow: "school",
+        },
+      };
+      const assistantMessage = {
+        id: crypto.randomUUID(),
+        role: "ai",
+        content: "Great. To write in your own style, I need a few examples of texts you wrote yourself first. Paste or upload newer school writing samples below, then I will analyze them and create your private Writing Profile.",
+        metadata: {
+          chatMode: "writing",
+          chatSessionMode: "writing",
+          workspace: "writing",
+          responseMode: "writing",
+          aiMode: "writing",
+          writingFlow: "style-samples-required",
+        },
+      };
+
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      setInput("");
+      setWritingStylePanelOpen(true);
+      window.requestAnimationFrame(() => scrollToBottom("smooth"));
       return;
     }
 
@@ -3052,6 +3127,7 @@ export default function ChatPage() {
     writeFiles,
     writingSchoolFlowActive,
     writingSchoolContext,
+    writingProfile?.status,
   ]);
 
   const handleFinishVoiceInput = useCallback(async () => {
@@ -3138,6 +3214,93 @@ export default function ChatPage() {
       },
     });
   }, [handleSend, startWritingSchoolFlow]);
+
+  const handleWritingSampleFiles = useCallback(async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!files.length) return;
+
+    const readableFiles = files.filter((file) => (
+      file.type.startsWith("text/") ||
+      /\.(txt|md|rtf|csv)$/i.test(file.name)
+    ));
+
+    if (readableFiles.length !== files.length) {
+      toast.info("For Writing Style samples, please use pasted text or text files for now.");
+    }
+
+    const texts = await Promise.all(readableFiles.slice(0, 6).map(async (file) => {
+      const text = await file.text();
+      return [`--- ${file.name} ---`, text].join("\n");
+    }));
+
+    if (texts.length) {
+      setWritingSampleText((current) => [current, ...texts].filter(Boolean).join("\n\n"));
+    }
+  }, []);
+
+  const buildWritingSamplesPayload = useCallback(() => {
+    const text = writingSampleText.trim();
+    if (!text) return [];
+
+    return text
+      .split(/\n-{3,}|\n\n(?=Sample\s+\d+:)/i)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => ({
+        text: part,
+        source: "writing-mode",
+        context: writingUpdateReason.trim() ? "style update" : "style setup",
+      }))
+      .slice(0, 12);
+  }, [writingSampleText, writingUpdateReason]);
+
+  const handleAnalyzeWritingProfile = useCallback(async () => {
+    const samples = buildWritingSamplesPayload();
+    if (!samples.length) {
+      toast.error("Add at least one writing sample first.");
+      return;
+    }
+
+    setIsWritingProfileSaving(true);
+    try {
+      const profile = await analyzeWritingProfile({
+        samples,
+        updateReason: writingUpdateReason.trim(),
+      });
+      setWritingProfile(profile);
+      setWritingAdjustmentText("");
+      toast.success("Writing Profile analyzed.");
+    } catch (error) {
+      toast.error(error.message || "Could not analyze Writing Profile.");
+    } finally {
+      setIsWritingProfileSaving(false);
+    }
+  }, [buildWritingSamplesPayload, writingUpdateReason]);
+
+  const handleConfirmWritingProfile = useCallback(async (accepted) => {
+    setIsWritingProfileSaving(true);
+    try {
+      const profile = await confirmWritingProfile({
+        accepted,
+        adjustments: accepted ? "" : writingAdjustmentText.trim(),
+      });
+      setWritingProfile(profile);
+      if (accepted) {
+        setWritingStylePanelOpen(false);
+        setWritingSampleText("");
+        setWritingUpdateReason("");
+        setWritingAdjustmentText("");
+        toast.success("Writing Profile saved.");
+      } else {
+        toast.info("Add more samples or describe what should change.");
+      }
+    } catch (error) {
+      toast.error(error.message || "Could not update Writing Profile.");
+    } finally {
+      setIsWritingProfileSaving(false);
+    }
+  }, [writingAdjustmentText]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((prev) => ({
@@ -4276,6 +4439,132 @@ export default function ChatPage() {
     </div>
   );
 
+  const renderWritingProfilePanel = () => {
+    if (chatSessionMode !== "writing") return null;
+
+    const profileStatus = writingProfile?.status || "empty";
+    const ready = profileStatus === "ready";
+    const draft = profileStatus === "draft";
+    const notice = writingProfile?.notice || "BlueMind Writing Mode is designed to help you write in a way that matches your own natural style. It is meant for writing assistance, not for cheating, deception, impersonation, or misuse. You are responsible for how you use the generated text.";
+
+    return (
+      <div className={cn(
+        "mx-auto mt-5 w-full max-w-3xl rounded-[24px] p-4 text-left shadow-sm ring-1 sm:p-5",
+        isDark ? "bg-white/[0.045] ring-white/[0.08]" : "bg-white/80 ring-black/[0.06]",
+      )}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className={cn("text-sm font-bold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Personal Writing Style</p>
+            <p className={cn("mt-1 text-sm leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
+              {ready
+                ? "Your Writing Profile is ready. BlueMind will use it naturally in Writing Mode."
+                : "Create a private Writing Profile so BlueMind can write closer to your natural style."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setWritingStylePanelOpen((open) => !open)}
+            className="h-10 shrink-0 rounded-full bg-[var(--bm-primary)] px-4 text-sm font-bold text-white transition-opacity hover:opacity-95"
+          >
+            {ready ? "Update Writing Style" : "Create Writing Style"}
+          </button>
+        </div>
+
+        {!ready && (
+          <div className={cn("mt-4 rounded-2xl p-3 text-sm leading-6", isDark ? "bg-white/[0.055] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
+            <span className={cn("font-bold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Important: </span>
+            {notice}
+          </div>
+        )}
+
+        {ready && writingProfile?.profile?.summary && (
+          <p className={cn("mt-4 rounded-2xl p-3 text-sm leading-6", isDark ? "bg-white/[0.055] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
+            {writingProfile.profile.summary}
+          </p>
+        )}
+
+        <AnimatePresence>
+          {writingStylePanelOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              className="mt-4 space-y-3"
+            >
+              {ready && (
+                <input
+                  value={writingUpdateReason}
+                  onChange={(event) => setWritingUpdateReason(event.target.value)}
+                  placeholder="What changed in your writing style?"
+                  className={cn(inputClasses.field, "h-12 font-semibold")}
+                />
+              )}
+              <textarea
+                value={writingSampleText}
+                onChange={(event) => setWritingSampleText(event.target.value)}
+                placeholder="Paste examples of texts you wrote yourself: messages, emails, school assignments, essays, notes, reports, posts, or letters."
+                className={cn(inputClasses.field, "min-h-[150px] resize-y py-3 font-medium leading-6")}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <label className={cn("inline-flex h-10 cursor-pointer items-center rounded-full px-4 text-sm font-bold transition-colors", isDark ? "bg-white/[0.07] text-white hover:bg-white/[0.11]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)] hover:bg-[var(--bm-active-bg)]")}>
+                  Upload text samples
+                  <input
+                    type="file"
+                    multiple
+                    accept=".txt,.md,.rtf,.csv,text/plain,text/markdown,text/csv"
+                    className="hidden"
+                    onChange={handleWritingSampleFiles}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAnalyzeWritingProfile}
+                  disabled={isWritingProfileSaving}
+                  className="h-10 rounded-full bg-[var(--bm-primary)] px-4 text-sm font-bold text-white transition-opacity hover:opacity-95 disabled:opacity-50"
+                >
+                  {isWritingProfileSaving ? "Analyzing..." : ready ? "Analyze New Samples" : "Analyze My Style"}
+                </button>
+              </div>
+
+              {draft && writingProfile?.profile?.testText && (
+                <div className={cn("rounded-2xl p-4", isDark ? "bg-white/[0.055]" : "bg-[var(--bm-hover-bg)]")}>
+                  <p className={cn("text-sm font-bold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Does this sound like your writing?</p>
+                  <p className={cn("mt-3 whitespace-pre-wrap text-sm leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
+                    {writingProfile.profile.testText}
+                  </p>
+                  <textarea
+                    value={writingAdjustmentText}
+                    onChange={(event) => setWritingAdjustmentText(event.target.value)}
+                    placeholder="If not, tell BlueMind what should change."
+                    className={cn(inputClasses.field, "mt-3 min-h-[84px] py-3 font-medium")}
+                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmWritingProfile(true)}
+                      disabled={isWritingProfileSaving}
+                      className="h-10 rounded-full bg-[var(--bm-primary)] px-4 text-sm font-bold text-white disabled:opacity-50"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmWritingProfile(false)}
+                      disabled={isWritingProfileSaving}
+                      className={cn("h-10 rounded-full px-4 text-sm font-bold disabled:opacity-50", isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}
+                    >
+                      No, adjust it
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
   const handleResponseModeSelect = async (nextMode, model) => {
     const normalizedMode = normalizeAiModeId(nextMode);
     if (model?.id) setDesktopModelId(model.id);
@@ -4825,6 +5114,16 @@ export default function ChatPage() {
               <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
                 <PenLine className="h-3.5 w-3.5" />
                 <span>Writing Mode</span>
+                <button
+                  type="button"
+                  className="ml-1 underline underline-offset-2"
+                  onClick={() => {
+                    setWritingStylePanelOpen(true);
+                    setWritingUpdateReason("I want the profile to match my newer writing.");
+                  }}
+                >
+                  Update Writing Style
+                </button>
                 <button type="button" className="ml-1 underline underline-offset-2" onClick={handleSelectNormalChat}>Exit Writing Mode</button>
               </div>
             )}
@@ -4860,6 +5159,9 @@ export default function ChatPage() {
                   <h1 className={cn("text-[26px] font-semibold leading-tight tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
                     ✍️ What would you like me to write today?
                   </h1>
+                  <p className={cn("mx-auto mt-3 max-w-2xl text-sm leading-6 sm:text-base", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
+                    Writing Mode helps you write texts, messages, emails, school assignments, stories, CVs, and more. BlueMind can also learn your personal writing style so the result feels closer to how you naturally write.
+                  </p>
                 </motion.div>
               ) : activeMode === "default" ? (
                 <div className="mb-5 h-[88px] overflow-hidden text-center sm:mb-8 sm:h-[104px]">
@@ -4889,7 +5191,12 @@ export default function ChatPage() {
               <div className={cn("w-full", activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "max-w-7xl" : "max-w-4xl")}>
                 {renderInput()}
                 {chatSessionMode === "writing" && activeMode === "default"
-                  ? renderWritingSuggestions()
+                  ? (
+                    <>
+                      {renderWritingSuggestions()}
+                      {renderWritingProfilePanel()}
+                    </>
+                  )
                   : activeMode === "create_image" ? renderImageIdeas() : activeMode === "web_search" ? renderWebsiteDiscovery() : activeMode === "write_edit" ? renderWriteEditWorkspace() : renderHomeTools()}
               </div>
             </div>
