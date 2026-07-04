@@ -22,7 +22,6 @@ import LearningPage from "@/pages/LearningPage";
 import AIPlansPage from "@/pages/AIPlansPage";
 import SchemanPage, { ScheduleCustomPage, ScheduleHomePage } from "@/pages/SchemanPage";
 import MobileLayout from "@/mobile/layouts/MobileLayout";
-import MobileChat from "@/mobile/pages/MobileChat";
 import MobileSearch from "@/mobile/pages/MobileSearch";
 import MobileCreateImage from "@/mobile/pages/MobileCreateImage";
 import MobileWriteEdit from "@/mobile/pages/MobileWriteEdit";
@@ -155,7 +154,7 @@ function AppContent() {
             <Route index element={<MobileWelcome />} />
             <Route path="email" element={<MobileEmail />} />
             <Route path="register" element={<MobileRegister />} />
-            <Route path="chat" element={<MobileAccessRoute><MobileChat /></MobileAccessRoute>} />
+            <Route path="chat" element={<MobileAccessRoute><ChatPage /></MobileAccessRoute>} />
             <Route path="search" element={<MobileAccessRoute><MobileSearch /></MobileAccessRoute>} />
             <Route path="create-image" element={<MobileAccessRoute><MobileCreateImage /></MobileAccessRoute>} />
             <Route path="write-edit" element={<MobileAccessRoute><MobileWriteEdit /></MobileAccessRoute>} />

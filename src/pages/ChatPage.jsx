@@ -1468,6 +1468,7 @@ const ChatMessage = memo(function ChatMessage({
 });
 
 export default function ChatPage() {
+  const location = useLocation();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
@@ -1563,6 +1564,7 @@ export default function ChatPage() {
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor;
   const inputDirectionStyle = getDirectionalStyle(input);
+  const isMobileRoute = location.pathname.startsWith("/mobile");
   const {
     isListening,
     audioLevels: voiceAudioLevels,
@@ -1650,6 +1652,23 @@ export default function ChatPage() {
   useEffect(() => {
     localStorage.setItem(DESKTOP_MODEL_STORAGE_KEY, desktopModelId);
   }, [desktopModelId]);
+
+  useEffect(() => {
+    const routeMode = new URLSearchParams(location.search).get("mode");
+    const nextMode = {
+      image: "create_image",
+      "create-image": "create_image",
+      write: "write_edit",
+      "write-edit": "write_edit",
+      search: "web_search",
+      web: "web_search",
+      "web-search": "web_search",
+    }[routeMode || ""];
+
+    if (nextMode) {
+      setActiveMode(nextMode);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const savedMode = normalizeAiModeId(prefs.aiMode || localStorage.getItem(RESPONSE_MODE_STORAGE_KEY));
@@ -2655,22 +2674,13 @@ export default function ChatPage() {
     };
     const userDisplayMessages = options.hideUserMessage
       ? []
-      : [
-          ...(currentAttachments.length ? [{
-            id: crypto.randomUUID(),
-            role: "user",
-            content: "",
-            attachments: currentAttachments,
-            metadata: { ...userMetadata, splitKind: "images" },
-          }] : []),
-          ...(visibleInput ? [{
-            id: crypto.randomUUID(),
-            role: "user",
-            content: visibleInput,
-            attachments: [],
-            metadata: { ...userMetadata, splitKind: "text" },
-          }] : []),
-        ];
+      : [{
+          id: crypto.randomUUID(),
+          role: "user",
+          content: visibleInput,
+          attachments: currentAttachments,
+          metadata: userMetadata,
+        }];
     const aiMessageId = crypto.randomUUID();
     const abortController = new AbortController();
 
@@ -4292,8 +4302,9 @@ export default function ChatPage() {
 
   return (
     <div
-      className={cn("h-screen flex overflow-hidden", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]")}
+      className={cn("h-[100dvh] flex overflow-hidden md:h-screen", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]")}
       data-testid="chat-page"
+      data-chat-surface={isMobileRoute ? "mobile" : "desktop"}
     >
       <input
         ref={imageInputRef}
@@ -4510,7 +4521,7 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      <div className="h-full flex-shrink-0">
+      <div className="hidden h-full flex-shrink-0 md:block">
         <Sidebar
           isHistoryOpen={historyOpen}
           onToggleHistory={() => setHistoryOpen((value) => !value)}
@@ -4533,7 +4544,7 @@ export default function ChatPage() {
       <div className="relative flex-1 flex flex-col h-full min-w-0">
         <header
           className={cn(
-            "sticky top-0 z-20 flex items-center justify-between px-4 py-3.5 sm:px-6",
+            "sticky top-0 z-20 flex items-center justify-between gap-3 px-3 py-3 sm:px-6 sm:py-3.5",
             "bg-[var(--bm-bg-app)]",
           )}
         >
@@ -4547,7 +4558,7 @@ export default function ChatPage() {
                     type="button"
                     onClick={() => setResponseModeMenuOpen((open) => !open)}
                     className={cn(
-                      "inline-flex h-10 min-w-[150px] items-center justify-between gap-2 rounded-full border px-3.5 text-sm font-bold transition-colors",
+                      "inline-flex h-10 min-w-0 max-w-[calc(100vw-5.75rem)] items-center justify-between gap-2 rounded-full border px-3 text-sm font-bold transition-colors sm:min-w-[150px] sm:px-3.5",
                       isDark
                         ? "border-white/[0.1] bg-white/[0.055] text-white hover:bg-white/[0.09]"
                         : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] shadow-sm hover:bg-[var(--bm-hover-bg)]",
@@ -4681,7 +4692,7 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
               <AnimatePresence>
                 {messages.map((message, index) => (
                   <ChatMessage
@@ -4711,7 +4722,7 @@ export default function ChatPage() {
         {hasMessages && (
           <div
             className={cn(
-              "px-3 pb-5 pt-2 sm:px-6 sm:pb-6",
+              "px-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 sm:px-6 sm:pb-6",
               isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]",
             )}
           >
