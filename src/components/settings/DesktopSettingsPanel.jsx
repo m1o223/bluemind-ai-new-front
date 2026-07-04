@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 
 import { useApp } from "@/context/AppContext";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
@@ -231,7 +232,7 @@ function PrimaryButton({ children, loading, className, ...props }) {
         className,
       )}
     >
-      {loading ? "Saving..." : children}
+      {loading ? <BlueMindLoadingDots /> : children}
     </button>
   );
 }

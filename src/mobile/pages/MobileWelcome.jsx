@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import BrandLogo from "@/components/BrandLogo";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { useApp } from "@/context/AppContext";
 import { startMobileGuestSession } from "@/mobile/mobileGuestSession";
 import { getApiErrorMessage } from "@/services/api";
@@ -19,10 +20,6 @@ function GoogleIcon() {
       className="h-5 w-5"
     />
   );
-}
-
-function LoadingSpinner() {
-  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />;
 }
 
 export default function MobileWelcome() {
@@ -87,7 +84,7 @@ export default function MobileWelcome() {
               disabled={isGoogleLoading}
               className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${googleButtonClass}`}
             >
-              {isGoogleLoading ? <LoadingSpinner /> : <GoogleIcon />}
+              {isGoogleLoading ? <BlueMindLoadingDots /> : <GoogleIcon />}
               <span>Continue with Google</span>
             </button>
 
@@ -122,7 +119,7 @@ export default function MobileWelcome() {
               style={{ color: isDark ? "var(--bm-text-secondary)" : `var(--bluemind-app-color, ${BLUE_PRIMARY})` }}
             >
               {isGuestLoading ? (
-                <LoadingSpinner />
+                <BlueMindLoadingDots />
               ) : (
                 <>
                   <span>Try BlueMind AI</span>

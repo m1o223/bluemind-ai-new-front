@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { waitForActionFeedback } from "@/lib/actionFeedback";
 import { useApp } from "@/context/AppContext";
 
 const feedbackTypes = [
@@ -21,17 +22,22 @@ export default function FeedbackPage() {
   const [feedbackType, setFeedbackType] = useState("suggestion");
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionState, setActionState] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.message.trim()) { toast.error(t("pleaseEnterFeedback")); return; }
     setIsSubmitting(true);
+    setActionState("processing");
     await new Promise((resolve) => setTimeout(resolve, 1000));
     toast.success(t("thankFeedback"));
+    setActionState("success");
+    await waitForActionFeedback();
     setRating(0);
     setFeedbackType("suggestion");
     setFormData({ name: "", email: "", message: "" });
     setIsSubmitting(false);
+    setActionState("");
   };
 
   return (
@@ -89,8 +95,8 @@ export default function FeedbackPage() {
             <Textarea value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} placeholder={t("feedbackPlaceholder")} rows={4} className="bg-[var(--bm-bg-elevated)] border-[var(--bm-border-strong)] text-white rounded-lg resize-none" data-testid="feedback-message-input" />
           </div>
 
-          <Button type="submit" disabled={isSubmitting || !formData.message.trim()} className="w-full py-6 text-base bg-[var(--bm-primary)] hover:bg-[var(--bm-primary-hover)] text-white rounded-xl disabled:opacity-50 transition-all duration-200 hover:scale-[1.01]" data-testid="feedback-submit-button">
-            {isSubmitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t("sending")}</span> : <span className="flex items-center gap-2"><Send className="w-4 h-4" />{t("submitFeedback")}</span>}
+          <Button type="submit" disabled={isSubmitting || !formData.message.trim()} actionState={actionState} className="w-full py-6 text-base bg-[var(--bm-primary)] hover:bg-[var(--bm-primary-hover)] text-white rounded-xl disabled:opacity-50 transition-all duration-200 hover:scale-[1.01]" data-testid="feedback-submit-button">
+            {isSubmitting ? t("sending") : <span className="flex items-center gap-2"><Send className="w-4 h-4" />{t("submitFeedback")}</span>}
           </Button>
         </form>
       </div>

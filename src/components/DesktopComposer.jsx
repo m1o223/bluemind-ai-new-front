@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import VoiceRecordingPanel from "@/components/VoiceRecordingPanel";
 import BlueMindSendButton from "@/components/BlueMindSendButton";
 
@@ -519,7 +520,7 @@ export default function DesktopComposer({
                       ))}
                       {isUploading && (
                         <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[18px] bg-[var(--bm-hover-bg)]">
-                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
+                          <BlueMindLoadingDots className="text-[var(--bm-primary)]" />
                         </div>
                       )}
                       {normalizedAttachments.length > 1 && onClearAttachments && (

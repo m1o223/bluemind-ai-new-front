@@ -4,6 +4,7 @@ import { cva } from "class-variance-authority";
 
 import { cn } from "@/lib/utils"
 import { interactionClasses } from "@/lib/interactions"
+import BlueMindActionFeedback from "@/components/BlueMindActionFeedback"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -35,13 +36,20 @@ const buttonVariants = cva(
   }
 )
 
-const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
+const Button = React.forwardRef(({ className, variant, size, asChild = false, loading = false, actionState, children, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
+  const feedbackState = actionState || (loading ? "processing" : "")
+
   return (
     <Comp
       className={cn(interactionClasses.control, buttonVariants({ variant, size, className }))}
       ref={ref}
-      {...props} />
+      data-bm-action-state={feedbackState || undefined}
+      {...props}
+    >
+      {feedbackState ? <BlueMindActionFeedback state={feedbackState} /> : null}
+      {children}
+    </Comp>
   );
 })
 Button.displayName = "Button"

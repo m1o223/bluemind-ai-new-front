@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Search, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import MessageResponse from "@/components/MessageResponse";
 import { useApp } from "@/context/AppContext";
 import { interactionClasses } from "@/lib/interactions";
@@ -159,11 +160,7 @@ export default function MobileSearch() {
             style={{ backgroundColor: "var(--bluemind-app-color, var(--bm-primary))" }}
             aria-label="Send search"
           >
-            {isSearching ? (
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
+            {isSearching ? <BlueMindLoadingDots /> : <Send className="h-5 w-5" />}
           </button>
         </div>
       </form>

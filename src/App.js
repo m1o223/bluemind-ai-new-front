@@ -4,6 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
+import BlueMindInteractionProvider from "@/components/BlueMindInteractionProvider";
 import BrandLogo from "@/components/BrandLogo";
 import LandingPage from "@/pages/LandingPage";
 import AuthSelectionPage from "@/pages/AuthSelectionPage";
@@ -186,6 +187,7 @@ function App() {
     <AppProvider>
       <TooltipProvider delayDuration={100}>
         <BrowserRouter>
+          <BlueMindInteractionProvider />
           <AppContent />
         </BrowserRouter>
       </TooltipProvider>

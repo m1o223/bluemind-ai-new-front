@@ -5,10 +5,12 @@ import { ArrowLeft, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
+import { ACTION_ERROR_HOLD_MS, waitForActionFeedback } from "@/lib/actionFeedback";
 import { getApiErrorMessage } from "@/services/api";
 import { getGoogleSignInErrorMessage, loginUser, signInWithGoogle } from "@/services/authService";
 
@@ -23,10 +25,6 @@ function GoogleIcon() {
   );
 }
 
-function LoadingSpinner({ className = "border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" }) {
-  return <span className={`h-4 w-4 animate-spin rounded-full border-2 ${className}`} />;
-}
-
 export default function MobileEmail() {
   const navigate = useNavigate();
   const { resolvedTheme, t } = useApp();
@@ -34,6 +32,7 @@ export default function MobileEmail() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [actionState, setActionState] = useState("");
   const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -48,18 +47,24 @@ export default function MobileEmail() {
     event.preventDefault();
     if (!isFormValid) return;
     setIsLoading(true);
+    setActionState("processing");
     setErrorMessage("");
 
     try {
       await loginUser(formData.email, formData.password);
       toast.success(t("welcomeBackToast"));
+      setActionState("success");
+      await waitForActionFeedback();
       navigate("/mobile/chat");
     } catch (error) {
       const message = getApiErrorMessage(error, t("loginFailed"));
+      setActionState("error");
+      await waitForActionFeedback(ACTION_ERROR_HOLD_MS);
       setErrorMessage(message);
       toast.error(message);
     } finally {
       setIsLoading(false);
+      setActionState("");
     }
   };
 
@@ -172,11 +177,12 @@ export default function MobileEmail() {
           <Button
             type="submit"
             disabled={!isFormValid || isLoading}
+            actionState={actionState}
             className="h-[52px] w-full rounded-2xl text-[15px] font-semibold text-white disabled:opacity-50"
             style={{ backgroundColor: "var(--bluemind-app-color, var(--bm-primary))" }}
             data-testid="mobile-login-submit-button"
           >
-            {isLoading ? <LoadingSpinner className="border-white/30 border-t-white" /> : t("signIn")}
+            {isLoading ? t("signingIn") : t("signIn")}
           </Button>
 
           {errorMessage && (
@@ -200,7 +206,7 @@ export default function MobileEmail() {
             className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl border border-[var(--bm-border)] bg-white text-[15px] font-semibold text-[var(--bm-text-primary)] shadow-sm transition-colors disabled:opacity-70"
             data-testid="mobile-google-login"
           >
-            {socialLoading === "google" ? <LoadingSpinner /> : <GoogleIcon />}
+            {socialLoading === "google" ? <BlueMindLoadingDots className="text-[var(--bm-primary)]" /> : <GoogleIcon />}
             <span>{t("google")}</span>
           </button>
         </div>

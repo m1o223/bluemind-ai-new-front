@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils"
 import { inputClasses, typeClasses } from "@/lib/interactions"
 import { useApp } from "@/context/AppContext"
 import BrandLogo from "@/components/BrandLogo"
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback"
 import { toast } from "sonner"
 
 function formatDate(dateStr, language = "en") {
@@ -493,7 +494,7 @@ function NotificationSetupPanel({
             aria-label={t("refreshNotificationStatus")}
             data-testid="refresh-notification-status-button"
           >
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            {refreshing ? <BlueMindLoadingDots className="text-[var(--bm-primary)]" /> : <RefreshCw className="h-4 w-4" />}
           </button>
         </div>
       </div>

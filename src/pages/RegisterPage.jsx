@@ -10,11 +10,14 @@ import { getApiErrorMessage } from "../services/api";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import BrandLogo from "@/components/BrandLogo";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
+import { ACTION_ERROR_HOLD_MS, waitForActionFeedback } from "@/lib/actionFeedback";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [actionState, setActionState] = useState("");
   const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
@@ -48,18 +51,24 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!isFormValid) return;
     setIsLoading(true);
+    setActionState("processing");
     setErrorMessage("");
     try {
       const result = await registerUser(formData.fullName, formData.email, formData.password);
       toast.success(t("accountCreatedCheckEmail"));
       sessionStorage.setItem("pendingVerificationEmail", result?.user?.email || formData.email);
+      setActionState("success");
+      await waitForActionFeedback();
       setIsLoading(false);
       navigate(`/auth/verify-email?email=${encodeURIComponent(result?.user?.email || formData.email)}`);
     } catch (error) {
       const message = getApiErrorMessage(error, t("registrationFailed"));
+      setActionState("error");
+      await waitForActionFeedback(ACTION_ERROR_HOLD_MS);
       setErrorMessage(message);
       toast.error(message);
       setIsLoading(false);
+      setActionState("");
     }
   };
 
@@ -180,15 +189,11 @@ export default function RegisterPage() {
           <Button
             type="submit"
             disabled={!isFormValid || isLoading}
+            actionState={actionState}
             className="w-full py-5 text-sm bg-[var(--bm-primary)] hover:bg-[var(--bm-primary-hover)] text-white rounded-xl font-medium disabled:opacity-50 transition-all duration-200 cursor-pointer"
             data-testid="register-submit-button"
           >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                {t("creating")}
-              </span>
-            ) : t("createAccountButton")}
+            {isLoading ? t("creating") : t("createAccountButton")}
           </Button>
           {errorMessage && (
             <p className="text-sm text-red-500" data-testid="register-error">
@@ -213,7 +218,7 @@ export default function RegisterPage() {
             className={`flex items-center justify-center gap-2 py-3 border rounded-xl transition-all duration-200 cursor-pointer ${socialButtonClass}`}
             data-testid="google-login"
           >
-            {socialLoading === "google" ? <div className="w-5 h-5 border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)] rounded-full animate-spin" /> : <svg className="w-5 h-5" viewBox="0 0 24 24">
+            {socialLoading === "google" ? <BlueMindLoadingDots className="text-[var(--bm-primary)]" /> : <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="var(--bm-success)"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="var(--bm-warning)"/>

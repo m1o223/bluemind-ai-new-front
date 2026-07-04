@@ -4,6 +4,7 @@ import { FileText, Mic, Plus, X } from "lucide-react";
 
 import { inputClasses } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import VoiceRecordingPanel from "@/components/VoiceRecordingPanel";
 import BlueMindSendButton from "@/components/BlueMindSendButton";
 
@@ -294,7 +295,7 @@ export default function UnifiedComposer({
 
                     {isUploading && (
                       <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85")}>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
+                        <BlueMindLoadingDots className="text-[var(--bm-primary)]" />
                       </div>
                     )}
 
@@ -444,7 +445,7 @@ export default function UnifiedComposer({
                         isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85",
                       )}
                     >
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--bm-text-muted)]/30 border-t-[var(--bm-primary)]" />
+                      <BlueMindLoadingDots className="text-[var(--bm-primary)]" />
                     </div>
                   )}
 

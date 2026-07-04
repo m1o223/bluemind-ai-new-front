@@ -11,7 +11,6 @@ import {
   Globe2,
   Image,
   Languages,
-  Loader2,
   Mic,
   Paperclip,
   Plus,
@@ -24,6 +23,7 @@ import {
 import { toast } from "sonner";
 
 import { useApp } from "@/context/AppContext";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import BlueMindSendButton from "@/components/BlueMindSendButton";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import { cn } from "@/lib/utils";
@@ -603,7 +603,7 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
           className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.control, !enough && (isDark ? "bg-white/[0.07] text-[var(--bm-text-muted)]" : "bg-[var(--bm-border)] text-[var(--bm-text-secondary)]"))}
           style={enough ? { backgroundColor: appColor, color: accentText } : undefined}
         >
-          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {generating ? <BlueMindLoadingDots /> : <Sparkles className="h-4 w-4" />}
           {generating ? "Generating..." : enough ? "Reply Yes to generate" : "Collecting details"}
         </div>
       </header>
@@ -655,7 +655,7 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
 
           {generating && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("rounded-3xl border px-5 py-5 text-center", isDark ? "border-white/[0.08] bg-white/[0.05]" : "border-[var(--bm-border)] bg-[var(--bm-bg-app)]")}>
-              <Loader2 className="mx-auto h-8 w-8 animate-spin" style={{ color: appColor }} />
+              <BlueMindLoadingDots className="mx-auto text-[var(--bm-primary)]" />
               <p className={cn("mt-3 font-extrabold", typeClasses.cardTitle)}>{GENERATION_STEPS[generationStep]}</p>
             </motion.div>
           )}

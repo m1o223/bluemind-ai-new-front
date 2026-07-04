@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 
 import { useApp } from "@/context/AppContext";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
@@ -298,9 +299,7 @@ function PrimarySettingsButton({ children, loading, ...props }) {
         props.className,
       )}
     >
-      {loading ? (
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-      ) : children}
+      {loading ? <BlueMindLoadingDots /> : children}
     </button>
   );
 }
@@ -606,7 +605,7 @@ export default function SettingsSheet({
           aria-label="Edit profile picture"
         >
           {saving === "avatar" ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            <BlueMindLoadingDots />
           ) : (
             <Pencil className="h-4 w-4" />
           )}

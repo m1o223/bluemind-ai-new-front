@@ -40,10 +40,10 @@
   --text-secondary: var(--bm-text-secondary);
   --accent: var(--bm-primary);
   --accent-hover: var(--bm-primary-hover);
-  --bm-motion-duration: 180ms;
+  --bm-motion-duration: 120ms;
   --bm-motion-duration-slow: 260ms;
   --bm-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --bm-active-scale: 0.98;
+  --bm-active-scale: 0.96;
   --bm-card-hover-y: -3px;
   --bm-control-hover-y: -1px;
   --bm-text-page-title: 32px;
@@ -224,6 +224,11 @@ select {
   transform: none !important;
 }
 
+:where(button, a, label, summary, [role="button"], [role="menuitem"]):not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(var(--bm-active-scale));
+  transition-duration: 110ms;
+}
+
 .bm-interactive {
   position: relative;
   isolation: isolate;
@@ -239,6 +244,7 @@ select {
 
 .bm-interactive:not(:disabled):not([aria-disabled="true"]):active {
   transform: scale(var(--bm-active-scale));
+  transition-duration: 110ms;
 }
 
 .bm-card-interactive {
@@ -270,7 +276,8 @@ select {
 }
 
 .bm-menu-interactive:not(:disabled):not([aria-disabled="true"]):active {
-  transform: scale(0.992);
+  transform: scale(var(--bm-active-scale));
+  transition-duration: 110ms;
 }
 
 .bm-icon-interactive {
@@ -287,6 +294,83 @@ select {
 
 .bm-icon-interactive:not(:disabled):not([aria-disabled="true"]):active {
   transform: scale(var(--bm-active-scale));
+  transition-duration: 110ms;
+}
+
+.bm-action-feedback {
+  color: currentColor;
+  transform-origin: center;
+}
+
+.bm-action-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 16px;
+}
+
+.bm-action-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.78;
+  animation: bm-dot-wave 1.18s var(--bm-motion-ease) infinite;
+  animation-delay: calc(var(--bm-dot-index) * 150ms);
+}
+
+.bm-action-check {
+  color: var(--bm-success);
+  stroke-width: 3;
+  transform-origin: center;
+  animation: bm-check-pop 250ms var(--bm-motion-ease) both;
+}
+
+.bm-action-feedback-error {
+  color: var(--bm-error);
+  animation: bm-action-shake 220ms var(--bm-motion-ease) both;
+}
+
+@keyframes bm-dot-wave {
+  0%,
+  72%,
+  100% {
+    transform: translateY(0) scale(0.92);
+    opacity: 0.55;
+  }
+  28% {
+    transform: translateY(-4px) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bm-check-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.72) rotate(-8deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bm-action-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(-3px);
+  }
+  62% {
+    transform: translateX(3px);
+  }
 }
 
 .bm-input-interactive {

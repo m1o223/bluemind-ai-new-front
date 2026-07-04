@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { inputClasses, typeClasses } from "@/lib/interactions";
 import { useApp } from "@/context/AppContext";
 import {
@@ -450,7 +451,7 @@ function NotificationPanel({ debug, busy, isDark, appColor, onEnable, onRefresh,
           )}
           aria-label="Refresh notification status"
         >
-          <RefreshCw className={cn("h-4 w-4", busy.refreshing && "animate-spin")} />
+          {busy.refreshing ? <BlueMindLoadingDots className="text-[var(--bm-primary)]" /> : <RefreshCw className="h-4 w-4" />}
         </button>
         <button
           type="button"
