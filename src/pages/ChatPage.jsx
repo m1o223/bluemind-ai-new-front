@@ -38,6 +38,16 @@ import {
   ChevronLeft,
   ChevronRight,
   PenLine,
+  Mail,
+  GraduationCap,
+  MessageCircle,
+  Briefcase,
+  ClipboardList,
+  AlertTriangle,
+  Megaphone,
+  HeartHandshake,
+  Contact,
+  BookMarked,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -155,17 +165,17 @@ const VOICE_AUTOPLAY_ENABLED_KEY = "bluemind_voice_autoplay_enabled";
 const WEBSITE_PAGE_SIZE = 10;
 
 const WRITING_SUGGESTIONS = [
-  { id: "email", label: "Email", icon: "📧", prompt: "Help me write an email." },
-  { id: "school", label: "School", icon: "🎓", prompt: "I need help with school writing." },
-  { id: "essay", label: "Essay", icon: "📄", prompt: "Help me write an essay." },
-  { id: "story", label: "Story", icon: "📖", prompt: "Help me write a story." },
-  { id: "message", label: "Message", icon: "📱", prompt: "Help me write a message." },
-  { id: "job_application", label: "Job Application", icon: "💼", prompt: "Help me write a job application." },
-  { id: "report", label: "Report", icon: "📑", prompt: "Help me write a report." },
-  { id: "complaint", label: "Complaint", icon: "📝", prompt: "Help me write a complaint." },
-  { id: "social_media", label: "Social Media", icon: "📢", prompt: "Help me write a social media post." },
-  { id: "personal_letter", label: "Personal Letter", icon: "❤️", prompt: "Help me write a personal letter." },
-  { id: "cv", label: "CV", icon: "📄", prompt: "Help me write a CV." },
+  { id: "email", label: "Email", icon: Mail, prompt: "Help me write an email." },
+  { id: "school", label: "School", icon: GraduationCap, prompt: "I need help with school writing." },
+  { id: "essay", label: "Essay", icon: FileText, prompt: "Help me write an essay." },
+  { id: "story", label: "Story", icon: BookMarked, prompt: "Help me write a story." },
+  { id: "message", label: "Message", icon: MessageCircle, prompt: "Help me write a message." },
+  { id: "job_application", label: "Job Application", icon: Briefcase, prompt: "Help me write a job application." },
+  { id: "report", label: "Report", icon: ClipboardList, prompt: "Help me write a report." },
+  { id: "complaint", label: "Complaint", icon: AlertTriangle, prompt: "Help me write a complaint." },
+  { id: "social_media", label: "Social Media", icon: Megaphone, prompt: "Help me write a social media post." },
+  { id: "personal_letter", label: "Personal Letter", icon: HeartHandshake, prompt: "Help me write a personal letter." },
+  { id: "cv", label: "CV", icon: Contact, prompt: "Help me write a CV." },
 ];
 
 function getConversationWorkspace(item) {
@@ -4420,22 +4430,25 @@ export default function ChatPage() {
 
   const renderWritingSuggestions = () => (
     <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-      {WRITING_SUGGESTIONS.map((suggestion) => (
-        <button
-          key={suggestion.id}
-          type="button"
-          onClick={() => handleWritingSuggestionSelect(suggestion)}
-          className={cn(
-            "inline-flex h-10 items-center gap-2 rounded-full px-3.5 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0",
-            isDark
-              ? "bg-white/[0.055] text-white hover:bg-white/[0.1]"
-              : "bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-black/[0.06] hover:bg-[var(--bm-hover-bg)]",
-          )}
-        >
-          <span aria-hidden="true">{suggestion.icon}</span>
-          <span>{suggestion.label}</span>
-        </button>
-      ))}
+      {WRITING_SUGGESTIONS.map((suggestion) => {
+        const SuggestionIcon = suggestion.icon;
+        return (
+          <button
+            key={suggestion.id}
+            type="button"
+            onClick={() => handleWritingSuggestionSelect(suggestion)}
+            className={cn(
+              "inline-flex h-10 items-center gap-2 rounded-full px-3.5 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0",
+              isDark
+                ? "bg-white/[0.055] text-white hover:bg-white/[0.1]"
+                : "bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-black/[0.06] hover:bg-[var(--bm-hover-bg)]",
+            )}
+          >
+            <SuggestionIcon className="h-[18px] w-[18px] shrink-0 stroke-[2.2]" aria-hidden="true" />
+            <span>{suggestion.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -5156,8 +5169,11 @@ export default function ChatPage() {
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-6 text-center sm:mb-8"
                 >
-                  <h1 className={cn("text-[26px] font-semibold leading-tight tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
-                    ✍️ What would you like me to write today?
+                  <h1 className={cn("flex flex-wrap items-center justify-center gap-3 text-[26px] font-semibold leading-tight tracking-tight sm:text-4xl", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
+                    <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)]")}>
+                      <PenLine className={cn("h-6 w-6 stroke-[2.3]", isDark ? "text-white" : "text-[var(--bm-primary)]")} aria-hidden="true" />
+                    </span>
+                    <span>What would you like me to write today?</span>
                   </h1>
                   <p className={cn("mx-auto mt-3 max-w-2xl text-sm leading-6 sm:text-base", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
                     Writing Mode helps you write texts, messages, emails, school assignments, stories, CVs, and more. BlueMind can also learn your personal writing style so the result feels closer to how you naturally write.
