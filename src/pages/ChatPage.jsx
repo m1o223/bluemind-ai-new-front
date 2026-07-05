@@ -1606,6 +1606,7 @@ export default function ChatPage() {
   const [isWritingProfileSaving, setIsWritingProfileSaving] = useState(false);
   const [writingStylePanelOpen, setWritingStylePanelOpen] = useState(false);
   const [writingGuideOpen, setWritingGuideOpen] = useState(false);
+  const [writingGuideStep, setWritingGuideStep] = useState(0);
   const [writingSampleText, setWritingSampleText] = useState("");
   const [writingUpdateReason, setWritingUpdateReason] = useState("");
   const [writingAdjustmentText, setWritingAdjustmentText] = useState("");
@@ -1911,6 +1912,7 @@ export default function ChatPage() {
       const key = getWritingGuideStorageKey();
       const visits = Number.parseInt(localStorage.getItem(key) || "0", 10);
       if (visits < 2) {
+        setWritingGuideStep(0);
         setWritingGuideOpen(true);
       }
       localStorage.setItem(key, String(Math.min(visits + 1, 2)));
@@ -4597,76 +4599,177 @@ export default function ChatPage() {
     );
   };
 
-  const renderWritingGuideModal = () => (
-    <AnimatePresence>
-      {writingGuideOpen && chatSessionMode === "writing" && (
-        <div className="fixed inset-0 z-[88] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/45 backdrop-blur-sm"
-            onClick={() => setWritingGuideOpen(false)}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 18, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 14, scale: 0.96 }}
-            transition={{ duration: 0.18 }}
-            className={cn(
-              "relative z-10 w-full max-w-lg rounded-[28px] border p-5 shadow-2xl",
-              isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-black/[0.08] bg-white text-[var(--bm-text-primary)]",
-            )}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)]")}>
-                  <PenLine className={cn("h-5 w-5 stroke-[2.3]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />
-                </span>
-                <div>
-                  <h2 className="text-lg font-bold">How Writing Mode Works</h2>
-                  <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
-                    A quick guide for your writing workspace.
-                  </p>
+  const renderWritingGuideModal = () => {
+    const pages = [
+      {
+        title: "Welcome to Writing Mode",
+        label: "Important Notice",
+        items: [
+          "Writing Mode is an intelligent writing assistant.",
+          "It helps you write in your own writing style.",
+          "It is not intended for cheating.",
+          "It is not intended for deception.",
+          "It is not intended for impersonating someone else.",
+          "You are responsible for how you use generated content.",
+        ],
+      },
+      {
+        title: "How Writing Mode Works",
+        items: [
+          "Choose a writing category.",
+          "Upload writing samples if you want a personal writing style.",
+          "BlueMind analyzes your writing.",
+          "A private Writing Profile is created.",
+          "Future writing will match your own style.",
+        ],
+      },
+      {
+        title: "Your Writing Profile",
+        items: [
+          "You can improve your Writing Profile anytime.",
+          "If your writing changes in the future, you can update it.",
+          "More writing samples produce better results.",
+        ],
+      },
+      {
+        title: "You're Ready",
+        description: "You can now start using Writing Mode. Choose a writing type, write your request, or create a personal Writing Profile whenever you are ready.",
+      },
+    ];
+    const page = pages[writingGuideStep] || pages[0];
+    const isLast = writingGuideStep === pages.length - 1;
+    const closeGuide = () => setWritingGuideOpen(false);
+
+    return (
+      <AnimatePresence>
+        {writingGuideOpen && chatSessionMode === "writing" && (
+          <div className="fixed inset-0 z-[88] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/45 backdrop-blur-sm"
+              onClick={closeGuide}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.96 }}
+              transition={{ duration: 0.18 }}
+              className={cn(
+                "relative z-10 w-full max-w-lg rounded-[30px] border p-5 shadow-2xl sm:p-6",
+                isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-black/[0.08] bg-white text-[var(--bm-text-primary)]",
+              )}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)]")}>
+                    <PenLine className={cn("h-5 w-5 stroke-[2.3]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />
+                  </span>
+                  <div>
+                    <p className={cn("text-xs font-bold uppercase tracking-[0.16em]", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-muted)]")}>
+                      Step {writingGuideStep + 1} of {pages.length}
+                    </p>
+                    <h2 className="mt-1 text-xl font-bold">{page.title}</h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeGuide}
+                  className={cn("flex h-9 w-9 items-center justify-center rounded-full", isDark ? "hover:bg-white/[0.08]" : "hover:bg-black/[0.05]")}
+                  aria-label="Close Writing Guide"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-5 flex items-center gap-2">
+                {pages.map((item, index) => (
+                  <span
+                    key={item.title}
+                    className={cn(
+                      "h-1.5 flex-1 rounded-full transition-colors",
+                      index <= writingGuideStep ? "bg-[var(--bm-primary)]" : isDark ? "bg-white/[0.12]" : "bg-black/[0.08]",
+                    )}
+                  />
+                ))}
+              </div>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={page.title}
+                  initial={{ opacity: 0, x: 18 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -18 }}
+                  transition={{ duration: 0.18 }}
+                  className="mt-6 min-h-[250px]"
+                >
+                  {page.label && (
+                    <p className={cn("mb-3 text-sm font-bold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{page.label}</p>
+                  )}
+                  {page.description ? (
+                    <p className={cn("rounded-2xl p-4 text-sm font-medium leading-7", isDark ? "bg-white/[0.055] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
+                      {page.description}
+                    </p>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {page.items.map((item) => (
+                        <div key={item} className={cn("flex gap-3 rounded-2xl p-3", isDark ? "bg-white/[0.055]" : "bg-[var(--bm-hover-bg)]")}>
+                          <Check className={cn("mt-0.5 h-4 w-4 shrink-0 stroke-[2.6]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />
+                          <p className={cn("text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+
+              <div className={cn("mt-5 flex flex-wrap items-center gap-2", isLast ? "justify-end" : "justify-between")}>
+                {!isLast && (
+                  <button
+                    type="button"
+                    onClick={closeGuide}
+                    className={cn("h-11 rounded-2xl px-4 text-sm font-bold", isDark ? "text-[var(--bm-text-secondary)] hover:bg-white/[0.07]" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)]")}
+                  >
+                    Skip
+                  </button>
+                )}
+                <div className="ml-auto flex items-center gap-2">
+                  {writingGuideStep > 0 && !isLast && (
+                    <button
+                      type="button"
+                      onClick={() => setWritingGuideStep((step) => Math.max(0, step - 1))}
+                      className={cn("h-11 rounded-2xl px-4 text-sm font-bold", isDark ? "bg-white/[0.07] text-white hover:bg-white/[0.11]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)] hover:bg-[var(--bm-active-bg)]")}
+                    >
+                      Previous
+                    </button>
+                  )}
+                  {!isLast ? (
+                    <button
+                      type="button"
+                      onClick={() => setWritingGuideStep((step) => Math.min(pages.length - 1, step + 1))}
+                      className="h-11 rounded-2xl bg-[var(--bm-primary)] px-5 text-sm font-bold text-white transition-opacity hover:opacity-95"
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={closeGuide}
+                      className="h-12 rounded-2xl bg-[var(--bm-primary)] px-7 text-sm font-bold text-white transition-opacity hover:opacity-95"
+                    >
+                      Start Writing
+                    </button>
+                  )}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setWritingGuideOpen(false)}
-                className={cn("flex h-9 w-9 items-center justify-center rounded-full", isDark ? "hover:bg-white/[0.08]" : "hover:bg-black/[0.05]")}
-                aria-label="Close Writing Guide"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {[
-                ["Choose a writing task", "Start with Email, School, Essay, CV, Report, or any other writing need."],
-                ["Use your own style", "Create a private Writing Profile from samples you wrote yourself."],
-                ["Stay responsible", "Writing Mode helps you draft and improve text. It is not for cheating, deception, or misuse."],
-                ["Keep it organized", "Writing conversations stay separate from Normal Chat history."],
-              ].map(([title, description], index) => (
-                <div key={title} className={cn("rounded-2xl p-3", isDark ? "bg-white/[0.055]" : "bg-[var(--bm-hover-bg)]")}>
-                  <p className="text-sm font-bold">{index + 1}. {title}</p>
-                  <p className={cn("mt-1 text-sm leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{description}</p>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setWritingGuideOpen(false)}
-              className="mt-5 h-11 w-full rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white transition-opacity hover:opacity-95"
-            >
-              Start Writing
-            </button>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  };
 
   const handleResponseModeSelect = async (nextMode, model) => {
     const normalizedMode = normalizeAiModeId(nextMode);
@@ -5221,7 +5324,10 @@ export default function ChatPage() {
                 <button
                   type="button"
                   className="ml-1 underline underline-offset-2"
-                  onClick={() => setWritingGuideOpen(true)}
+                  onClick={() => {
+                    setWritingGuideStep(0);
+                    setWritingGuideOpen(true);
+                  }}
                 >
                   Writing Guide
                 </button>
