@@ -206,6 +206,8 @@ function getWritingGuideStorageKey() {
   return `bluemind_writing_guide_visits_${userKey}`;
 }
 
+const WRITING_GUIDE_ALWAYS_SHOW_FOR_TESTING = true;
+
 function uiTextKey(prefix, value, suffix = "") {
   const slug = String(value || "")
     .trim()
@@ -1913,6 +1915,12 @@ export default function ChatPage() {
     setHiddenChatModalOpen(false);
     handleNewChat();
     loadWritingHistory().catch(() => {});
+
+    if (WRITING_GUIDE_ALWAYS_SHOW_FOR_TESTING) {
+      setWritingGuideStep(0);
+      setWritingGuideOpen(true);
+      return;
+    }
 
     try {
       const key = getWritingGuideStorageKey();
