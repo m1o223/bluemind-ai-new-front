@@ -117,6 +117,7 @@ import {
   confirmWritingProfile,
   getWritingProfile,
 } from "@/services/writingProfileService";
+import { readStoredUser } from "@/services/storageKeys";
 import { updatePreferences } from "@/services/profileService";
 import { formatStreamErrorForDisplay, logStreamError } from "@/services/streamErrorUtils";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
@@ -197,6 +198,12 @@ function isSchoolWritingRequest(text = "") {
 
 function wantsOwnWritingStyle(text = "") {
   return /\b(yes|yeah|yep|sure|own style|my style|like me|my writing|natural style)\b/i.test(text);
+}
+
+function getWritingGuideStorageKey() {
+  const user = readStoredUser();
+  const userKey = user?._id || user?.id || user?.email || "guest";
+  return `bluemind_writing_guide_visits_${userKey}`;
 }
 
 function uiTextKey(prefix, value, suffix = "") {
@@ -1598,6 +1605,7 @@ export default function ChatPage() {
   const [isWritingProfileLoading, setIsWritingProfileLoading] = useState(false);
   const [isWritingProfileSaving, setIsWritingProfileSaving] = useState(false);
   const [writingStylePanelOpen, setWritingStylePanelOpen] = useState(false);
+  const [writingGuideOpen, setWritingGuideOpen] = useState(false);
   const [writingSampleText, setWritingSampleText] = useState("");
   const [writingUpdateReason, setWritingUpdateReason] = useState("");
   const [writingAdjustmentText, setWritingAdjustmentText] = useState("");
@@ -1898,6 +1906,17 @@ export default function ChatPage() {
     setHiddenChatModalOpen(false);
     handleNewChat();
     loadWritingHistory().catch(() => {});
+
+    try {
+      const key = getWritingGuideStorageKey();
+      const visits = Number.parseInt(localStorage.getItem(key) || "0", 10);
+      if (visits < 2) {
+        setWritingGuideOpen(true);
+      }
+      localStorage.setItem(key, String(Math.min(visits + 1, 2)));
+    } catch {
+      setWritingGuideOpen(false);
+    }
   };
 
   const handleExitPrivateSpace = () => {
@@ -4578,6 +4597,77 @@ export default function ChatPage() {
     );
   };
 
+  const renderWritingGuideModal = () => (
+    <AnimatePresence>
+      {writingGuideOpen && chatSessionMode === "writing" && (
+        <div className="fixed inset-0 z-[88] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/45 backdrop-blur-sm"
+            onClick={() => setWritingGuideOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.96 }}
+            transition={{ duration: 0.18 }}
+            className={cn(
+              "relative z-10 w-full max-w-lg rounded-[28px] border p-5 shadow-2xl",
+              isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-black/[0.08] bg-white text-[var(--bm-text-primary)]",
+            )}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)]")}>
+                  <PenLine className={cn("h-5 w-5 stroke-[2.3]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />
+                </span>
+                <div>
+                  <h2 className="text-lg font-bold">How Writing Mode Works</h2>
+                  <p className={cn("mt-1 text-sm", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
+                    A quick guide for your writing workspace.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWritingGuideOpen(false)}
+                className={cn("flex h-9 w-9 items-center justify-center rounded-full", isDark ? "hover:bg-white/[0.08]" : "hover:bg-black/[0.05]")}
+                aria-label="Close Writing Guide"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {[
+                ["Choose a writing task", "Start with Email, School, Essay, CV, Report, or any other writing need."],
+                ["Use your own style", "Create a private Writing Profile from samples you wrote yourself."],
+                ["Stay responsible", "Writing Mode helps you draft and improve text. It is not for cheating, deception, or misuse."],
+                ["Keep it organized", "Writing conversations stay separate from Normal Chat history."],
+              ].map(([title, description], index) => (
+                <div key={title} className={cn("rounded-2xl p-3", isDark ? "bg-white/[0.055]" : "bg-[var(--bm-hover-bg)]")}>
+                  <p className="text-sm font-bold">{index + 1}. {title}</p>
+                  <p className={cn("mt-1 text-sm leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{description}</p>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setWritingGuideOpen(false)}
+              className="mt-5 h-11 w-full rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white transition-opacity hover:opacity-95"
+            >
+              Start Writing
+            </button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   const handleResponseModeSelect = async (nextMode, model) => {
     const normalizedMode = normalizeAiModeId(nextMode);
     if (model?.id) setDesktopModelId(model.id);
@@ -4993,6 +5083,7 @@ export default function ChatPage() {
 
       {renderWebsiteDetails()}
       {renderChatModeModals()}
+      {renderWritingGuideModal()}
 
       <AnimatePresence>
         {desktopSettingsOpen && (
@@ -5127,6 +5218,13 @@ export default function ChatPage() {
               <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
                 <PenLine className="h-3.5 w-3.5" />
                 <span>Writing Mode</span>
+                <button
+                  type="button"
+                  className="ml-1 underline underline-offset-2"
+                  onClick={() => setWritingGuideOpen(true)}
+                >
+                  Writing Guide
+                </button>
                 <button
                   type="button"
                   className="ml-1 underline underline-offset-2"
