@@ -5,7 +5,7 @@ import { Camera, FileText, Image as ImageIcon, PenLine, Search } from "lucide-re
 import { cn } from "@/lib/utils";
 import { iconClasses } from "@/lib/interactions";
 
-export default function AttachmentPlusMenu({
+export default function DesktopPlusMenu({
   open,
   onClose,
   isDark = false,
@@ -87,7 +87,7 @@ export default function AttachmentPlusMenu({
             type="button"
             className="fixed inset-0 z-[84] cursor-default bg-transparent"
             onClick={onClose}
-            aria-label="Close attachment menu"
+            aria-label="Close desktop plus menu"
           />
 
           <motion.div
@@ -97,7 +97,7 @@ export default function AttachmentPlusMenu({
               placement === "below" ? "top-[calc(100%+8px)]" : "bottom-[calc(100%+8px)]",
               surfaceClass,
             )}
-            data-testid="attachment-plus-menu"
+            data-testid="desktop-plus-menu"
             initial={{ opacity: 0, y: placement === "below" ? -4 : 4, scale: 0.98, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}
             animate={{ opacity: 1, y: 0, scale: 1, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}
             exit={{ opacity: 0, y: placement === "below" ? -4 : 4, scale: 0.98, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}

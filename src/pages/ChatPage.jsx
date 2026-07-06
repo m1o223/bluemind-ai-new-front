@@ -61,9 +61,8 @@ import MessageResponse from "@/components/MessageResponse";
 import ChatImageAttachments, { resolveAttachmentPreviewUrl } from "@/components/ChatImageAttachments";
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
-import UnifiedComposer from "@/components/UnifiedComposer";
-import BlueMindModelSelector from "@/components/BlueMindModelSelector";
-import AttachmentPlusMenu from "@/components/AttachmentPlusMenu";
+import DesktopComposer from "@/components/DesktopComposer";
+import DesktopPlusMenu from "@/components/DesktopPlusMenu";
 import {
   WEBSITE_CATEGORIES,
   WEBSITE_DIRECTORY,
@@ -4838,7 +4837,7 @@ export default function ChatPage() {
       clearLabel: activeMode === "web_search" ? t("removeWebSearch") : t("remove"),
     } : null;
     const actionMenu = (
-      <AttachmentPlusMenu
+      <DesktopPlusMenu
         open={attachmentMenuOpen}
         onClose={() => setAttachmentMenuOpen(false)}
         isDark={isDark}
@@ -4914,7 +4913,7 @@ export default function ChatPage() {
     );
 
     return (
-      <UnifiedComposer
+      <DesktopComposer
             value={input}
             inputRef={composerInputRef}
             onChange={(event) => setInput(event.target.value)}
@@ -4976,19 +4975,11 @@ export default function ChatPage() {
             stopLabel={t("stopGenerating")}
             isDark={isDark}
             appColor={appColor}
-            variant={isMobileRoute ? "mobile" : "desktop"}
-            maxTextHeight={isMobileRoute ? 160 : Math.max(260, Math.floor((window.innerHeight || 800) * 0.46))}
-            modelSelector={(
-              <BlueMindModelSelector
-                responseMode={responseMode}
-                modelId={desktopModelId}
-                onResponseModeChange={handleResponseModeSelect}
-                thinkingLevel={thinkingLevel}
-                onThinkingLevelChange={setThinkingLevel}
-                isDark={isDark}
-                compact={isMobileRoute}
-              />
-            )}
+            responseMode={responseMode}
+            modelId={desktopModelId}
+            onResponseModeChange={handleResponseModeSelect}
+            thinkingLevel={thinkingLevel}
+            onThinkingLevelChange={setThinkingLevel}
             inputDirectionStyle={inputDirectionStyle}
             actionMenu={actionMenu}
             pendingPanel={pendingPanel}
