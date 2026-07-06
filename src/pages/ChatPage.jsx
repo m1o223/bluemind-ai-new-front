@@ -62,6 +62,7 @@ import ChatImageAttachments, { resolveAttachmentPreviewUrl } from "@/components/
 import RotatingChatSuggestion from "@/components/RotatingChatSuggestion";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import DesktopComposer from "@/components/DesktopComposer";
+import UnifiedComposer from "@/components/UnifiedComposer";
 import DesktopPlusMenu from "@/components/DesktopPlusMenu";
 import {
   WEBSITE_CATEGORIES,
@@ -4912,6 +4913,70 @@ export default function ChatPage() {
       </AnimatePresence>
     );
 
+    if (isMobileRoute) {
+      return (
+        <UnifiedComposer
+          value={input}
+          inputRef={composerInputRef}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={handleKeyDown}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (isAiTyping) {
+              handleStopStreaming();
+              return;
+            }
+            if (isListening) {
+              void handleFinishVoiceInput();
+              return;
+            }
+            handleSend();
+          }}
+          placeholder={
+            isUploading
+              ? t("uploadingImage")
+              : activeMode === "create_image"
+                ? t("describeOrEditImage")
+                : activeMode === "web_search"
+                  ? t("searchWebOrChooseWebsite")
+                  : activeMode === "write_edit"
+                    ? t("writePasteOrChooseTool")
+                    : chatSessionMode === "writing"
+                      ? "Tell BlueMind what to write..."
+                    : attachments.length
+                      ? "Ask about these images..."
+                    : "Ask anything..."
+          }
+          modePill={modePill}
+          attachments={composerAttachments}
+          onRemoveAttachment={removeComposerAttachment}
+          onClearAttachments={clearComposerAttachments}
+          isUploading={isUploading}
+          onAdd={() => setAttachmentMenuOpen((open) => !open)}
+          onVoice={startVoiceInput}
+          isListening={isListening}
+          voiceAudioLevels={voiceAudioLevels}
+          onCancelVoice={handleCancelVoiceInput}
+          onFinishVoice={handleFinishVoiceInput}
+          isBusy={isAiTyping || isListening}
+          canSend={Boolean(input.trim() || composerAttachments.length)}
+          onSendAction={isAiTyping ? handleStopStreaming : isListening ? handleFinishVoiceInput : undefined}
+          addLabel={t("addAttachment")}
+          voiceLabel={isListening ? t("stopVoiceInput") : t("startVoiceInput")}
+          sendLabel={t("sendMessage")}
+          stopLabel={t("stopGenerating")}
+          isDark={isDark}
+          appColor={appColor}
+          variant="mobile"
+          maxTextHeight={160}
+          inputDirectionStyle={inputDirectionStyle}
+          actionMenu={actionMenu}
+          pendingPanel={pendingPanel}
+          testId={testSuffix ? `chat-input-${testSuffix}` : "chat-input"}
+        />
+      );
+    }
+
     return (
       <DesktopComposer
             value={input}
@@ -5213,26 +5278,28 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      <div className="hidden h-full flex-shrink-0 md:block">
-        <Sidebar
-          isHistoryOpen={historyOpen}
-          onToggleHistory={() => setHistoryOpen((value) => !value)}
-          onNewChat={handleNewChat}
-          onOpenSettings={() => setDesktopSettingsOpen(true)}
-          history={history}
-          activeConversationId={activeConversationId}
-          onOpenConversation={handleOpenConversation}
-          onRenameConversation={handleRenameConversation}
-          onShareConversation={handleShareConversation}
-          onDeleteConversation={handleDeleteConversation}
-          chatSessionMode={chatSessionMode}
-          privateSpaceName={activePrivateSpace?.name}
-          onSelectNormalChat={handleSelectNormalChat}
-          onSelectWritingMode={handleSelectWritingMode}
-          onOpenPrivateChat={openPrivateSpaceModal}
-          onOpenHiddenChat={() => setHiddenChatModalOpen(true)}
-        />
-      </div>
+      {!isMobileRoute && (
+        <div className="hidden h-full flex-shrink-0 md:block">
+          <Sidebar
+            isHistoryOpen={historyOpen}
+            onToggleHistory={() => setHistoryOpen((value) => !value)}
+            onNewChat={handleNewChat}
+            onOpenSettings={() => setDesktopSettingsOpen(true)}
+            history={history}
+            activeConversationId={activeConversationId}
+            onOpenConversation={handleOpenConversation}
+            onRenameConversation={handleRenameConversation}
+            onShareConversation={handleShareConversation}
+            onDeleteConversation={handleDeleteConversation}
+            chatSessionMode={chatSessionMode}
+            privateSpaceName={activePrivateSpace?.name}
+            onSelectNormalChat={handleSelectNormalChat}
+            onSelectWritingMode={handleSelectWritingMode}
+            onOpenPrivateChat={openPrivateSpaceModal}
+            onOpenHiddenChat={() => setHiddenChatModalOpen(true)}
+          />
+        </div>
+      )}
 
       <div className="relative flex-1 flex flex-col h-full min-w-0">
         <header
