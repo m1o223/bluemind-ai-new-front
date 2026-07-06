@@ -18,6 +18,7 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  Camera,
   Image as ImageIcon,
   FileText,
   File,
@@ -728,6 +729,8 @@ function Sidebar({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const mobileRoute = location.pathname.startsWith("/mobile");
+  const routeForSurface = useCallback((path) => (mobileRoute ? `/mobile${path}` : path), [mobileRoute]);
   const { t, prefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const [menuOpenId, setMenuOpenId] = useState(null);
@@ -862,31 +865,31 @@ function Sidebar({
       id: "dashboard",
       icon: Home,
       label: "Smart Hub",
-      action: () => navigate("/dashboard"),
+      action: () => navigate(routeForSurface("/dashboard")),
     },
     {
       id: "reminders",
       icon: Bell,
       label: t("reminders"),
-      action: () => navigate("/reminders"),
+      action: () => navigate(routeForSurface("/reminders")),
     },
     {
       id: "learning",
       icon: BookOpen,
       label: t("learning"),
-      action: () => navigate("/learning"),
+      action: () => navigate(routeForSurface("/learning")),
     },
     {
       id: "ai_plans",
       icon: Sparkles,
       label: "AI Plans",
-      action: () => navigate("/ai-plans"),
+      action: () => navigate(routeForSurface("/ai-plans")),
     },
     {
       id: "scheman",
       icon: CalendarDays,
       label: "Schedule",
-      action: () => navigate("/schedule"),
+      action: () => navigate(routeForSurface("/schedule")),
     },
   ];
   const collapsedPrimaryItems = [
@@ -896,7 +899,7 @@ function Sidebar({
       label: "Chat",
       action: () => {
         if (chatSessionMode !== "normal") onSelectNormalChat?.();
-        navigate("/chat");
+        navigate(routeForSurface("/chat"));
       },
       active: location.pathname === "/chat" || location.pathname === "/",
     },
@@ -904,28 +907,28 @@ function Sidebar({
       id: "learning",
       icon: BookOpen,
       label: t("learning"),
-      action: () => navigate("/learning"),
+      action: () => navigate(routeForSurface("/learning")),
       active: location.pathname.startsWith("/learning"),
     },
     {
       id: "ai_plans",
       icon: Sparkles,
       label: "AI Plans",
-      action: () => navigate("/ai-plans"),
+      action: () => navigate(routeForSurface("/ai-plans")),
       active: location.pathname.startsWith("/ai-plans"),
     },
     {
       id: "dashboard",
       icon: Home,
       label: "Smart Hub",
-      action: () => navigate("/dashboard"),
+      action: () => navigate(routeForSurface("/dashboard")),
       active: location.pathname.startsWith("/dashboard"),
     },
     {
       id: "reminders",
       icon: Bell,
       label: t("reminders"),
-      action: () => navigate("/reminders"),
+      action: () => navigate(routeForSurface("/reminders")),
       active: location.pathname.startsWith("/reminders"),
     },
   ];
@@ -1401,6 +1404,85 @@ function MessageActionBar({
   );
 }
 
+function MobileChatActionSheet({
+  open,
+  isDark,
+  onClose,
+  onCamera,
+  onPhotos,
+  onFiles,
+  onCreateImage,
+  onWriteEdit,
+  onSearch,
+}) {
+  const primaryActions = [
+    { id: "camera", label: "Camera", icon: Camera, action: onCamera },
+    { id: "photos", label: "Photos", icon: ImageIcon, action: onPhotos },
+    { id: "files", label: "Files", icon: FileText, action: onFiles },
+  ];
+  const toolActions = [
+    { id: "create-image", label: "Create Image", icon: Palette, action: onCreateImage },
+    { id: "write-edit", label: "Write / Edit", icon: Edit3, action: onWriteEdit },
+    { id: "search", label: "Search", icon: Search, action: onSearch },
+  ];
+
+  const renderAction = (item) => {
+    const Icon = item.icon;
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => {
+          item.action?.();
+          onClose?.();
+        }}
+        className={cn(
+          "flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left font-semibold transition-colors",
+          typeClasses.body,
+          isDark ? "text-white hover:bg-white/[0.08]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
+        )}
+      >
+        <Icon className={cn("shrink-0 stroke-[2.2]", iconClasses.button)} />
+        <span>{item.label}</span>
+      </button>
+    );
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[85] md:hidden" data-testid="mobile-chat-action-sheet">
+          <motion.button
+            type="button"
+            aria-label="Close attachment menu"
+            className="absolute inset-0 bg-black/20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              "absolute bottom-[calc(env(safe-area-inset-bottom)+92px)] left-3 right-3 rounded-[28px] border p-2 shadow-[0_18px_48px_rgba(15,23,42,0.22)]",
+              isDark ? "border-white/10 bg-[#232323] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]",
+            )}
+          >
+            <div className="space-y-1">{primaryActions.map(renderAction)}</div>
+            <div className={cn("my-2 h-px", isDark ? "bg-white/10" : "bg-black/10")} />
+            <div className="space-y-1">{toolActions.map(renderAction)}</div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function DislikeFeedbackPopover({ messageId, isDark, onSelect, onClose, t }) {
   return (
     <div className="fixed inset-0 z-[80]" onClick={onClose}>
@@ -1538,6 +1620,7 @@ const ChatMessage = memo(function ChatMessage({
 
 export default function ChatPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
@@ -1550,6 +1633,7 @@ export default function ChatPage() {
   const [attachments, setAttachments] = useState([]);
   const [conversationId, setConversationId] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [responseMode, setResponseMode] = useState(() => normalizeAiModeId(localStorage.getItem(RESPONSE_MODE_STORAGE_KEY)));
@@ -1645,6 +1729,12 @@ export default function ChatPage() {
   const appColor = prefs.appColor || prefs.accentColor;
   const inputDirectionStyle = getDirectionalStyle(input);
   const isMobileRoute = location.pathname.startsWith("/mobile");
+  useEffect(() => {
+    if (!isMobileRoute) {
+      setMobileMenuOpen(false);
+      setAttachmentMenuOpen(false);
+    }
+  }, [isMobileRoute]);
   const {
     isListening,
     audioLevels: voiceAudioLevels,
@@ -4837,7 +4927,31 @@ export default function ChatPage() {
       },
       clearLabel: activeMode === "web_search" ? t("removeWebSearch") : t("remove"),
     } : null;
-    const actionMenu = (
+    const actionMenu = isMobileRoute ? (
+      <MobileChatActionSheet
+        open={attachmentMenuOpen}
+        onClose={() => setAttachmentMenuOpen(false)}
+        isDark={isDark}
+        onCamera={() => {
+          cameraInputRef.current?.click();
+        }}
+        onPhotos={() => {
+          imageInputRef.current?.click();
+        }}
+        onFiles={() => {
+          fileInputRef.current?.click();
+        }}
+        onCreateImage={() => {
+          setActiveMode("create_image");
+        }}
+        onWriteEdit={() => {
+          setActiveMode("write_edit");
+        }}
+        onSearch={() => {
+          setActiveMode("web_search");
+        }}
+      />
+    ) : (
       <DesktopPlusMenu
         open={attachmentMenuOpen}
         onClose={() => setAttachmentMenuOpen(false)}
@@ -5384,6 +5498,70 @@ export default function ChatPage() {
         </div>
       )}
 
+      <AnimatePresence>
+        {isMobileRoute && mobileMenuOpen && (
+          <div className="fixed inset-0 z-[82] md:hidden" data-testid="mobile-chat-menu-drawer">
+            <motion.button
+              type="button"
+              aria-label="Close menu"
+              className="absolute inset-0 bg-black/35"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ x: -340 }}
+              animate={{ x: 0 }}
+              exit={{ x: -340 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-y-0 left-0 w-[min(86vw,328px)] overflow-hidden"
+            >
+              <Sidebar
+                isHistoryOpen
+                onToggleHistory={() => setMobileMenuOpen(false)}
+                onNewChat={() => {
+                  handleNewChat();
+                  setMobileMenuOpen(false);
+                }}
+                onOpenSettings={() => {
+                  setMobileMenuOpen(false);
+                  navigate("/mobile/settings");
+                }}
+                history={history}
+                activeConversationId={activeConversationId}
+                onOpenConversation={(id) => {
+                  handleOpenConversation(id);
+                  setMobileMenuOpen(false);
+                }}
+                onRenameConversation={handleRenameConversation}
+                onShareConversation={handleShareConversation}
+                onDeleteConversation={handleDeleteConversation}
+                chatSessionMode={chatSessionMode}
+                privateSpaceName={activePrivateSpace?.name}
+                onSelectNormalChat={() => {
+                  handleSelectNormalChat();
+                  setMobileMenuOpen(false);
+                }}
+                onSelectWritingMode={() => {
+                  handleSelectWritingMode();
+                  setMobileMenuOpen(false);
+                }}
+                onOpenPrivateChat={() => {
+                  openPrivateSpaceModal();
+                  setMobileMenuOpen(false);
+                }}
+                onOpenHiddenChat={() => {
+                  setHiddenChatModalOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="relative flex-1 flex flex-col h-full min-w-0">
         <header
           className={cn(
@@ -5396,11 +5574,13 @@ export default function ChatPage() {
             <>
               <button
                 type="button"
+                onClick={() => setMobileMenuOpen(true)}
                 className={cn(
                   "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
                   isDark ? "text-white hover:bg-white/[0.08]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
                 )}
                 aria-label="Open menu"
+                data-testid="mobile-menu-button"
               >
                 <PanelLeft className="h-5 w-5" />
               </button>
