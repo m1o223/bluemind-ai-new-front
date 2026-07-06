@@ -5563,17 +5563,19 @@ export default function ChatPage() {
                 </motion.div>
               )}
 
-              <div className={cn("w-full", activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "max-w-7xl" : "max-w-4xl")}>
-                {renderInput()}
-                {chatSessionMode === "writing" && activeMode === "default"
-                  ? (
-                    <>
-                      {renderWritingSuggestions()}
-                      {renderWritingProfilePanel()}
-                    </>
-                  )
-                  : activeMode === "create_image" ? renderImageIdeas() : activeMode === "web_search" ? renderWebsiteDiscovery() : activeMode === "write_edit" ? renderWriteEditWorkspace() : renderHomeTools()}
-              </div>
+              {!(isMobileRoute && chatSessionMode !== "writing" && activeMode === "default") && (
+                <div className={cn("w-full", activeMode === "create_image" || activeMode === "web_search" || activeMode === "write_edit" ? "max-w-7xl" : "max-w-4xl")}>
+                  {renderInput()}
+                  {chatSessionMode === "writing" && activeMode === "default"
+                    ? (
+                      <>
+                        {renderWritingSuggestions()}
+                        {renderWritingProfilePanel()}
+                      </>
+                    )
+                    : activeMode === "create_image" ? renderImageIdeas() : activeMode === "web_search" ? renderWebsiteDiscovery() : activeMode === "write_edit" ? renderWriteEditWorkspace() : renderHomeTools()}
+                </div>
+              )}
             </div>
           ) : (
             <div className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
