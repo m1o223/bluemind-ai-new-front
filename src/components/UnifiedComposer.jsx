@@ -157,33 +157,30 @@ export default function UnifiedComposer({
   }, [getTextarea, isListening, isMobile]);
 
   const addButton = (
-    <div className="relative shrink-0">
-      <motion.button
-        type="button"
-        layout
-        onClick={(event) => {
-          event.stopPropagation();
-          onAdd?.();
-        }}
-        whileTap={{ scale: 0.94 }}
-        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-        className={cn(
-          "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
-          isMobile ? "h-9 w-9" : "h-11 w-11",
-          useSubtleAddButton
-            ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)]"
-            : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
-        )}
-        style={{
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-        }}
-        aria-label={addLabel}
-      >
-        <Plus className={isMobile ? "h-4 w-4" : "h-[21px] w-[21px]"} />
-      </motion.button>
-      {actionMenu}
-    </div>
+    <motion.button
+      type="button"
+      layout
+      onClick={(event) => {
+        event.stopPropagation();
+        onAdd?.();
+      }}
+      whileTap={{ scale: 0.94 }}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
+        isMobile ? "h-9 w-9" : "h-11 w-11",
+        useSubtleAddButton
+          ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)]"
+          : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
+      )}
+      style={{
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+      }}
+      aria-label={addLabel}
+    >
+      <Plus className={isMobile ? "h-4 w-4" : "h-[21px] w-[21px]"} />
+    </motion.button>
   );
 
   const voiceButton = (
@@ -232,6 +229,7 @@ export default function UnifiedComposer({
     return (
       <form className="space-y-2" onSubmit={onSubmit} data-composer-state={composerState}>
         {pendingPanel}
+        {actionMenu}
 
         <motion.div
           layout
@@ -362,6 +360,7 @@ export default function UnifiedComposer({
   return (
     <form className="space-y-2" onSubmit={onSubmit} data-composer-state={composerState}>
       {pendingPanel}
+      {actionMenu}
 
       <motion.div
         layout
