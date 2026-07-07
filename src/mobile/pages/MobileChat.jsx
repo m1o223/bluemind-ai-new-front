@@ -1,0 +1,4088 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
+import {
+  ArrowUp,
+  Bell,
+  BookOpen,
+  Brain,
+  Camera,
+  ChevronDown,
+  ChevronRight,
+  Check,
+  Clock3,
+  Clipboard,
+  FileText,
+  Image,
+  Lock,
+  Glasses,
+  MoreVertical,
+  MessageSquare,
+  Mic,
+  PenLine,
+  Pencil,
+  Plus,
+  Edit3,
+  RotateCcw,
+  Search,
+  Share2,
+  Settings,
+  Sparkles,
+  Square,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  X,
+} from "lucide-react";
+
+import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
+import ChatImageAttachments, { resolveAttachmentPreviewUrl } from "@/components/ChatImageAttachments";
+import MessageResponse from "@/components/MessageResponse";
+import ThinkingIndicator from "@/components/ThinkingIndicator";
+import UnifiedComposer from "@/components/UnifiedComposer";
+import BlueMindMediaPicker from "@/components/BlueMindMediaPicker";
+import SettingsSheet from "@/components/settings/SettingsSheet";
+import { useApp } from "@/context/AppContext";
+import { iconClasses, typeClasses } from "@/lib/interactions";
+import {
+  buildWriteEditMessage,
+  createWriteEditTask,
+  getWriteEditAttachmentLabel,
+  getWriteEditTemplateById,
+  WRITE_EDIT_SECTIONS,
+  WRITE_EDIT_UPLOAD_OPTIONS,
+} from "@/data/writeEditTemplates";
+import {
+  SEARCH_DISCOVERY_CATEGORIES,
+  getSearchResultsForCategory,
+} from "@/data/searchDiscovery";
+import { AI_MODES, getAiMode, getAiSpecializationLabel, normalizeAiModeId } from "@/data/aiModes";
+import { getApiErrorMessage } from "@/services/api";
+import { restoreExistingSession } from "@/services/authService";
+import { getConversation, listConversations, searchConversations, streamChatMessage, streamHiddenChatMessage } from "@/services/chatService";
+import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
+import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import {
+  createPrivateSpace,
+  changePrivateSpacePin,
+  deletePrivateSpace,
+  deletePrivateSpaceChat,
+  getPrivateSpaceChat,
+  listPrivateSpaceChats,
+  listPrivateSpaces,
+  streamPrivateSpaceMessage,
+  renamePrivateSpace,
+  renamePrivateSpaceChat,
+  unlockPrivateSpace,
+} from "@/services/privateSpaceService";
+import { AUTH_SESSION_CLEARED_EVENT } from "@/services/storageKeys";
+import { updatePreferences } from "@/services/profileService";
+import useChatAutoScroll from "@/hooks/useChatAutoScroll";
+import useVoiceInput from "@/hooks/useVoiceInput";
+import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
+
+const MAX_IMAGE_ATTACHMENTS = 6;
+const MOBILE_MODEL_STORAGE_KEY = "bluemind_mobile_model";
+const MOBILE_THINKING_LEVEL_STORAGE_KEY = "bluemind_mobile_thinking_level";
+
+const MOBILE_BLUEMIND_MODELS = [
+  {
+    id: "lite",
+    label: "BlueMind Lite",
+    description: "Fast everyday help",
+    responseMode: "general",
+    icon: Sparkles,
+  },
+  {
+    id: "core",
+    label: "BlueMind Core",
+    description: "Balanced study and work",
+    responseMode: "work",
+    icon: Brain,
+  },
+  {
+    id: "pro",
+    label: "BlueMind Pro",
+    description: "Deeper reasoning",
+    responseMode: "study",
+    icon: BookOpen,
+  },
+  {
+    id: "research",
+    label: "BlueMind Research",
+    description: "Careful research answers",
+    responseMode: "research",
+    icon: Search,
+  },
+  {
+    id: "vision",
+    label: "BlueMind Vision",
+    description: "Best with images and files",
+    responseMode: "writing",
+    icon: Sparkles,
+  },
+];
+
+const MOBILE_THINKING_LEVELS = [
+  { id: "quick", label: "Quick", description: "Shortest reasoning path" },
+  { id: "balanced", label: "Balanced", description: "Good default depth" },
+  { id: "deep", label: "Deep", description: "More careful reasoning" },
+  { id: "expert", label: "Expert", description: "Detailed expert pass" },
+  { id: "max", label: "Max", description: "Maximum effort" },
+];
+
+function clampNumber(value, min, max) {
+  if (max < min) return min;
+  return Math.min(Math.max(value, min), max);
+}
+
+function getMobileModelByResponseMode(responseMode) {
+  return MOBILE_BLUEMIND_MODELS.find((model) => model.responseMode === responseMode);
+}
+
+function getMobileModelById(modelId, responseMode) {
+  return MOBILE_BLUEMIND_MODELS.find((model) => model.id === modelId)
+    || getMobileModelByResponseMode(responseMode)
+    || MOBILE_BLUEMIND_MODELS[1];
+}
+
+function getComposerModelMenuLayout(triggerElement) {
+  if (typeof window === "undefined" || !triggerElement) return null;
+
+  const rect = triggerElement.getBoundingClientRect();
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 360;
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
+  const margin = 24;
+  const gap = 8;
+  const availableWidth = Math.max(248, viewportWidth - margin * 2);
+  const menuWidth = Math.min(236, Math.max(208, Math.floor(availableWidth * 0.62)));
+  const submenuWidth = Math.min(164, Math.max(120, availableWidth - menuWidth - gap));
+  const totalWidth = menuWidth + gap + submenuWidth;
+  const centeredLeft = rect.left + rect.width / 2 - menuWidth / 2;
+
+  let submenuSide = centeredLeft + totalWidth <= viewportWidth - margin ? "right" : "left";
+  let minLeft = margin;
+  let maxLeft = viewportWidth - menuWidth - margin;
+
+  if (submenuSide === "right") {
+    maxLeft = viewportWidth - totalWidth - margin;
+  } else {
+    minLeft = margin + submenuWidth + gap;
+  }
+
+  if (minLeft > maxLeft) {
+    submenuSide = "right";
+    minLeft = margin;
+    maxLeft = Math.max(margin, viewportWidth - totalWidth - margin);
+  }
+
+  return {
+    bottom: Math.max(margin, viewportHeight - rect.top + 8),
+    left: clampNumber(centeredLeft, minLeft, maxLeft),
+    maxHeight: Math.max(220, Math.min(322, rect.top - margin - 8)),
+    menuWidth,
+    submenuSide,
+    submenuWidth,
+  };
+}
+
+const WRITE_EDIT_ARTWORK_PALETTES = [
+  WRITE_EDIT_ARTWORK_COLORS.writing,
+  WRITE_EDIT_ARTWORK_COLORS.careerBlue,
+  WRITE_EDIT_ARTWORK_COLORS.study,
+  WRITE_EDIT_ARTWORK_COLORS.business,
+  WRITE_EDIT_ARTWORK_COLORS.careerPurple,
+  WRITE_EDIT_ARTWORK_COLORS.social,
+  WRITE_EDIT_ARTWORK_COLORS.product,
+  SEARCH_ARTWORK_COLORS[1],
+];
+
+function WriteTemplateArtwork({ template, index = 0 }) {
+  const artwork = template.artwork || WRITE_EDIT_ARTWORK_PALETTES[index % WRITE_EDIT_ARTWORK_PALETTES.length];
+  const from = artwork.from || "var(--bm-primary)";
+  const via = artwork.via || WRITE_EDIT_ARTWORK_COLORS.careerBlue.via;
+  const to = artwork.to || WRITE_EDIT_ARTWORK_COLORS.writing.to;
+
+  return (
+    <div
+      className="relative aspect-[1.35] overflow-hidden"
+      style={{
+        background: `linear-gradient(135deg, ${from} 0%, ${via} 54%, ${to} 100%)`,
+      }}
+    >
+      <div className="absolute -left-8 -top-8 h-24 w-24 rounded-full bg-white/20 blur-sm" />
+      <div className="absolute right-3 top-5 h-16 w-24 rotate-[-10deg] rounded-[24px] border border-white/18 bg-white/18" />
+      <div className="absolute bottom-4 left-4 h-16 w-20 rotate-[8deg] rounded-[22px] border border-white/16 bg-white/14" />
+      <div className="absolute -bottom-12 right-[-18px] h-28 w-28 rounded-full bg-white/16" />
+      <svg
+        className="absolute inset-x-0 bottom-2 h-24 w-full text-white/75"
+        viewBox="0 0 220 110"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 76C42 32 70 101 103 56C129 20 154 35 181 69C194 85 204 88 216 78"
+          stroke="currentColor"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
+        <path
+          d="M36 35H122"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          opacity="0.48"
+        />
+        <path
+          d="M50 50H154"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          opacity="0.32"
+        />
+      </svg>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+      <span className="absolute left-3 top-3 rounded-full bg-white/18 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur">
+        {template.sectionTitle || artwork.category || "Write/Edit"}
+      </span>
+    </div>
+  );
+}
+
+const DISLIKE_REASONS = [
+  "feedbackInaccurate",
+  "feedbackBadFormatting",
+  "feedbackSlow",
+  "feedbackDidNotUnderstand",
+  "feedbackOther",
+];
+
+const IMAGE_TEMPLATES = [
+  {
+    id: "desk-setup",
+    title: "Improve Your Desk Setup",
+    category: "Workspace",
+    requiresImage: true,
+    prompt: "Analyze the uploaded desk or workspace photo, then create a polished upgraded desk setup concept. Keep the real room constraints in mind, improve lighting, cable management, ergonomics, monitor placement, storage, decor, and color harmony. Generate a realistic premium workspace visualization with practical improvements, natural materials, clean organization, and a calm BlueMind-inspired modern atmosphere.",
+    gradient: "from-[var(--bm-primary)] via-[#315F9C] to-[#8FB7FF]",
+  },
+  {
+    id: "modern-logo",
+    title: "Modern Logo Design",
+    category: "Branding",
+    prompt: "Create a premium modern logo concept for a refined AI-era brand. Use clean geometry, strong negative space, balanced proportions, scalable vector-like shapes, and a memorable mark. Present it on a simple neutral background with professional spacing, subtle BlueMind-inspired blue accents, and no mockup clutter.",
+    gradient: "from-[#102A43] via-[#1D4E89] to-[#7AB8FF]",
+  },
+  {
+    id: "professional-headshot",
+    title: "Professional Headshot",
+    category: "Portrait",
+    requiresImage: true,
+    prompt: "Use the uploaded portrait as identity reference and create a professional studio headshot. Preserve recognizable facial features while improving lighting, posture, background, wardrobe polish, and clarity. Make it realistic, confident, approachable, high-resolution, and suitable for LinkedIn or a business profile.",
+    gradient: "from-[#243B53] via-[#3B6EA8] to-[#C7D9FF]",
+  },
+  {
+    id: "anime-portrait",
+    title: "Anime Portrait",
+    category: "Stylized",
+    requiresImage: true,
+    prompt: "Transform the uploaded portrait into a polished anime-style character portrait. Preserve the person's key identity cues while using expressive eyes, clean linework, soft cinematic lighting, detailed hair, elegant shading, and a tasteful modern background. Avoid exaggerated distortions.",
+    gradient: "from-[#16324F] via-[#496C95] to-[#DCE9FF]",
+  },
+  {
+    id: "product-ad",
+    title: "Product Advertisement",
+    category: "Marketing",
+    requiresImage: true,
+    prompt: "Use the uploaded product image as the hero product reference and create a premium product advertisement. Improve lighting, composition, reflections, background styling, and visual hierarchy. Make it suitable for a high-end ecommerce campaign with clean copy space and polished commercial photography.",
+    gradient: "from-[#1F3A5F] via-[#5077AA] to-[#A9C7EF]",
+  },
+  {
+    id: "instagram-post",
+    title: "Instagram Post",
+    category: "Social",
+    prompt: "Create a premium Instagram post design with a clear visual hook, elegant layout, readable text zones, refined spacing, modern gradients, and BlueMind-inspired accent colors. Make it feel useful, polished, and ready for a high-quality brand account.",
+    gradient: "from-[#182B49] via-[#345C8E] to-[#9EBCE3]",
+  },
+  {
+    id: "youtube-thumbnail",
+    title: "YouTube Thumbnail",
+    category: "Creator",
+    prompt: "Create a high-click professional YouTube thumbnail concept with a bold focal point, clean readable title area, strong contrast, cinematic lighting, and modern AI-product polish. Avoid clutter and keep the composition clear on small screens.",
+    gradient: "from-[#12355B] via-[#2E6F9E] to-[#9ED8FF]",
+  },
+  {
+    id: "mobile-app-ui",
+    title: "Mobile App UI",
+    category: "Interface",
+    prompt: "Design a premium mobile app UI screen for an intelligent productivity assistant. Use clean hierarchy, elegant typography, tactile controls, subtle depth, rounded components, BlueMind blue accents, and a native iOS-quality layout. Show a realistic app screen, not a marketing poster.",
+    gradient: "from-[#172A46] via-[#466E9C] to-[#B8CEF1]",
+  },
+  {
+    id: "website-landing",
+    title: "Website Landing Page",
+    category: "Web",
+    prompt: "Create a modern website landing page concept for a premium AI product. Include a strong hero area, clear product visual, elegant navigation, concise value proposition, refined spacing, and BlueMind-inspired blue accents. Make it polished, minimal, and conversion-focused.",
+    gradient: "from-[#0F2B46] via-[#2D5E88] to-[#93BDE6]",
+  },
+  {
+    id: "business-card",
+    title: "Business Card",
+    category: "Print",
+    prompt: "Create a premium business card design with clean typography, generous spacing, subtle BlueMind blue accents, professional front-and-back composition, and print-ready visual clarity. Make it elegant, modern, and credible.",
+    gradient: "from-[#19324C] via-[#426B92] to-[#D8E7F8]",
+  },
+  {
+    id: "infographic",
+    title: "Infographic Design",
+    category: "Education",
+    prompt: "Create a clear modern infographic that explains a complex idea with simple sections, icons, charts, hierarchy, and concise visual storytelling. Use a polished BlueMind-inspired palette, excellent readability, and professional editorial spacing.",
+    gradient: "from-[#1F3A5F] via-[#5077AA] to-[#A9C7EF]",
+  },
+  {
+    id: "fantasy-character",
+    title: "Fantasy Character",
+    category: "Concept Art",
+    prompt: "Create a cinematic fantasy character concept with detailed costume design, expressive pose, rich materials, dramatic lighting, and a premium concept-art finish. Keep the character original, memorable, and visually balanced.",
+    gradient: "from-[#182B49] via-[#345C8E] to-[#9EBCE3]",
+  },
+  {
+    id: "childrens-illustration",
+    title: "Children’s Illustration",
+    category: "Storybook",
+    prompt: "Create a warm children’s book illustration with charming characters, gentle colors, readable composition, soft texture, expressive storytelling, and a friendly magical atmosphere. Make it polished and age-appropriate.",
+    gradient: "from-[#264E73] via-[#6A95C2] to-[#D5E8FF]",
+  },
+  {
+    id: "architecture-concept",
+    title: "Architecture Concept",
+    category: "Architecture",
+    prompt: "Create a premium architecture concept visualization for a modern building. Use elegant forms, realistic materials, natural light, thoughtful landscape integration, clean composition, and high-end architectural rendering quality.",
+    gradient: "from-[#1A344F] via-[#587FA6] to-[#CADDF2]",
+  },
+  {
+    id: "gaming-wallpaper",
+    title: "Gaming Wallpaper",
+    category: "Wallpaper",
+    prompt: "Create a cinematic gaming wallpaper with a powerful focal subject, atmospheric lighting, dynamic depth, crisp details, and a premium blue-accented color grade. Make it suitable for a mobile lock screen with clean negative space.",
+    gradient: "from-[#10213D] via-[#234F87] to-[#76B2FF]",
+  },
+];
+
+function createIdeaThumbnail(seed, primary, secondary, accent) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+      <defs>
+        <linearGradient id="bg-${seed}" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${primary}"/>
+          <stop offset="58%" stop-color="${secondary}"/>
+          <stop offset="100%" stop-color="${accent}"/>
+        </linearGradient>
+        <radialGradient id="glow-${seed}" cx="35%" cy="25%" r="60%">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.8)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+        <filter id="blur-${seed}" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="18"/>
+        </filter>
+      </defs>
+      <rect width="640" height="420" rx="44" fill="url(#bg-${seed})"/>
+      <circle cx="178" cy="92" r="160" fill="url(#glow-${seed})"/>
+      <circle cx="512" cy="92" r="92" fill="rgba(255,255,255,0.24)" filter="url(#blur-${seed})"/>
+      <rect x="64" y="238" width="236" height="118" rx="34" fill="rgba(255,255,255,0.24)"/>
+      <rect x="340" y="186" width="202" height="170" rx="42" fill="rgba(255,255,255,0.18)"/>
+      <path d="M84 310 C168 216 226 368 310 260 C390 160 456 314 560 214 L560 356 L84 356 Z" fill="rgba(15,23,42,0.22)"/>
+      <path d="M92 306 C170 232 228 348 306 272 C386 192 450 304 548 230" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="450" cy="126" r="38" fill="rgba(255,255,255,0.78)"/>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+const DESKTOP_IMAGE_IDEAS = [
+  {
+    id: "anime",
+    title: "Anime",
+    category: "Stylized Art",
+    description: "Create anime-style artwork from your idea.",
+    prompt: "Create a polished anime-style portrait with cinematic lighting, expressive eyes, and a clean BlueMind-inspired blue atmosphere.",
+    thumbnail: createIdeaThumbnail("anime", "#7C3AED", "#2563EB", "#F472B6"),
+  },
+  {
+    id: "portrait",
+    title: "Portrait",
+    category: "People",
+    description: "Generate a refined studio portrait.",
+    prompt: "Create a refined professional portrait with soft studio lighting, realistic skin texture, sharp details, and a minimal background.",
+    thumbnail: createIdeaThumbnail("portrait", "var(--bm-text-primary)", "var(--bm-text-secondary)", "#D8B4FE"),
+  },
+  {
+    id: "mini-me",
+    title: "Mini Me",
+    category: "Personalized",
+    description: "Turn yourself into a playful mini scene.",
+    prompt: "Create a realistic mini version of me sitting on my desk, highly detailed, playful scale, premium studio lighting, clean modern background.",
+    thumbnail: createIdeaThumbnail("mini-me", "#155E75", "#0E7490", "#FBBF24"),
+  },
+  {
+    id: "research",
+    title: "Research",
+    category: "Knowledge",
+    description: "Visualize notes, data, and discoveries.",
+    prompt: "Create a futuristic research board visual with notes, diagrams, data cards, and a calm blue glassmorphism interface.",
+    thumbnail: createIdeaThumbnail("research", "var(--bm-primary)", "#2563EB", "#22D3EE"),
+  },
+  {
+    id: "recipe",
+    title: "Recipe",
+    category: "Food",
+    description: "Design an editorial recipe visual.",
+    prompt: "Create a premium recipe card image with fresh ingredients, elegant plating, soft natural light, and clean editorial composition.",
+    thumbnail: createIdeaThumbnail("recipe", "#166534", "#65A30D", "#FDBA74"),
+  },
+  {
+    id: "cyberpunk",
+    title: "Cyberpunk",
+    category: "Sci-Fi",
+    description: "Build a neon cinematic future scene.",
+    prompt: "Create a futuristic cyberpunk city scene with neon blue accents, rain reflections, cinematic depth, and clean high-end detail.",
+    thumbnail: createIdeaThumbnail("cyberpunk", "#020617", "#7C2D12", "#06B6D4"),
+  },
+  {
+    id: "fantasy",
+    title: "Fantasy",
+    category: "Worldbuilding",
+    description: "Create magical landscapes and worlds.",
+    prompt: "Create a fantasy landscape with glowing blue crystals, misty mountains, cinematic light, and an elegant magical atmosphere.",
+    thumbnail: createIdeaThumbnail("fantasy", "#312E81", "#7E22CE", "#A7F3D0"),
+  },
+  {
+    id: "realistic-photo",
+    title: "Realistic Photo",
+    category: "Photography",
+    description: "Make a natural, camera-real image.",
+    prompt: "Create a realistic photo with natural light, believable details, true-to-life textures, shallow depth of field, and professional composition.",
+    thumbnail: createIdeaThumbnail("realistic-photo", "var(--bm-text-secondary)", "var(--bm-text-secondary)", "var(--bm-bg-elevated)"),
+  },
+  {
+    id: "cartoon",
+    title: "Cartoon",
+    category: "Illustration",
+    description: "Make a friendly polished cartoon.",
+    prompt: "Create a friendly cartoon character with expressive features, modern colors, clean outlines, and a polished app-style finish.",
+    thumbnail: createIdeaThumbnail("cartoon", "var(--bm-warning)", "var(--bm-warning)", "#38BDF8"),
+  },
+  {
+    id: "logo",
+    title: "Logo Design",
+    category: "Branding",
+    description: "Explore a clean brand mark concept.",
+    prompt: "Create a clean modern logo concept with a premium AI brand feeling, simple geometry, blue accent color, and strong scalability.",
+    thumbnail: createIdeaThumbnail("logo", "var(--bm-text-primary)", "var(--bm-primary)", "#E0F2FE"),
+  },
+  {
+    id: "architecture",
+    title: "Architecture",
+    category: "Spaces",
+    description: "Imagine a premium building or interior.",
+    prompt: "Create a modern architectural concept with elegant structure, warm interior lighting, clean materials, dramatic scale, and magazine-quality composition.",
+    thumbnail: createIdeaThumbnail("architecture", "var(--bm-border-strong)03C", "#78716C", "#FDE68A"),
+  },
+  {
+    id: "product-mockup",
+    title: "Product Mockup",
+    category: "Commerce",
+    description: "Stage a product like a launch image.",
+    prompt: "Create a premium product mockup on a clean studio set, refined lighting, realistic shadows, high-end materials, and a polished commercial look.",
+    thumbnail: createIdeaThumbnail("product-mockup", "#0F766E", "#14B8A6", "#CCFBF1"),
+  },
+  {
+    id: "nature",
+    title: "Nature",
+    category: "Landscape",
+    description: "Generate cinematic natural scenery.",
+    prompt: "Create a cinematic nature scene with rich atmosphere, detailed plants, natural light, depth, and a peaceful high-resolution landscape feel.",
+    thumbnail: createIdeaThumbnail("nature", "#14532D", "var(--bm-success)", "#BAE6FD"),
+  },
+  {
+    id: "character-design",
+    title: "Character Design",
+    category: "Characters",
+    description: "Design a memorable original character.",
+    prompt: "Create an original character design sheet with expressive personality, detailed outfit, strong silhouette, polished lighting, and concept-art quality.",
+    thumbnail: createIdeaThumbnail("character-design", "#581C87", "#C026D3", "#FDE68A"),
+  },
+  {
+    id: "concept-art",
+    title: "Concept Art",
+    category: "Creative Direction",
+    description: "Explore a cinematic visual direction.",
+    prompt: "Create cinematic concept art with dramatic composition, rich atmosphere, layered depth, premium lighting, and a clear visual story.",
+    thumbnail: createIdeaThumbnail("concept-art", "#1E1B4B", "#4338CA", "#FB7185"),
+  },
+];
+
+function formatConversationTime(value, language = "en") {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat(language, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function mapMobileConversationMessages(conversation) {
+  return (conversation?.messages || []).map((item) => ({
+    id: item.id,
+    role: item.role === "assistant" ? "ai" : item.role,
+    content: item.content || "",
+    metadata: item.metadata || {},
+    createdAt: item.createdAt,
+    attachments: (item.metadata?.attachments || item.attachments || []).map((attachment) => ({
+      ...attachment,
+      previewUrl: resolveAttachmentPreviewUrl(attachment),
+    })),
+  }));
+}
+
+export default function MobileChat() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { prefs, resolvedTheme, t, uiLanguage } = useApp();
+  const isDark = resolvedTheme === "dark";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
+  const [responseModeMenuPlacement, setResponseModeMenuPlacement] = useState("header");
+  const [composerThinkingMenuOpen, setComposerThinkingMenuOpen] = useState(false);
+  const [composerModelMenuLayout, setComposerModelMenuLayout] = useState(null);
+  const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
+  const [menuSearchOpen, setMenuSearchOpen] = useState(false);
+  const [menuSearchQuery, setMenuSearchQuery] = useState("");
+  const [conversations, setConversations] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [isOpeningConversation, setIsOpeningConversation] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [chatMenuTarget, setChatMenuTarget] = useState(null);
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameTitle, setRenameTitle] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [isChatSending, setIsChatSending] = useState(false);
+  const [chatSessionMode, setChatSessionMode] = useState("normal");
+  const [privateSpaceModalOpen, setPrivateSpaceModalOpen] = useState(false);
+  const [privateSpaceStep, setPrivateSpaceStep] = useState("list");
+  const [privateSpaces, setPrivateSpaces] = useState([]);
+  const [isLoadingPrivateSpaces, setIsLoadingPrivateSpaces] = useState(false);
+  const [privateSpaceError, setPrivateSpaceError] = useState("");
+  const [privateSpaceForm, setPrivateSpaceForm] = useState({ name: "", pin: "", confirmPin: "" });
+  const [privateSpaceActionMenuId, setPrivateSpaceActionMenuId] = useState(null);
+  const [isCreatingPrivateSpace, setIsCreatingPrivateSpace] = useState(false);
+  const [privateSpaceRenameName, setPrivateSpaceRenameName] = useState("");
+  const [privateSpacePinForm, setPrivateSpacePinForm] = useState({ currentPin: "", newPin: "", confirmNewPin: "" });
+  const [privateSpaceDeleteTarget, setPrivateSpaceDeleteTarget] = useState(null);
+  const [selectedPrivateSpace, setSelectedPrivateSpace] = useState(null);
+  const [privatePinInput, setPrivatePinInput] = useState("");
+  const [activePrivateSpace, setActivePrivateSpace] = useState(null);
+  const [privateSpaceAccessToken, setPrivateSpaceAccessToken] = useState("");
+  const [hiddenChatModalOpen, setHiddenChatModalOpen] = useState(false);
+  const [messageFeedback, setMessageFeedback] = useState({});
+  const [dislikeTarget, setDislikeTarget] = useState(null);
+  const [responseMode, setResponseMode] = useState(() => {
+    const storedMode = localStorage.getItem("bluemind-response-mode");
+    return normalizeAiModeId(storedMode);
+  });
+  const [mobileModelId, setMobileModelId] = useState(() => localStorage.getItem(MOBILE_MODEL_STORAGE_KEY) || "core");
+  const [thinkingLevel, setThinkingLevel] = useState(() => localStorage.getItem(MOBILE_THINKING_LEVEL_STORAGE_KEY) || "balanced");
+  const [isImageMode, setIsImageMode] = useState(false);
+  const [isWriteEditMode, setIsWriteEditMode] = useState(false);
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [selectedSearchCategory, setSelectedSearchCategory] = useState(null);
+  const [openSearchMenuItemId, setOpenSearchMenuItemId] = useState(null);
+  const [expandedSearchItemId, setExpandedSearchItemId] = useState(null);
+  const [searchConfirm, setSearchConfirm] = useState(null);
+  const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
+  const [pendingImageTemplate, setPendingImageTemplate] = useState(null);
+  const [attachedImages, setAttachedImages] = useState([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [activeWriteTask, setActiveWriteTask] = useState(null);
+  const [pendingWriteTemplate, setPendingWriteTemplate] = useState(null);
+  const [writeAttachments, setWriteAttachments] = useState([]);
+  const [writeAttachmentChoiceOpen, setWriteAttachmentChoiceOpen] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState([]);
+  const [imageModeError, setImageModeError] = useState("");
+  const [imageModeStatus, setImageModeStatus] = useState("");
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
+  const [settingsSheetOpen, setSettingsSheetOpen] = useState(false);
+  const [imageSourceSheetOpen, setImageSourceSheetOpen] = useState(false);
+  const attachedImagesRef = useRef([]);
+  const touchStartXRef = useRef(null);
+  const sheetTouchStartYRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const composerInputRef = useRef(null);
+  const composerModelButtonRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const streamAbortRef = useRef(null);
+  const stopRequestedRef = useRef(false);
+  const activeAiMessageRef = useRef(null);
+  const sendLockRef = useRef(false);
+  const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
+  const loadedConversationRef = useRef(null);
+
+  const updateComposerModelMenuLayout = useCallback(() => {
+    setComposerModelMenuLayout(getComposerModelMenuLayout(composerModelButtonRef.current));
+  }, []);
+
+  const activeConversationId = searchParams.get("conversation");
+  const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
+  const panelColor = isDark ? "var(--bm-bg-card)" : "#FFFFFF";
+  const borderColor = isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]";
+  const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
+  const textColor = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
+
+  const bluemindMenuItems = [
+    { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
+    { label: "Reminders", path: "/mobile/reminders", icon: Bell },
+    { label: "Learning", path: "/mobile/learning", icon: BookOpen },
+    { label: "AI Plans", path: "/mobile/ai-plans", icon: Sparkles },
+    { label: "Schedule", path: "/mobile/schedule", icon: Clipboard },
+    {
+      label: t("settings"),
+      action: () => {
+        closeMenu();
+        setSettingsSheetOpen(true);
+      },
+      icon: Settings,
+    },
+  ];
+
+  const visibleConversations = useMemo(() => {
+    const query = menuSearchQuery.trim();
+    return query ? searchResults : conversations;
+  }, [conversations, menuSearchQuery, searchResults]);
+
+  const pinnedConversations = useMemo(
+    () => conversations.filter((item) => item.pinned || item.isPinned).slice(0, 8),
+    [conversations],
+  );
+
+  const writeEditTemplates = useMemo(
+    () => WRITE_EDIT_SECTIONS.flatMap((section) => (
+      section.items.map((template) => ({
+        ...template,
+        sectionId: section.id,
+        sectionTitle: section.title,
+      }))
+    )),
+    [],
+  );
+
+  const searchResultsForCategory = useMemo(
+    () => getSearchResultsForCategory(selectedSearchCategory),
+    [selectedSearchCategory],
+  );
+
+  const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0 || writeAttachments.length > 0;
+  const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
+  const shouldPinComposer = true;
+  const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
+  const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
+  const shouldShowSearchCards = isSearchMode && messages.length === 0 && generatedImages.length === 0;
+  const {
+    scrollRef: messagesScrollRef,
+    endRef: messagesEndRef,
+    showScrollToBottom,
+    scrollToBottom,
+  } = useChatAutoScroll({
+    watch: [messages, isChatSending],
+    isStreaming: isChatSending,
+  });
+
+  useEffect(() => {
+    const updateKeyboardState = () => {
+      const viewport = window.visualViewport;
+      const activeElement = document.activeElement;
+      const composerFocused = activeElement === composerInputRef.current;
+
+      if (!viewport) {
+        setComposerKeyboardOffset(0);
+        return;
+      }
+
+      const viewportBottom = viewport.height + viewport.offsetTop;
+      const keyboardOffset = Math.max(0, Math.round(window.innerHeight - viewportBottom));
+      const keyboardOpen = composerFocused && keyboardOffset > 48;
+
+      setComposerKeyboardOffset(keyboardOpen ? keyboardOffset : 0);
+    };
+
+    updateKeyboardState();
+    window.visualViewport?.addEventListener("resize", updateKeyboardState);
+    window.visualViewport?.addEventListener("scroll", updateKeyboardState);
+    window.addEventListener("focusin", updateKeyboardState);
+    window.addEventListener("focusout", updateKeyboardState);
+    window.addEventListener("resize", updateKeyboardState);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateKeyboardState);
+      window.visualViewport?.removeEventListener("scroll", updateKeyboardState);
+      window.removeEventListener("focusin", updateKeyboardState);
+      window.removeEventListener("focusout", updateKeyboardState);
+      window.removeEventListener("resize", updateKeyboardState);
+    };
+  }, []);
+
+  const resizeChatComposer = useCallback((node = composerInputRef.current) => {
+    if (!node || isImageMode || isWriteEditMode) return;
+    const maxHeight = 128;
+    node.style.height = "auto";
+    const nextHeight = Math.min(node.scrollHeight, maxHeight);
+    node.style.height = `${Math.max(nextHeight, 50)}px`;
+    node.style.overflowY = node.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, [isImageMode, isWriteEditMode]);
+
+  const {
+    isListening,
+    audioLevels: voiceAudioLevels,
+    start: startVoiceCapture,
+    stop: stopVoiceInput,
+    cancel: cancelVoiceInput,
+  } = useVoiceInput({
+    onTranscript: (nextText) => {
+      setMessage(nextText);
+      window.requestAnimationFrame(() => resizeChatComposer(composerInputRef.current));
+    },
+    onError: (messageText) => toast.error(messageText),
+  });
+
+  const redirectToMobileLogin = useCallback(() => {
+    closeMenu();
+    setResponseModeMenuOpen(false);
+    navigate("/mobile", { replace: true });
+  }, [navigate]);
+
+  const ensureMobileChatAuth = useCallback(async () => {
+    try {
+      await restoreExistingSession();
+      return true;
+    } catch {
+      redirectToMobileLogin();
+      return false;
+    }
+  }, [redirectToMobileLogin]);
+
+  const loadConversationHistory = useCallback(async () => {
+    setIsLoadingConversations(true);
+    setHistoryError("");
+
+    try {
+      const authenticated = await ensureMobileChatAuth();
+      if (!authenticated) return;
+
+      if (chatSessionMode === "hidden") {
+        setConversations([]);
+        return;
+      }
+
+      const data = chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken
+        ? await listPrivateSpaceChats(activePrivateSpace.privateSpaceId, privateSpaceAccessToken)
+        : await listConversations();
+      setConversations(Array.isArray(data?.items) ? data.items : []);
+    } catch (error) {
+      setHistoryError(error?.message || "Could not load chat history");
+      setConversations([]);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, [activePrivateSpace?.privateSpaceId, chatSessionMode, ensureMobileChatAuth, privateSpaceAccessToken]);
+
+  useEffect(() => {
+    resizeChatComposer();
+  }, [message, resizeChatComposer, shouldPinComposer]);
+
+  useEffect(() => {
+    window.addEventListener(AUTH_SESSION_CLEARED_EVENT, redirectToMobileLogin);
+
+    return () => {
+      window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, redirectToMobileLogin);
+    };
+  }, [redirectToMobileLogin]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadConversationHistory().catch(() => {
+      if (!cancelled) setIsLoadingConversations(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadConversationHistory]);
+
+  useEffect(() => {
+    if (!menuSearchOpen) return undefined;
+    window.setTimeout(() => searchInputRef.current?.focus(), 0);
+    return undefined;
+  }, [menuSearchOpen]);
+
+  useEffect(() => {
+    const query = menuSearchQuery.trim();
+    if (!menuSearchOpen || !query) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsSearching(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const authenticated = await ensureMobileChatAuth();
+        if (!authenticated || cancelled) return;
+        if (chatSessionMode === "hidden") {
+          if (!cancelled) setSearchResults([]);
+          return;
+        }
+
+        if (chatSessionMode === "private") {
+          const normalized = query.toLowerCase();
+          if (!cancelled) {
+            setSearchResults(conversations.filter((item) => String(item.title || "").toLowerCase().includes(normalized)).slice(0, 20));
+          }
+          return;
+        }
+
+        const data = await searchConversations(query, 20);
+        if (!cancelled) {
+          setSearchResults(Array.isArray(data?.items) ? data.items : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setSearchResults([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearching(false);
+        }
+      }
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [chatSessionMode, conversations, ensureMobileChatAuth, menuSearchOpen, menuSearchQuery]);
+
+  useEffect(() => {
+    attachedImagesRef.current = attachedImages;
+  }, [attachedImages]);
+
+  useEffect(() => {
+    localStorage.setItem("bluemind-response-mode", responseMode);
+  }, [responseMode]);
+
+  useEffect(() => {
+    localStorage.setItem(MOBILE_MODEL_STORAGE_KEY, mobileModelId);
+  }, [mobileModelId]);
+
+  useEffect(() => {
+    localStorage.setItem(MOBILE_THINKING_LEVEL_STORAGE_KEY, thinkingLevel);
+  }, [thinkingLevel]);
+
+  useEffect(() => {
+    if (!responseModeMenuOpen || responseModeMenuPlacement !== "composer") {
+      setComposerThinkingMenuOpen(false);
+      return undefined;
+    }
+
+    updateComposerModelMenuLayout();
+    window.addEventListener("resize", updateComposerModelMenuLayout);
+    window.addEventListener("scroll", updateComposerModelMenuLayout, true);
+
+    return () => {
+      window.removeEventListener("resize", updateComposerModelMenuLayout);
+      window.removeEventListener("scroll", updateComposerModelMenuLayout, true);
+    };
+  }, [responseModeMenuOpen, responseModeMenuPlacement, updateComposerModelMenuLayout]);
+
+  useEffect(() => {
+    const savedMode = normalizeAiModeId(prefs.aiMode || localStorage.getItem("bluemind-response-mode"));
+    if (savedMode !== responseMode) {
+      setResponseMode(savedMode);
+    }
+  }, [prefs.aiMode, responseMode]);
+
+  useEffect(() => {
+    if (searchParams.get("mode") === "image") {
+      setIsImageMode(true);
+      setIsWriteEditMode(false);
+      setIsSearchMode(false);
+    }
+
+    if (searchParams.get("mode") === "write-edit") {
+      setIsWriteEditMode(true);
+      setIsImageMode(false);
+      setIsSearchMode(false);
+    }
+
+    if (searchParams.get("mode") === "search") {
+      setIsSearchMode(true);
+      setIsImageMode(false);
+      setIsWriteEditMode(false);
+    }
+
+    const requestedWriteTemplate = searchParams.get("writeTemplate");
+    if (requestedWriteTemplate && !activeWriteTask && !pendingWriteTemplate) {
+      const template = getWriteEditTemplateById(requestedWriteTemplate);
+      if (template) {
+        setPendingWriteTemplate(template);
+        setWriteAttachmentChoiceOpen(true);
+      }
+    }
+
+    const requestedPrompt = searchParams.get("prompt");
+    if (requestedPrompt && !message.trim()) {
+      setMessage(requestedPrompt);
+    }
+  }, [activeWriteTask, message, pendingWriteTemplate, searchParams]);
+
+  useEffect(() => () => {
+    streamAbortRef.current?.abort();
+    attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+  }, []);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setMenuSearchOpen(false);
+    setMenuSearchQuery("");
+  };
+
+  const openMenu = () => {
+    setMenuOpen(true);
+    setMenuSearchOpen(false);
+  };
+
+  const openMenuSearch = () => {
+    setMenuOpen(false);
+    setMenuSearchOpen(true);
+  };
+
+  const closeMenuSearch = () => {
+    setMenuSearchOpen(false);
+    setMenuOpen(true);
+  };
+
+  const selectResponseMode = async (mode) => {
+    const nextMode = normalizeAiModeId(mode);
+    setResponseMode(nextMode);
+    setResponseModeMenuOpen(false);
+    try {
+      await updatePreferences({ aiMode: nextMode });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not save AI mode"));
+    }
+  };
+
+  const selectMobileModel = (model) => {
+    setMobileModelId(model.id);
+    setComposerThinkingMenuOpen(false);
+    void selectResponseMode(model.responseMode);
+  };
+
+  const selectMobileThinkingLevel = (level) => {
+    setThinkingLevel(level.id);
+    setComposerThinkingMenuOpen(false);
+    setResponseModeMenuOpen(false);
+  };
+
+  const goTo = (path) => {
+    closeMenu();
+    navigate(path);
+  };
+
+  const runMenuAction = (item) => {
+    closeMenu();
+
+    if (item.action) {
+      item.action();
+      return;
+    }
+
+    if (item.path) {
+      navigate(item.path);
+    }
+  };
+
+  const loadConversationById = useCallback(async (conversationId, { updateUrl = true } = {}) => {
+    if (!conversationId || isChatSending || isGeneratingImage || isOpeningConversation) return;
+
+    setIsOpeningConversation(true);
+    setChatMenuTarget(null);
+
+    try {
+      const authenticated = await ensureMobileChatAuth();
+      if (!authenticated) return;
+      const data = chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken
+        ? await getPrivateSpaceChat(activePrivateSpace.privateSpaceId, conversationId, privateSpaceAccessToken)
+        : await getConversation(conversationId);
+      const conversation = data?.conversation;
+
+      if (!conversation?.conversationId) {
+        throw new Error(t("couldNotOpenChat"));
+      }
+
+      setMessage("");
+      setIsImageMode(false);
+      setIsWriteEditMode(false);
+      setIsSearchMode(false);
+      setSelectedSearchCategory(null);
+      setOpenSearchMenuItemId(null);
+      setExpandedSearchItemId(null);
+      setSearchConfirm(null);
+      setSelectedImageTemplate(null);
+      setPendingImageTemplate(null);
+      setGeneratedImages([]);
+      setImageModeError("");
+      setImageModeStatus("");
+      setActiveWriteTask(null);
+      setPendingWriteTemplate(null);
+      setWriteAttachmentChoiceOpen(false);
+      setWriteAttachments((current) => {
+        current.forEach((file) => {
+          if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+        });
+        return [];
+      });
+      setAttachedImages((current) => {
+        current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+        return [];
+      });
+      setMessages(mapMobileConversationMessages(conversation));
+      loadedConversationRef.current = conversation.conversationId;
+
+      if (updateUrl) {
+        setSearchParams({ conversation: conversation.conversationId });
+      }
+    } catch (error) {
+      toast.error(error.message || t("couldNotOpenChat"));
+    } finally {
+      setIsOpeningConversation(false);
+    }
+  }, [activePrivateSpace?.privateSpaceId, chatSessionMode, ensureMobileChatAuth, isChatSending, isGeneratingImage, isOpeningConversation, privateSpaceAccessToken, setSearchParams, t]);
+
+  useEffect(() => {
+    if (
+      !activeConversationId ||
+      loadedConversationRef.current === activeConversationId ||
+      isChatSending
+    ) {
+      return;
+    }
+
+    void loadConversationById(activeConversationId, { updateUrl: false });
+  }, [activeConversationId, isChatSending, loadConversationById]);
+
+  const startNewChat = () => {
+    closeMenu();
+    setMessages([]);
+    setMessage("");
+    setIsImageMode(false);
+    setIsWriteEditMode(false);
+    setIsSearchMode(false);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setSearchConfirm(null);
+    setSelectedImageTemplate(null);
+    setGeneratedImages([]);
+    setImageModeError("");
+    setImageModeStatus("");
+    setActiveWriteTask(null);
+    setPendingWriteTemplate(null);
+    setWriteAttachments((current) => {
+      current.forEach((file) => {
+        if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+      });
+      return [];
+    });
+    setWriteAttachmentChoiceOpen(false);
+    setAttachedImages((current) => {
+      current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      return [];
+    });
+    loadedConversationRef.current = null;
+    setSearchParams({});
+    navigate("/mobile/chat", { replace: false });
+  };
+
+  const loadNormalConversationHistory = useCallback(async () => {
+    const data = await listConversations();
+    setConversations(Array.isArray(data?.items) ? data.items : []);
+  }, []);
+
+  const selectNormalChat = () => {
+    setChatSessionMode("normal");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    startNewChat();
+    loadNormalConversationHistory().catch(() => {});
+  };
+
+  const exitPrivateSpace = () => {
+    setChatSessionMode("normal");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    startNewChat();
+    loadNormalConversationHistory().catch(() => {});
+  };
+
+  const startHiddenChat = () => {
+    setChatSessionMode("hidden");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    setHiddenChatModalOpen(false);
+    setConversations([]);
+    startNewChat();
+  };
+
+  const exitHiddenMode = () => {
+    setChatSessionMode("normal");
+    startNewChat();
+    loadNormalConversationHistory().catch(() => {});
+  };
+
+  const loadMobilePrivateSpaces = useCallback(async () => {
+    setIsLoadingPrivateSpaces(true);
+    setPrivateSpaceError("");
+    try {
+      const data = await listPrivateSpaces();
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setPrivateSpaces(items);
+      return items;
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not load private chats");
+      return [];
+    } finally {
+      setIsLoadingPrivateSpaces(false);
+    }
+  }, []);
+
+  const openPrivateChatModal = useCallback(() => {
+    closeMenu();
+    setPrivateSpaceModalOpen(true);
+    setPrivateSpaceStep("list");
+    setPrivateSpaceError("");
+    setSelectedPrivateSpace(null);
+    setPrivatePinInput("");
+    setPrivateSpaceActionMenuId(null);
+    setPrivateSpaceDeleteTarget(null);
+    loadMobilePrivateSpaces().then((items) => {
+      setPrivateSpaceStep(items.length ? "list" : "create");
+    }).catch(() => {});
+  }, [loadMobilePrivateSpaces]);
+
+  const handleCreatePrivateSpace = async (event) => {
+    event.preventDefault();
+    setPrivateSpaceError("");
+    setIsCreatingPrivateSpace(true);
+    try {
+      await createPrivateSpace(privateSpaceForm);
+      setPrivateSpaceForm({ name: "", pin: "", confirmPin: "" });
+      setPrivateSpaceStep("list");
+      await loadMobilePrivateSpaces();
+      toast.success("Private space created");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not create private chat");
+    } finally {
+      setIsCreatingPrivateSpace(false);
+    }
+  };
+
+  const startCreatePrivateSpace = () => {
+    if (privateSpaces.length >= 5) {
+      setPrivateSpaceError("Maximum private chats reached. Delete one before creating another.");
+      return;
+    }
+
+    setPrivateSpaceError("");
+    setPrivateSpaceStep("create");
+  };
+
+  const handleUnlockPrivateSpace = async (event) => {
+    event.preventDefault();
+    if (!selectedPrivateSpace?.privateSpaceId) return;
+
+    setPrivateSpaceError("");
+    try {
+      const data = await unlockPrivateSpace(selectedPrivateSpace.privateSpaceId, privatePinInput);
+      const unlockedSpace = data?.privateSpace || selectedPrivateSpace;
+      setActivePrivateSpace(unlockedSpace);
+      setPrivateSpaceAccessToken(data?.accessToken || "");
+      setChatSessionMode("private");
+      setPrivateSpaceModalOpen(false);
+      setPrivatePinInput("");
+      setSelectedPrivateSpace(null);
+      startNewChat();
+      const chats = await listPrivateSpaceChats(unlockedSpace.privateSpaceId, data?.accessToken || "");
+      setConversations(Array.isArray(chats?.items) ? chats.items : []);
+      toast.success(`${unlockedSpace.name} private chat unlocked`);
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Incorrect PIN. Try again.");
+    }
+  };
+
+  const handleRenamePrivateSpace = async (event) => {
+    event.preventDefault();
+    if (!selectedPrivateSpace?.privateSpaceId || !privateSpaceRenameName.trim()) return;
+
+    setPrivateSpaceError("");
+    try {
+      const data = await renamePrivateSpace(selectedPrivateSpace.privateSpaceId, privateSpaceRenameName.trim());
+      const updated = data?.privateSpace;
+      if (updated) {
+        setPrivateSpaces((items) => items.map((item) => item.privateSpaceId === updated.privateSpaceId ? updated : item));
+        if (activePrivateSpace?.privateSpaceId === updated.privateSpaceId) setActivePrivateSpace(updated);
+      }
+      setSelectedPrivateSpace(null);
+      setPrivateSpaceRenameName("");
+      setPrivateSpaceStep("list");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not rename private chat");
+    }
+  };
+
+  const handleChangePrivateSpacePin = async (event) => {
+    event.preventDefault();
+    if (!selectedPrivateSpace?.privateSpaceId) return;
+
+    setPrivateSpaceError("");
+    try {
+      await changePrivateSpacePin(selectedPrivateSpace.privateSpaceId, privateSpacePinForm);
+      setPrivateSpacePinForm({ currentPin: "", newPin: "", confirmNewPin: "" });
+      setSelectedPrivateSpace(null);
+      setPrivateSpaceStep("list");
+      toast.success("PIN changed");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not change PIN");
+    }
+  };
+
+  const handleDeletePrivateSpace = async () => {
+    if (!privateSpaceDeleteTarget?.privateSpaceId) return;
+
+    setPrivateSpaceError("");
+    try {
+      await deletePrivateSpace(privateSpaceDeleteTarget.privateSpaceId);
+      setPrivateSpaces((items) => items.filter((item) => item.privateSpaceId !== privateSpaceDeleteTarget.privateSpaceId));
+      if (activePrivateSpace?.privateSpaceId === privateSpaceDeleteTarget.privateSpaceId) {
+        exitPrivateSpace();
+      }
+      setPrivateSpaceDeleteTarget(null);
+      setSelectedPrivateSpace(null);
+      setPrivateSpaceStep("list");
+    } catch (error) {
+      setPrivateSpaceError(error.message || "Could not delete private chat");
+    }
+  };
+
+  const openConversation = (conversationId) => {
+    closeMenu();
+    setMenuSearchOpen(false);
+    void loadConversationById(conversationId);
+  };
+
+  const openRenameDialog = (conversation) => {
+    setChatMenuTarget(null);
+    setRenameTarget(conversation);
+    setRenameTitle(conversation.title || "");
+  };
+
+  const handleRenameSubmit = async (event) => {
+    event.preventDefault();
+    if (!renameTarget || !renameTitle.trim()) return;
+
+    const previousConversations = conversations;
+    const nextTitle = renameTitle.trim();
+    setConversations((current) => current.map((item) => (
+      item.conversationId === renameTarget.conversationId
+        ? { ...item, title: nextTitle }
+        : item
+    )));
+    setSearchResults((current) => current.map((item) => (
+      item.conversationId === renameTarget.conversationId
+        ? { ...item, title: nextTitle }
+        : item
+    )));
+
+    try {
+      if (chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken) {
+        await renamePrivateSpaceChat(activePrivateSpace.privateSpaceId, renameTarget.conversationId, nextTitle, privateSpaceAccessToken);
+      } else {
+        await renameChat(renameTarget.conversationId, nextTitle);
+      }
+      setRenameTarget(null);
+      setRenameTitle("");
+      await loadConversationHistory();
+    } catch (error) {
+      setConversations(previousConversations);
+      toast.error(error.message || "Could not rename conversation");
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!deleteTarget) return;
+
+    const target = deleteTarget;
+    const previousConversations = conversations;
+    setDeleteTarget(null);
+    setChatMenuTarget(null);
+    setConversations((current) => current.filter((item) => item.conversationId !== target.conversationId));
+    setSearchResults((current) => current.filter((item) => item.conversationId !== target.conversationId));
+
+    if (activeConversationId === target.conversationId) {
+      startNewChat();
+    }
+
+    try {
+      if (chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken) {
+        await deletePrivateSpaceChat(activePrivateSpace.privateSpaceId, target.conversationId, privateSpaceAccessToken);
+      } else {
+        await deleteChat(target.conversationId);
+      }
+    } catch (error) {
+      setConversations(previousConversations);
+      toast.error(error.message || "Could not delete conversation");
+    }
+  };
+
+  const handleShareConversation = async (conversation) => {
+    setChatMenuTarget(null);
+    try {
+      const result = await shareChat(conversation, { appName: APP_NAME });
+      if (result.method === "clipboard") {
+        toast.success("Link copied");
+      }
+    } catch {
+      toast.info("Copy link unavailable");
+    }
+  };
+
+  const clearMobileFlowParams = () => {
+    const conversation = searchParams.get("conversation");
+    setSearchParams(conversation ? { conversation } : {});
+  };
+
+  const handleTouchStart = (event) => {
+    touchStartXRef.current = event.touches?.[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event) => {
+    const startX = touchStartXRef.current;
+    const endX = event.changedTouches?.[0]?.clientX;
+    touchStartXRef.current = null;
+    if (typeof startX === "number" && typeof endX === "number" && startX - endX > 70) {
+      closeMenu();
+    }
+  };
+
+  const handlePageTouchStart = (event) => {
+    touchStartXRef.current = event.touches?.[0]?.clientX ?? null;
+  };
+
+  const handlePageTouchEnd = (event) => {
+    const startX = touchStartXRef.current;
+    const endX = event.changedTouches?.[0]?.clientX;
+    touchStartXRef.current = null;
+
+    if (
+      !menuOpen &&
+      !menuSearchOpen &&
+      typeof startX === "number" &&
+      typeof endX === "number" &&
+      startX <= 24 &&
+      endX - startX > 82
+    ) {
+      openMenu();
+    }
+  };
+
+  const closeAttachmentSheet = () => {
+    setAttachmentSheetOpen(false);
+  };
+
+  const closeImageSourceSheet = () => {
+    setImageSourceSheetOpen(false);
+  };
+
+  const enterImageMode = () => {
+    setIsImageMode(true);
+    setIsWriteEditMode(false);
+    setIsSearchMode(false);
+    setImageModeError("");
+    setAttachmentSheetOpen(false);
+  };
+
+  const exitImageMode = () => {
+    setIsImageMode(false);
+    setSelectedImageTemplate(null);
+    setPendingImageTemplate(null);
+    setImageModeError("");
+    setImageModeStatus("");
+  };
+
+  const enterWriteEditMode = () => {
+    setIsWriteEditMode(true);
+    setIsImageMode(false);
+    setIsSearchMode(false);
+    setAttachmentSheetOpen(false);
+    setImageModeError("");
+    setImageModeStatus("");
+  };
+
+  const exitWriteEditMode = () => {
+    clearWriteTask();
+    setIsWriteEditMode(false);
+  };
+
+  const enterSearchMode = () => {
+    setIsSearchMode(true);
+    setIsImageMode(false);
+    setIsWriteEditMode(false);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setSearchConfirm(null);
+    setAttachmentSheetOpen(false);
+    setImageModeError("");
+    setImageModeStatus("");
+  };
+
+  const exitSearchMode = () => {
+    clearMobileFlowParams();
+    setIsSearchMode(false);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setSearchConfirm(null);
+    setMessage("");
+  };
+
+  const selectImageTemplate = (template) => {
+    setPendingImageTemplate(template);
+    setImageModeError("");
+    setImageModeStatus("");
+  };
+
+  const activateWriteTask = (template, files = []) => {
+    if (!template) return;
+    clearMobileFlowParams();
+    setIsWriteEditMode(true);
+    setActiveWriteTask(createWriteEditTask(template));
+    setWriteAttachments(files);
+    setMessage(template.prompt);
+    setPendingWriteTemplate(null);
+    setWriteAttachmentChoiceOpen(false);
+    setIsImageMode(false);
+  };
+
+  const clearWriteTask = () => {
+    clearMobileFlowParams();
+    writeAttachments.forEach((file) => {
+      if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+    });
+    setActiveWriteTask(null);
+    setPendingWriteTemplate(null);
+    setWriteAttachments([]);
+    setWriteAttachmentChoiceOpen(false);
+    setMessage("");
+  };
+
+  const removeWriteAttachment = (attachmentId) => {
+    setWriteAttachments((current) => {
+      const target = current.find((file) => file.id === attachmentId);
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return current.filter((file) => file.id !== attachmentId);
+    });
+  };
+
+  const selectWriteEditTemplate = (template) => {
+    if (!template) return;
+    clearMobileFlowParams();
+    setIsWriteEditMode(true);
+    setActiveWriteTask(createWriteEditTask(template));
+    setPendingWriteTemplate(null);
+    setWriteAttachmentChoiceOpen(false);
+    setWriteAttachments([]);
+    setIsImageMode(false);
+    setIsSearchMode(false);
+    setMessage(template.prompt || "");
+    window.setTimeout(() => composerInputRef.current?.focus(), 0);
+  };
+
+  const continueWriteTaskWithoutAttachment = () => {
+    if (!pendingWriteTemplate) return;
+    activateWriteTask(pendingWriteTemplate, []);
+  };
+
+  const openWriteAttachmentInput = (optionId) => {
+    if (optionId === "upload_image") {
+      window.setTimeout(() => imageInputRef.current?.click(), 0);
+      return;
+    }
+
+    if (optionId === "take_photo") {
+      window.setTimeout(() => cameraInputRef.current?.click(), 0);
+      return;
+    }
+
+    window.setTimeout(() => fileInputRef.current?.click(), 0);
+  };
+
+  const removeSelectedImageTemplate = () => {
+    setSelectedImageTemplate(null);
+    if (attachedImages.length === 0) {
+      setIsImageMode(false);
+      setMessage("");
+    }
+  };
+
+  const openSheetDestination = (path) => {
+    closeAttachmentSheet();
+    navigate(path);
+  };
+
+  const openFileInput = (inputRef, source = "file") => {
+    const input = inputRef.current;
+    console.debug("[BlueMind media picker] input requested", {
+      source,
+      hasInput: Boolean(input),
+      accept: input?.accept || "",
+      capture: input?.capture || "",
+      multiple: Boolean(input?.multiple),
+    });
+
+    if (!input) {
+      console.error("[BlueMind media picker] file input is missing", { source });
+      return;
+    }
+
+    try {
+      input.click();
+    } catch (error) {
+      console.error("[BlueMind media picker] failed to open file input", { source, error });
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      closeAttachmentSheet();
+      closeImageSourceSheet();
+    });
+  };
+
+  const openTemplateImageInput = (inputRef) => {
+    closeAttachmentSheet();
+    closeImageSourceSheet();
+    window.setTimeout(() => inputRef.current?.click(), 0);
+  };
+
+  const handleWriteAttachmentSelection = async (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!selectedFiles.length) return;
+
+    const accepted = [];
+
+    for (const file of selectedFiles) {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      const isImage = file.type.startsWith("image/");
+      const isText = file.type === "text/plain" || ["txt", "md", "csv", "rtf"].includes(extension);
+      const isPdf = file.type === "application/pdf" || extension === "pdf";
+      const isDoc = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(extension);
+
+      if (!isImage && !isText && !isPdf && !isDoc) {
+        toast.error(`${file.name} is not supported here.`);
+        continue;
+      }
+
+      let content = "";
+      let imageId = null;
+      let previewUrl = "";
+
+      if (isText) {
+        content = await file.text().catch(() => "");
+      }
+
+      if (isImage) {
+        previewUrl = URL.createObjectURL(file);
+        try {
+          const uploaded = await uploadChatImage(file, activeConversationId);
+          imageId = uploaded.id;
+        } catch (error) {
+          toast.error(error.message || "Image upload failed");
+        }
+      }
+
+      accepted.push({
+        id: imageId || `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name: file.name,
+        type: isImage ? "image" : isText ? "text" : isPdf ? "pdf" : "document",
+        size: file.size,
+        content,
+        imageId,
+        previewUrl,
+      });
+    }
+
+    if (pendingWriteTemplate) {
+      activateWriteTask(pendingWriteTemplate, accepted.slice(0, 6));
+      return;
+    }
+
+    setIsWriteEditMode(true);
+    setWriteAttachments((current) => [...current, ...accepted].slice(0, 10));
+  };
+
+  const handleImageSelection = async (event) => {
+    if (pendingWriteTemplate) {
+      void handleWriteAttachmentSelection(event);
+      return;
+    }
+
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (files.length === 0) {
+      return;
+    }
+
+    const templateForSelection = pendingImageTemplate;
+    const isCameraCapture = event.target === cameraInputRef.current;
+    if (isImageMode || templateForSelection) {
+      setIsImageMode(true);
+    }
+    if (templateForSelection) {
+      setSelectedImageTemplate(templateForSelection);
+      setMessage(templateForSelection.prompt);
+      setPendingImageTemplate(null);
+    }
+    setImageModeError("");
+
+    const availableSlots = Math.max(0, MAX_IMAGE_ATTACHMENTS - attachedImagesRef.current.length);
+    const filesToUpload = files.slice(0, availableSlots);
+    if (!filesToUpload.length) return;
+
+    setIsUploadingImages(true);
+    const uploadedImages = [];
+
+    try {
+      for (const file of filesToUpload) {
+        if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+          toast.error(t("invalidImageType"));
+          continue;
+        }
+
+        if (file.size > 8 * 1024 * 1024) {
+          toast.error(t("invalidImageSize"));
+          continue;
+        }
+
+        try {
+          const image = await uploadChatImage(file, activeConversationId);
+          if (image?.id) {
+            uploadedImages.push({
+              id: image.id,
+              name: file.name,
+              previewUrl: URL.createObjectURL(file),
+              file,
+            });
+          }
+        } catch (error) {
+          toast.error(error.message || t("imageUploadFailed"));
+        }
+      }
+
+      if (uploadedImages.length) {
+        setAttachedImages((current) => (
+          isCameraCapture
+            ? [...uploadedImages, ...current]
+            : [...current, ...uploadedImages]
+        ).slice(0, MAX_IMAGE_ATTACHMENTS));
+      }
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
+
+  const removeAttachedImage = (imageId) => {
+    setAttachedImages((current) => {
+      const target = current.find((image) => image.id === imageId);
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      const nextImages = current.filter((image) => image.id !== imageId);
+      if (nextImages.length === 0 && isImageMode && !selectedImageTemplate) {
+        window.setTimeout(() => setIsImageMode(false), 0);
+      }
+      return nextImages;
+    });
+  };
+
+  const handleSheetTouchStart = (event) => {
+    sheetTouchStartYRef.current = event.touches?.[0]?.clientY ?? null;
+  };
+
+  const handleSheetTouchEnd = (event) => {
+    const startY = sheetTouchStartYRef.current;
+    const endY = event.changedTouches?.[0]?.clientY;
+    sheetTouchStartYRef.current = null;
+    if (typeof startY === "number" && typeof endY === "number" && endY - startY > 70) {
+      closeAttachmentSheet();
+      closeImageSourceSheet();
+    }
+  };
+
+  const buildGenerationPrompt = (basePrompt, imageAnalyses = []) => {
+    const templateContext = selectedImageTemplate
+      ? [
+          `Template: ${selectedImageTemplate.title}`,
+          `Template category: ${selectedImageTemplate.category}`,
+          selectedImageTemplate.requiresImage ? "This template should use the uploaded image as a visual reference." : "",
+        ].filter(Boolean).join("\n")
+      : "";
+
+    const imageContext = imageAnalyses.length
+      ? imageAnalyses.map((item, index) => [
+          `Reference image ${index + 1}:`,
+          item.analysis?.description && `Description: ${item.analysis.description}`,
+          item.analysis?.extractedText && `Readable text: ${item.analysis.extractedText}`,
+          item.analysis?.objects?.length && `Visible objects: ${item.analysis.objects.join(", ")}`,
+          item.analysis?.safetyNotes && `Safety notes: ${item.analysis.safetyNotes}`,
+        ].filter(Boolean).join("\n")).join("\n\n")
+      : "";
+
+    return [
+      templateContext,
+      imageContext,
+      "Create the final image from this request:",
+      basePrompt,
+      "Output a polished, production-quality image. Keep the composition mobile-friendly, visually clear, and consistent with BlueMind's refined modern identity.",
+    ].filter(Boolean).join("\n\n");
+  };
+
+  const startVoiceInput = useCallback(() => {
+    if (isListening) {
+      stopVoiceInput();
+      return;
+    }
+    startVoiceCapture({
+      baseText: message,
+      language: prefs?.language || uiLanguage || navigator.language || "en-US",
+    });
+  }, [isListening, message, prefs?.language, startVoiceCapture, stopVoiceInput, uiLanguage]);
+
+  const appendAiDelta = useCallback((messageId, token) => {
+    setMessages((current) =>
+      current.map((item) =>
+        item.id === messageId
+          ? { ...item, content: `${item.content || ""}${token || ""}` }
+          : item,
+      ),
+    );
+  }, []);
+
+  const flushAiDelta = useCallback((messageId = activeAiMessageRef.current) => {
+    const buffered = streamBufferRef.current;
+    if (buffered.timer) {
+      window.clearTimeout(buffered.timer);
+    }
+
+    if (buffered.text && (buffered.messageId || messageId)) {
+      appendAiDelta(buffered.messageId || messageId, buffered.text);
+    }
+
+    streamBufferRef.current = { messageId: null, text: "", timer: null };
+  }, [appendAiDelta]);
+
+  const queueAiDelta = useCallback((messageId, token) => {
+    if (!token) return;
+
+    const buffered = streamBufferRef.current;
+    buffered.messageId = messageId;
+    buffered.text += token;
+
+    if (buffered.timer) return;
+
+    buffered.timer = window.setTimeout(() => {
+      flushAiDelta(messageId);
+    }, 90);
+  }, [flushAiDelta]);
+
+  const stopChatGeneration = useCallback(() => {
+    stopRequestedRef.current = true;
+    streamAbortRef.current?.abort();
+    flushAiDelta();
+    streamAbortRef.current = null;
+    activeAiMessageRef.current = null;
+    sendLockRef.current = false;
+    setIsChatSending(false);
+    setMessages((current) =>
+      current.map((item) =>
+        item.isStreaming
+          ? { ...item, isStreaming: false }
+          : item,
+      ),
+    );
+  }, [flushAiDelta]);
+
+  const sendChatPrompt = useCallback(async ({
+    prompt,
+    keepComposer = false,
+    mode = responseMode,
+    metadata = {},
+    hideUserMessage = false,
+    imageIds = [],
+    displayAttachments = [],
+    prelocked = false,
+    allowWhileBusy = false,
+  }) => {
+    const visibleMessage = String(prompt || "").trim();
+    const currentMessage = activeWriteTask
+      ? buildWriteEditMessage(visibleMessage, writeAttachments)
+      : visibleMessage;
+    const isSearchHandoff = String(metadata?.source || metadata?.searchContext?.source || "").toLowerCase() === "search";
+    const canStartFromContext = isSearchHandoff && metadata?.intent && (metadata?.category || metadata?.searchContext?.category);
+    const userDisplayAttachments = displayAttachments.length ? displayAttachments : writeAttachments;
+    const displayAttachmentImageIds = userDisplayAttachments
+      .map((attachment) => attachment?.id)
+      .filter(Boolean);
+    const writeAttachmentImageIds = writeAttachments.map((file) => file.imageId).filter(Boolean);
+    const requestImageIds = imageIds.length
+      ? imageIds
+      : activeWriteTask
+        ? writeAttachmentImageIds
+        : displayAttachmentImageIds.length
+          ? displayAttachmentImageIds
+          : [];
+    if (
+      (!currentMessage && !requestImageIds.length && !canStartFromContext)
+      || isGeneratingImage
+      || (!allowWhileBusy && isChatSending)
+      || (!prelocked && sendLockRef.current)
+    ) return;
+    if (!prelocked) {
+      sendLockRef.current = true;
+    }
+    setIsChatSending(true);
+    if (isListening) stopVoiceInput();
+
+    const selectedMode = normalizeAiModeId(mode || responseMode);
+    const authenticated = await ensureMobileChatAuth();
+    if (!authenticated) {
+      sendLockRef.current = false;
+      setIsChatSending(false);
+      return;
+    }
+    const userMessageId = crypto.randomUUID();
+    const aiMessageId = crypto.randomUUID();
+    const userMetadata = {
+      chatMode: "chat",
+      ...metadata,
+      mode: selectedMode,
+      responseMode: selectedMode,
+      aiMode: selectedMode,
+      blueMindModel: mobileModelId,
+      thinkingLevel,
+      chatMode: activeWriteTask ? "write_edit" : metadata.chatMode || "chat",
+      writeEditTask: activeWriteTask || undefined,
+    };
+    const userDisplayMessages = hideUserMessage
+      ? []
+      : (visibleMessage || userDisplayAttachments.length ? [{
+          id: userMessageId,
+          role: "user",
+          content: visibleMessage,
+          attachments: userDisplayAttachments,
+          metadata: {
+            ...userMetadata,
+            splitKind: userDisplayAttachments.length && visibleMessage ? "image_text" : userDisplayAttachments.length ? "images" : "text",
+          },
+        }] : []);
+
+    setMessages((current) => [
+      ...current,
+      ...userDisplayMessages,
+      { id: aiMessageId, role: "ai", content: "", isStreaming: true, metadata: { ...userMetadata, requestContent: visibleMessage } },
+    ]);
+    window.requestAnimationFrame(() => scrollToBottom("smooth"));
+
+    if (!keepComposer) {
+      setMessage("");
+      composerInputRef.current?.blur();
+      setComposerKeyboardOffset(0);
+      setActiveWriteTask(null);
+      setPendingWriteTemplate(null);
+      setWriteAttachmentChoiceOpen(false);
+      setWriteAttachments([]);
+      setAttachedImages([]);
+      setIsImageMode(false);
+      setSelectedImageTemplate(null);
+      setPendingImageTemplate(null);
+      setIsWriteEditMode(false);
+      setIsSearchMode(false);
+      setSelectedSearchCategory(null);
+      setOpenSearchMenuItemId(null);
+      setExpandedSearchItemId(null);
+      setSearchConfirm(null);
+    }
+
+    setImageModeError("");
+    stopRequestedRef.current = false;
+    activeAiMessageRef.current = aiMessageId;
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+
+    try {
+      const streamMessage = chatSessionMode === "hidden"
+        ? streamHiddenChatMessage
+        : chatSessionMode === "private"
+          ? streamPrivateSpaceMessage
+          : streamChatMessage;
+
+      await streamMessage({
+        message: currentMessage,
+        imageIds: requestImageIds,
+        conversationId: chatSessionMode === "hidden" ? undefined : activeConversationId,
+        privateSpaceId: activePrivateSpace?.privateSpaceId,
+        accessToken: privateSpaceAccessToken,
+        mode: selectedMode,
+        metadata: {
+          ...userMetadata,
+          chatSessionMode,
+          privateSpaceId: chatSessionMode === "private" ? activePrivateSpace?.privateSpaceId : undefined,
+          hiddenChat: chatSessionMode === "hidden" || undefined,
+        },
+        signal: controller.signal,
+        onReady: (payload) => {
+          if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
+            setSearchParams({ conversation: payload.conversation.conversationId });
+          }
+        },
+        onDelta: (payload) => {
+          queueAiDelta(aiMessageId, payload?.token);
+        },
+        onComplete: (payload) => {
+          flushAiDelta(aiMessageId);
+          if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
+            setSearchParams({ conversation: payload.conversation.conversationId });
+          }
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === aiMessageId
+                ? { ...item, content: item.content || payload?.message?.content || "", isStreaming: false }
+                : item,
+            ),
+          );
+        },
+      });
+    } catch (error) {
+      flushAiDelta(aiMessageId);
+      if (stopRequestedRef.current || error?.name === "AbortError" || controller.signal.aborted) {
+        setMessages((current) =>
+          current.map((item) =>
+            item.id === aiMessageId
+              ? { ...item, isStreaming: false }
+              : item,
+          ),
+        );
+        return;
+      }
+
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === aiMessageId
+            ? { ...item, content: getApiErrorMessage(error, "Chat request failed"), isStreaming: false }
+            : item,
+        ),
+      );
+    } finally {
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+      }
+      if (activeAiMessageRef.current === aiMessageId) {
+        activeAiMessageRef.current = null;
+      }
+      stopRequestedRef.current = false;
+      setIsChatSending(false);
+      sendLockRef.current = false;
+    }
+  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, isChatSending, isGeneratingImage, isListening, mobileModelId, privateSpaceAccessToken, queueAiDelta, responseMode, scrollToBottom, setSearchParams, stopVoiceInput, thinkingLevel, writeAttachments]);
+
+  const persistMessageFeedback = useCallback((messageId, feedback) => {
+    setMessageFeedback((current) => ({
+      ...current,
+      [messageId]: {
+        ...(current[messageId] || {}),
+        ...feedback,
+      },
+    }));
+
+    try {
+      const stored = JSON.parse(localStorage.getItem("bluemind_chat_feedback") || "[]");
+      stored.push({
+        messageId,
+        conversationId: activeConversationId,
+        ...feedback,
+        createdAt: new Date().toISOString(),
+      });
+      localStorage.setItem("bluemind_chat_feedback", JSON.stringify(stored.slice(-200)));
+    } catch {
+      // Feedback storage is best effort until the feedback API is connected.
+    }
+  }, [activeConversationId]);
+
+  const handleCopyMessage = useCallback(async (item) => {
+    try {
+      await navigator.clipboard.writeText(item.content || "");
+      persistMessageFeedback(item.id, { copied: true });
+      window.setTimeout(() => {
+        setMessageFeedback((current) => ({
+          ...current,
+          [item.id]: {
+            ...(current[item.id] || {}),
+            copied: false,
+          },
+        }));
+      }, 1600);
+    } catch {
+      toast.error(t("copyFailed"));
+    }
+  }, [persistMessageFeedback, t]);
+
+  const handleLikeMessage = useCallback((item) => {
+    persistMessageFeedback(item.id, { rating: "like" });
+    toast.success(t("feedbackSaved"));
+  }, [persistMessageFeedback, t]);
+
+  const handleDislikeMessage = useCallback((item) => {
+    persistMessageFeedback(item.id, { rating: "dislike" });
+    setDislikeTarget(item);
+  }, [persistMessageFeedback]);
+
+  const handleDislikeReason = useCallback((reason) => {
+    if (!dislikeTarget) return;
+    persistMessageFeedback(dislikeTarget.id, { rating: "dislike", reason });
+    setDislikeTarget(null);
+    toast.success(t("feedbackSaved"));
+  }, [dislikeTarget, persistMessageFeedback, t]);
+
+  const handleEditMessage = useCallback((item) => {
+    setMessage(item.content || "");
+    window.setTimeout(() => composerInputRef.current?.focus(), 0);
+    toast.info(t("editInComposer"));
+  }, [t]);
+
+  const handleRegenerateMessage = useCallback((item) => {
+    if (isChatSending) return;
+
+    const index = messages.findIndex((messageItem) => messageItem.id === item.id);
+    const previousUser = [...messages.slice(0, index)].reverse().find((messageItem) => messageItem.role === "user");
+
+    if (!previousUser) {
+      toast.error(t("regenerateFailed"));
+      return;
+    }
+
+    setMessages((current) => current.slice(0, Math.max(0, index)));
+    void sendChatPrompt({
+      prompt: previousUser.content,
+      keepComposer: true,
+      mode: previousUser.metadata?.aiMode || previousUser.metadata?.mode || previousUser.metadata?.responseMode || responseMode,
+      metadata: previousUser.metadata || {},
+      imageIds: (previousUser.attachments || []).map((attachment) => attachment.id).filter(Boolean),
+      displayAttachments: previousUser.attachments || [],
+    });
+  }, [isChatSending, messages, responseMode, sendChatPrompt, t]);
+
+  const handleShareMessage = useCallback(async (item) => {
+    const text = item.content || "";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: APP_NAME, text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast.success(t("copiedToClipboard"));
+      }
+    } catch {
+      // User cancelled native share or clipboard was unavailable.
+    }
+  }, [t]);
+
+  const handleMoreMessage = useCallback(() => {
+    toast.info(t("moreActionsSoon"));
+  }, [t]);
+
+  const getPreviousUserContent = useCallback((messageIndex) => {
+    const previousUser = [...messages.slice(0, messageIndex)].reverse().find((item) => item.role === "user");
+    return previousUser?.content || "";
+  }, [messages]);
+
+  const openSearchAskConfirm = ({ category, item = null, intent }) => {
+    setOpenSearchMenuItemId(null);
+    setSearchConfirm({ category, item, intent });
+  };
+
+  const copySearchItemName = async (item) => {
+    try {
+      await navigator.clipboard.writeText(item.title);
+      toast.success("Copied");
+    } catch {
+      toast.error("Copy failed");
+    } finally {
+      setOpenSearchMenuItemId(null);
+    }
+  };
+
+  const continueSearchWithAi = async () => {
+    if (!searchConfirm?.category) return;
+
+    const { category, item, intent } = searchConfirm;
+    const searchContext = {
+      source: "search",
+      category: category.id,
+      categoryTitle: category.title,
+      intent,
+      ...(item?.title ? { selectedItem: item.title } : {}),
+    };
+
+    setSearchConfirm(null);
+    setIsSearchMode(false);
+    setSelectedSearchCategory(null);
+    setOpenSearchMenuItemId(null);
+    setExpandedSearchItemId(null);
+    setMessage("");
+
+    await sendChatPrompt({
+      prompt: "",
+      metadata: {
+        source: "search",
+        chatMode: "web_search",
+        category: category.id,
+        categoryTitle: category.title,
+        selectedItem: item?.title,
+        intent,
+        searchContext,
+      },
+      hideUserMessage: true,
+    });
+  };
+
+  const handleComposerSubmit = async (event) => {
+    event.preventDefault();
+    if (!hasComposerContent || isGeneratingImage || isUploadingImages || isChatSending || sendLockRef.current) return;
+
+    if (!isImageMode) {
+      const currentMessage = message.trim();
+      if (!currentMessage && attachedImages.length === 0) return;
+      await sendChatPrompt({
+        prompt: currentMessage || "Please analyze these images.",
+        imageIds: attachedImages.map((image) => image.id).filter(Boolean),
+        displayAttachments: attachedImages,
+        metadata: isSearchMode ? { chatMode: "web_search" } : {},
+      });
+      return;
+    }
+
+    if (selectedImageTemplate?.requiresImage && attachedImages.length === 0) {
+      setImageModeError("Add a photo for this template before generating.");
+      setImageSourceSheetOpen(true);
+      return;
+    }
+
+    const prompt = message.trim() || selectedImageTemplate?.prompt || "Create a polished BlueMind image.";
+    setIsGeneratingImage(true);
+    setImageModeError("");
+    setImageModeStatus(attachedImages.length ? "Uploading images..." : "Generating image...");
+
+    try {
+      const uploadedImages = [];
+      for (const attachment of attachedImages) {
+        const image = await uploadChatImage(attachment.file, activeConversationId);
+        if (image) {
+          uploadedImages.push(image);
+        }
+      }
+
+      const analyses = [];
+      if (uploadedImages.length > 0) {
+        setImageModeStatus("Reading image context...");
+        for (const image of uploadedImages) {
+          const analysisPrompt = selectedImageTemplate?.requiresImage
+            ? selectedImageTemplate.prompt
+            : "Analyze this image as a visual reference for image generation. Describe composition, objects, style, colors, readable text, and details that should influence the generated image.";
+          const analysis = await analyzeImage(image.id, analysisPrompt);
+          analyses.push(analysis);
+        }
+      }
+
+      setImageModeStatus("Generating image...");
+      const finalPrompt = buildGenerationPrompt(prompt, analyses);
+      const result = await generateImage(finalPrompt, activeConversationId, {
+        n: 1,
+        size: "1024x1024",
+        quality: "auto",
+        outputFormat: "png",
+        metadata: {
+          templateId: selectedImageTemplate?.id,
+          templateTitle: selectedImageTemplate?.title,
+          uploadedImageIds: uploadedImages.map((image) => image.id),
+        },
+      });
+
+      setGeneratedImages((result?.images || []).map((image) => ({
+        id: image.id,
+        url: getImageUrl(image.id),
+        prompt: image.prompt,
+        revisedPrompt: image.revisedPrompt,
+      })));
+      setImageModeStatus("Image generated.");
+      setMessage("");
+      setSelectedImageTemplate(null);
+      setAttachedImages((current) => {
+        current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+        return [];
+      });
+      setIsImageMode(false);
+    } catch (error) {
+      setImageModeError(getApiErrorMessage(error, "Image generation failed"));
+      setImageModeStatus("");
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const renderComposerArea = (centered = false, separatePlus = centered) => {
+    const composerModePill = isImageMode
+      ? { label: "Create Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
+      : (isWriteEditMode || activeWriteTask)
+        ? { label: "Write/Edit", onClear: exitWriteEditMode, clearLabel: "Exit write edit mode" }
+        : isSearchMode
+          ? { label: "Search", onClear: exitSearchMode, clearLabel: "Exit search mode" }
+          : null;
+
+    const composerAttachments = isImageMode
+      ? [
+          ...(selectedImageTemplate?.thumbnail ? [{
+            id: `template:${selectedImageTemplate.id}`,
+            name: selectedImageTemplate.title,
+            type: "image",
+            previewUrl: selectedImageTemplate.thumbnail,
+          }] : []),
+          ...attachedImages,
+        ]
+      : (isWriteEditMode || activeWriteTask)
+        ? writeAttachments
+        : attachedImages;
+
+    const removeComposerAttachment = (attachmentId) => {
+      if (String(attachmentId).startsWith("template:")) {
+        removeSelectedImageTemplate();
+        return;
+      }
+
+      if (isImageMode || (!isWriteEditMode && !activeWriteTask)) {
+        removeAttachedImage(attachmentId);
+        return;
+      }
+
+      removeWriteAttachment(attachmentId);
+    };
+
+    const clearComposerAttachments = () => {
+      if (isImageMode || (!isWriteEditMode && !activeWriteTask)) {
+        setAttachedImages((current) => {
+          current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+          return [];
+        });
+        setSelectedImageTemplate(null);
+        if (isImageMode) setIsImageMode(false);
+        return;
+      }
+
+      writeAttachments.forEach((file) => {
+        if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+      });
+      setWriteAttachments([]);
+    };
+
+    const openComposerAttachment = () => {
+      if (isImageMode) {
+        setImageSourceSheetOpen(true);
+        return;
+      }
+
+      setAttachmentSheetOpen(true);
+    };
+
+    const activeMobileModel = getMobileModelById(mobileModelId, responseMode);
+    const activeThinkingLevel = MOBILE_THINKING_LEVELS.find((level) => level.id === thinkingLevel) || MOBILE_THINKING_LEVELS[1];
+    const composerModelMenuOpen = responseModeMenuOpen && responseModeMenuPlacement === "composer";
+    const composerMenuLayout = composerModelMenuLayout || getComposerModelMenuLayout(composerModelButtonRef.current);
+    const selectedModelRowClass = isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]";
+    const idleModelRowClass = isDark ? "text-white hover:bg-white/[0.07]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]";
+    const dropdownSurfaceClass = isDark
+      ? "bg-[var(--bm-bg-card)] text-white ring-white/[0.08] shadow-[0_12px_28px_rgba(0,0,0,0.28)]"
+      : "bg-white text-[var(--bm-text-primary)] ring-[var(--bm-border)] shadow-[0_12px_28px_rgba(15,23,42,0.10)]";
+
+    const composerModelSelector = (
+      <div className="relative inline-flex min-w-0 shrink-0">
+        <button
+          ref={composerModelButtonRef}
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            setResponseModeMenuPlacement("composer");
+            setResponseModeMenuOpen((open) => {
+              const nextOpen = responseModeMenuPlacement === "composer" ? !open : true;
+              if (nextOpen) {
+                window.requestAnimationFrame(updateComposerModelMenuLayout);
+              }
+              return nextOpen;
+            });
+          }}
+          className={isDark ? "inline-flex h-9 max-w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-white/[0.07] px-2.5 text-[13px] font-bold text-white active:bg-white/[0.12]" : "inline-flex h-9 max-w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--bm-hover-bg)] px-2.5 text-[13px] font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
+          aria-label="Select BlueMind model"
+          aria-expanded={composerModelMenuOpen}
+        >
+          <span className="truncate">{activeMobileModel.label}</span>
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${composerModelMenuOpen ? "rotate-180" : ""}`} />
+        </button>
+
+        <AnimatePresence>
+          {composerModelMenuOpen && (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-40 cursor-default"
+                onClick={() => {
+                  setComposerThinkingMenuOpen(false);
+                  setResponseModeMenuOpen(false);
+                }}
+                aria-label="Close BlueMind model menu"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="fixed z-50 overflow-visible"
+                style={{
+                  bottom: `${composerMenuLayout?.bottom ?? 72}px`,
+                  left: `${composerMenuLayout?.left ?? 16}px`,
+                  width: `${composerMenuLayout?.menuWidth ?? 220}px`,
+                }}
+              >
+                <div
+                  className={`overflow-y-auto rounded-[20px] p-1.5 ring-1 ${dropdownSurfaceClass}`}
+                  style={{ maxHeight: `${composerMenuLayout?.maxHeight ?? 300}px` }}
+                >
+                  {MOBILE_BLUEMIND_MODELS.map((model) => {
+                    const selected = activeMobileModel.id === model.id;
+                    return (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onMouseEnter={() => setComposerThinkingMenuOpen(false)}
+                        onFocus={() => setComposerThinkingMenuOpen(false)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          selectMobileModel(model);
+                        }}
+                        className={`flex min-h-[42px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${selected ? selectedModelRowClass : idleModelRowClass}`}
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{model.label}</span>
+                      </button>
+                    );
+                  })}
+
+                  <div className={`my-1.5 h-px ${isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]"}`} />
+
+                  <button
+                    type="button"
+                    onMouseEnter={() => setComposerThinkingMenuOpen(true)}
+                    onFocus={() => setComposerThinkingMenuOpen(true)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setComposerThinkingMenuOpen((open) => !open);
+                    }}
+                    className={`flex min-h-[42px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${composerThinkingMenuOpen ? selectedModelRowClass : idleModelRowClass}`}
+                    aria-haspopup="menu"
+                    aria-expanded={composerThinkingMenuOpen}
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center" />
+                    <span className="min-w-0 flex-1 truncate">Thinking</span>
+                    <ChevronRight className={`h-4 w-4 shrink-0 ${isDark ? "text-white/70" : "text-[var(--bm-text-muted)]"}`} />
+                  </button>
+                </div>
+
+                <AnimatePresence>
+                  {composerThinkingMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, x: composerMenuLayout?.submenuSide === "left" ? 4 : -4, scale: 0.98 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: composerMenuLayout?.submenuSide === "left" ? 4 : -4, scale: 0.98 }}
+                      transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                      className={`absolute bottom-0 z-50 rounded-[20px] p-1.5 ring-1 ${dropdownSurfaceClass}`}
+                      style={{
+                        maxHeight: `${composerMenuLayout?.maxHeight ?? 300}px`,
+                        width: `${composerMenuLayout?.submenuWidth ?? 132}px`,
+                        ...(composerMenuLayout?.submenuSide === "left"
+                          ? { right: "calc(100% + 6px)" }
+                          : { left: "calc(100% + 6px)" }),
+                      }}
+                      onMouseEnter={() => setComposerThinkingMenuOpen(true)}
+                    >
+                      {MOBILE_THINKING_LEVELS.map((level) => {
+                        const selected = activeThinkingLevel.id === level.id;
+                        return (
+                          <button
+                            key={level.id}
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              selectMobileThinkingLevel(level);
+                            }}
+                            className={`flex min-h-[40px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${selected ? selectedModelRowClass : idleModelRowClass}`}
+                          >
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                              {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate">{level.label}</span>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+
+    return (
+    <motion.div
+      layout
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      className={
+        centered
+          ? "mx-auto w-full max-w-[430px] px-1"
+          : "px-4 pb-[calc(env(safe-area-inset-bottom)+8px)]"
+      }
+    >
+      {(imageModeError || imageModeStatus) && (
+        <div className={`mb-2 rounded-2xl px-3 py-2 text-xs font-bold ${
+          imageModeError
+            ? isDark ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-600"
+            : isDark ? "bg-white/[0.06] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"
+        }`}>
+          {imageModeError || imageModeStatus}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {writeAttachmentChoiceOpen && pendingWriteTemplate && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            className={`mx-auto mb-3 w-full max-w-[360px] rounded-[26px] border p-3 text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-xl ${
+              isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.92] text-white" : "border-white/70 bg-white/[0.88] text-[var(--bm-text-primary)]"
+            }`}
+          >
+            <div className="mb-3 flex items-start justify-between gap-3 text-left">
+              <div>
+                <p className="text-sm font-bold">{pendingWriteTemplate.title}</p>
+                <p className={`mt-1 text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
+                  Choose an optional attachment or continue manually.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={continueWriteTaskWithoutAttachment}
+                className={isDark ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                aria-label="Continue without attachment"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid gap-2">
+              {WRITE_EDIT_UPLOAD_OPTIONS.filter((option) => option.id !== "continue").map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => openWriteAttachmentInput(option.id)}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]"}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <UnifiedComposer
+        value={message}
+        onChange={(event) => {
+          setMessage(event.target.value);
+          if (!isImageMode && !isWriteEditMode) {
+            resizeChatComposer(event.target);
+          }
+        }}
+        onInput={(event) => {
+          if (!isImageMode && !isWriteEditMode) {
+            resizeChatComposer(event.currentTarget);
+          }
+        }}
+        onSubmit={handleComposerSubmit}
+        inputRef={composerInputRef}
+        placeholder={
+          isImageMode
+            ? "Describe an image..."
+            : (isWriteEditMode || activeWriteTask)
+              ? "Write, paste, or choose a productivity tool..."
+            : isSearchMode
+                ? "Ask AI to search..."
+                : attachedImages.length
+                  ? "Ask about these images..."
+              : "Ask anything..."
+        }
+        modePill={composerModePill}
+        attachments={composerAttachments}
+        onRemoveAttachment={removeComposerAttachment}
+        onClearAttachments={clearComposerAttachments}
+        isUploading={isUploadingImages}
+        onAdd={openComposerAttachment}
+        onVoice={startVoiceInput}
+        isListening={isListening}
+        voiceAudioLevels={voiceAudioLevels}
+        onCancelVoice={cancelVoiceInput}
+        onFinishVoice={stopVoiceInput}
+        isBusy={isGeneratingImage || isChatSending || isListening}
+        canSend={hasComposerContent}
+        onSendAction={isChatSending ? stopChatGeneration : isListening ? stopVoiceInput : undefined}
+        isDark={isDark}
+        variant="mobile"
+        modelSelector={composerModelSelector}
+        minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
+        maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
+        testId="mobile-chat-input"
+      />
+
+    </motion.div>
+    );
+  };
+
+  const renderHomeQuickActions = () => {
+    const quickActions = [
+      { label: "Create Image", icon: Image, onClick: enterImageMode },
+      { label: "Write / Edit", icon: Edit3, onClick: enterWriteEditMode },
+      { label: "Search", icon: Search, onClick: enterSearchMode },
+    ];
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 6 }}
+        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-3 flex flex-wrap items-center justify-center gap-2 px-4"
+        data-testid="mobile-home-quick-actions"
+      >
+        {quickActions.map((action) => {
+          const ActionIcon = action.icon;
+
+          return (
+            <button
+              key={action.label}
+              type="button"
+              onClick={action.onClick}
+              className={`inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-[13px] font-bold transition-colors active:scale-[0.99] ${
+                isDark
+                  ? "border-white/[0.08] bg-white/[0.06] text-white shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:bg-white/[0.11]"
+                  : "border-[var(--bm-border)] bg-white/90 text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"
+              }`}
+            >
+              <ActionIcon className={`h-4 w-4 shrink-0 stroke-[2.2] ${isDark ? "text-white/85" : "text-[var(--bm-primary)]"}`} />
+              <span className="whitespace-nowrap">{action.label}</span>
+            </button>
+          );
+        })}
+      </motion.div>
+    );
+  };
+
+  const renderMobileConversationRow = (item, context = "menu") => {
+    const menuId = `${context}:${item.conversationId}`;
+    const isActive = item.conversationId === activeConversationId;
+
+    return (
+      <div
+        key={menuId}
+        className={`relative border-b py-3 last:border-b-0 ${isDark ? "border-white/[0.06]" : "border-[var(--bm-border)]"}`}
+      >
+        <button
+          type="button"
+          onClick={() => openConversation(item.conversationId)}
+          className={`flex w-full min-w-0 items-start pr-10 text-left ${iconClasses.iconText}`}
+          data-testid={`mobile-chat-row-${item.conversationId}`}
+        >
+          <MessageSquare className={`mt-0.5 shrink-0 ${iconClasses.sidebar} ${isActive ? isDark ? "text-white" : "text-[var(--bm-primary)]" : isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`} />
+          <span className="min-w-0 flex-1">
+            <span className={`block truncate font-semibold ${typeClasses.body} ${isActive ? isDark ? "text-white" : "text-[var(--bm-primary)]" : textColor}`}>
+              {item.title || t("newChat")}
+            </span>
+            <span className={`mt-1 block truncate font-medium ${typeClasses.small} ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+              {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setChatMenuTarget((current) => current === menuId ? null : menuId);
+          }}
+          className={isDark ? "absolute right-0 top-3 flex h-9 w-9 items-center justify-center rounded-full text-[var(--bm-text-secondary)] active:bg-white/[0.08]" : "absolute right-0 top-3 flex h-9 w-9 items-center justify-center rounded-full text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]"}
+          aria-label="Conversation actions"
+          data-testid={`mobile-chat-menu-${item.conversationId}`}
+        >
+          <MoreVertical className={iconClasses.button} />
+        </button>
+
+        <AnimatePresence>
+          {chatMenuTarget === menuId && (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-[90]"
+                onClick={() => setChatMenuTarget(null)}
+                aria-label="Close conversation actions"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                transition={{ duration: 0.16 }}
+                className={`absolute right-0 top-12 z-[95] w-40 overflow-hidden rounded-2xl border py-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[var(--bm-bg-elevated)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => openRenameDialog(item)}
+                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
+                >
+                  <Pencil className={iconClasses.button} />
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShareConversation(item)}
+                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
+                >
+                  <Share2 className={iconClasses.button} />
+                  Share
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChatMenuTarget(null);
+                    setDeleteTarget(item);
+                  }}
+                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold text-red-300 active:bg-red-950/30 ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold text-red-500 active:bg-red-50 ${typeClasses.small} ${iconClasses.iconText}`}
+                >
+                  <Trash2 className={iconClasses.button} />
+                  Delete
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  return (
+    <main
+      className={`fixed inset-0 flex flex-col overflow-hidden ${textColor}`}
+      style={{
+        backgroundColor: surfaceColor,
+        minHeight: "100dvh",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+      onTouchStart={handlePageTouchStart}
+      onTouchEnd={handlePageTouchEnd}
+      data-testid="mobile-chat-page"
+    >
+      <header className={`relative z-40 flex h-16 items-center justify-between border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
+        <div className="flex w-12 items-center justify-start">
+          <button
+            type="button"
+            onClick={openMenu}
+            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+            aria-label="Open menu"
+          >
+            <span className="flex h-5 w-6 flex-col items-start justify-center gap-[7px]" aria-hidden="true">
+              <span className="block h-[2.5px] w-[23px] rounded-[999px] bg-current" />
+              <span className="block h-[2.5px] w-[13px] rounded-[999px] bg-current" />
+            </span>
+          </button>
+        </div>
+
+        <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              setResponseModeMenuPlacement("header");
+              setResponseModeMenuOpen((open) => responseModeMenuPlacement === "header" ? !open : true);
+            }}
+            className={isDark ? "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.055] px-3 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-[var(--bm-border)] bg-white px-3 text-sm font-bold capitalize text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"}
+            aria-label="Select AI mode"
+            aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "header"}
+          >
+            {(() => {
+              const SelectedModeIcon = getAiMode(responseMode).icon;
+              return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
+            })()}
+            <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen && responseModeMenuPlacement === "header" ? "rotate-180" : ""}`} />
+          </button>
+
+          <AnimatePresence>
+            {responseModeMenuOpen && responseModeMenuPlacement === "header" && (
+              <>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-[45] cursor-default"
+                  onClick={() => setResponseModeMenuOpen(false)}
+                  aria-label="Close AI mode menu"
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                  transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                  className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+5.75rem)] z-50 w-[260px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-hidden rounded-[18px] border p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.24)] ${
+                    isDark
+                      ? "border-white/[0.1] bg-[#202020] text-white"
+                      : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]"
+                  }`}
+                  role="menu"
+                >
+                  {AI_MODES.map((mode) => {
+                    const ModeIcon = mode.icon;
+                    const selected = responseMode === mode.id;
+                    return (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => selectResponseMode(mode.id)}
+                        className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors ${
+                          selected
+                            ? isDark
+                              ? "bg-white/[0.1] text-white"
+                              : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                            : isDark
+                              ? "text-white hover:bg-white/[0.07]"
+                              : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
+                        }`}
+                        title={mode.description}
+                        role="menuitemradio"
+                        aria-checked={selected}
+                      >
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <ModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
+                          <span className="truncate">{getAiSpecializationLabel(mode)}</span>
+                        </span>
+                        {selected && <Check className={`h-[18px] w-[18px] shrink-0 stroke-[2.5] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="flex w-12 items-center justify-end">
+          <button
+            type="button"
+            onClick={startNewChat}
+            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+            aria-label="New chat"
+          >
+            <PenLine className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      {(chatSessionMode === "private" || chatSessionMode === "hidden") && (
+        <div className={`z-30 flex items-center justify-between border-b px-4 py-2 text-xs font-bold ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
+          <span className="flex items-center gap-2">
+            {chatSessionMode === "private" ? <Lock className="h-4 w-4" /> : <Glasses className="h-4 w-4" />}
+            {chatSessionMode === "private" ? `${activePrivateSpace?.name || "Private"} Chat` : "Hidden Mode"}
+          </span>
+          <button type="button" className={isDark ? "text-[var(--bm-primary)]" : "text-[var(--bm-primary)]"} onClick={chatSessionMode === "private" ? exitPrivateSpace : exitHiddenMode}>
+            {chatSessionMode === "private" ? "Exit Private Chat" : "Exit Hidden Chat"}
+          </button>
+        </div>
+      )}
+
+      <section className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={messagesScrollRef}
+          className={isEmptyChat ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[168px] pt-5" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[168px] pt-4"}
+        >
+          {generatedImages.length > 0 && (
+            <div className="mb-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold">Generated image</p>
+                <button
+                  type="button"
+                  onClick={() => setGeneratedImages([])}
+                  className={`text-xs font-bold ${mutedText}`}
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="grid gap-3">
+                {generatedImages.map((image) => (
+                  <div
+                    key={image.id}
+                    className={`overflow-hidden rounded-[26px] border ${borderColor}`}
+                    style={{ backgroundColor: panelColor }}
+                  >
+                    <img src={image.url} alt="Generated BlueMind result" className="aspect-square w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isImageMode && (
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>Create an image</h2>
+              <button
+                type="button"
+                onClick={exitImageMode}
+                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                aria-label="Exit create image mode"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+
+          {isWriteEditMode && (
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>Write/Edit</h2>
+              <button
+                type="button"
+                onClick={exitWriteEditMode}
+                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                aria-label="Exit write edit mode"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+
+          {isSearchMode && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>
+                  {selectedSearchCategory?.title || "Search"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={exitSearchMode}
+                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                  aria-label="Exit search mode"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {!selectedSearchCategory && (
+                <p className={`mt-1 max-w-[330px] text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+                  Find what you need here. If you can&apos;t find it, Ask AI can help you find it.
+                </p>
+              )}
+            </div>
+          )}
+
+          {shouldShowImageTemplates && (
+            <div className="pt-2">
+              <AnimatePresence>
+                {pendingImageTemplate && (
+                  <motion.div
+                    key={pendingImageTemplate.id}
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className={`mx-auto mb-4 w-full rounded-[26px] border p-4 text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-xl ${
+                      isDark
+                        ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.88] text-white"
+                        : "border-white/70 bg-white/[0.78] text-[var(--bm-text-primary)]"
+                    }`}
+                    style={{
+                      backdropFilter: "blur(18px)",
+                      WebkitBackdropFilter: "blur(18px)",
+                    }}
+                  >
+                    <h3 className="text-base font-bold tracking-tight">{pendingImageTemplate.title}</h3>
+                    <p className={`mx-auto mt-1 max-w-[260px] text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
+                      {pendingImageTemplate.description || "Create polished image artwork from your photo."}
+                    </p>
+                    <div className="mt-4 grid gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openTemplateImageInput(imageInputRef)}
+                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]"}
+                      >
+                        <Image className="h-[18px] w-[18px]" />
+                        <span>Upload Image</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openTemplateImageInput(cameraInputRef)}
+                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]"}
+                      >
+                        <Camera className="h-[18px] w-[18px]" />
+                        <span>Take Photo</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="grid grid-cols-2 gap-3">
+                {DESKTOP_IMAGE_IDEAS.map((item, index) => (
+                  <motion.button
+                    key={item.title}
+                    type="button"
+                    onClick={() => selectImageTemplate(item)}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.16) }}
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.985 }}
+                    className={`group overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                      isDark
+                        ? "border-white/[0.08] bg-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.1]"
+                        : "border-white/75 bg-white/82 shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                    }`}
+                  >
+                    <div className="relative aspect-[1.35] overflow-hidden">
+                      <img
+                        src={item.thumbnail}
+                        alt=""
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        draggable="false"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                      <span className="absolute left-3 top-3 rounded-full bg-white/18 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur">
+                        {item.category}
+                      </span>
+                    </div>
+                    <div className="p-3">
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
+                        {item.title}
+                      </span>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+                        {item.description}
+                      </span>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {shouldShowWriteEditTemplates && (
+            <div className="pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                {writeEditTemplates.map((template, index) => (
+                  <motion.button
+                    key={template.id}
+                    type="button"
+                    onClick={() => selectWriteEditTemplate(template)}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.16) }}
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.985 }}
+                    className={`group overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                      isDark
+                        ? "border-white/[0.08] bg-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.1]"
+                        : "border-white/75 bg-white/82 shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                    }`}
+                  >
+                    <WriteTemplateArtwork template={template} index={index} />
+                    <div className="p-3">
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
+                        {template.title}
+                      </span>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+                        {template.description}
+                      </span>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {shouldShowSearchCards && !selectedSearchCategory && (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {SEARCH_DISCOVERY_CATEGORIES.map((category, index) => (
+                <motion.button
+                  key={category.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSearchCategory(category);
+                    setOpenSearchMenuItemId(null);
+                    setExpandedSearchItemId(null);
+                  }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.16) }}
+                  whileHover={{ y: -5 }}
+                  whileTap={{ scale: 0.985 }}
+                  className={`group overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                    isDark
+                      ? "border-white/[0.08] bg-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.1]"
+                      : "border-white/75 bg-white/82 shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                  }`}
+                >
+                  <WriteTemplateArtwork template={category} index={index} />
+                  <div className="p-3">
+                    <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
+                      {category.title}
+                    </span>
+                    <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+                      {category.description}
+                    </span>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          )}
+
+          {shouldShowSearchCards && selectedSearchCategory && (
+            <div className="pt-2">
+              <div className={`mb-4 rounded-[26px] border p-4 ${isDark ? "border-white/[0.08] bg-white/[0.05]" : "border-white/75 bg-white/82 shadow-sm shadow-slate-200/70"}`}>
+                <p className={`text-sm font-bold ${textColor}`}>Can&apos;t find what you are looking for?</p>
+                <button
+                  type="button"
+                  onClick={() => openSearchAskConfirm({
+                    category: selectedSearchCategory,
+                    intent: "item_not_found",
+                  })}
+                  className="mt-3 h-11 w-full rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white active:opacity-90"
+                >
+                  Ask AI
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {searchResultsForCategory.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: Math.min(index * 0.012, 0.16) }}
+                    className={`group relative overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
+                      isDark
+                        ? "border-white/[0.08] bg-white/[0.06]"
+                        : "border-white/75 bg-white/82 shadow-slate-200/70"
+                    }`}
+                  >
+                    <WriteTemplateArtwork template={item} index={index} />
+                    <button
+                      type="button"
+                      onClick={() => setOpenSearchMenuItemId((current) => current === item.id ? null : item.id)}
+                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur active:bg-black/50"
+                      aria-label={`Open actions for ${item.title}`}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+
+                    {openSearchMenuItemId === item.id && (
+                      <div className={`absolute right-2 top-11 z-10 w-36 overflow-hidden rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandedSearchItemId((current) => current === item.id ? null : item.id);
+                            setOpenSearchMenuItemId(null);
+                          }}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                        >
+                          Learn More
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copySearchItemName(item)}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                        >
+                          Copy Name
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openSearchAskConfirm({
+                            category: selectedSearchCategory,
+                            item,
+                            intent: "learn_more_about_selected_item",
+                          })}
+                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                        >
+                          Ask AI
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="p-3">
+                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
+                        {item.title}
+                      </span>
+                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+                        {item.description}
+                      </span>
+                      {expandedSearchItemId === item.id && (
+                        <div className={`mt-3 rounded-2xl px-3 py-2 text-[11px] font-semibold leading-4 ${isDark ? "bg-white/[0.07] text-[var(--bm-text-secondary)]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]"}`}>
+                          {item.details || `More useful details about ${item.title} will appear here as search data is connected.`}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.length > 0 && (
+            <div className="space-y-4 pb-4">
+              {messages.map((item, index) => {
+                const hasAttachments = Array.isArray(item.attachments) && item.attachments.length > 0;
+                const hasText = Boolean(String(item.content || "").trim());
+                const isImageOnlyUser = item.role === "user" && hasAttachments && !hasText;
+
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className={item.role === "user" ? "flex justify-end" : "w-full"}
+                  >
+                    <div
+                      dir="auto"
+                      className={`break-words text-sm font-medium leading-6 ${
+                        isImageOnlyUser
+                          ? "inline-block w-fit max-w-[78%]"
+                          : item.role === "user"
+                            ? "inline-block w-fit max-w-[78%] whitespace-pre-wrap rounded-[22px] px-4 py-3 text-white"
+                            : isDark
+                              ? "w-full px-1 py-1 text-white"
+                              : "w-full px-1 py-1 text-[var(--bm-text-primary)]"
+                      }`}
+                      style={item.role === "user" && !isImageOnlyUser ? { backgroundColor: "var(--bluemind-chat-color, var(--bm-primary))" } : undefined}
+                    >
+                      {item.role === "user" ? (
+                        <>
+                          <ChatImageAttachments
+                            attachments={item.attachments || []}
+                            hasText={hasText}
+                            isDark={isDark}
+                            className="mb-2 gap-2"
+                            imageClassName="max-h-[210px]"
+                            buttonClassName="rounded-[16px] bg-black/15"
+                            testId="mobile-message-attachments"
+                          />
+                          {hasText ? <MessageResponse message={item} previousUserContent={getPreviousUserContent(index)} /> : null}
+                        </>
+                      ) : item.isStreaming && !item.content ? (
+                        <ThinkingIndicator responseMode={item.metadata?.aiMode || item.metadata?.responseMode || item.metadata?.mode || responseMode} className="mb-0" />
+                      ) : (
+                        <MessageResponse
+                          message={item}
+                          previousUserContent={getPreviousUserContent(index)}
+                          className="text-[15px] leading-[1.85]"
+                        />
+                      )}
+                    </div>
+
+                    {item.role !== "user" && !item.isStreaming && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`mt-2 flex flex-wrap items-center gap-1 px-1 transition-opacity duration-200 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}
+                        data-testid={`message-actions-${item.id}`}
+                      >
+                        {[
+                          { id: "copy", icon: messageFeedback[item.id]?.copied ? Check : Clipboard, label: t("copy"), onClick: () => handleCopyMessage(item) },
+                          { id: "like", icon: ThumbsUp, label: t("like"), onClick: () => handleLikeMessage(item), active: messageFeedback[item.id]?.rating === "like" },
+                          { id: "dislike", icon: ThumbsDown, label: t("dislike"), onClick: () => handleDislikeMessage(item), active: messageFeedback[item.id]?.rating === "dislike" },
+                          { id: "edit", icon: Edit3, label: t("edit"), onClick: () => handleEditMessage(item) },
+                          { id: "regenerate", icon: RotateCcw, label: t("regenerate"), onClick: () => handleRegenerateMessage(item) },
+                          { id: "share", icon: Share2, label: t("share"), onClick: () => handleShareMessage(item) },
+                          { id: "more", icon: MoreVertical, label: t("more"), onClick: handleMoreMessage },
+                        ].map((action) => (
+                          <button
+                            key={action.id}
+                            type="button"
+                            onClick={action.onClick}
+                            className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-all duration-200 active:scale-[0.97] ${
+                              action.active
+                                ? isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                                : isDark ? "active:bg-white/10 active:text-white" : "active:bg-[var(--bm-hover-bg)] active:text-[var(--bm-text-primary)]"
+                            }`}
+                            title={action.label}
+                            aria-label={action.label}
+                          >
+                            <action.icon className="h-4 w-4" />
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+
+        </div>
+
+        {shouldPinComposer && (
+          <div
+            className="fixed inset-x-0 z-20 transition-[bottom] duration-200 ease-out"
+            style={{ bottom: `${composerKeyboardOffset}px` }}
+          >
+            <div className="mx-auto w-full max-w-[430px] pt-3">
+              <AnimatePresence>{isEmptyChat && renderHomeQuickActions()}</AnimatePresence>
+              {renderComposerArea(false, isEmptyChat)}
+            </div>
+          </div>
+        )}
+
+        <AnimatePresence>
+          {showScrollToBottom && (
+            <motion.button
+              type="button"
+              onClick={() => scrollToBottom("smooth")}
+              initial={{ opacity: 0, y: 10, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.94 }}
+              className={`fixed left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl ${
+                isDark ? "border-white/[0.12] bg-[var(--bm-bg-elevated)]/90 text-white active:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[var(--bm-primary)] active:bg-white"
+              }`}
+              style={{ bottom: `calc(env(safe-area-inset-bottom) + ${composerKeyboardOffset + 146}px)` }}
+              aria-label="Scroll to bottom"
+            >
+              <ChevronDown className="h-5 w-5 stroke-[2.4]" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleImageSelection}
+            className="hidden"
+            aria-hidden="true"
+          />
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageSelection}
+            className="hidden"
+            aria-hidden="true"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.txt,.rtf,.md,.csv,.xls,.xlsx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            onChange={handleWriteAttachmentSelection}
+            className="hidden"
+            aria-hidden="true"
+          />
+      </section>
+
+      <AnimatePresence>
+        {searchConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-5">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setSearchConfirm(null)}
+              aria-label="Cancel Ask AI"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.96 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className={`relative z-10 w-full max-w-[340px] rounded-[28px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-white bg-white text-[var(--bm-text-primary)]"}`}
+            >
+              <h3 className="text-base font-bold tracking-tight">Ask AI?</h3>
+              <p className={`mt-2 text-sm font-semibold leading-6 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
+                {searchConfirm.intent === "learn_more_about_selected_item" && searchConfirm.item
+                  ? `Would you like BlueMind AI to help you learn more about ${searchConfirm.item.title}?`
+                  : `Would you like BlueMind AI to help you find something that is not listed in ${searchConfirm.category.title}?`}
+              </p>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSearchConfirm(null)}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void continueSearchWithAi()}
+                  className="h-11 rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white active:opacity-90"
+                >
+                  Continue
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <BlueMindMediaPicker
+        open={attachmentSheetOpen}
+        onClose={closeAttachmentSheet}
+        isDark={isDark}
+        variant="mobile"
+        onCamera={() => openFileInput(cameraInputRef, "camera")}
+        onAllPhotos={() => openFileInput(imageInputRef, "photos")}
+        photosInputProps={{
+          accept: "image/*",
+          multiple: true,
+          onChange: handleImageSelection,
+        }}
+        onFiles={() => openFileInput(fileInputRef, "files")}
+        onCreateImage={enterImageMode}
+        onWriteEdit={enterWriteEditMode}
+        onSearch={enterSearchMode}
+      />
+
+      <AnimatePresence>
+        {false && attachmentSheetOpen && (
+          <div className="fixed inset-0 z-50">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/35"
+              onClick={closeAttachmentSheet}
+              aria-label="Close attachment menu"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            />
+            <motion.section
+              className={`absolute inset-x-0 bottom-0 rounded-t-[28px] border-t px-4 pb-5 pt-3 shadow-[0_-24px_70px_rgba(15,23,42,0.2)] ${borderColor}`}
+              style={{
+                backgroundColor: panelColor,
+                paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
+              }}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              onTouchStart={handleSheetTouchStart}
+              onTouchEnd={handleSheetTouchEnd}
+              data-testid="mobile-attachment-sheet"
+            >
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/55" />
+
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={enterImageMode}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                    <Image className="h-5 w-5" />
+                  </span>
+                  <span>Create Image</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={enterWriteEditMode}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                    <PenLine className="h-5 w-5" />
+                  </span>
+                  <span>Write /Edit</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={enterSearchMode}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                    <Search className="h-5 w-5" />
+                  </span>
+                  <span>Search</span>
+                </button>
+
+                <div className={`my-2 h-px ${isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]"}`} />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    enterImageMode();
+                    openFileInput(cameraInputRef);
+                  }}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                    <Camera className="h-5 w-5" />
+                  </span>
+                  <span>Camera</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    enterImageMode();
+                    closeAttachmentSheet();
+                    setImageSourceSheetOpen(true);
+                  }}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                    <Image className="h-5 w-5" />
+                  </span>
+                  <span>Upload Image</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openFileInput(fileInputRef)}
+                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                >
+                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <span>Upload File / PDF</span>
+                </button>
+              </div>
+            </motion.section>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {imageSourceSheetOpen && (
+          <div className="fixed inset-0 z-50">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/35"
+              onClick={closeImageSourceSheet}
+              aria-label="Close image source"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            />
+            <motion.section
+              className={`absolute inset-x-0 bottom-0 rounded-t-[28px] border-t px-4 pb-5 pt-3 shadow-[0_-24px_70px_rgba(15,23,42,0.2)] ${borderColor}`}
+              style={{
+                backgroundColor: panelColor,
+                paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
+              }}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              onTouchStart={handleSheetTouchStart}
+              onTouchEnd={handleSheetTouchEnd}
+              data-testid="mobile-image-source-sheet"
+            >
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/55" />
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-base font-bold">Add image</p>
+                  <p className={`text-xs font-semibold ${mutedText}`}>Attach a photo before sending.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeImageSourceSheet}
+                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                  aria-label="Close image source"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => openFileInput(imageInputRef)}
+                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                >
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                    <Image className="h-5 w-5" />
+                  </span>
+                  <span>Choose Photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openFileInput(cameraInputRef)}
+                  className={isDark ? "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[56px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                >
+                  <span className={isDark ? "flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
+                    <Camera className="h-5 w-5" />
+                  </span>
+                  <span>Take Photo</span>
+                </button>
+              </div>
+            </motion.section>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {dislikeTarget && (
+          <div className="fixed inset-0 z-[80]" onClick={() => setDislikeTarget(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className={`absolute left-1/2 top-1/2 w-[min(92vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border p-3 shadow-2xl backdrop-blur-xl ${
+                isDark ? "border-white/10 bg-[var(--bm-bg-card)]/95 text-white" : "border-[var(--bm-border)] bg-white/95 text-[var(--bm-text-primary)]"
+              }`}
+              onClick={(event) => event.stopPropagation()}
+              data-testid={`dislike-feedback-${dislikeTarget.id}`}
+            >
+              <div className="px-2 pb-2 pt-1">
+                <p className="text-sm font-semibold">{t("tellUsMore")}</p>
+                <p className={`mt-1 text-xs ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>{t("feedbackHelps")}</p>
+              </div>
+              <div className="space-y-1">
+                {DISLIKE_REASONS.map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => handleDislikeReason(reason)}
+                    className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition-colors ${
+                      isDark ? "active:bg-white/10" : "active:bg-[var(--bm-hover-bg)]"
+                    }`}
+                  >
+                    {t(reason)}
+                    <span className={`h-1.5 w-1.5 rounded-full ${isDark ? "bg-white/30" : "bg-[var(--bm-border-strong)]"}`} />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {privateSpaceModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-[90] flex items-end bg-black/45 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPrivateSpaceModalOpen(false)}
+          >
+            <motion.div
+              className={`max-h-[82dvh] w-full overflow-y-auto rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]"}`}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">Private Chat</h2>
+                  <p className={`text-sm ${mutedText}`}>Unlock a private chat inside your account.</p>
+                </div>
+                <button type="button" className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full bg-white/10" : "flex h-10 w-10 items-center justify-center rounded-full bg-black/5"} onClick={() => setPrivateSpaceModalOpen(false)}>
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {privateSpaceError && <div className="mb-3 rounded-2xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-500">{privateSpaceError}</div>}
+              {privateSpaceStep === "list" && (
+                <div className="space-y-3">
+                  {isLoadingPrivateSpaces && <p className={`text-sm ${mutedText}`}>Loading private chats...</p>}
+                  {!isLoadingPrivateSpaces && privateSpaces.length === 0 && <p className={`rounded-2xl border px-3 py-4 text-sm ${borderColor} ${mutedText}`}>No private chats yet.</p>}
+                  {privateSpaces.map((space) => (
+                    <div key={space.privateSpaceId} className="relative">
+                      <button key={space.privateSpaceId} type="button" className={`flex min-h-[54px] w-full items-center gap-3 rounded-2xl border px-4 pr-12 text-left font-semibold ${borderColor}`} onClick={() => {
+                        setSelectedPrivateSpace(space);
+                        setPrivatePinInput("");
+                        setPrivateSpaceError("");
+                        setPrivateSpaceActionMenuId(null);
+                        setPrivateSpaceStep("pin");
+                      }}>
+                        <Lock className="h-5 w-5" />
+                        {space.name}
+                      </button>
+                      <button
+                        type="button"
+                        className={`absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full ${isDark ? "active:bg-white/10" : "active:bg-black/5"}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setPrivateSpaceActionMenuId((current) => current === space.privateSpaceId ? null : space.privateSpaceId);
+                        }}
+                      >
+                        <MoreVertical className="h-5 w-5" />
+                      </button>
+                      {privateSpaceActionMenuId === space.privateSpaceId && (
+                        <div className={`absolute right-2 top-12 z-10 w-36 rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/10 bg-[var(--bm-bg-elevated)]" : "border-black/10 bg-white"}`}>
+                          {[
+                            ["Rename", () => { setSelectedPrivateSpace(space); setPrivateSpaceRenameName(space.name); setPrivateSpaceStep("rename"); }],
+                            ["Change PIN", () => { setSelectedPrivateSpace(space); setPrivateSpacePinForm({ currentPin: "", newPin: "", confirmNewPin: "" }); setPrivateSpaceStep("changePin"); }],
+                            ["Delete", () => { setPrivateSpaceDeleteTarget(space); setPrivateSpaceStep("delete"); }],
+                          ].map(([label, action]) => (
+                            <button key={label} type="button" className={`w-full rounded-xl px-3 py-2 text-left text-sm font-semibold ${label === "Delete" ? "text-red-500" : ""}`} onClick={() => { setPrivateSpaceActionMenuId(null); action(); }}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white" onClick={startCreatePrivateSpace}>Create Private Chat</button>
+                </div>
+              )}
+              {privateSpaceStep === "create" && (
+                <form className="space-y-3" onSubmit={handleCreatePrivateSpace}>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Chat Name" value={privateSpaceForm.name} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, name: event.target.value }))} />
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="PIN" inputMode="numeric" type="password" value={privateSpaceForm.pin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "") }))} />
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Confirm PIN" inputMode="numeric" type="password" value={privateSpaceForm.confirmPin} onChange={(event) => setPrivateSpaceForm((prev) => ({ ...prev, confirmPin: event.target.value.replace(/\D/g, "") }))} />
+                  <button type="submit" disabled={isCreatingPrivateSpace} className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white disabled:opacity-70">{isCreatingPrivateSpace ? "Creating..." : "Create"}</button>
+                </form>
+              )}
+              {privateSpaceStep === "rename" && selectedPrivateSpace && (
+                <form className="space-y-3" onSubmit={handleRenamePrivateSpace}>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Chat Name" value={privateSpaceRenameName} onChange={(event) => setPrivateSpaceRenameName(event.target.value)} />
+                  <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white">Save</button>
+                </form>
+              )}
+              {privateSpaceStep === "changePin" && selectedPrivateSpace && (
+                <form className="space-y-3" onSubmit={handleChangePrivateSpacePin}>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Current PIN" inputMode="numeric" type="password" value={privateSpacePinForm.currentPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, currentPin: event.target.value.replace(/\D/g, "") }))} />
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.newPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, newPin: event.target.value.replace(/\D/g, "") }))} />
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="Confirm New PIN" inputMode="numeric" type="password" value={privateSpacePinForm.confirmNewPin} onChange={(event) => setPrivateSpacePinForm((prev) => ({ ...prev, confirmNewPin: event.target.value.replace(/\D/g, "") }))} />
+                  <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white">Change PIN</button>
+                </form>
+              )}
+              {privateSpaceStep === "delete" && privateSpaceDeleteTarget && (
+                <div className="space-y-4">
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <p className="text-base font-bold">Delete this private chat?</p>
+                  <p className={`text-sm leading-6 ${mutedText}`}>All conversations inside it will be permanently deleted.</p>
+                  <button type="button" className="w-full rounded-2xl bg-red-600 px-4 py-3 text-sm font-bold text-white" onClick={handleDeletePrivateSpace}>Delete</button>
+                </div>
+              )}
+              {privateSpaceStep === "pin" && selectedPrivateSpace && (
+                <form className="space-y-3" onSubmit={handleUnlockPrivateSpace}>
+                  <button type="button" className={isDark ? "text-sm font-bold text-[var(--bm-primary)]" : "text-sm font-bold text-[var(--bm-primary)]"} onClick={() => setPrivateSpaceStep("list")}>Back</button>
+                  <h3 className="text-base font-bold">Enter PIN for {selectedPrivateSpace.name}</h3>
+                  <input className="bm-field bm-input-interactive font-semibold" placeholder="PIN" inputMode="numeric" type="password" value={privatePinInput} onChange={(event) => setPrivatePinInput(event.target.value.replace(/\D/g, ""))} />
+                  <button type="submit" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white">Unlock</button>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {hiddenChatModalOpen && (
+          <motion.div className="fixed inset-0 z-[90] flex items-end bg-black/45 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setHiddenChatModalOpen(false)}>
+            <motion.div className={`w-full rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]"}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} onClick={(event) => event.stopPropagation()}>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold">Hidden Chat</h2>
+                <button type="button" className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full bg-white/10" : "flex h-10 w-10 items-center justify-center rounded-full bg-black/5"} onClick={() => setHiddenChatModalOpen(false)}>
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <p className={`mb-5 whitespace-pre-line text-sm leading-6 ${mutedText}`}>This chat is temporary.
+Messages are not saved.
+It does not appear in History.
+It does not appear in Search.
+Everything will be deleted when you leave.</p>
+              <button type="button" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white" onClick={startHiddenChat}>Start Hidden Chat</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.section
+            className={`fixed inset-0 z-[70] flex flex-col overflow-hidden ${textColor}`}
+            style={{
+              backgroundColor: surfaceColor,
+              paddingTop: "env(safe-area-inset-top)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+            }}
+            initial={{ x: "-100%", opacity: 0.94 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-100%", opacity: 0.96 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            drag="x"
+            dragConstraints={{ left: -160, right: 0 }}
+            dragElastic={0.12}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -90 || info.velocity.x < -600) {
+                closeMenu();
+              }
+            }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            data-testid="mobile-full-screen-menu"
+          >
+            <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
+              <div className={`flex items-center ${iconClasses.iconText}`}>
+                <BrandLogo showName={false} small logoClassName={iconClasses.sidebarLogo} />
+                <h2 className={`${typeClasses.cardTitle} font-extrabold leading-tight tracking-tight`}>BlueMind AI</h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeMenu}
+                className={isDark ? "flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-[var(--bm-border)] active:bg-[var(--bm-hover-bg)]"}
+                aria-label="Close menu"
+              >
+                <X className={iconClasses.sidebar} />
+              </button>
+            </div>
+
+            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
+              <section className="space-y-1 py-2">
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>CHAT</p>
+                <button
+                  type="button"
+                  onClick={startNewChat}
+                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
+                >
+                  <Pencil className={`shrink-0 ${iconClasses.sidebar}`} />
+                  <span>{t("newChat")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openMenuSearch}
+                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
+                >
+                  <Search className={`shrink-0 ${iconClasses.sidebar}`} />
+                  <span>{t("search")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("mobile-history-chats")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
+                >
+                  <Clock3 className={`shrink-0 ${iconClasses.sidebar}`} />
+                  <span>Recent Chats</span>
+                </button>
+              </section>
+
+              <section className="mt-5 space-y-1">
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>CHAT MODES</p>
+                <button
+                  type="button"
+                  onClick={selectNormalChat}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "normal" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
+                >
+                  <MessageSquare className={`shrink-0 ${iconClasses.sidebar}`} />
+                  <span>Normal Chat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openPrivateChatModal}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "private" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
+                >
+                  <Lock className={`shrink-0 ${iconClasses.sidebar}`} />
+                  <span>Private Chat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    setHiddenChatModalOpen(true);
+                  }}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "hidden" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
+                >
+                  <Glasses className={`shrink-0 ${iconClasses.sidebar}`} />
+                  <span>Hidden Chat</span>
+                </button>
+              </section>
+
+              <section className="mt-5 space-y-1">
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>BLUEMIND</p>
+                {bluemindMenuItems.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => runMenuAction(item)}
+                    className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
+                  >
+                    <item.icon className={`shrink-0 ${iconClasses.sidebar}`} />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </section>
+
+              <section id="mobile-history-chats" className="mt-6">
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>HISTORY</p>
+
+                {isLoadingConversations && (
+                  <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("loadingConversation")}</div>
+                )}
+
+                {!isLoadingConversations && historyError && (
+                  <div className={`py-3 font-medium text-red-500 ${typeClasses.small}`}>{historyError}</div>
+                )}
+
+                {!isLoadingConversations && !historyError && conversations.length === 0 && (
+                  <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("noChatsFound")}</div>
+                )}
+
+                {conversations.slice(0, 18).map((item) => renderMobileConversationRow(item, "menu"))}
+              </section>
+            </nav>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {menuSearchOpen && (
+          <motion.section
+            className={`fixed inset-0 z-[80] flex flex-col overflow-hidden ${textColor}`}
+            style={{
+              backgroundColor: surfaceColor,
+              paddingTop: "env(safe-area-inset-top)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+            }}
+            initial={{ x: "100%", opacity: 0.96 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0.96 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 180 }}
+            dragElastic={0.12}
+            onDragEnd={(_, info) => {
+              if (info.offset.x > 90 || info.velocity.x > 600) {
+                closeMenuSearch();
+              }
+            }}
+            data-testid="mobile-full-screen-search"
+          >
+            <div className="relative flex h-16 shrink-0 items-center justify-center px-5">
+              <button
+                type="button"
+                onClick={closeMenuSearch}
+                className={isDark ? "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                aria-label="Back to menu"
+              >
+                <ChevronDown className={`rotate-90 ${iconClasses.button}`} />
+              </button>
+              <h2 className={`${typeClasses.sectionTitle} font-extrabold tracking-tight`}>Search</h2>
+              <button
+                type="button"
+                onClick={closeMenuSearch}
+                className={isDark ? "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-[var(--bm-border)] active:bg-[var(--bm-hover-bg)]"}
+                aria-label="Close search"
+              >
+                <X className={iconClasses.button} />
+              </button>
+            </div>
+
+            <div className="shrink-0 px-5 pb-4">
+              <label className={`bm-search-shell flex h-14 items-center rounded-[24px] border px-4 shadow-sm ${iconClasses.iconText} ${isDark ? "border-white/[0.08] bg-white/[0.07]" : "border-[var(--bm-border)] bg-white"}`}>
+                <Search className={isDark ? `shrink-0 text-white ${iconClasses.sidebar}` : `shrink-0 text-[var(--bm-primary)] ${iconClasses.sidebar}`} />
+                <input
+                  ref={searchInputRef}
+                  value={menuSearchQuery}
+                  onChange={(event) => setMenuSearchQuery(event.target.value)}
+                  placeholder={t("searchConversations")}
+                  className={`bm-search-input min-w-0 flex-1 bg-transparent font-semibold outline-none placeholder:text-[var(--bm-text-muted)] ${typeClasses.body} ${textColor}`}
+                />
+                {menuSearchQuery && (
+                  <button type="button" onClick={() => setMenuSearchQuery("")} className={isDark ? "flex h-8 w-8 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}>
+                    <X className={iconClasses.button} />
+                  </button>
+                )}
+              </label>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
+              <section className="mb-6">
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>Recent Chats</p>
+                {isSearching && menuSearchQuery.trim() && (
+                  <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("searching")}</div>
+                )}
+                {!isSearching && visibleConversations.length === 0 && (
+                  <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("noChatsFound")}</div>
+                )}
+                {visibleConversations.slice(0, 24).map((item) => renderMobileConversationRow(item, "search-recent"))}
+              </section>
+
+              {!menuSearchQuery.trim() && pinnedConversations.length > 0 && (
+                <section>
+                  <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>Pinned Chats</p>
+                  {pinnedConversations.map((item) => renderMobileConversationRow(item, "search-pinned"))}
+                </section>
+              )}
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {renameTarget && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center px-5">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setRenameTarget(null)}
+              aria-label="Cancel rename"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.form
+              onSubmit={handleRenameSubmit}
+              initial={{ opacity: 0, y: 14, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.96 }}
+              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
+            >
+              <h3 className="text-base font-bold">Rename chat</h3>
+              <input
+                value={renameTitle}
+                onChange={(event) => setRenameTitle(event.target.value.slice(0, 120))}
+                className="bm-field bm-input-interactive mt-4 font-semibold"
+                placeholder="Chat title"
+                autoFocus
+                data-testid="mobile-rename-chat-input"
+              />
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRenameTarget(null)}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!renameTitle.trim()}
+                  className="h-11 rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center px-5">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setDeleteTarget(null)}
+              aria-label="Cancel delete"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.96 }}
+              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
+            >
+              <h3 className="text-base font-bold">Delete chat?</h3>
+              <p className={`mt-2 text-sm font-semibold leading-6 ${mutedText}`}>
+                This removes "{deleteTarget.title || t("newChat")}" from your chat history.
+              </p>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className={isDark ? "h-11 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "h-11 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteConversation()}
+                  className="h-11 rounded-2xl bg-red-500 text-sm font-bold text-white active:opacity-90"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <SettingsSheet
+        open={settingsSheetOpen}
+        mobile
+        onClose={() => setSettingsSheetOpen(false)}
+      />
+    </main>
+  );
+}
+
