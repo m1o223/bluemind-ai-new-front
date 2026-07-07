@@ -1139,6 +1139,14 @@ export default function MobileChat() {
     loadNormalConversationHistory().catch(() => {});
   };
 
+  const selectWritingMode = () => {
+    setChatSessionMode("writing");
+    setActivePrivateSpace(null);
+    setPrivateSpaceAccessToken("");
+    startNewChat();
+    loadNormalConversationHistory().catch(() => {});
+  };
+
   const exitPrivateSpace = () => {
     setChatSessionMode("normal");
     setActivePrivateSpace(null);
@@ -3850,6 +3858,14 @@ Everything will be deleted when you leave.</p>
                 >
                   <Lock className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Private Chat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={selectWritingMode}
+                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "writing" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
+                >
+                  <PenLine className={`shrink-0 ${iconClasses.sidebar}`} />
+                  <span>Writing Mode</span>
                 </button>
                 <button
                   type="button"
