@@ -129,7 +129,11 @@ function formatDateLabel(date) {
 }
 
 function sortEvents(events) {
-  return [...events].sort((a, b) => String(a.startTime || "").localeCompare(String(b.startTime || "")));
+  return [...events].sort((a, b) => {
+    const dateCompare = String(a.date || "").localeCompare(String(b.date || ""));
+    if (dateCompare !== 0) return dateCompare;
+    return String(a.startTime || "").localeCompare(String(b.startTime || ""));
+  });
 }
 
 function getIcon(iconId) {
@@ -406,6 +410,125 @@ function AiCreateSheet({ open, isDark, request, setRequest, draft, onClose, onSu
   );
 }
 
+function AllSchedulesModal({ open, isDark, events, eventMenuId, setEventMenuId, onClose, onEdit, onDelete }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[78] flex items-center justify-center px-4 py-[max(1rem,env(safe-area-inset-top))]">
+          <motion.button
+            type="button"
+            aria-label="Close all schedules"
+            className="absolute inset-0 bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 14, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              "relative z-[79] flex max-h-[82vh] w-full max-w-[390px] flex-col rounded-[30px] border p-4 shadow-2xl",
+              isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]",
+            )}
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className={cn("font-black", typeClasses.cardTitle)}>All schedules</h2>
+                <p className={cn("mt-1 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+                  Sorted by date and time automatically.
+                </p>
+              </div>
+              <button type="button" onClick={onClose} className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", isDark ? "bg-white/[0.08]" : "bg-[var(--bm-hover-bg)]")} aria-label="Close">
+                <X className={iconClasses.button} />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              {events.length ? (
+                <div className="space-y-2.5">
+                  {events.map((event) => {
+                    const Icon = getIcon(event.icon);
+                    const color = getColor(event.color);
+
+                    return (
+                      <div
+                        key={event.id}
+                        className={cn("relative flex items-center gap-3 rounded-[24px] border p-3", isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
+                      >
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: color }}>
+                          <Icon className={iconClasses.button} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className={cn("block truncate font-black", typeClasses.body)}>{event.title}</span>
+                          <span className={cn("mt-1 flex items-center gap-1.5 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+                            <Clock3 className="h-3.5 w-3.5" />
+                            {formatDateLabel(fromDateKey(event.date))}, {event.startTime}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEventMenuId((current) => current === event.id ? "" : event.id)}
+                          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "text-white active:bg-white/[0.1]" : "text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]")}
+                          aria-label={`Open actions for ${event.title}`}
+                        >
+                          <MoreVertical className={iconClasses.button} />
+                        </button>
+
+                        <AnimatePresence>
+                          {eventMenuId === event.id && (
+                            <>
+                              <button type="button" className="fixed inset-0 z-[80]" onClick={() => setEventMenuId("")} aria-label="Close schedule actions" />
+                              <motion.div
+                                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                                transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                                className={cn("absolute right-3 top-14 z-[81] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => onEdit(event)}
+                                  className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onDelete(event.id)}
+                                  className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold text-red-500 transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-red-50")}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Delete
+                                </button>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={cn("rounded-[24px] border p-5 text-center", isDark ? "border-white/10 bg-white/[0.05]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+                  <CalendarDays className="mx-auto h-8 w-8 text-[var(--bm-primary)]" />
+                  <p className={cn("mt-3 font-black", typeClasses.body)}>No schedules yet</p>
+                  <p className={cn("mx-auto mt-1 max-w-[240px] font-semibold leading-5", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+                    Use the plus button to add your first schedule.
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function MobileScheduleDashboard() {
   const navigate = useNavigate();
   const { resolvedTheme } = useApp();
@@ -418,11 +541,13 @@ export default function MobileScheduleDashboard() {
   const [manualForm, setManualForm] = useState(() => createInitialManualEvent(new Date()));
   const [editingEventId, setEditingEventId] = useState("");
   const [eventMenuId, setEventMenuId] = useState("");
+  const [scheduleListOpen, setScheduleListOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiRequest, setAiRequest] = useState("");
   const [aiDraft, setAiDraft] = useState(null);
 
   const eventDates = useMemo(() => new Set(events.map((event) => event.date)), [events]);
+  const sortedEvents = useMemo(() => sortEvents(events), [events]);
   const selectedEvents = useMemo(() => sortEvents(events.filter((event) => event.date === toDateKey(selectedDate))), [events, selectedDate]);
   const monthDates = useMemo(() => getMonthGrid(selectedDate), [selectedDate]);
   const selectedWeekRow = Math.max(0, Math.floor(monthDates.findIndex((date) => sameDate(date, selectedDate)) / 7));
@@ -476,6 +601,7 @@ export default function MobileScheduleDashboard() {
 
   const openEditEvent = (event) => {
     setEventMenuId("");
+    setScheduleListOpen(false);
     setEditingEventId(event.id);
     setManualForm({
       title: event.title || "",
@@ -562,7 +688,7 @@ export default function MobileScheduleDashboard() {
           <ArrowLeft className={iconClasses.button} />
         </button>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setIsExpanded((value) => !value)} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]")} aria-label="Toggle month calendar">
+          <button type="button" onClick={() => setScheduleListOpen(true)} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]")} aria-label="View all schedules">
             <CalendarDays className={iconClasses.button} />
           </button>
           <button type="button" onClick={() => setActionSheetOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bm-primary)] text-white shadow-[0_10px_22px_rgba(47,125,246,0.22)] transition-transform duration-150 ease-out active:scale-[0.98]" aria-label="Create schedule">
@@ -689,14 +815,6 @@ export default function MobileScheduleDashboard() {
                 );
               })}
             </div>
-            <div className="mt-4 grid gap-2.5">
-              <button type="button" onClick={openManualCreate} className="h-11 rounded-2xl bg-[var(--bm-primary)] font-bold text-white transition-transform duration-150 ease-out active:scale-[0.99]">
-                Add / Edit Schedule
-              </button>
-              <button type="button" onClick={openAiCreate} className={cn("h-11 rounded-2xl font-bold transition-transform duration-150 ease-out active:scale-[0.99]", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]")}>
-                Improve with BlueMind
-              </button>
-            </div>
           </>
         ) : (
           <div className={cn("rounded-[30px] border p-4 text-center", isDark ? "border-white/10 bg-white/[0.05]" : "border-white bg-white shadow-sm")}>
@@ -713,9 +831,11 @@ export default function MobileScheduleDashboard() {
               Looks like a good day to relax and recharge.
             </p>
             <div className="mt-4 grid gap-2.5">
-              <button type="button" onClick={openManualCreate} className="h-11 rounded-2xl bg-[var(--bm-primary)] font-bold text-white transition-transform duration-150 ease-out active:scale-[0.99]">Create Schedule</button>
+              <button type="button" onClick={openManualCreate} className="h-11 rounded-2xl bg-[var(--bm-primary)] font-bold text-white transition-transform duration-150 ease-out active:scale-[0.99]">
+                {events.length ? "Add Schedule" : "Create Schedule"}
+              </button>
               <button type="button" onClick={openAiCreate} className={cn("h-11 rounded-2xl font-bold transition-transform duration-150 ease-out active:scale-[0.99]", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]")}>
-                Let BlueMind create it
+                {events.length ? "Improve with BlueMind" : "Let BlueMind create it"}
               </button>
             </div>
           </div>
@@ -725,6 +845,19 @@ export default function MobileScheduleDashboard() {
       <ScheduleActionSheet open={actionSheetOpen} isDark={isDark} onClose={() => setActionSheetOpen(false)} onManual={openManualCreate} onAi={openAiCreate} />
       <ManualEventSheet open={manualOpen} isDark={isDark} form={manualForm} setForm={setManualForm} onClose={() => setManualOpen(false)} onCreate={createManualEvent} />
       <AiCreateSheet open={aiOpen} isDark={isDark} request={aiRequest} setRequest={setAiRequest} draft={aiDraft} onClose={() => setAiOpen(false)} onSuggest={suggestAiEvent} onCreate={createAiEvent} />
+      <AllSchedulesModal
+        open={scheduleListOpen}
+        isDark={isDark}
+        events={sortedEvents}
+        eventMenuId={eventMenuId}
+        setEventMenuId={setEventMenuId}
+        onClose={() => {
+          setEventMenuId("");
+          setScheduleListOpen(false);
+        }}
+        onEdit={openEditEvent}
+        onDelete={deleteEvent}
+      />
     </main>
   );
 }
