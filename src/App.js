@@ -28,6 +28,7 @@ import MobileCreateImage from "@/mobile/pages/MobileCreateImage";
 import MobileWriteEdit from "@/mobile/pages/MobileWriteEdit";
 import MobileReminders from "@/mobile/pages/MobileReminders";
 import MobileLearning from "@/mobile/pages/MobileLearning";
+import MobileScheduleDashboard from "@/mobile/pages/MobileScheduleDashboard";
 import MobileSettings from "@/mobile/pages/MobileSettings";
 import MobileSmartHub from "@/mobile/pages/MobileSmartHub";
 import MobileWelcome from "@/mobile/pages/MobileWelcome";
@@ -168,7 +169,7 @@ function AppContent() {
             <Route path="settings/:sectionId/:detailId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
             <Route path="ai-plans" element={<MobileAccessRoute><AIPlansPage /></MobileAccessRoute>} />
-            <Route path="schedule" element={<MobileAccessRoute><ScheduleHomePage /></MobileAccessRoute>} />
+            <Route path="schedule" element={<MobileAccessRoute><MobileScheduleDashboard /></MobileAccessRoute>} />
             <Route path="schedule/custom" element={<MobileAccessRoute><ScheduleCustomPage /></MobileAccessRoute>} />
             <Route path="schedule/workspace" element={<MobileAccessRoute><SchemanPage /></MobileAccessRoute>} />
             <Route path="scheman" element={<MobileAccessRoute><Navigate to="/mobile/schedule" replace /></MobileAccessRoute>} />
