@@ -2872,6 +2872,23 @@ export default function MobileChat() {
           ref={messagesScrollRef}
           className={isEmptyChat ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[168px] pt-5" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[168px] pt-4"}
         >
+          {isEmptyChat && (
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+              className="flex min-h-[calc(100svh-270px)] items-center justify-center"
+              aria-hidden="true"
+            >
+              <img
+                src="/bluemind-empty-chat-character.jpg"
+                alt=""
+                className="h-auto w-[min(86vw,370px)] max-w-full select-none object-contain"
+                draggable="false"
+              />
+            </motion.div>
+          )}
+
           {generatedImages.length > 0 && (
             <div className="mb-5 space-y-3">
               <div className="flex items-center justify-between">
