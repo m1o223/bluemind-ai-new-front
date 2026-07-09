@@ -618,79 +618,89 @@ export default function MobileScheduleDashboard() {
         </div>
 
         {selectedEvents.length ? (
-          <div className="space-y-3">
-            {selectedEvents.map((event) => {
-              const Icon = getIcon(event.icon);
-              const color = getColor(event.color);
-              return (
-                <motion.div
-                  key={event.id}
-                  layout
-                  whileTap={{ scale: 0.99 }}
-                  className={cn("relative flex w-full items-center gap-3 rounded-[26px] border p-3 text-left shadow-sm transition-colors duration-150 ease-out", isDark ? "border-white/10 bg-white/[0.06]" : "border-white bg-white")}
-                >
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: color }}>
-                    <Icon className={iconClasses.button} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className={cn("block truncate font-black", typeClasses.body)}>{event.title}</span>
-                    <span className={cn("mt-1 flex items-center gap-1.5 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
-                      <Clock3 className="h-3.5 w-3.5" />
-                      {formatDateLabel(fromDateKey(event.date))}, {event.startTime}
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setEventMenuId((current) => current === event.id ? "" : event.id)}
-                    className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "text-white active:bg-white/[0.1]" : "text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]")}
-                    aria-label={`Open actions for ${event.title}`}
+          <>
+            <div className="space-y-3">
+              {selectedEvents.map((event) => {
+                const Icon = getIcon(event.icon);
+                const color = getColor(event.color);
+                return (
+                  <motion.div
+                    key={event.id}
+                    layout
+                    whileTap={{ scale: 0.99 }}
+                    className={cn("relative flex w-full items-center gap-3 rounded-[26px] border p-3 text-left shadow-sm transition-colors duration-150 ease-out", isDark ? "border-white/10 bg-white/[0.06]" : "border-white bg-white")}
                   >
-                    <MoreVertical className={iconClasses.button} />
-                  </button>
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: color }}>
+                      <Icon className={iconClasses.button} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cn("block truncate font-black", typeClasses.body)}>{event.title}</span>
+                      <span className={cn("mt-1 flex items-center gap-1.5 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+                        <Clock3 className="h-3.5 w-3.5" />
+                        {formatDateLabel(fromDateKey(event.date))}, {event.startTime}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEventMenuId((current) => current === event.id ? "" : event.id)}
+                      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "text-white active:bg-white/[0.1]" : "text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]")}
+                      aria-label={`Open actions for ${event.title}`}
+                    >
+                      <MoreVertical className={iconClasses.button} />
+                    </button>
 
-                  <AnimatePresence>
-                    {eventMenuId === event.id && (
-                      <>
-                        <button
-                          type="button"
-                          className="fixed inset-0 z-[60]"
-                          onClick={() => setEventMenuId("")}
-                          aria-label="Close event actions"
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                          transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                          className={cn("absolute right-3 top-14 z-[61] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
-                        >
+                    <AnimatePresence>
+                      {eventMenuId === event.id && (
+                        <>
                           <button
                             type="button"
-                            onClick={() => openEditEvent(event)}
-                            className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+                            className="fixed inset-0 z-[60]"
+                            onClick={() => setEventMenuId("")}
+                            aria-label="Close event actions"
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                            transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                            className={cn("absolute right-3 top-14 z-[61] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
                           >
-                            <Edit3 className="h-4 w-4" />
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteEvent(event.id)}
-                            className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold text-red-500 transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-red-50")}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </button>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </div>
+                            <button
+                              type="button"
+                              onClick={() => openEditEvent(event)}
+                              className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteEvent(event.id)}
+                              className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold text-red-500 transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-red-50")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </div>
+            <div className="mt-4 grid gap-2.5">
+              <button type="button" onClick={openManualCreate} className="h-11 rounded-2xl bg-[var(--bm-primary)] font-bold text-white transition-transform duration-150 ease-out active:scale-[0.99]">
+                Add / Edit Schedule
+              </button>
+              <button type="button" onClick={openAiCreate} className={cn("h-11 rounded-2xl font-bold transition-transform duration-150 ease-out active:scale-[0.99]", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]")}>
+                Improve with BlueMind
+              </button>
+            </div>
+          </>
         ) : (
           <div className={cn("rounded-[30px] border p-4 text-center", isDark ? "border-white/10 bg-white/[0.05]" : "border-white bg-white shadow-sm")}>
-            <div className="mx-auto flex h-[148px] max-w-[210px] items-end justify-center overflow-hidden">
+            <div className="mx-auto flex h-[168px] max-w-[238px] items-end justify-center overflow-hidden">
               <img
                 src="/bluemind-schedule-empty-character.jpg"
                 alt="BlueMind relaxing on a beach chair"
