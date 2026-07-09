@@ -7,7 +7,6 @@ import {
   BookOpen,
   Briefcase,
   CalendarDays,
-  Check,
   ChevronDown,
   ChevronRight,
   Clock3,
@@ -15,7 +14,6 @@ import {
   Edit3,
   GraduationCap,
   Moon,
-  Palette,
   Plus,
   Repeat,
   Sparkles,
@@ -25,7 +23,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import BrandLogo from "@/components/BrandLogo";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { iconClasses, typeClasses } from "@/lib/interactions";
@@ -490,16 +487,16 @@ export default function MobileScheduleDashboard() {
         type="button"
         onClick={() => setSelectedDate(date)}
         className={cn(
-          "relative flex min-h-[58px] flex-col items-center justify-center rounded-2xl transition-colors",
+          "relative flex min-h-[50px] flex-col items-center justify-center rounded-[18px] transition-colors duration-150 ease-out",
           selected
-            ? "bg-[var(--bm-primary)] text-white shadow-[0_12px_28px_rgba(47,125,246,0.25)]"
+            ? "bg-[var(--bm-primary)] text-white shadow-[0_10px_22px_rgba(47,125,246,0.2)]"
             : isDark
               ? "text-white active:bg-white/[0.08]"
               : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
           !inMonth && isExpanded && !selected && "opacity-35",
         )}
       >
-        <span className={cn("text-base font-black leading-none")}>{date.getDate()}</span>
+        <span className="text-[15px] font-extrabold leading-none">{date.getDate()}</span>
         <span className="mt-1 flex h-1.5 items-center gap-1">
           {hasEvents && <span className={cn("h-1.5 w-1.5 rounded-full", selected ? "bg-white" : "bg-[var(--bm-primary)]")} />}
         </span>
@@ -508,29 +505,28 @@ export default function MobileScheduleDashboard() {
   };
 
   return (
-    <main className={cn("min-h-screen overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[#F7FAFF] text-[var(--bm-text-primary)]")}>
+    <main className={cn("min-h-screen overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.875rem,env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[#F7FAFF] text-[var(--bm-text-primary)]")}>
       <header className="flex items-center justify-between">
-        <button type="button" onClick={() => navigate(-1)} className={cn("flex h-11 w-11 items-center justify-center rounded-full", isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]")} aria-label="Back">
+        <button type="button" onClick={() => navigate(-1)} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]")} aria-label="Back">
           <ArrowLeft className={iconClasses.button} />
         </button>
-        <BrandLogo showName={false} small logoClassName="h-9 w-9" />
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setIsExpanded((value) => !value)} className={cn("flex h-11 w-11 items-center justify-center rounded-full", isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]")} aria-label="Toggle month calendar">
+          <button type="button" onClick={() => setIsExpanded((value) => !value)} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]")} aria-label="Toggle month calendar">
             <CalendarDays className={iconClasses.button} />
           </button>
-          <button type="button" onClick={() => setActionSheetOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--bm-primary)] text-white shadow-[0_12px_28px_rgba(47,125,246,0.25)] active:scale-[0.98]" aria-label="Create schedule">
+          <button type="button" onClick={() => setActionSheetOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bm-primary)] text-white shadow-[0_10px_22px_rgba(47,125,246,0.22)] transition-transform duration-150 ease-out active:scale-[0.98]" aria-label="Create schedule">
             <Plus className={iconClasses.button} />
           </button>
         </div>
       </header>
 
-      <section className="mt-6">
+      <section className="mt-5">
         <button type="button" onClick={() => setIsExpanded((value) => !value)} className="flex w-full items-end justify-between text-left">
           <div>
-            <p className={cn("text-[22px] font-black leading-none", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{selectedYear}</p>
-            <p className="mt-1 flex items-center gap-1 text-[30px] font-black leading-none">
+            <p className={cn("text-[19px] font-extrabold leading-none", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{selectedYear}</p>
+            <p className="mt-1 flex items-center gap-1 text-[26px] font-extrabold leading-none">
               {selectedMonth}
-              <ChevronDown className={cn("h-6 w-6 transition-transform", isExpanded && "rotate-180")} />
+              <ChevronDown className={cn("h-5 w-5 transition-transform duration-200 ease-out", isExpanded && "rotate-180")} />
             </p>
           </div>
           <span className={cn("mb-1 rounded-full px-3 py-1.5 font-bold", typeClasses.small, isDark ? "bg-white/[0.08] text-white" : "bg-white text-[var(--bm-primary)] shadow-sm")}>
@@ -538,17 +534,17 @@ export default function MobileScheduleDashboard() {
           </span>
         </button>
 
-        <div className="mt-5 grid grid-cols-7 gap-1.5">
+        <div className="mt-4 grid grid-cols-7 gap-1.5">
           {WEEK_DAYS.map((day) => (
-            <div key={day} className={cn("text-center font-black uppercase tracking-wide", typeClasses.small, "text-[var(--bm-text-muted)]")}>{day}</div>
+            <div key={day} className="text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--bm-text-muted)]/75">{day}</div>
           ))}
         </div>
-        <motion.div layout className="mt-2 grid grid-cols-7 gap-1.5">
+        <motion.div layout transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }} className="mt-1.5 grid grid-cols-7 gap-1.5">
           {visibleDates.map(renderCalendarDay)}
         </motion.div>
       </section>
 
-      <section className="mt-7">
+      <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h1 className={cn("text-[22px] font-black", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{formatDateLabel(selectedDate)}</h1>
@@ -588,17 +584,22 @@ export default function MobileScheduleDashboard() {
             })}
           </div>
         ) : (
-          <div className={cn("rounded-[32px] border p-5 text-center", isDark ? "border-white/10 bg-white/[0.05]" : "border-white bg-white shadow-sm")}>
-            <div className={cn("mx-auto flex h-28 w-28 items-center justify-center rounded-[36px]", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-active-bg)]")}>
-              <CalendarDays className={cn("h-12 w-12", isDark ? "text-white" : "text-[var(--bm-primary)]")} />
+          <div className={cn("rounded-[30px] border p-4 text-center", isDark ? "border-white/10 bg-white/[0.05]" : "border-white bg-white shadow-sm")}>
+            <div className="mx-auto flex h-[148px] max-w-[210px] items-end justify-center overflow-hidden">
+              <img
+                src="/bluemind-schedule-empty-character.jpg"
+                alt="BlueMind relaxing on a beach chair"
+                className="h-full w-full object-contain mix-blend-multiply"
+                draggable={false}
+              />
             </div>
-            <h2 className="mt-5 text-xl font-black">No events today!</h2>
+            <h2 className="mt-3 text-lg font-black">No events today!</h2>
             <p className={cn("mx-auto mt-2 max-w-[260px] font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-muted)]")}>
               Looks like a good day to relax and recharge.
             </p>
-            <div className="mt-5 grid gap-3">
-              <button type="button" onClick={openManualCreate} className="h-12 rounded-2xl bg-[var(--bm-primary)] font-bold text-white">Create Schedule</button>
-              <button type="button" onClick={openAiCreate} className={cn("h-12 rounded-2xl font-bold", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]")}>
+            <div className="mt-4 grid gap-2.5">
+              <button type="button" onClick={openManualCreate} className="h-11 rounded-2xl bg-[var(--bm-primary)] font-bold text-white transition-transform duration-150 ease-out active:scale-[0.99]">Create Schedule</button>
+              <button type="button" onClick={openAiCreate} className={cn("h-11 rounded-2xl font-bold transition-transform duration-150 ease-out active:scale-[0.99]", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]")}>
                 Let BlueMind create it
               </button>
             </div>
