@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -25,8 +25,15 @@ import {
 import { toast } from "sonner";
 
 import { useApp } from "@/context/AppContext";
+import ChatImageAttachments from "@/components/ChatImageAttachments";
+import MessageResponse from "@/components/MessageResponse";
+import ThinkingIndicator from "@/components/ThinkingIndicator";
+import UnifiedComposer from "@/components/UnifiedComposer";
 import { cn } from "@/lib/utils";
 import { iconClasses, typeClasses } from "@/lib/interactions";
+import { getApiErrorMessage } from "@/services/api";
+import { streamChatMessage } from "@/services/chatService";
+import { uploadChatImage } from "@/services/imageService";
 
 const STORAGE_KEY = "bluemind-mobile-schedule-dashboard-v1";
 
@@ -156,40 +163,6 @@ function createInitialManualEvent(date) {
     reminder: "None",
     repeat: "Never",
     notes: "",
-  };
-}
-
-function createAiDraft(text, selectedDate) {
-  const source = String(text || "").trim();
-  const timeMatch = source.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
-  const hourMatch = source.match(/\b([01]?\d|2[0-3])\b/);
-  const startTime = timeMatch
-    ? `${String(timeMatch[1]).padStart(2, "0")}:${timeMatch[2]}`
-    : hourMatch
-      ? `${String(hourMatch[1]).padStart(2, "0")}:00`
-      : "18:00";
-  const startHour = Number(startTime.split(":")[0]);
-  const endTime = `${String(Math.min(startHour + 1, 23)).padStart(2, "0")}:${startTime.split(":")[1]}`;
-  const lower = source.toLowerCase();
-  const icon = lower.includes("gym") || lower.includes("workout") ? "gym" : lower.includes("exam") || lower.includes("study") || lower.includes("math") ? "study" : "calendar";
-  const repeat = /\bevery|weekly|monday|tuesday|wednesday|thursday|friday|saturday|sunday\b/i.test(source) ? "Weekly" : "Never";
-  const title = source
-    .replace(/\b(add|create|make|schedule|reminder|for|my|on|at|every|weekly)\b/gi, " ")
-    .replace(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return {
-    title: title ? title.slice(0, 54) : "BlueMind Schedule",
-    date: toDateKey(selectedDate),
-    startTime,
-    endTime,
-    duration: "",
-    color: "blue",
-    icon,
-    reminder: "10 minutes before",
-    repeat,
-    notes: source,
   };
 }
 
@@ -372,45 +345,285 @@ function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
   );
 }
 
-function AiCreateSheet({ open, isDark, request, setRequest, draft, onClose, onSuggest, onCreate }) {
+function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState("");
+  const [attachments, setAttachments] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const scrollRef = useRef(null);
+  const photosInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const filesInputRef = useRef(null);
+  const conversationIdRef = useRef("");
+  const objectUrlsRef = useRef([]);
+
+  useEffect(() => {
+    if (!open) return;
+    window.requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    });
+  }, [messages, open]);
+
+  useEffect(() => () => {
+    objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    objectUrlsRef.current = [];
+  }, []);
+
+  const removeAttachment = (attachmentId) => {
+    setAttachments((current) => {
+      const target = current.find((attachment) => attachment.id === attachmentId);
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+        objectUrlsRef.current = objectUrlsRef.current.filter((url) => url !== target.previewUrl);
+      }
+      return current.filter((attachment) => attachment.id !== attachmentId);
+    });
+  };
+
+  const handleAttachmentFiles = async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    setAttachmentMenuOpen(false);
+    if (!files.length) return;
+
+    setIsUploading(true);
+    const accepted = [];
+
+    try {
+      for (const file of files.slice(0, 6)) {
+        const extension = file.name.split(".").pop()?.toLowerCase() || "";
+        const isImage = ["image/png", "image/jpeg", "image/webp"].includes(file.type);
+        const isText = file.type === "text/plain" || ["txt", "md", "csv"].includes(extension);
+        const isPdf = file.type === "application/pdf" || extension === "pdf";
+
+        if (!isImage && !isText && !isPdf) {
+          toast.error(`${file.name} is not supported here yet.`);
+          continue;
+        }
+
+        if (isImage && file.size > 8 * 1024 * 1024) {
+          toast.error(`${file.name} is too large.`);
+          continue;
+        }
+
+        let uploadedImage = null;
+        let content = "";
+        let previewUrl = "";
+
+        if (isImage) {
+          previewUrl = URL.createObjectURL(file);
+          objectUrlsRef.current.push(previewUrl);
+          uploadedImage = await uploadChatImage(file, conversationIdRef.current || undefined);
+        } else if (isText) {
+          content = await file.text().catch(() => "");
+        }
+
+        accepted.push({
+          id: uploadedImage?.id || `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          imageId: uploadedImage?.id || "",
+          name: file.name,
+          type: isImage ? "image" : isPdf ? "pdf" : "text",
+          size: file.size,
+          content,
+          previewUrl,
+        });
+      }
+
+      if (accepted.length) {
+        setAttachments((current) => [...current, ...accepted].slice(0, 8));
+      }
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Attachment upload failed"));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const sendScheduleChatMessage = async (event) => {
+    event?.preventDefault?.();
+    const text = message.trim();
+    if ((!text && !attachments.length) || isSending || isUploading) return;
+
+    const currentAttachments = attachments;
+    const imageIds = currentAttachments.map((attachment) => attachment.imageId || attachment.id).filter(Boolean);
+    const fileContext = currentAttachments
+      .filter((attachment) => attachment.type !== "image")
+      .map((attachment) => attachment.content
+        ? `\n\nAttached file: ${attachment.name}\n${attachment.content.slice(0, 8000)}`
+        : `\n\nAttached file: ${attachment.name} (${attachment.type}).`)
+      .join("");
+    const outgoingText = `${text || "Please analyze the attached schedule context."}${fileContext}`;
+    const userMessage = {
+      id: `schedule-user-${Date.now()}`,
+      role: "user",
+      content: text,
+      attachments: currentAttachments,
+    };
+    const aiMessageId = `schedule-ai-${Date.now()}`;
+
+    setMessages((current) => [
+      ...current,
+      userMessage,
+      { id: aiMessageId, role: "ai", content: "", isStreaming: true },
+    ]);
+    setMessage("");
+    setAttachments([]);
+    setIsSending(true);
+
+    try {
+      await streamChatMessage({
+        message: outgoingText,
+        imageIds,
+        conversationId: conversationIdRef.current || undefined,
+        mode: "general",
+        metadata: {
+          source: "mobile_schedule_dashboard",
+          scheduleContext: {
+            selectedDate: toDateKey(selectedDate),
+            events: sortEvents(events).slice(0, 40),
+          },
+        },
+        onReady: (payload) => {
+          if (payload?.conversation?.conversationId) {
+            conversationIdRef.current = payload.conversation.conversationId;
+          }
+        },
+        onDelta: (payload) => {
+          const token = payload?.token || "";
+          if (!token) return;
+          setMessages((current) => current.map((item) => (
+            item.id === aiMessageId ? { ...item, content: `${item.content || ""}${token}` } : item
+          )));
+        },
+        onComplete: (payload) => {
+          if (payload?.conversation?.conversationId) {
+            conversationIdRef.current = payload.conversation.conversationId;
+          }
+          setMessages((current) => current.map((item) => (
+            item.id === aiMessageId
+              ? { ...item, content: item.content || payload?.message?.content || "", isStreaming: false }
+              : item
+          )));
+        },
+      });
+    } catch (error) {
+      setMessages((current) => current.map((item) => (
+        item.id === aiMessageId
+          ? { ...item, content: getApiErrorMessage(error, "BlueMind could not respond."), isStreaming: false }
+          : item
+      )));
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const attachmentMenu = attachmentMenuOpen ? (
+    <div className="fixed inset-0 z-[160]">
+      <button type="button" className="absolute inset-0 cursor-default" onClick={() => setAttachmentMenuOpen(false)} aria-label="Close attachment menu" />
+      <div className={cn("absolute bottom-[118px] left-6 right-6 overflow-hidden rounded-[24px] border p-2 shadow-2xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}>
+        {[
+          ["Camera", () => cameraInputRef.current?.click()],
+          ["Photos", () => photosInputRef.current?.click()],
+          ["Files", () => filesInputRef.current?.click()],
+        ].map(([label, action]) => (
+          <button
+            key={label}
+            type="button"
+            onClick={action}
+            className={cn("h-11 w-full rounded-2xl px-3 text-left text-sm font-bold transition-colors", isDark ? "active:bg-white/[0.08]" : "active:bg-[var(--bm-hover-bg)]")}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <MobileModalShell open={open} isDark={isDark} title="BlueMind create" onClose={onClose}>
-            <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white">
-                <Sparkles className={iconClasses.card} />
-              </span>
-              <p className={cn("font-medium", typeClasses.small, "text-[var(--bm-text-muted)]")}>Describe the schedule item naturally.</p>
-            </div>
+    <MobileModalShell open={open} isDark={isDark} title="BlueMind AI" onClose={onClose} contentClassName="flex flex-col px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-1 pb-4">
+        {messages.length === 0 ? (
+          <div className="flex min-h-full flex-col items-center justify-center px-3 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white">
+              <Sparkles className={iconClasses.card} />
+            </span>
+            <h3 className={cn("mt-4 font-black", typeClasses.cardTitle)}>How should BlueMind help?</h3>
+            <p className={cn("mt-2 max-w-[290px] font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+              Ask BlueMind to create, edit, or improve your schedule. You can include images for analysis.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((item, index) => {
+              const hasAttachments = Array.isArray(item.attachments) && item.attachments.length > 0;
+              const hasText = Boolean(String(item.content || "").trim());
 
-            <textarea
-              value={request}
-              onChange={(event) => setRequest(event.target.value)}
-              placeholder="Add math study every Monday at 18:00"
-              className="bm-field bm-input-interactive min-h-[104px] w-full resize-none rounded-3xl px-4 py-3 font-semibold"
-            />
-            <button type="button" onClick={onSuggest} className="mt-3 h-12 w-full rounded-2xl bg-[var(--bm-primary)] font-bold text-white">Suggest schedule</button>
-
-            {draft && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={cn("mt-4 rounded-3xl border p-4", isDark ? "border-white/10 bg-white/[0.05]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
-                <p className={cn("mb-3 font-black", typeClasses.body)}>Confirm before saving</p>
-                {[
-                  ["Title", draft.title],
-                  ["Date", draft.date],
-                  ["Time", `${draft.startTime} - ${draft.endTime}`],
-                  ["Repeat", draft.repeat],
-                  ["Reminder", draft.reminder],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex items-center justify-between gap-3 py-1.5">
-                    <span className={cn("font-bold text-[var(--bm-text-muted)]", typeClasses.small)}>{label}</span>
-                    <span className={cn("text-right font-semibold", typeClasses.small)}>{value}</span>
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={item.role === "user" ? "flex justify-end" : "w-full"}
+                >
+                  <div className={cn("max-w-[86%] break-words text-sm font-medium leading-6", item.role === "user" ? "rounded-[22px] bg-[var(--bm-primary)] px-4 py-3 text-white" : isDark ? "w-full text-white" : "w-full text-[var(--bm-text-primary)]")}>
+                    {item.role === "user" ? (
+                      <>
+                        {hasAttachments && (
+                          <ChatImageAttachments
+                            attachments={item.attachments}
+                            hasText={hasText}
+                            isDark={isDark}
+                            className="mb-2 gap-2"
+                            imageClassName="max-h-[180px]"
+                          />
+                        )}
+                        {hasText ? <MessageResponse message={item} previousUserContent={messages[index - 1]?.content || ""} /> : null}
+                      </>
+                    ) : item.isStreaming && !item.content ? (
+                      <ThinkingIndicator className="mb-0" />
+                    ) : (
+                      <MessageResponse message={item} previousUserContent={messages[index - 1]?.content || ""} className="text-[15px] leading-[1.75]" />
+                    )}
                   </div>
-                ))}
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <button type="button" onClick={onClose} className={cn("h-11 rounded-2xl font-bold", isDark ? "bg-white/[0.08]" : "bg-white")}>Cancel</button>
-                  <button type="button" onClick={onCreate} className="h-11 rounded-2xl bg-[var(--bm-primary)] font-bold text-white">Create</button>
-                </div>
-              </motion.div>
-            )}
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <UnifiedComposer
+        value={message}
+        onChange={(event) => setMessage(event.target.value)}
+        onSubmit={sendScheduleChatMessage}
+        placeholder="Ask BlueMind..."
+        attachments={attachments}
+        onRemoveAttachment={removeAttachment}
+        onClearAttachments={() => {
+          attachments.forEach((attachment) => {
+            if (attachment.previewUrl) {
+              URL.revokeObjectURL(attachment.previewUrl);
+              objectUrlsRef.current = objectUrlsRef.current.filter((url) => url !== attachment.previewUrl);
+            }
+          });
+          setAttachments([]);
+        }}
+        isUploading={isUploading}
+        onAdd={() => setAttachmentMenuOpen(true)}
+        onVoice={() => toast.info("Voice input will use the shared BlueMind voice system when enabled here.")}
+        isBusy={isSending}
+        canSend={Boolean(message.trim()) || attachments.length > 0}
+        isDark={isDark}
+        variant="mobile"
+        maxTextHeight={120}
+        actionMenu={attachmentMenu}
+        testId="mobile-schedule-ai-input"
+      />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleAttachmentFiles} />
+      <input ref={photosInputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={handleAttachmentFiles} />
+      <input ref={filesInputRef} type="file" accept=".pdf,.txt,.md,.csv,application/pdf,text/plain,text/csv" multiple className="hidden" onChange={handleAttachmentFiles} />
     </MobileModalShell>
   );
 }
@@ -513,8 +726,6 @@ export default function MobileScheduleDashboard() {
   const [eventMenuId, setEventMenuId] = useState("");
   const [scheduleListOpen, setScheduleListOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
-  const [aiRequest, setAiRequest] = useState("");
-  const [aiDraft, setAiDraft] = useState(null);
 
   const eventDates = useMemo(() => new Set(events.map((event) => event.date)), [events]);
   const sortedEvents = useMemo(() => sortEvents(events), [events]);
@@ -598,28 +809,12 @@ export default function MobileScheduleDashboard() {
 
   const openAiCreate = () => {
     setActionSheetOpen(false);
-    setAiRequest("");
-    setAiDraft(null);
     setAiOpen(true);
   };
 
   const createManualEvent = () => {
     saveEvent(manualForm);
     setManualOpen(false);
-  };
-
-  const suggestAiEvent = () => {
-    if (!aiRequest.trim()) {
-      toast.error("Tell BlueMind what to create first.");
-      return;
-    }
-    setAiDraft(createAiDraft(aiRequest, selectedDate));
-  };
-
-  const createAiEvent = () => {
-    if (!aiDraft) return;
-    saveEvent(aiDraft);
-    setAiOpen(false);
   };
 
   const renderCalendarDay = (date) => {
@@ -814,7 +1009,7 @@ export default function MobileScheduleDashboard() {
 
       <ScheduleActionSheet open={actionSheetOpen} isDark={isDark} onClose={() => setActionSheetOpen(false)} onManual={openManualCreate} onAi={openAiCreate} />
       <ManualEventSheet open={manualOpen} isDark={isDark} form={manualForm} setForm={setManualForm} onClose={() => setManualOpen(false)} onCreate={createManualEvent} />
-      <AiCreateSheet open={aiOpen} isDark={isDark} request={aiRequest} setRequest={setAiRequest} draft={aiDraft} onClose={() => setAiOpen(false)} onSuggest={suggestAiEvent} onCreate={createAiEvent} />
+      <AiCreateSheet open={aiOpen} isDark={isDark} selectedDate={selectedDate} events={events} onClose={() => setAiOpen(false)} />
       <AllSchedulesModal
         open={scheduleListOpen}
         isDark={isDark}
