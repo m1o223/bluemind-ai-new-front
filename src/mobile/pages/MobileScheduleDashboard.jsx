@@ -424,7 +424,13 @@ export default function MobileScheduleDashboard() {
 
   const eventDates = useMemo(() => new Set(events.map((event) => event.date)), [events]);
   const selectedEvents = useMemo(() => sortEvents(events.filter((event) => event.date === toDateKey(selectedDate))), [events, selectedDate]);
-  const visibleDates = isExpanded ? getMonthGrid(selectedDate) : getWeekDays(selectedDate);
+  const monthDates = useMemo(() => getMonthGrid(selectedDate), [selectedDate]);
+  const selectedWeekRow = Math.max(0, Math.floor(monthDates.findIndex((date) => sameDate(date, selectedDate)) / 7));
+  const calendarRowHeight = 50;
+  const calendarRowGap = 6;
+  const calendarCollapsedHeight = calendarRowHeight;
+  const calendarExpandedHeight = (calendarRowHeight * 6) + (calendarRowGap * 5);
+  const calendarOffset = isExpanded ? 0 : -(selectedWeekRow * (calendarRowHeight + calendarRowGap));
   const selectedMonth = MONTH_NAMES[selectedDate.getMonth()];
   const selectedYear = selectedDate.getFullYear();
 
@@ -584,8 +590,22 @@ export default function MobileScheduleDashboard() {
             <div key={day} className="text-center text-[10.5px] font-medium tracking-wide text-[var(--bm-text-muted)]/75">{day}</div>
           ))}
         </div>
-        <motion.div layout transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }} className="mt-1.5 grid grid-cols-7 gap-1.5">
-          {visibleDates.map(renderCalendarDay)}
+        <motion.div
+          initial={false}
+          animate={{ height: isExpanded ? calendarExpandedHeight : calendarCollapsedHeight }}
+          transition={{ duration: 0.34, ease: [0.25, 1, 0.5, 1] }}
+          className="mt-1.5 overflow-hidden"
+          style={{ willChange: "height" }}
+        >
+          <motion.div
+            initial={false}
+            animate={{ y: calendarOffset }}
+            transition={{ duration: 0.34, ease: [0.25, 1, 0.5, 1] }}
+            className="grid grid-cols-7 gap-1.5"
+            style={{ willChange: "transform" }}
+          >
+            {monthDates.map(renderCalendarDay)}
+          </motion.div>
         </motion.div>
       </section>
 
