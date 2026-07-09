@@ -8,16 +8,17 @@ import {
   Briefcase,
   CalendarDays,
   ChevronDown,
-  ChevronRight,
   Clock3,
   Dumbbell,
   Edit3,
   GraduationCap,
+  MoreVertical,
   Moon,
   Plus,
   Repeat,
   Sparkles,
   StickyNote,
+  Trash2,
   Utensils,
   X,
 } from "lucide-react";
@@ -415,6 +416,8 @@ export default function MobileScheduleDashboard() {
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualForm, setManualForm] = useState(() => createInitialManualEvent(new Date()));
+  const [editingEventId, setEditingEventId] = useState("");
+  const [eventMenuId, setEventMenuId] = useState("");
   const [aiOpen, setAiOpen] = useState(false);
   const [aiRequest, setAiRequest] = useState("");
   const [aiDraft, setAiDraft] = useState(null);
@@ -430,6 +433,21 @@ export default function MobileScheduleDashboard() {
       toast.error("Add an event title first.");
       return;
     }
+
+    if (editingEventId) {
+      const nextEvents = events.map((event) => (
+        event.id === editingEventId
+          ? { ...event, ...eventData, title: eventData.title.trim(), updatedAt: new Date().toISOString() }
+          : event
+      ));
+      setEvents(nextEvents);
+      persistEvents(nextEvents);
+      setSelectedDate(fromDateKey(eventData.date));
+      setEditingEventId("");
+      toast.success("Schedule event updated.");
+      return;
+    }
+
     const nextEvent = {
       ...eventData,
       id: `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
@@ -445,8 +463,35 @@ export default function MobileScheduleDashboard() {
 
   const openManualCreate = () => {
     setActionSheetOpen(false);
+    setEditingEventId("");
     setManualForm(createInitialManualEvent(selectedDate));
     setManualOpen(true);
+  };
+
+  const openEditEvent = (event) => {
+    setEventMenuId("");
+    setEditingEventId(event.id);
+    setManualForm({
+      title: event.title || "",
+      date: event.date || toDateKey(selectedDate),
+      startTime: event.startTime || "08:00",
+      endTime: event.endTime || "09:00",
+      duration: event.duration || "",
+      color: event.color || "blue",
+      icon: event.icon || "calendar",
+      reminder: event.reminder || "None",
+      repeat: event.repeat || "Never",
+      notes: event.notes || "",
+    });
+    setManualOpen(true);
+  };
+
+  const deleteEvent = (eventId) => {
+    const nextEvents = events.filter((event) => event.id !== eventId);
+    setEvents(nextEvents);
+    persistEvents(nextEvents);
+    setEventMenuId("");
+    toast.success("Schedule event deleted.");
   };
 
   const openAiCreate = () => {
@@ -536,7 +581,7 @@ export default function MobileScheduleDashboard() {
 
         <div className="mt-4 grid grid-cols-7 gap-1.5">
           {WEEK_DAYS.map((day) => (
-            <div key={day} className="text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--bm-text-muted)]/75">{day}</div>
+            <div key={day} className="text-center text-[10.5px] font-medium tracking-wide text-[var(--bm-text-muted)]/75">{day}</div>
           ))}
         </div>
         <motion.div layout transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }} className="mt-1.5 grid grid-cols-7 gap-1.5">
@@ -545,14 +590,11 @@ export default function MobileScheduleDashboard() {
       </section>
 
       <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3">
           <div>
             <h1 className={cn("text-[22px] font-black", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{formatDateLabel(selectedDate)}</h1>
             <p className={cn("mt-1 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>{selectedEvents.length ? `${selectedEvents.length} event${selectedEvents.length === 1 ? "" : "s"}` : "No events yet"}</p>
           </div>
-          <button type="button" onClick={() => navigate("/mobile/schedule/workspace")} className={cn("rounded-full px-3 py-2 font-bold", typeClasses.small, isDark ? "bg-white/[0.08] text-white" : "bg-white text-[var(--bm-primary)] shadow-sm")}>
-            Open Workspace
-          </button>
         </div>
 
         {selectedEvents.length ? (
@@ -561,12 +603,11 @@ export default function MobileScheduleDashboard() {
               const Icon = getIcon(event.icon);
               const color = getColor(event.color);
               return (
-                <motion.button
+                <motion.div
                   key={event.id}
-                  type="button"
+                  layout
                   whileTap={{ scale: 0.99 }}
-                  onClick={() => navigate("/mobile/schedule/workspace")}
-                  className={cn("flex w-full items-center gap-3 rounded-[26px] border p-3 text-left shadow-sm", isDark ? "border-white/10 bg-white/[0.06]" : "border-white bg-white")}
+                  className={cn("relative flex w-full items-center gap-3 rounded-[26px] border p-3 text-left shadow-sm transition-colors duration-150 ease-out", isDark ? "border-white/10 bg-white/[0.06]" : "border-white bg-white")}
                 >
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: color }}>
                     <Icon className={iconClasses.button} />
@@ -578,8 +619,52 @@ export default function MobileScheduleDashboard() {
                       {formatDateLabel(fromDateKey(event.date))}, {event.startTime}
                     </span>
                   </span>
-                  <ChevronRight className={cn("shrink-0", iconClasses.button, "text-[var(--bm-text-muted)]")} />
-                </motion.button>
+                  <button
+                    type="button"
+                    onClick={() => setEventMenuId((current) => current === event.id ? "" : event.id)}
+                    className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "text-white active:bg-white/[0.1]" : "text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]")}
+                    aria-label={`Open actions for ${event.title}`}
+                  >
+                    <MoreVertical className={iconClasses.button} />
+                  </button>
+
+                  <AnimatePresence>
+                    {eventMenuId === event.id && (
+                      <>
+                        <button
+                          type="button"
+                          className="fixed inset-0 z-[60]"
+                          onClick={() => setEventMenuId("")}
+                          aria-label="Close event actions"
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                          transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                          className={cn("absolute right-3 top-14 z-[61] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => openEditEvent(event)}
+                            className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+                          >
+                            <Edit3 className="h-4 w-4" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteEvent(event.id)}
+                            className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold text-red-500 transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-red-50")}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               );
             })}
           </div>
