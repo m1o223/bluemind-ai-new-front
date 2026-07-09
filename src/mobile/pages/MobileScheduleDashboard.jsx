@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -209,6 +210,24 @@ function ScheduleActionSheet({ open, isDark, onClose, onManual, onAi }) {
 }
 
 function MobileModalShell({ open, isDark, title, onClose, children, contentClassName = "" }) {
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const bodyOverflow = document.body.style.overflow;
+    const bodyTouchAction = document.body.style.touchAction;
+    const htmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.body.style.touchAction = bodyTouchAction;
+      document.documentElement.style.overflow = htmlOverflow;
+    };
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -216,17 +235,17 @@ function MobileModalShell({ open, isDark, title, onClose, children, contentClass
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[140] flex items-end justify-center bg-black/55 backdrop-blur-[14px] md:items-center md:p-6"
+          className="fixed inset-0 z-[140] flex touch-none items-end justify-center overflow-hidden bg-black/55 p-0 backdrop-blur-[14px] md:items-center md:p-6"
           onClick={onClose}
         >
-          <div className="w-full md:flex md:justify-center" onClick={(event) => event.stopPropagation()}>
+          <div className="box-border w-full max-w-full min-w-0 md:flex md:justify-center" onClick={(event) => event.stopPropagation()}>
             <motion.div
               initial={{ y: "100%", opacity: 0.96 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0.96 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               className={cn(
-                "relative flex h-[88dvh] w-full flex-col overflow-hidden rounded-t-[34px] shadow-[0_-28px_90px_rgba(0,0,0,0.18)] md:mx-auto md:h-[86dvh] md:max-w-[560px] md:rounded-[34px]",
+                "relative box-border flex h-[88dvh] w-full max-w-full min-w-0 flex-col overflow-hidden rounded-t-[34px] shadow-[0_-28px_90px_rgba(0,0,0,0.18)] md:mx-auto md:h-[86dvh] md:max-w-[560px] md:rounded-[34px]",
                 isDark ? "bg-[var(--bm-bg-card)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
               )}
               role="dialog"
@@ -240,7 +259,7 @@ function MobileModalShell({ open, isDark, title, onClose, children, contentClass
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-2", contentClassName)}>
+              <div className={cn("box-border min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(28px,env(safe-area-inset-bottom))] pt-2 sm:px-6", contentClassName)}>
                 {children}
               </div>
             </motion.div>
@@ -252,9 +271,12 @@ function MobileModalShell({ open, isDark, title, onClose, children, contentClass
 }
 
 function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
+  const fieldClassName = "bm-field bm-input-interactive box-border h-12 w-full min-w-0 max-w-full rounded-2xl px-3 font-semibold";
+
   return (
     <MobileModalShell open={open} isDark={isDark} title="Create event" onClose={onClose}>
       <form
+        className="box-border w-full max-w-full min-w-0"
         onSubmit={(event) => {
           event.preventDefault();
           onCreate();
@@ -263,36 +285,36 @@ function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
             <p className={cn("mb-4 font-medium", typeClasses.small, "text-[var(--bm-text-muted)]")}>Add it to your mobile Schedule dashboard.</p>
 
             <div className="space-y-3">
-              <label className="block">
+              <label className="block min-w-0">
                 <span className={cn("mb-1.5 block font-bold", typeClasses.small)}>Event title</span>
-                <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Datakommunikation" className="bm-field bm-input-interactive h-12 w-full rounded-2xl px-4 font-semibold" />
+                <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Datakommunikation" className={fieldClassName} />
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
+              <div className="grid min-w-0 grid-cols-2 gap-3 max-[390px]:grid-cols-1">
+                <label className="block min-w-0">
                   <span className={cn("mb-1.5 block font-bold", typeClasses.small)}>Date</span>
-                  <input type="date" value={form.date} onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))} className="bm-field bm-input-interactive h-12 w-full rounded-2xl px-3 font-semibold" />
+                  <input type="date" value={form.date} onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))} className={fieldClassName} />
                 </label>
-                <label className="block">
+                <label className="block min-w-0">
                   <span className={cn("mb-1.5 block font-bold", typeClasses.small)}>Duration</span>
-                  <input value={form.duration} onChange={(event) => setForm((current) => ({ ...current, duration: event.target.value }))} placeholder="Optional" className="bm-field bm-input-interactive h-12 w-full rounded-2xl px-3 font-semibold" />
+                  <input value={form.duration} onChange={(event) => setForm((current) => ({ ...current, duration: event.target.value }))} placeholder="Optional" className={fieldClassName} />
                 </label>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
+              <div className="grid min-w-0 grid-cols-2 gap-3 max-[390px]:grid-cols-1">
+                <label className="block min-w-0">
                   <span className={cn("mb-1.5 block font-bold", typeClasses.small)}>Start time</span>
-                  <input type="time" value={form.startTime} onChange={(event) => setForm((current) => ({ ...current, startTime: event.target.value }))} className="bm-field bm-input-interactive h-12 w-full rounded-2xl px-3 font-semibold" />
+                  <input type="time" value={form.startTime} onChange={(event) => setForm((current) => ({ ...current, startTime: event.target.value }))} className={fieldClassName} />
                 </label>
-                <label className="block">
+                <label className="block min-w-0">
                   <span className={cn("mb-1.5 block font-bold", typeClasses.small)}>End time</span>
-                  <input type="time" value={form.endTime} onChange={(event) => setForm((current) => ({ ...current, endTime: event.target.value }))} className="bm-field bm-input-interactive h-12 w-full rounded-2xl px-3 font-semibold" />
+                  <input type="time" value={form.endTime} onChange={(event) => setForm((current) => ({ ...current, endTime: event.target.value }))} className={fieldClassName} />
                 </label>
               </div>
 
               <div>
                 <span className={cn("mb-2 block font-bold", typeClasses.small)}>Color</span>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid min-w-0 grid-cols-4 gap-2 max-[390px]:grid-cols-3">
                   {COLOR_OPTIONS.map((color) => (
-                    <button key={color.id} type="button" onClick={() => setForm((current) => ({ ...current, color: color.id }))} className={cn("flex h-11 items-center justify-center rounded-2xl border", form.color === color.id ? "border-[var(--bm-primary)]" : "border-transparent")} aria-label={color.label}>
+                    <button key={color.id} type="button" onClick={() => setForm((current) => ({ ...current, color: color.id }))} className={cn("box-border flex h-11 min-w-0 items-center justify-center rounded-2xl border", form.color === color.id ? "border-[var(--bm-primary)]" : "border-transparent")} aria-label={color.label}>
                       <span className="h-6 w-6 rounded-full" style={{ backgroundColor: color.value }} />
                     </button>
                   ))}
@@ -301,38 +323,38 @@ function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
 
               <div>
                 <span className={cn("mb-2 block font-bold", typeClasses.small)}>Icon</span>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid min-w-0 grid-cols-4 gap-2 max-[390px]:grid-cols-3">
                   {ICON_OPTIONS.map(({ id, label, Icon }) => (
-                    <button key={id} type="button" onClick={() => setForm((current) => ({ ...current, icon: id }))} className={cn("flex h-12 items-center justify-center rounded-2xl border", form.icon === id ? "border-[var(--bm-primary)] bg-[var(--bm-active-bg)] text-[var(--bm-primary)]" : isDark ? "border-white/10 bg-white/[0.05]" : "border-[var(--bm-border)] bg-white")} aria-label={label}>
+                    <button key={id} type="button" onClick={() => setForm((current) => ({ ...current, icon: id }))} className={cn("box-border flex h-12 min-w-0 items-center justify-center rounded-2xl border", form.icon === id ? "border-[var(--bm-primary)] bg-[var(--bm-active-bg)] text-[var(--bm-primary)]" : isDark ? "border-white/10 bg-white/[0.05]" : "border-[var(--bm-border)] bg-white")} aria-label={label}>
                       <Icon className={iconClasses.button} />
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
+              <div className="grid min-w-0 grid-cols-2 gap-3 max-[390px]:grid-cols-1">
+                <label className="block min-w-0">
                   <span className={cn("mb-1.5 flex items-center gap-1.5 font-bold", typeClasses.small)}><Bell className="h-3.5 w-3.5" /> Reminder</span>
-                  <select value={form.reminder} onChange={(event) => setForm((current) => ({ ...current, reminder: event.target.value }))} className="bm-field bm-input-interactive h-12 w-full rounded-2xl px-3 font-semibold">
+                  <select value={form.reminder} onChange={(event) => setForm((current) => ({ ...current, reminder: event.target.value }))} className={fieldClassName}>
                     <option>None</option>
                     <option>10 minutes before</option>
                     <option>30 minutes before</option>
                     <option>1 hour before</option>
                   </select>
                 </label>
-                <label className="block">
+                <label className="block min-w-0">
                   <span className={cn("mb-1.5 flex items-center gap-1.5 font-bold", typeClasses.small)}><Repeat className="h-3.5 w-3.5" /> Repeat</span>
-                  <select value={form.repeat} onChange={(event) => setForm((current) => ({ ...current, repeat: event.target.value }))} className="bm-field bm-input-interactive h-12 w-full rounded-2xl px-3 font-semibold">
+                  <select value={form.repeat} onChange={(event) => setForm((current) => ({ ...current, repeat: event.target.value }))} className={fieldClassName}>
                     <option>Never</option>
                     <option>Daily</option>
                     <option>Weekly</option>
-                    <option>Monthly</option>
+                  <option>Monthly</option>
                   </select>
                 </label>
               </div>
-              <label className="block">
+              <label className="block min-w-0">
                 <span className={cn("mb-1.5 flex items-center gap-1.5 font-bold", typeClasses.small)}><StickyNote className="h-3.5 w-3.5" /> Notes</span>
-                <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Optional notes" className="bm-field bm-input-interactive min-h-[86px] w-full resize-none rounded-2xl px-4 py-3 font-semibold" />
+                <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Optional notes" className="bm-field bm-input-interactive box-border min-h-[86px] w-full min-w-0 max-w-full resize-none rounded-2xl px-4 py-3 font-semibold" />
               </label>
             </div>
 
@@ -628,14 +650,61 @@ function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
   );
 }
 
-function AllSchedulesModal({ open, isDark, events, eventMenuId, setEventMenuId, onClose, onEdit, onDelete }) {
+function ScheduleContextMenuPortal({ open, rect, isDark, onClose, onEdit, onDelete }) {
+  if (!open || !rect || typeof document === "undefined") return null;
+
+  const menuWidth = 144;
+  const menuHeight = 88;
+  const margin = 10;
+  const viewportWidth = window.innerWidth || 390;
+  const viewportHeight = window.innerHeight || 760;
+  const hasSpaceAbove = rect.top >= menuHeight + margin + 8;
+  const desiredTop = hasSpaceAbove ? rect.top - menuHeight - 8 : rect.bottom + 8;
+  const top = Math.min(Math.max(desiredTop, margin), viewportHeight - menuHeight - margin);
+  const desiredLeft = rect.right - menuWidth;
+  const left = Math.min(Math.max(desiredLeft, margin), viewportWidth - menuWidth - margin);
+
+  return createPortal(
+    <AnimatePresence>
+      <button type="button" className="fixed inset-0 z-[190] cursor-default bg-transparent" onClick={onClose} aria-label="Close schedule actions" />
+      <motion.div
+        initial={{ opacity: 0, y: hasSpaceAbove ? 4 : -4, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: hasSpaceAbove ? 4 : -4, scale: 0.98 }}
+        transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+        className={cn("fixed z-[191] w-36 overflow-hidden rounded-2xl border p-1 shadow-2xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
+        style={{ top, left }}
+      >
+        <button
+          type="button"
+          onClick={onEdit}
+          className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08] active:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)] active:bg-[var(--bm-hover-bg)]")}
+        >
+          <Edit3 className="h-4 w-4" />
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold text-red-500 transition-colors", isDark ? "hover:bg-white/[0.08] active:bg-white/[0.08]" : "hover:bg-red-50 active:bg-red-50")}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </button>
+      </motion.div>
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
+function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
   return (
-    <MobileModalShell open={open} isDark={isDark} title="All schedules" onClose={onClose}>
+    <MobileModalShell open={open} isDark={isDark} title="All schedules" onClose={onClose} contentClassName="flex flex-col">
             <p className={cn("mb-4 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
               Sorted by date and time automatically.
             </p>
               {events.length ? (
-                <div className="space-y-2.5">
+                <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-1">
                   {events.map((event) => {
                     const Icon = getIcon(event.icon);
                     const color = getColor(event.color);
@@ -657,44 +726,12 @@ function AllSchedulesModal({ open, isDark, events, eventMenuId, setEventMenuId, 
                         </span>
                         <button
                           type="button"
-                          onClick={() => setEventMenuId((current) => current === event.id ? "" : event.id)}
+                          onClick={(clickEvent) => onOpenMenu(event.id, clickEvent)}
                           className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "text-white active:bg-white/[0.1]" : "text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]")}
                           aria-label={`Open actions for ${event.title}`}
                         >
                           <MoreVertical className={iconClasses.button} />
                         </button>
-
-                        <AnimatePresence>
-                          {eventMenuId === event.id && (
-                            <>
-                              <button type="button" className="fixed inset-0 z-[80]" onClick={() => setEventMenuId("")} aria-label="Close schedule actions" />
-                              <motion.div
-                                initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                                transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                                className={cn("absolute bottom-14 right-3 z-[150] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => onEdit(event)}
-                                  className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
-                                >
-                                  <Edit3 className="h-4 w-4" />
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onDelete(event.id)}
-                                  className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold text-red-500 transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-red-50")}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  Delete
-                                </button>
-                              </motion.div>
-                            </>
-                          )}
-                        </AnimatePresence>
                       </div>
                     );
                   })}
@@ -724,12 +761,15 @@ export default function MobileScheduleDashboard() {
   const [manualForm, setManualForm] = useState(() => createInitialManualEvent(new Date()));
   const [editingEventId, setEditingEventId] = useState("");
   const [eventMenuId, setEventMenuId] = useState("");
+  const [eventMenuAnchorEl, setEventMenuAnchorEl] = useState(null);
+  const [eventMenuRect, setEventMenuRect] = useState(null);
   const [scheduleListOpen, setScheduleListOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
 
   const eventDates = useMemo(() => new Set(events.map((event) => event.date)), [events]);
   const sortedEvents = useMemo(() => sortEvents(events), [events]);
   const selectedEvents = useMemo(() => sortEvents(events.filter((event) => event.date === toDateKey(selectedDate))), [events, selectedDate]);
+  const selectedMenuEvent = useMemo(() => events.find((event) => event.id === eventMenuId) || null, [eventMenuId, events]);
   const monthDates = useMemo(() => getMonthGrid(selectedDate), [selectedDate]);
   const selectedWeekRow = Math.max(0, Math.floor(monthDates.findIndex((date) => sameDate(date, selectedDate)) / 7));
   const calendarRowHeight = 50;
@@ -739,6 +779,50 @@ export default function MobileScheduleDashboard() {
   const calendarOffset = isExpanded ? 0 : -(selectedWeekRow * (calendarRowHeight + calendarRowGap));
   const selectedMonth = MONTH_NAMES[selectedDate.getMonth()];
   const selectedYear = selectedDate.getFullYear();
+
+  useEffect(() => {
+    if (!eventMenuAnchorEl || !eventMenuId) return undefined;
+
+    const updateRect = () => {
+      if (!document.body.contains(eventMenuAnchorEl)) {
+        setEventMenuId("");
+        setEventMenuAnchorEl(null);
+        setEventMenuRect(null);
+        return;
+      }
+      setEventMenuRect(eventMenuAnchorEl.getBoundingClientRect());
+    };
+
+    updateRect();
+    window.addEventListener("resize", updateRect);
+    window.addEventListener("scroll", updateRect, true);
+
+    return () => {
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect, true);
+    };
+  }, [eventMenuAnchorEl, eventMenuId]);
+
+  const closeEventMenu = () => {
+    setEventMenuId("");
+    setEventMenuAnchorEl(null);
+    setEventMenuRect(null);
+  };
+
+  const openEventMenu = (eventId, clickEvent) => {
+    clickEvent.stopPropagation();
+    const anchor = clickEvent.currentTarget;
+    setEventMenuId((current) => {
+      if (current === eventId) {
+        setEventMenuAnchorEl(null);
+        setEventMenuRect(null);
+        return "";
+      }
+      setEventMenuAnchorEl(anchor);
+      setEventMenuRect(anchor.getBoundingClientRect());
+      return eventId;
+    });
+  };
 
   const saveEvent = (eventData) => {
     if (!eventData.title.trim()) {
@@ -781,7 +865,7 @@ export default function MobileScheduleDashboard() {
   };
 
   const openEditEvent = (event) => {
-    setEventMenuId("");
+    closeEventMenu();
     setScheduleListOpen(false);
     setEditingEventId(event.id);
     setManualForm({
@@ -803,7 +887,7 @@ export default function MobileScheduleDashboard() {
     const nextEvents = events.filter((event) => event.id !== eventId);
     setEvents(nextEvents);
     persistEvents(nextEvents);
-    setEventMenuId("");
+    closeEventMenu();
     toast.success("Schedule event deleted.");
   };
 
@@ -933,49 +1017,12 @@ export default function MobileScheduleDashboard() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => setEventMenuId((current) => current === event.id ? "" : event.id)}
+                      onClick={(clickEvent) => openEventMenu(event.id, clickEvent)}
                       className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "text-white active:bg-white/[0.1]" : "text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]")}
                       aria-label={`Open actions for ${event.title}`}
                     >
                       <MoreVertical className={iconClasses.button} />
                     </button>
-
-                    <AnimatePresence>
-                      {eventMenuId === event.id && (
-                        <>
-                          <button
-                            type="button"
-                            className="fixed inset-0 z-[60]"
-                            onClick={() => setEventMenuId("")}
-                            aria-label="Close event actions"
-                          />
-                          <motion.div
-                            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                            transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                            className={cn("absolute bottom-14 right-3 z-[150] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => openEditEvent(event)}
-                              className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteEvent(event.id)}
-                              className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold text-red-500 transition-colors", isDark ? "hover:bg-white/[0.08]" : "hover:bg-red-50")}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
-                            </button>
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
                   </motion.div>
                 );
               })}
@@ -1014,14 +1061,23 @@ export default function MobileScheduleDashboard() {
         open={scheduleListOpen}
         isDark={isDark}
         events={sortedEvents}
-        eventMenuId={eventMenuId}
-        setEventMenuId={setEventMenuId}
         onClose={() => {
-          setEventMenuId("");
+          closeEventMenu();
           setScheduleListOpen(false);
         }}
-        onEdit={openEditEvent}
-        onDelete={deleteEvent}
+        onOpenMenu={openEventMenu}
+      />
+      <ScheduleContextMenuPortal
+        open={Boolean(eventMenuId && selectedMenuEvent)}
+        rect={eventMenuRect}
+        isDark={isDark}
+        onClose={closeEventMenu}
+        onEdit={() => {
+          if (selectedMenuEvent) openEditEvent(selectedMenuEvent);
+        }}
+        onDelete={() => {
+          if (selectedMenuEvent) deleteEvent(selectedMenuEvent.id);
+        }}
       />
     </main>
   );
