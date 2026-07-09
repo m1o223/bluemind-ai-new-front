@@ -568,10 +568,13 @@ function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-1 pb-4">
         {messages.length === 0 ? (
           <div className="flex min-h-full flex-col items-center justify-center px-3 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white">
-              <Sparkles className={iconClasses.card} />
-            </span>
-            <h3 className={cn("mt-4 font-black", typeClasses.cardTitle)}>How should BlueMind help?</h3>
+            <img
+              src="/bluemind-schedule-ai-create.png"
+              alt=""
+              className="h-auto w-[min(82vw,330px)] max-w-full select-none object-contain"
+              draggable="false"
+            />
+            <h3 className={cn("mt-3 font-black", typeClasses.cardTitle)}>How should BlueMind help?</h3>
             <p className={cn("mt-2 max-w-[290px] font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-muted)]")}>
               Ask BlueMind to create, edit, or improve your schedule. You can include images for analysis.
             </p>
