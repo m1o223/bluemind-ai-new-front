@@ -134,7 +134,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end bg-black/45 px-3 pb-[max(12px,env(safe-area-inset-bottom))]"
+      className="fixed inset-0 z-[140] flex items-end justify-center bg-black/55 backdrop-blur-[14px] md:items-center md:p-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -142,20 +142,19 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
     >
       <motion.form
         className={cn(
-          "w-full rounded-[28px] border p-4 shadow-2xl",
-          isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]",
+          "relative flex h-[88dvh] w-full flex-col overflow-hidden rounded-t-[34px] shadow-[0_-28px_90px_rgba(0,0,0,0.18)] md:mx-auto md:h-[86dvh] md:max-w-[560px] md:rounded-[34px]",
+          isDark ? "bg-[var(--bm-bg-card)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
         )}
-        initial={{ y: 40, opacity: 0.96 }}
+        initial={{ y: "100%", opacity: 0.96 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 40, opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        exit={{ y: "100%", opacity: 0.96 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         onClick={(event) => event.stopPropagation()}
         onSubmit={handleSubmit}
       >
-        <div className="mx-auto mb-4 h-1 w-11 rounded-full bg-current opacity-20" />
-
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
+        <div className="flex h-14 shrink-0 items-center justify-between px-5 pt-2">
+          <span className="w-10" />
+          <h2 className="truncate text-base font-extrabold">
             {reminder ? "Edit reminder" : "New reminder"}
           </h2>
           <button
@@ -171,7 +170,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-2">
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium opacity-70">Title</span>
             <input
@@ -246,9 +245,8 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
               />
             </label>
           </div>
-        </div>
 
-        <div className="mt-5 flex gap-3">
+          <div className="mt-5 flex gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -267,6 +265,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
           >
             Save
           </button>
+          </div>
         </div>
       </motion.form>
     </motion.div>

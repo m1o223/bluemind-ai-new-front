@@ -235,32 +235,59 @@ function ScheduleActionSheet({ open, isDark, onClose, onManual, onAi }) {
   );
 }
 
-function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
+function MobileModalShell({ open, isDark, title, onClose, children, contentClassName = "" }) {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[75]">
-          <motion.button type="button" aria-label="Close manual event" className="absolute inset-0 bg-black/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <motion.form
-            onSubmit={(event) => {
-              event.preventDefault();
-              onCreate();
-            }}
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 24 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className={cn("absolute bottom-0 left-0 right-0 max-h-[88vh] overflow-y-auto rounded-t-[32px] border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className={cn("font-black", typeClasses.cardTitle)}>Create event</h2>
-                <p className={cn("mt-1 font-medium", typeClasses.small, "text-[var(--bm-text-muted)]")}>Add it to your mobile Schedule dashboard.</p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[140] flex items-end justify-center bg-black/55 backdrop-blur-[14px] md:items-center md:p-6"
+          onClick={onClose}
+        >
+          <div className="w-full md:flex md:justify-center" onClick={(event) => event.stopPropagation()}>
+            <motion.div
+              initial={{ y: "100%", opacity: 0.96 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0.96 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className={cn(
+                "relative flex h-[88dvh] w-full flex-col overflow-hidden rounded-t-[34px] shadow-[0_-28px_90px_rgba(0,0,0,0.18)] md:mx-auto md:h-[86dvh] md:max-w-[560px] md:rounded-[34px]",
+                isDark ? "bg-[var(--bm-bg-card)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
+              )}
+              role="dialog"
+              aria-modal="true"
+              aria-label={title}
+            >
+              <div className="flex h-14 shrink-0 items-center justify-between px-5 pt-2">
+                <span className="w-10" />
+                <h2 className="truncate text-base font-extrabold">{title}</h2>
+                <button type="button" onClick={onClose} className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]")} aria-label={`Close ${title}`}>
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <button type="button" onClick={onClose} className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDark ? "bg-white/[0.08]" : "bg-[var(--bm-hover-bg)]")} aria-label="Close">
-                <X className={iconClasses.button} />
-              </button>
-            </div>
+              <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-2", contentClassName)}>
+                {children}
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
+  return (
+    <MobileModalShell open={open} isDark={isDark} title="Create event" onClose={onClose}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          onCreate();
+        }}
+      >
+            <p className={cn("mb-4 font-medium", typeClasses.small, "text-[var(--bm-text-muted)]")}>Add it to your mobile Schedule dashboard.</p>
 
             <div className="space-y-3">
               <label className="block">
@@ -340,38 +367,19 @@ function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
               <button type="button" onClick={onClose} className={cn("h-12 rounded-2xl font-bold", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>Cancel</button>
               <button type="submit" className="h-12 rounded-2xl bg-[var(--bm-primary)] font-bold text-white">Create</button>
             </div>
-          </motion.form>
-        </div>
-      )}
-    </AnimatePresence>
+      </form>
+    </MobileModalShell>
   );
 }
 
 function AiCreateSheet({ open, isDark, request, setRequest, draft, onClose, onSuggest, onCreate }) {
   return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-[76]">
-          <motion.button type="button" aria-label="Close BlueMind create" className="absolute inset-0 bg-black/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <motion.div
-            initial={{ opacity: 0, y: 26 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 24 }}
-            className={cn("absolute bottom-0 left-0 right-0 rounded-t-[32px] border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white">
-                  <Sparkles className={iconClasses.card} />
-                </span>
-                <div>
-                  <h2 className={cn("font-black", typeClasses.cardTitle)}>BlueMind create</h2>
-                  <p className={cn("mt-1 font-medium", typeClasses.small, "text-[var(--bm-text-muted)]")}>Describe the schedule item naturally.</p>
-                </div>
-              </div>
-              <button type="button" onClick={onClose} className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDark ? "bg-white/[0.08]" : "bg-[var(--bm-hover-bg)]")} aria-label="Close">
-                <X className={iconClasses.button} />
-              </button>
+    <MobileModalShell open={open} isDark={isDark} title="BlueMind create" onClose={onClose}>
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white">
+                <Sparkles className={iconClasses.card} />
+              </span>
+              <p className={cn("font-medium", typeClasses.small, "text-[var(--bm-text-muted)]")}>Describe the schedule item naturally.</p>
             </div>
 
             <textarea
@@ -403,50 +411,16 @@ function AiCreateSheet({ open, isDark, request, setRequest, draft, onClose, onSu
                 </div>
               </motion.div>
             )}
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </MobileModalShell>
   );
 }
 
 function AllSchedulesModal({ open, isDark, events, eventMenuId, setEventMenuId, onClose, onEdit, onDelete }) {
   return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-[78] flex items-center justify-center px-4 py-[max(1rem,env(safe-area-inset-top))]">
-          <motion.button
-            type="button"
-            aria-label="Close all schedules"
-            className="absolute inset-0 bg-black/40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 14, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className={cn(
-              "relative z-[79] flex max-h-[82vh] w-full max-w-[390px] flex-col rounded-[30px] border p-4 shadow-2xl",
-              isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]",
-            )}
-          >
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h2 className={cn("font-black", typeClasses.cardTitle)}>All schedules</h2>
-                <p className={cn("mt-1 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
-                  Sorted by date and time automatically.
-                </p>
-              </div>
-              <button type="button" onClick={onClose} className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", isDark ? "bg-white/[0.08]" : "bg-[var(--bm-hover-bg)]")} aria-label="Close">
-                <X className={iconClasses.button} />
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+    <MobileModalShell open={open} isDark={isDark} title="All schedules" onClose={onClose}>
+            <p className={cn("mb-4 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+              Sorted by date and time automatically.
+            </p>
               {events.length ? (
                 <div className="space-y-2.5">
                   {events.map((event) => {
@@ -486,7 +460,7 @@ function AllSchedulesModal({ open, isDark, events, eventMenuId, setEventMenuId, 
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 4, scale: 0.98 }}
                                 transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                                className={cn("absolute right-3 top-14 z-[81] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
+                                className={cn("absolute bottom-14 right-3 z-[150] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
                               >
                                 <button
                                   type="button"
@@ -521,11 +495,7 @@ function AllSchedulesModal({ open, isDark, events, eventMenuId, setEventMenuId, 
                   </p>
                 </div>
               )}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </MobileModalShell>
   );
 }
 
@@ -789,7 +759,7 @@ export default function MobileScheduleDashboard() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 4, scale: 0.98 }}
                             transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                            className={cn("absolute right-3 top-14 z-[61] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
+                            className={cn("absolute bottom-14 right-3 z-[150] w-36 overflow-hidden rounded-2xl border p-1 shadow-xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
                           >
                             <button
                               type="button"
