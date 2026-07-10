@@ -695,8 +695,6 @@ export default function MobileChat() {
 
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0 || writeAttachments.length > 0;
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
-  const isStudyMode = responseMode === "study";
-  const isStudyHome = isStudyMode && isEmptyChat;
   const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
@@ -2757,44 +2755,40 @@ export default function MobileChat() {
     >
       <header className={`relative z-40 flex h-16 items-center justify-between border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
         <div className="flex w-12 items-center justify-start">
-          {!isStudyMode && (
-            <button
-              type="button"
-              onClick={openMenu}
-              className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
-              aria-label="Open menu"
-            >
-              <span className="flex h-5 w-6 flex-col items-start justify-center gap-[7px]" aria-hidden="true">
-                <span className="block h-[2.5px] w-[23px] rounded-[999px] bg-current" />
-                <span className="block h-[2.5px] w-[13px] rounded-[999px] bg-current" />
-              </span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={openMenu}
+            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+            aria-label="Open menu"
+          >
+            <span className="flex h-5 w-6 flex-col items-start justify-center gap-[7px]" aria-hidden="true">
+              <span className="block h-[2.5px] w-[23px] rounded-[999px] bg-current" />
+              <span className="block h-[2.5px] w-[13px] rounded-[999px] bg-current" />
+            </span>
+          </button>
         </div>
 
         <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
-          {!isStudyMode && (
-            <button
-              type="button"
-              onClick={() => {
-                setResponseModeMenuPlacement("header");
-                setResponseModeMenuOpen((open) => responseModeMenuPlacement === "header" ? !open : true);
-              }}
-              className={isDark ? "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.055] px-3 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-[var(--bm-border)] bg-white px-3 text-sm font-bold capitalize text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"}
-              aria-label="Select AI mode"
-              aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "header"}
-            >
-              {(() => {
-                const SelectedModeIcon = getAiMode(responseMode).icon;
-                return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
-              })()}
-              <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen && responseModeMenuPlacement === "header" ? "rotate-180" : ""}`} />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setResponseModeMenuPlacement("header");
+              setResponseModeMenuOpen((open) => responseModeMenuPlacement === "header" ? !open : true);
+            }}
+            className={isDark ? "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.055] px-3 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-[var(--bm-border)] bg-white px-3 text-sm font-bold capitalize text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"}
+            aria-label="Select AI mode"
+            aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "header"}
+          >
+            {(() => {
+              const SelectedModeIcon = getAiMode(responseMode).icon;
+              return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
+            })()}
+            <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen && responseModeMenuPlacement === "header" ? "rotate-180" : ""}`} />
+          </button>
 
           <AnimatePresence>
-            {!isStudyMode && responseModeMenuOpen && responseModeMenuPlacement === "header" && (
+            {responseModeMenuOpen && responseModeMenuPlacement === "header" && (
               <>
                 <button
                   type="button"
@@ -2887,9 +2881,9 @@ export default function MobileChat() {
               aria-hidden="true"
             >
               <img
-                src={isStudyHome ? "/bluemind-schedule-ai-create.png" : "/bluemind-empty-chat-character.jpg"}
+                src="/bluemind-empty-chat-character.jpg"
                 alt=""
-                className={isStudyHome ? "h-auto w-[min(90vw,390px)] max-w-full select-none object-contain" : "h-auto w-[min(86vw,370px)] max-w-full select-none object-contain"}
+                className="h-auto w-[min(86vw,370px)] max-w-full select-none object-contain"
                 draggable="false"
               />
             </motion.div>
@@ -3322,7 +3316,7 @@ export default function MobileChat() {
             style={{ bottom: `${composerKeyboardOffset}px` }}
           >
             <div className="mx-auto w-full max-w-[430px] pt-3">
-              <AnimatePresence>{isEmptyChat && !isStudyMode && renderHomeQuickActions()}</AnimatePresence>
+              <AnimatePresence>{isEmptyChat && renderHomeQuickActions()}</AnimatePresence>
               {renderComposerArea(false, isEmptyChat)}
             </div>
           </div>
