@@ -5539,26 +5539,14 @@ export default function ChatPage() {
                   </p>
                 </motion.div>
               ) : activeMode === "default" ? (
-                <div className="mb-5 flex flex-col items-center text-center sm:mb-8">
-                  <motion.img
-                    src="/bluemind-empty-chat-character.jpg"
-                    alt=""
-                    initial={{ opacity: 0, y: 12, scale: 0.985 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                    className="mb-5 h-auto w-[min(72vw,420px)] select-none object-contain sm:mb-6 lg:w-[440px]"
-                    draggable="false"
-                    aria-hidden="true"
+                <div className="mb-5 h-[88px] overflow-hidden text-center sm:mb-8 sm:h-[104px]">
+                  <RotatingChatSuggestion
+                    iconClassName="h-6 w-6 sm:h-8 sm:w-8"
+                    textClassName={cn(
+                      "max-w-4xl text-center text-[21px] font-semibold leading-tight tracking-tight sm:text-3xl",
+                      isDark ? "text-white" : "text-[var(--bm-text-primary)]",
+                    )}
                   />
-                  <div className="h-[88px] overflow-hidden text-center sm:h-[104px]">
-                    <RotatingChatSuggestion
-                      iconClassName="h-6 w-6 sm:h-8 sm:w-8"
-                      textClassName={cn(
-                        "max-w-4xl text-center text-[21px] font-semibold leading-tight tracking-tight sm:text-3xl",
-                        isDark ? "text-white" : "text-[var(--bm-text-primary)]",
-                      )}
-                    />
-                  </div>
                 </div>
               ) : (
                 <motion.div
