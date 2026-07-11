@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Bell,
   BookOpen,
-  Cake,
   Camera,
   Check,
   ChevronRight,
@@ -25,7 +24,6 @@ import {
   Pencil,
   Shield,
   Settings,
-  Sparkles,
   Sun,
   X,
 } from "lucide-react";
@@ -892,22 +890,6 @@ export default function SettingsSheet({
       </Row>
       <Row icon={Palette} title="Message Color" value={activeMessageColor.label} onClick={() => openChild("message-color")}>
         <span className={descriptionClass}>Choose the color of your messages.</span>
-      </Row>
-      <Row
-        icon={Cake}
-        title="Birthday Greetings"
-        onClick={() => savePreference({ birthdayGreetings: prefs.birthdayGreetings === false })}
-        trailing={<ToggleSwitch checked={prefs.birthdayGreetings !== false} isDark={isDark} />}
-      >
-        <span className={descriptionClass}>Receive birthday wishes and celebration effects.</span>
-      </Row>
-      <Row
-        icon={Sparkles}
-        title="Animations"
-        onClick={() => savePreference({ animations: prefs.animations === false })}
-        trailing={<ToggleSwitch checked={prefs.animations !== false} isDark={isDark} />}
-      >
-        <span className={descriptionClass}>Enable visual effects and transitions.</span>
       </Row>
     </Card>
   );
