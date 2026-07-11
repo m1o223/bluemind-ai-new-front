@@ -22,11 +22,13 @@ import {
   LockKeyhole,
   LogOut,
   Mail,
+  MonitorSmartphone,
   Moon,
   Palette,
   Shield,
   SlidersHorizontal,
   Sparkles,
+  Sun,
   UserRound,
   X,
 } from "lucide-react";
@@ -59,9 +61,9 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const APPEARANCE_OPTIONS = [
-  { label: "System", value: "system" },
-  { label: "Dark", value: "dark" },
-  { label: "Light", value: "light" },
+  { label: "System", value: "system", icon: MonitorSmartphone },
+  { label: "Dark", value: "dark", icon: Moon },
+  { label: "Light", value: "light", icon: Sun },
 ];
 
 const CONTRAST_OPTIONS = [
@@ -313,6 +315,7 @@ function SettingsRow({
           >
             {options.map((option) => {
               const selected = selectedValue === option.value;
+              const OptionIcon = option.icon;
               return (
                 <button
                   key={option.value}
@@ -326,6 +329,7 @@ function SettingsRow({
                     selected ? "bg-[var(--bm-selected-bg)] text-[var(--bm-selected-text)]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
                   )}
                 >
+                  {OptionIcon && <OptionIcon className="h-4 w-4 shrink-0 text-[var(--bm-text-secondary)]" />}
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
                   {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
                 </button>

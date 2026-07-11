@@ -19,12 +19,14 @@ import {
   KeyRound,
   LogOut,
   Mail,
+  MonitorSmartphone,
   Moon,
   Palette,
   Pencil,
   Shield,
   Settings,
   Sparkles,
+  Sun,
   X,
 } from "lucide-react";
 
@@ -47,6 +49,11 @@ import { AVATAR_COLORS, COLOR_OPTIONS } from "@/theme/colors";
 
 const ACCENT_COLORS = COLOR_OPTIONS;
 const MESSAGE_COLORS = COLOR_OPTIONS;
+const APPEARANCE_OPTIONS = [
+  { label: "System", value: "system", icon: MonitorSmartphone },
+  { label: "Dark", value: "dark", icon: Moon },
+  { label: "Light", value: "light", icon: Sun },
+];
 const LANGUAGE_OPTIONS = [
   { label: "English", value: "en" },
   { label: "العربية", value: "ar" },
@@ -845,16 +852,16 @@ export default function SettingsSheet({
 
   const renderAppearance = () => (
     <div className="space-y-3">
-      {["system", "dark", "light"].map((theme) => (
+      {APPEARANCE_OPTIONS.map(({ label, value, icon: Icon }) => (
         <button
-          key={theme}
+          key={value}
           type="button"
-          onClick={() => savePreference({ theme })}
+          onClick={() => savePreference({ theme: value })}
           className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left ring-1", isDark ? "bg-[var(--bm-bg-elevated)] text-white ring-white/[0.06]" : "bg-white text-[var(--bm-text-primary)] ring-black/[0.06]")}
         >
-          <Moon className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
-          <span className="flex-1 text-[15px] font-semibold capitalize">{theme}</span>
-          {prefs.theme === theme && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
+          <Icon className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
+          <span className="flex-1 text-[15px] font-semibold">{label}</span>
+          {prefs.theme === value && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
         </button>
       ))}
     </div>
@@ -882,7 +889,7 @@ export default function SettingsSheet({
       <Row icon={Globe2} title="Language" value={currentLanguage.label} onClick={() => openChild("language")}>
         <span className={descriptionClass}>Choose your application language.</span>
       </Row>
-      <Row icon={Moon} title="Appearance" value={appearanceText} onClick={() => openChild("appearance")}>
+      <Row icon={(APPEARANCE_OPTIONS.find((option) => option.value === (prefs.theme || "system")) || APPEARANCE_OPTIONS[0]).icon} title="Appearance" value={appearanceText} onClick={() => openChild("appearance")}>
         <span className={descriptionClass}>Choose application theme.</span>
       </Row>
       <Row icon={Palette} title="Accent Color" value={accent.label} onClick={() => openChild("accent-color")}>
