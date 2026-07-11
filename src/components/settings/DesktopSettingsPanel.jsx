@@ -368,7 +368,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
   const currentLanguageValue = prefs.appLanguage || prefs.language || "auto";
   const currentTheme = prefs.theme || "system";
   const currentContrast = prefs.contrast || "system";
-  const currentAccent = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "var(--bm-primary)").toLowerCase()) || COLOR_OPTIONS[0];
+  const currentMessageColor = COLOR_OPTIONS.find((item) => item.value.toLowerCase() === String(prefs.chatColor || "var(--bm-primary)").toLowerCase()) || COLOR_OPTIONS[0];
   const avatarColor = useMemo(() => avatarColorFor(user), [user]);
   const muted = "text-[var(--bm-text-secondary)]";
   const closeSettings = onClose || (() => navigate("/chat"));
@@ -656,13 +656,13 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
         {...dropdownProps}
       />
       <SettingsRow
-        title="Accent Color"
-        description="Choose your BlueMind accent color."
-        value={currentAccent.label}
+        title="Message Color"
+        description="Choose the color of your chat message bubbles."
+        value={currentMessageColor.label}
         options={COLOR_OPTIONS.map((color) => ({ label: color.label, value: color.value }))}
-        selectedValue={currentAccent.value}
-        dropdownId="general-accent"
-        onSelect={(value) => savePreference({ appColor: value, accentColor: value })}
+        selectedValue={currentMessageColor.value}
+        dropdownId="general-message-color"
+        onSelect={(value) => savePreference({ chatColor: value })}
         {...dropdownProps}
       />
       <SettingsRow

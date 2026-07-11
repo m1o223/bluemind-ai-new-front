@@ -32,7 +32,6 @@ const defaultPrefs = {
 };
 
 function normalizePrefs(preferences = {}) {
-  const appColor = preferences.appColor || preferences.accentColor || defaultPrefs.appColor;
   const appLanguage = String(preferences.appLanguage || preferences.language || defaultPrefs.appLanguage).toLowerCase();
   const aiLanguageMode = ["auto", "match_app"].includes(preferences.aiLanguageMode)
     ? preferences.aiLanguageMode
@@ -44,8 +43,8 @@ function normalizePrefs(preferences = {}) {
     theme: ["light", "dark", "system"].includes(preferences.theme)
       ? preferences.theme
       : defaultPrefs.theme,
-    appColor,
-    accentColor: appColor,
+    appColor: defaultPrefs.appColor,
+    accentColor: defaultPrefs.accentColor,
     chatColor: preferences.chatColor || defaultPrefs.chatColor,
     appLanguage,
     language: appLanguage,
@@ -118,7 +117,7 @@ export function AppProvider({ children }) {
     document.documentElement.dataset.theme = resolvedTheme;
     document.documentElement.dataset.animations = prefs.animations === false ? "off" : "on";
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
-    document.documentElement.style.setProperty(CSS_VARIABLES.appColor, prefs.appColor || defaultPrefs.appColor);
+    document.documentElement.style.setProperty(CSS_VARIABLES.appColor, defaultPrefs.appColor);
     document.documentElement.style.setProperty(CSS_VARIABLES.chatColor, prefs.chatColor || defaultPrefs.chatColor);
     storePreferences(prefs);
 

@@ -47,7 +47,6 @@ import { readStoredUser } from "@/services/storageKeys";
 import { reportIssue } from "@/services/supportService";
 import { AVATAR_COLORS, COLOR_OPTIONS } from "@/theme/colors";
 
-const ACCENT_COLORS = COLOR_OPTIONS;
 const MESSAGE_COLORS = COLOR_OPTIONS;
 const APPEARANCE_OPTIONS = [
   { label: "System", value: "system", icon: MonitorSmartphone },
@@ -376,7 +375,6 @@ export default function SettingsSheet({
     const theme = prefs.theme || "system";
     return theme.charAt(0).toUpperCase() + theme.slice(1);
   }, [prefs.theme]);
-  const accent = ACCENT_COLORS.find((color) => color.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "var(--bm-primary)").toLowerCase()) || ACCENT_COLORS[0];
   const currentLanguage = LANGUAGE_OPTIONS.find((language) => language.value === String(prefs.appLanguage || prefs.language || "en").toLowerCase()) || LANGUAGE_OPTIONS[0];
   const activeMessageColor = MESSAGE_COLORS.find((color) => color.value.toLowerCase() === String(prefs.chatColor || "var(--bm-primary)").toLowerCase()) || MESSAGE_COLORS[0];
   const plan = user?.subscription?.plan || user?.plan || user?.accountPlan || (user?.authProvider === "guest" ? "Guest" : "Free");
@@ -892,9 +890,6 @@ export default function SettingsSheet({
       <Row icon={(APPEARANCE_OPTIONS.find((option) => option.value === (prefs.theme || "system")) || APPEARANCE_OPTIONS[0]).icon} title="Appearance" value={appearanceText} onClick={() => openChild("appearance")}>
         <span className={descriptionClass}>Choose application theme.</span>
       </Row>
-      <Row icon={Palette} title="Accent Color" value={accent.label} onClick={() => openChild("accent-color")}>
-        <span className={descriptionClass}>Choose your BlueMind accent color.</span>
-      </Row>
       <Row icon={Palette} title="Message Color" value={activeMessageColor.label} onClick={() => openChild("message-color")}>
         <span className={descriptionClass}>Choose the color of your messages.</span>
       </Row>
@@ -1119,23 +1114,6 @@ export default function SettingsSheet({
     </div>
   );
 
-  const renderAccentColor = () => (
-    <div className="grid grid-cols-2 gap-3">
-      {ACCENT_COLORS.map((color) => (
-        <button
-          key={color.value}
-          type="button"
-          onClick={() => savePreference({ appColor: color.value, accentColor: color.value })}
-          className={cn("flex min-h-[76px] items-center gap-3 rounded-[24px] px-4 text-left ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}
-        >
-          <span className="h-7 w-7 rounded-full" style={{ backgroundColor: color.value }} />
-          <span className={cn("flex-1 text-sm font-bold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{color.label}</span>
-          {accent.value === color.value && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
-        </button>
-      ))}
-    </div>
-  );
-
   const renderMessageColor = () => {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -1164,7 +1142,6 @@ export default function SettingsSheet({
     subscription: "Subscription",
     language: "Language",
     appearance: "Appearance",
-    "accent-color": "Accent Color",
     "message-color": "Message Color",
     general: "General",
     notifications: "Notifications",
@@ -1186,7 +1163,6 @@ export default function SettingsSheet({
     if (pane === "general") return renderGeneral();
     if (pane === "language") return renderLanguage();
     if (pane === "appearance") return renderAppearance();
-    if (pane === "accent-color") return renderAccentColor();
     if (pane === "message-color") return renderMessageColor();
     if (pane === "notifications") return renderNotifications();
     if (pane === "report-issue") return renderReportIssue();

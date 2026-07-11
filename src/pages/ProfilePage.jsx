@@ -8,7 +8,6 @@ import {
   Logout,
   Mail,
   Check,
-  Palette,
   ShieldCheck,
   ChevronDown,
   MessageSquare,
@@ -42,7 +41,6 @@ const getProfileColorOptions = (labels) =>
   }));
 
 const chatColors = getProfileColorOptions(["Blue", "Green", "Red", "Purple"]);
-const accentColors = getProfileColorOptions(["Blue", "Teal", "Indigo", "Rose"]);
 
 export default function ProfilePage({ mobile = false, settingsMode = false }) {
   const navigate = useNavigate();
@@ -323,7 +321,7 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
               ) : (
-                <Mail className="w-5 h-5" style={{ color: prefs.appColor }} />
+                <Mail className="w-5 h-5 text-[var(--bm-primary)]" />
               )}
             </div>
             <div className="min-w-0">
@@ -405,36 +403,11 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
             </div>
           </div>
 
-          {/* Accent Color */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Palette className={cn("w-4 h-4", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")} />
-              <p className={cn("text-sm font-medium", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{t("appColor")}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {accentColors.map((color) => (
-                <button
-                  key={color.id}
-                  onClick={() => handleUpdate("appColor", color.id)}
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ring-2 ring-offset-2",
-                    prefs.appColor === color.id ? "ring-[var(--bm-text-primary)]" : "ring-transparent",
-                    isDark && "ring-offset-[var(--bm-bg-elevated)]"
-                  )}
-                  style={{ backgroundColor: color.id }}
-                  data-testid={`accent-color-${color.label.toLowerCase()}`}
-                >
-                  {prefs.appColor === color.id && <Check className="w-4 h-4 text-white" />}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className={cn("mt-6 rounded-xl border p-4", isDark ? "border-[var(--bm-bg-elevated)] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className={cn("mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg", isDark ? "bg-[var(--bm-bg-elevated)]" : "bg-white")}>
-                  <MessageSquare className="h-4 w-4" style={{ color: prefs.appColor }} />
+                  <MessageSquare className="h-4 w-4 text-[var(--bm-primary)]" />
                 </div>
                 <div>
                   <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("openAppDirectlyToChat")}</p>
@@ -452,7 +425,7 @@ export default function ProfilePage({ mobile = false, settingsMode = false }) {
                     ? "border-transparent"
                     : isDark ? "border-[var(--bm-border-strong)] bg-[var(--bm-bg-elevated)]" : "border-[var(--bm-border-strong)] bg-white",
                 )}
-                style={prefs.openAppDirectlyToChat ? { backgroundColor: prefs.appColor || "var(--bm-primary)" } : undefined}
+                style={prefs.openAppDirectlyToChat ? { backgroundColor: "var(--bm-primary)" } : undefined}
                 data-testid="open-direct-chat-toggle"
               >
                 <span
