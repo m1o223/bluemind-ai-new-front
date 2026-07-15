@@ -85,6 +85,16 @@ import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors
 const MAX_IMAGE_ATTACHMENTS = 6;
 const MOBILE_MODEL_STORAGE_KEY = "bluemind_mobile_model";
 const MOBILE_THINKING_LEVEL_STORAGE_KEY = "bluemind_mobile_thinking_level";
+const MOBILE_HEADER_MODEL_STORAGE_KEY = "bluemind_mobile_header_model";
+const MOBILE_HEADER_THINKING_STORAGE_KEY = "bluemind_mobile_header_thinking";
+
+const MOBILE_HEADER_MODELS = [
+  { id: "bluemind-3-0", label: "BlueMind 3.0" },
+  { id: "bluemind-3-5", label: "BlueMind 3.5" },
+  { id: "bluemind-4-0", label: "BlueMind 4.0" },
+  { id: "bluemind-4-5", label: "BlueMind 4.5" },
+  { id: "bluemind-5-0", label: "BlueMind 5.0", badge: "NEW" },
+];
 
 const MOBILE_BLUEMIND_MODELS = [
   {
@@ -602,6 +612,8 @@ export default function MobileChat() {
   });
   const [mobileModelId, setMobileModelId] = useState(() => localStorage.getItem(MOBILE_MODEL_STORAGE_KEY) || "core");
   const [thinkingLevel, setThinkingLevel] = useState(() => localStorage.getItem(MOBILE_THINKING_LEVEL_STORAGE_KEY) || "balanced");
+  const [headerModelId, setHeaderModelId] = useState(() => localStorage.getItem(MOBILE_HEADER_MODEL_STORAGE_KEY) || "bluemind-5-0");
+  const [headerThinkingEnabled, setHeaderThinkingEnabled] = useState(() => localStorage.getItem(MOBILE_HEADER_THINKING_STORAGE_KEY) === "true");
   const [isImageMode, setIsImageMode] = useState(false);
   const [isWriteEditMode, setIsWriteEditMode] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -899,6 +911,14 @@ export default function MobileChat() {
   useEffect(() => {
     localStorage.setItem(MOBILE_THINKING_LEVEL_STORAGE_KEY, thinkingLevel);
   }, [thinkingLevel]);
+
+  useEffect(() => {
+    localStorage.setItem(MOBILE_HEADER_MODEL_STORAGE_KEY, headerModelId);
+  }, [headerModelId]);
+
+  useEffect(() => {
+    localStorage.setItem(MOBILE_HEADER_THINKING_STORAGE_KEY, headerThinkingEnabled ? "true" : "false");
+  }, [headerThinkingEnabled]);
 
   useEffect(() => {
     if (!responseModeMenuOpen || responseModeMenuPlacement !== "composer") {
@@ -2797,27 +2817,112 @@ export default function MobileChat() {
                   aria-label="Close AI mode menu"
                 />
                 <motion.div
-                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                  transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                  className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+5.75rem)] z-50 w-[260px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-hidden rounded-[18px] border p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.24)] ${
+                  exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                  transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                  className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[78vw] min-w-[280px] max-w-[370px] -translate-x-1/2 overflow-hidden rounded-[24px] border shadow-[0_20px_58px_rgba(0,0,0,0.24)] ${
                     isDark
                       ? "border-white/[0.1] bg-[#202020] text-white"
-                      : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]"
+                      : "border-black/[0.07] bg-white text-[var(--bm-text-primary)]"
                   }`}
+                  style={{ maxHeight: "min(72vh, 560px)" }}
                   role="menu"
                 >
-                  {AI_MODES.map((mode) => {
-                    const ModeIcon = mode.icon;
-                    const selected = responseMode === mode.id;
-                    return (
+                  <div className="max-h-[inherit] overflow-y-auto p-3">
+                    <section>
+                      <div className={`mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em] ${
+                        isDark ? "border-white/[0.08] text-white/55" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]"
+                      }`}>
+                        BlueMind Models
+                      </div>
+                      <div className="space-y-1">
+                        {MOBILE_HEADER_MODELS.map((model) => {
+                          const selected = headerModelId === model.id;
+                          return (
+                            <button
+                              key={model.id}
+                              type="button"
+                              onClick={() => setHeaderModelId(model.id)}
+                              className={`flex min-h-[46px] w-full items-center justify-between gap-3 rounded-[16px] px-3.5 py-2 text-left text-[15px] font-extrabold transition-colors ${
+                                selected
+                                  ? isDark
+                                    ? "bg-white/[0.1] text-white"
+                                    : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                                  : isDark
+                                    ? "text-white hover:bg-white/[0.07]"
+                                    : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
+                              }`}
+                              role="menuitemradio"
+                              aria-checked={selected}
+                            >
+                              <span className="flex min-w-0 items-center gap-2.5">
+                                <span className="truncate">{model.label}</span>
+                                {model.badge && (
+                                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
+                                    isDark ? "bg-white/[0.1] text-white" : "bg-[var(--bm-primary)] text-white"
+                                  }`}>
+                                    🆕 {model.badge}
+                                  </span>
+                                )}
+                              </span>
+                              {selected && <Check className={`h-5 w-5 shrink-0 stroke-[3] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+
+                    <section className="mt-4">
+                      <div className={`mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em] ${
+                        isDark ? "border-white/[0.08] text-white/55" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]"
+                      }`}>
+                        AI Modes
+                      </div>
+                      <div className="space-y-1">
+                        {AI_MODES.map((mode) => {
+                          const ModeIcon = mode.icon;
+                          const selected = responseMode === mode.id;
+                          return (
+                            <button
+                              key={mode.id}
+                              type="button"
+                              onClick={() => selectResponseMode(mode.id)}
+                              className={`flex min-h-[46px] w-full items-center justify-between gap-3 rounded-[16px] px-3.5 py-2 text-left text-[15px] font-extrabold transition-colors ${
+                                selected
+                                  ? isDark
+                                    ? "bg-white/[0.1] text-white"
+                                    : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                                  : isDark
+                                    ? "text-white hover:bg-white/[0.07]"
+                                    : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
+                              }`}
+                              title={mode.description}
+                              role="menuitemradio"
+                              aria-checked={selected}
+                            >
+                              <span className="flex min-w-0 items-center gap-2.5">
+                                <ModeIcon className="h-[18px] w-[18px] shrink-0 stroke-[2.3]" />
+                                <span className="truncate">{getAiSpecializationLabel(mode)}</span>
+                              </span>
+                              {selected && <Check className={`h-5 w-5 shrink-0 stroke-[3] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+
+                    <section className="mt-4">
+                      <div className={`mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em] ${
+                        isDark ? "border-white/[0.08] text-white/55" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]"
+                      }`}>
+                        Thinking
+                      </div>
                       <button
-                        key={mode.id}
                         type="button"
-                        onClick={() => selectResponseMode(mode.id)}
-                        className={`flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors ${
-                          selected
+                        onClick={() => setHeaderThinkingEnabled((enabled) => !enabled)}
+                        className={`flex min-h-[48px] w-full items-center justify-between gap-3 rounded-[16px] px-3.5 py-2 text-left text-[15px] font-extrabold transition-colors ${
+                          headerThinkingEnabled
                             ? isDark
                               ? "bg-white/[0.1] text-white"
                               : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
@@ -2825,18 +2930,24 @@ export default function MobileChat() {
                               ? "text-white hover:bg-white/[0.07]"
                               : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
                         }`}
-                        title={mode.description}
-                        role="menuitemradio"
-                        aria-checked={selected}
+                        role="menuitemcheckbox"
+                        aria-checked={headerThinkingEnabled}
                       >
-                        <span className="flex min-w-0 items-center gap-2.5">
-                          <ModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
-                          <span className="truncate">{getAiSpecializationLabel(mode)}</span>
+                        <span>Enable Thinking</span>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                          headerThinkingEnabled
+                            ? isDark
+                              ? "border-white bg-white text-[#202020]"
+                              : "border-[var(--bm-primary)] bg-[var(--bm-primary)] text-white"
+                            : isDark
+                              ? "border-white/25"
+                              : "border-[var(--bm-border)]"
+                        }`}>
+                          {headerThinkingEnabled && <Check className="h-4 w-4 stroke-[3]" />}
                         </span>
-                        {selected && <Check className={`h-[18px] w-[18px] shrink-0 stroke-[2.5] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
                       </button>
-                    );
-                  })}
+                    </section>
+                  </div>
                 </motion.div>
               </>
             )}
