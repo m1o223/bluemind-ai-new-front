@@ -154,23 +154,29 @@ html[data-theme="light"] body {
 }
 
 html[data-theme="dark"] body {
-  --bm-bg-app: #1A1A1A;
-  --bm-bg-sidebar: #1A1A1A;
-  --bm-bg-card: #202020;
-  --bm-bg-elevated: #262626;
-  --bm-bg-input: #202020;
-  --bm-bg-modal: #202020;
-  --bm-border: rgba(255, 255, 255, 0.08);
-  --bm-border-strong: rgba(255, 255, 255, 0.14);
+  --bm-bg-app: #000000;
+  --bm-bg-sidebar: #000000;
+  --bm-bg-card: #000000;
+  --bm-bg-elevated: #000000;
+  --bm-bg-input: #000000;
+  --bm-bg-modal: #000000;
+  --bm-border: rgba(255, 255, 255, 0.10);
+  --bm-border-strong: rgba(255, 255, 255, 0.18);
   --bm-text-primary: #FFFFFF;
-  --bm-text-secondary: #D7D7D7;
-  --bm-text-muted: #A7A7A7;
-  --bm-hover-bg: rgba(255, 255, 255, 0.08);
+  --bm-text-secondary: #E8E8E8;
+  --bm-text-muted: #B8B8B8;
+  --bm-icon-primary: #FFFFFF;
+  --bm-icon-secondary: #E8E8E8;
+  --bm-icon-accent: #FFFFFF;
+  --bm-check: #FFFFFF;
+  --bm-selected-bg: rgba(25, 59, 104, 0.36);
+  --bm-selected-text: #FFFFFF;
+  --bm-hover-bg: rgba(255, 255, 255, 0.06);
   --bm-hover-border: rgba(255, 255, 255, 0.16);
-  --bm-hover-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
-  --bm-active-bg: rgba(255, 255, 255, 0.12);
-  --bm-disabled-bg: #4B5563;
-  --bm-input-placeholder: #A7A7A7;
+  --bm-hover-shadow: 0 14px 30px rgba(0, 0, 0, 0.32);
+  --bm-active-bg: rgba(25, 59, 104, 0.38);
+  --bm-disabled-bg: #3A3A3A;
+  --bm-input-placeholder: #B8B8B8;
   --bg-main: var(--bm-bg-app);
   --bg-secondary: var(--bm-bg-sidebar);
   --bg-card: var(--bm-bg-card);
@@ -179,6 +185,25 @@ html[data-theme="dark"] body {
   --text-secondary: var(--bm-text-secondary);
   background-color: var(--bm-bg-app);
   color: var(--bm-text-primary);
+}
+
+html[data-theme="dark"] .bg-\[\#202020\],
+html[data-theme="dark"] .bg-\[\#1A1A1A\],
+html[data-theme="dark"] .bg-\[\#262626\],
+html[data-theme="dark"] .bg-white\/5,
+html[data-theme="dark"] .bg-white\/10,
+html[data-theme="dark"] .bg-white\/15,
+html[data-theme="dark"] .bg-white\/\[0\.03\],
+html[data-theme="dark"] .bg-white\/\[0\.035\],
+html[data-theme="dark"] .bg-white\/\[0\.04\],
+html[data-theme="dark"] .bg-white\/\[0\.045\],
+html[data-theme="dark"] .bg-white\/\[0\.05\],
+html[data-theme="dark"] .bg-white\/\[0\.055\],
+html[data-theme="dark"] .bg-white\/\[0\.06\],
+html[data-theme="dark"] .bg-white\/\[0\.07\],
+html[data-theme="dark"] .bg-white\/\[0\.075\],
+html[data-theme="dark"] .bg-white\/\[0\.08\] {
+  background-color: #000000 !important;
 }
 
 html[data-animations="off"] *,
