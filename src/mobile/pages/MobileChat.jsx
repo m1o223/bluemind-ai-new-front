@@ -2788,14 +2788,14 @@ export default function MobileChat() {
           </button>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-3 flex items-center justify-center">
           <button
             type="button"
             onClick={() => {
               setResponseModeMenuPlacement("header");
               setResponseModeMenuOpen((open) => responseModeMenuPlacement === "header" ? !open : true);
             }}
-            className={isDark ? "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.055] px-3 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-[var(--bm-border)] bg-white px-3 text-sm font-bold capitalize text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"}
+            className={isDark ? "pointer-events-auto inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.055] px-3 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "pointer-events-auto inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-[var(--bm-border)] bg-white px-3 text-sm font-bold capitalize text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"}
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "header"}
           >
@@ -2812,7 +2812,7 @@ export default function MobileChat() {
               <>
                 <button
                   type="button"
-                  className="fixed inset-0 z-[45] cursor-default"
+                  className="pointer-events-auto fixed inset-0 z-[45] cursor-default"
                   onClick={() => setResponseModeMenuOpen(false)}
                   aria-label="Close AI mode menu"
                 />
@@ -2821,7 +2821,7 @@ export default function MobileChat() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.97 }}
                   transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                  className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[78vw] min-w-[280px] max-w-[370px] -translate-x-1/2 overflow-hidden rounded-[24px] border shadow-[0_20px_58px_rgba(0,0,0,0.24)] ${
+                  className={`pointer-events-auto fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[24px] border shadow-[0_20px_58px_rgba(0,0,0,0.24)] ${
                     isDark
                       ? "border-white/[0.1] bg-[#202020] text-white"
                       : "border-black/[0.07] bg-white text-[var(--bm-text-primary)]"
