@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import BrandLogo from "@/components/BrandLogo";
+import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { useApp } from "@/context/AppContext";
 import { startMobileGuestSession } from "@/mobile/mobileGuestSession";
@@ -66,7 +67,8 @@ export default function MobileWelcome() {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <section className="mx-auto flex h-full w-full max-w-[430px] flex-col px-6">
+      <BlueMindAnimatedBackground />
+      <section className="relative z-10 mx-auto flex h-full w-full max-w-[430px] flex-col px-6">
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-5">
           <BrandLogo showName={false} logoClassName="h-20 w-20" />
 

@@ -10,6 +10,7 @@ import { getApiErrorMessage } from "../services/api";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import BrandLogo from "@/components/BrandLogo";
+import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { ACTION_ERROR_HOLD_MS, waitForActionFeedback } from "@/lib/actionFeedback";
 
@@ -93,20 +94,21 @@ export default function RegisterPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`min-h-screen flex items-center justify-center px-4 sm:px-5 py-10 ${pageClass}`}
+      className={`relative min-h-screen overflow-hidden flex items-center justify-center px-4 sm:px-5 py-10 ${pageClass}`}
       data-testid="register-page"
     >
+      <BlueMindAnimatedBackground />
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className={`absolute top-5 left-5 flex items-center gap-1.5 transition-colors duration-200 cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}
+        className={`absolute top-5 left-5 z-10 flex items-center gap-1.5 transition-colors duration-200 cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}
         data-testid="back-button"
       >
         <ArrowLeft className="w-4 h-4" />
         <span className="text-sm font-medium">{t("back")}</span>
       </button>
 
-      <div className="w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
           <BrandLogo forceTheme={isDark ? "dark" : "light"} className="mx-auto mb-4" logoClassName="w-11 h-11" textClassName={`text-lg ${primaryText}`} />

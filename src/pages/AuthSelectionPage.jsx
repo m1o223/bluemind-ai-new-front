@@ -4,6 +4,7 @@ import { UserPlus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/AppContext";
 import BrandLogo from "@/components/BrandLogo";
+import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 
 export default function AuthSelectionPage() {
   const navigate = useNavigate();
@@ -17,13 +18,14 @@ export default function AuthSelectionPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`min-h-screen flex items-center justify-center p-6 ${isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-white text-[var(--bm-text-primary)]"}`}
+      className={`relative min-h-screen overflow-hidden flex items-center justify-center p-6 ${isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-white text-[var(--bm-text-primary)]"}`}
       data-testid="auth-selection-page"
     >
+      <BlueMindAnimatedBackground />
       <Button
         onClick={() => navigate("/")}
         variant="ghost"
-        className={`fixed top-6 left-6 ${isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-white/[0.08]" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"}`}
+        className={`fixed top-6 left-6 z-10 ${isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-white/[0.08]" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"}`}
         data-testid="back-button"
       >
         <ArrowLeft className="w-5 h-5 mr-2" />
@@ -33,7 +35,7 @@ export default function AuthSelectionPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm"
+        className="relative z-10 w-full max-w-sm"
       >
         <div className="text-center mb-8">
           <BrandLogo forceTheme={isDark ? "dark" : "light"} className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName={`text-lg ${primaryText}`} />

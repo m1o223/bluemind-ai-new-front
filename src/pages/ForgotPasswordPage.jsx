@@ -10,6 +10,7 @@ import { getApiErrorMessage } from "@/services/api";
 import { requestPasswordReset } from "@/services/authService";
 import { useApp } from "@/context/AppContext";
 import BrandLogo from "@/components/BrandLogo";
+import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -44,13 +45,14 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`min-h-screen flex items-center justify-center px-4 py-10 ${pageClass}`} data-testid="forgot-password-page">
-      <button onClick={() => navigate("/auth/login")} className={`absolute top-5 left-5 flex items-center gap-1.5 transition-colors cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`relative min-h-screen overflow-hidden flex items-center justify-center px-4 py-10 ${pageClass}`} data-testid="forgot-password-page">
+      <BlueMindAnimatedBackground />
+      <button onClick={() => navigate("/auth/login")} className={`absolute top-5 left-5 z-10 flex items-center gap-1.5 transition-colors cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}>
         <ArrowLeft className="w-4 h-4" />
         <span className="text-sm font-medium">{t("back")}</span>
       </button>
 
-      <div className="w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
           <BrandLogo forceTheme={isDark ? "dark" : "light"} className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName={`text-lg ${primaryText}`} />
           <h1 className={`text-xl sm:text-2xl font-semibold ${primaryText}`}>{t("forgotPasswordTitle")}</h1>

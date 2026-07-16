@@ -5,6 +5,7 @@ import { ArrowLeft, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
+import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -98,7 +99,8 @@ export default function MobileEmail() {
       }}
       data-testid="mobile-login-page"
     >
-      <section className="mx-auto flex min-h-full w-full max-w-[430px] flex-col px-6 py-5">
+      <BlueMindAnimatedBackground />
+      <section className="relative z-10 mx-auto flex min-h-full w-full max-w-[430px] flex-col px-6 py-5">
         <button
           type="button"
           onClick={() => navigate("/mobile")}

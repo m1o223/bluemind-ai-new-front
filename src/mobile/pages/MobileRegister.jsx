@@ -5,6 +5,7 @@ import { ArrowLeft, Check, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
+import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,7 +112,8 @@ export default function MobileRegister() {
       }}
       data-testid="mobile-register-page"
     >
-      <section className="mx-auto flex min-h-full w-full max-w-[430px] flex-col px-6 py-5">
+      <BlueMindAnimatedBackground />
+      <section className="relative z-10 mx-auto flex min-h-full w-full max-w-[430px] flex-col px-6 py-5">
         <button
           type="button"
           onClick={() => navigate("/mobile/email")}
