@@ -1,16 +1,9 @@
-import { Mail } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import BrandLogo from "@/components/BrandLogo";
-import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
-import { useApp } from "@/context/AppContext";
-import { startMobileGuestSession } from "@/mobile/mobileGuestSession";
-import { getApiErrorMessage } from "@/services/api";
-import { getGoogleSignInErrorMessage, loginGuestUser, signInWithGoogle } from "@/services/authService";
-
-const BLUE_PRIMARY = "var(--bm-primary)";
+import { getGoogleSignInErrorMessage, signInWithGoogle } from "@/services/authService";
 
 function GoogleIcon() {
   return (
@@ -23,22 +16,37 @@ function GoogleIcon() {
   );
 }
 
+function AppleLogo() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-[21px] w-[21px] fill-current">
+      <path d="M16.18 12.62c-.03-2.75 2.25-4.08 2.35-4.14-1.29-1.88-3.28-2.14-3.97-2.17-1.67-.17-3.29 1-4.14 1-.87 0-2.18-.98-3.6-.95-1.83.03-3.54 1.09-4.48 2.74-1.94 3.36-.49 8.3 1.36 11.02.93 1.33 2.02 2.82 3.43 2.77 1.38-.06 1.9-.89 3.57-.89 1.65 0 2.14.89 3.59.86 1.49-.03 2.43-1.34 3.32-2.68 1.08-1.54 1.51-3.06 1.53-3.14-.03-.01-2.93-1.12-2.96-4.42ZM13.47 4.54c.74-.92 1.24-2.17 1.1-3.43-1.07.05-2.41.74-3.18 1.63-.69.79-1.31 2.09-1.15 3.31 1.21.09 2.46-.61 3.23-1.51Z" />
+    </svg>
+  );
+}
+
+function AuthPillButton({ children, icon, onClick, disabled, ariaLabel, testId }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      data-testid={testId}
+      className="relative flex h-14 w-full min-w-0 items-center justify-center rounded-full bg-white px-5 text-[15px] font-bold text-black transition duration-150 ease-out hover:bg-white/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {icon ? (
+        <span className="absolute left-5 flex h-6 w-6 items-center justify-center text-black">
+          {icon}
+        </span>
+      ) : null}
+      <span className="px-8 text-center leading-none">{children}</span>
+    </button>
+  );
+}
+
 export default function MobileWelcome() {
   const navigate = useNavigate();
-  const { resolvedTheme } = useApp();
-  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const isDark = resolvedTheme === "dark";
-
-  const surfaceClass = isDark
-    ? "bg-[var(--bm-bg-app)] text-white"
-    : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]";
-  const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
-  const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
-  const googleButtonClass = isDark
-    ? "border-white/[0.12] bg-white/[0.075] text-white shadow-[0_14px_34px_rgba(0,0,0,0.18)] active:bg-white/[0.11]"
-    : "border-[var(--bm-border)] bg-white/90 text-[var(--bm-text-primary)] shadow-[0_14px_34px_rgba(15,23,42,0.08)] active:bg-[var(--bm-hover-bg)]";
-  const emailButtonClass = "border-transparent text-white shadow-[0_16px_36px_rgba(25,59,104,0.24)] active:brightness-95";
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
@@ -55,80 +63,75 @@ export default function MobileWelcome() {
 
   return (
     <main
-      className={`${surfaceClass} overflow-hidden`}
+      className="overflow-hidden bg-[#0b315e] text-white"
       style={{
         position: "fixed",
         inset: 0,
         width: "100vw",
-        backgroundColor: surfaceColor,
         minHeight: "100dvh",
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
+      data-testid="mobile-auth-welcome"
     >
-      <BlueMindAnimatedBackground />
-      <section className="relative z-10 mx-auto flex h-full w-full max-w-[430px] flex-col px-6">
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-5">
-          <BrandLogo showName={false} logoClassName="h-20 w-20" />
+      <section className="mx-auto flex h-full w-full max-w-[430px] flex-col">
+        <div className="relative min-h-0 flex-1 bg-[linear-gradient(180deg,#0a315f_0%,#174f86_100%)]">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+            className="absolute left-5 top-4 inline-flex h-10 items-center gap-1 rounded-full bg-white/16 px-4 text-sm font-bold text-white transition duration-150 ease-out hover:bg-white/22 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.98]"
+            style={{ marginTop: "env(safe-area-inset-top)" }}
+            data-testid="mobile-auth-back-button"
+          >
+            <span>Back</span>
+            <ArrowRight className="h-4 w-4 stroke-[2.4]" />
+          </button>
+        </div>
 
-          <h1 className="mt-5 text-center text-[32px] font-bold leading-tight tracking-tight">
-            BlueMind AI
-          </h1>
-          <p className={`mt-2 text-center text-[15px] font-medium leading-6 ${mutedText}`}>
-            Choose how you want to continue
-          </p>
-
-          <div className="mt-9 w-full space-y-3">
-            <button
-              type="button"
+        <div className="relative z-10 -mt-10 w-full rounded-t-[44px] bg-black px-6 pb-8 pt-9 text-white shadow-none">
+          <div className="mx-auto flex w-full max-w-[360px] flex-col gap-3">
+            <AuthPillButton
               onClick={handleGoogleLogin}
               disabled={isGoogleLoading}
-              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${googleButtonClass}`}
+              ariaLabel="Continue with Google"
+              testId="mobile-google-auth-button"
+              icon={isGoogleLoading ? <BlueMindLoadingDots className="text-black" /> : <GoogleIcon />}
             >
-              {isGoogleLoading ? <BlueMindLoadingDots /> : <GoogleIcon />}
-              <span>Continue with Google</span>
-            </button>
+              Continue with Google
+            </AuthPillButton>
 
-            <button
-              type="button"
+            <AuthPillButton
+              onClick={() => toast.info("Apple sign-in is being prepared.")}
+              ariaLabel="Continue with Apple"
+              testId="mobile-apple-auth-button"
+              icon={<AppleLogo />}
+            >
+              Continue with Apple
+            </AuthPillButton>
+
+            <div className="flex items-center gap-3 py-3" aria-hidden="true">
+              <div className="h-px flex-1 bg-white/18" />
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">or</span>
+              <div className="h-px flex-1 bg-white/18" />
+            </div>
+
+            <AuthPillButton
+              onClick={() => navigate("/mobile/register")}
+              ariaLabel="Create Account"
+              testId="mobile-create-account-button"
+            >
+              Create Account
+            </AuthPillButton>
+
+            <AuthPillButton
               onClick={() => navigate("/mobile/email")}
-              className={`flex h-[56px] w-full items-center justify-center gap-3 rounded-2xl border px-5 text-[15px] font-semibold transition-colors ${emailButtonClass}`}
-              style={{ backgroundColor: `var(--bluemind-app-color, ${BLUE_PRIMARY})` }}
+              ariaLabel="Login"
+              testId="mobile-login-button"
             >
-              <Mail className="h-5 w-5 stroke-[2.1]" />
-              <span>Continue with Email</span>
-            </button>
-          </div>
-
-          <div className="mt-7 w-full text-center">
-            <button
-              type="button"
-              disabled={isGuestLoading}
-              onClick={async () => {
-                setIsGuestLoading(true);
-                try {
-                  await loginGuestUser();
-                  startMobileGuestSession();
-                  navigate("/mobile/chat");
-                } catch (error) {
-                  toast.error(getApiErrorMessage(error, "Could not start guest mode"));
-                } finally {
-                  setIsGuestLoading(false);
-                }
-              }}
-              className="inline-flex items-center justify-center gap-1 text-[15px] font-semibold transition-opacity active:opacity-70"
-              style={{ color: isDark ? "var(--bm-text-secondary)" : `var(--bluemind-app-color, ${BLUE_PRIMARY})` }}
-            >
-              {isGuestLoading ? (
-                <BlueMindLoadingDots />
-              ) : (
-                <>
-                  <span>Try BlueMind AI</span>
-                  <span className="text-xl font-extrabold leading-none">{"\u2192"}</span>
-                </>
-              )}
-            </button>
+              Login
+            </AuthPillButton>
           </div>
         </div>
       </section>
