@@ -206,6 +206,25 @@ html[data-theme="dark"] .bg-white\/\[0\.08\] {
   background-color: #000000 !important;
 }
 
+html.capacitor-native,
+html.capacitor-native body,
+html.capacitor-native #root {
+  min-height: 100dvh;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+html.capacitor-native body {
+  background-color: var(--bm-bg-app);
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+html.capacitor-android {
+  color-scheme: light dark;
+}
+
 .bm-ai-flow-bg {
   --bm-flow-dark-blue: #061A33;
   --bm-flow-blue: #193B68;

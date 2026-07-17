@@ -21,13 +21,77 @@ See the section about [running tests](https://facebook.github.io/create-react-ap
 
 ### `npm run build`
 
-Builds the app for production to the `build` folder.\
+Builds the app for production to the `dist` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
 
 The build is minified and the filenames include the hashes.\
 Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+
+## Android App With Capacitor
+
+BlueMind AI uses Capacitor to package the existing React web app as a native Android WebView application.
+
+### Requirements
+
+- Node.js 22 LTS recommended.
+- Android Studio with the Android SDK installed.
+- JDK 17 or newer.
+- A configured Android emulator or a physical Android phone with USB debugging enabled.
+
+### Setup after cloning
+
+```bash
+npm install
+npm run build
+npx cap sync android
+npx cap open android
+```
+
+### Run on Android
+
+To run from the command line:
+
+```bash
+npm run android:run
+```
+
+To run from Android Studio:
+
+1. Run `npm run build`.
+2. Run `npx cap sync android`.
+3. Run `npx cap open android`.
+4. Select an emulator or connected phone.
+5. Press Run.
+
+### Sync future frontend changes
+
+Whenever the React frontend changes, rebuild and sync the Android project:
+
+```bash
+npm run build
+npx cap sync android
+```
+
+### Environment variables
+
+The Android app uses the same frontend environment variables as the web app. Create local environment files from `.env.example` as needed, and never commit secret values.
+
+Required production variables include:
+
+- `REACT_APP_API_URL`
+- `REACT_APP_FIREBASE_API_KEY`
+- `REACT_APP_FIREBASE_AUTH_DOMAIN`
+- `REACT_APP_FIREBASE_PROJECT_ID`
+- `REACT_APP_FIREBASE_MESSAGING_SENDER_ID`
+- `REACT_APP_FIREBASE_APP_ID`
+- `REACT_APP_FIREBASE_VAPID_KEY`
+- `REACT_APP_WEB_PUSH_PUBLIC_KEY`
+
+### Files that must not be committed
+
+Do not commit `node_modules/`, `dist/`, Android build folders, `local.properties`, signing keys, keystores, generated APK/AAB files, logs, or `.env` files containing secrets.
 
 ### `npm run eject`
 

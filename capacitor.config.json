@@ -1,0 +1,19 @@
+{
+  "appId": "com.bluemind.ai",
+  "appName": "BlueMind AI",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "LIGHT",
+      "backgroundColor": "#000000"
+    }
+  }
+}

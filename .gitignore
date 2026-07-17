@@ -10,6 +10,7 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -23,3 +24,16 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 .vercel
+
+# Android / Capacitor local and generated files
+/android/.gradle
+/android/build
+/android/app/build
+/android/local.properties
+/android/.idea
+*.iml
+*.keystore
+*.jks
+*.p12
+*.apk
+*.aab
