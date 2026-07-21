@@ -93,7 +93,6 @@ export default function UnifiedComposer({
   inputDirectionStyle,
   actionMenu,
   pendingPanel,
-  modelSelector,
   testId = "chat-input",
 }) {
   const [isFocused, setIsFocused] = useState(false);
@@ -339,12 +338,10 @@ export default function UnifiedComposer({
                   data-testid={testId}
                 />
 
-                <div className="mt-2 flex min-h-10 w-full items-center gap-2">
+                <div className="mt-2 flex min-h-10 w-full items-center gap-2.5">
                   {addButton}
-                  <div className="min-w-0 flex-1">
-                    {modelSelector}
-                  </div>
-                  <div className="flex shrink-0 items-center">
+                  <div className="min-w-0 flex-1" />
+                  <div className="flex shrink-0 items-center gap-0.5">
                     {voiceButton}
                     {sendButton}
                   </div>

@@ -83,7 +83,6 @@ import useVoiceInput from "@/hooks/useVoiceInput";
 import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 
 const MAX_IMAGE_ATTACHMENTS = 6;
-const MOBILE_MODEL_STORAGE_KEY = "bluemind_mobile_model";
 const MOBILE_THINKING_LEVEL_STORAGE_KEY = "bluemind_mobile_thinking_level";
 const MOBILE_HEADER_MODEL_STORAGE_KEY = "bluemind_mobile_header_model";
 const MOBILE_HEADER_THINKING_STORAGE_KEY = "bluemind_mobile_header_thinking";
@@ -95,107 +94,6 @@ const MOBILE_HEADER_MODELS = [
   { id: "bluemind-4-5", label: "BlueMind 4.5" },
   { id: "bluemind-5-0", label: "BlueMind 5.0", badge: "NEW" },
 ];
-
-const MOBILE_BLUEMIND_MODELS = [
-  {
-    id: "lite",
-    label: "BlueMind Lite",
-    description: "Fast everyday help",
-    responseMode: "general",
-    icon: Sparkles,
-  },
-  {
-    id: "core",
-    label: "BlueMind Core",
-    description: "Balanced study and work",
-    responseMode: "work",
-    icon: Brain,
-  },
-  {
-    id: "pro",
-    label: "BlueMind Pro",
-    description: "Deeper reasoning",
-    responseMode: "study",
-    icon: BookOpen,
-  },
-  {
-    id: "research",
-    label: "BlueMind Research",
-    description: "Careful research answers",
-    responseMode: "research",
-    icon: Search,
-  },
-  {
-    id: "vision",
-    label: "BlueMind Vision",
-    description: "Best with images and files",
-    responseMode: "writing",
-    icon: Sparkles,
-  },
-];
-
-const MOBILE_THINKING_LEVELS = [
-  { id: "quick", label: "Quick", description: "Shortest reasoning path" },
-  { id: "balanced", label: "Balanced", description: "Good default depth" },
-  { id: "deep", label: "Deep", description: "More careful reasoning" },
-  { id: "expert", label: "Expert", description: "Detailed expert pass" },
-  { id: "max", label: "Max", description: "Maximum effort" },
-];
-
-function clampNumber(value, min, max) {
-  if (max < min) return min;
-  return Math.min(Math.max(value, min), max);
-}
-
-function getMobileModelByResponseMode(responseMode) {
-  return MOBILE_BLUEMIND_MODELS.find((model) => model.responseMode === responseMode);
-}
-
-function getMobileModelById(modelId, responseMode) {
-  return MOBILE_BLUEMIND_MODELS.find((model) => model.id === modelId)
-    || getMobileModelByResponseMode(responseMode)
-    || MOBILE_BLUEMIND_MODELS[1];
-}
-
-function getComposerModelMenuLayout(triggerElement) {
-  if (typeof window === "undefined" || !triggerElement) return null;
-
-  const rect = triggerElement.getBoundingClientRect();
-  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 360;
-  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 640;
-  const margin = 24;
-  const gap = 8;
-  const availableWidth = Math.max(248, viewportWidth - margin * 2);
-  const menuWidth = Math.min(236, Math.max(208, Math.floor(availableWidth * 0.62)));
-  const submenuWidth = Math.min(164, Math.max(120, availableWidth - menuWidth - gap));
-  const totalWidth = menuWidth + gap + submenuWidth;
-  const centeredLeft = rect.left + rect.width / 2 - menuWidth / 2;
-
-  let submenuSide = centeredLeft + totalWidth <= viewportWidth - margin ? "right" : "left";
-  let minLeft = margin;
-  let maxLeft = viewportWidth - menuWidth - margin;
-
-  if (submenuSide === "right") {
-    maxLeft = viewportWidth - totalWidth - margin;
-  } else {
-    minLeft = margin + submenuWidth + gap;
-  }
-
-  if (minLeft > maxLeft) {
-    submenuSide = "right";
-    minLeft = margin;
-    maxLeft = Math.max(margin, viewportWidth - totalWidth - margin);
-  }
-
-  return {
-    bottom: Math.max(margin, viewportHeight - rect.top + 8),
-    left: clampNumber(centeredLeft, minLeft, maxLeft),
-    maxHeight: Math.max(220, Math.min(322, rect.top - margin - 8)),
-    menuWidth,
-    submenuSide,
-    submenuWidth,
-  };
-}
 
 const WRITE_EDIT_ARTWORK_PALETTES = [
   WRITE_EDIT_ARTWORK_COLORS.writing,
@@ -569,8 +467,6 @@ export default function MobileChat() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [responseModeMenuPlacement, setResponseModeMenuPlacement] = useState("header");
-  const [composerThinkingMenuOpen, setComposerThinkingMenuOpen] = useState(false);
-  const [composerModelMenuLayout, setComposerModelMenuLayout] = useState(null);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
@@ -610,7 +506,6 @@ export default function MobileChat() {
     const storedMode = localStorage.getItem("bluemind-response-mode");
     return normalizeAiModeId(storedMode);
   });
-  const [mobileModelId, setMobileModelId] = useState(() => localStorage.getItem(MOBILE_MODEL_STORAGE_KEY) || "core");
   const [thinkingLevel, setThinkingLevel] = useState(() => localStorage.getItem(MOBILE_THINKING_LEVEL_STORAGE_KEY) || "balanced");
   const [headerModelId, setHeaderModelId] = useState(() => localStorage.getItem(MOBILE_HEADER_MODEL_STORAGE_KEY) || "bluemind-5-0");
   const [headerThinkingEnabled, setHeaderThinkingEnabled] = useState(() => localStorage.getItem(MOBILE_HEADER_THINKING_STORAGE_KEY) === "true");
@@ -641,7 +536,6 @@ export default function MobileChat() {
   const sheetTouchStartYRef = useRef(null);
   const searchInputRef = useRef(null);
   const composerInputRef = useRef(null);
-  const composerModelButtonRef = useRef(null);
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -651,10 +545,6 @@ export default function MobileChat() {
   const sendLockRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
   const loadedConversationRef = useRef(null);
-
-  const updateComposerModelMenuLayout = useCallback(() => {
-    setComposerModelMenuLayout(getComposerModelMenuLayout(composerModelButtonRef.current));
-  }, []);
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
@@ -905,10 +795,6 @@ export default function MobileChat() {
   }, [responseMode]);
 
   useEffect(() => {
-    localStorage.setItem(MOBILE_MODEL_STORAGE_KEY, mobileModelId);
-  }, [mobileModelId]);
-
-  useEffect(() => {
     localStorage.setItem(MOBILE_THINKING_LEVEL_STORAGE_KEY, thinkingLevel);
   }, [thinkingLevel]);
 
@@ -919,22 +805,6 @@ export default function MobileChat() {
   useEffect(() => {
     localStorage.setItem(MOBILE_HEADER_THINKING_STORAGE_KEY, headerThinkingEnabled ? "true" : "false");
   }, [headerThinkingEnabled]);
-
-  useEffect(() => {
-    if (!responseModeMenuOpen || responseModeMenuPlacement !== "composer") {
-      setComposerThinkingMenuOpen(false);
-      return undefined;
-    }
-
-    updateComposerModelMenuLayout();
-    window.addEventListener("resize", updateComposerModelMenuLayout);
-    window.addEventListener("scroll", updateComposerModelMenuLayout, true);
-
-    return () => {
-      window.removeEventListener("resize", updateComposerModelMenuLayout);
-      window.removeEventListener("scroll", updateComposerModelMenuLayout, true);
-    };
-  }, [responseModeMenuOpen, responseModeMenuPlacement, updateComposerModelMenuLayout]);
 
   useEffect(() => {
     const savedMode = normalizeAiModeId(prefs.aiMode || localStorage.getItem("bluemind-response-mode"));
@@ -1012,18 +882,6 @@ export default function MobileChat() {
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Could not save AI mode"));
     }
-  };
-
-  const selectMobileModel = (model) => {
-    setMobileModelId(model.id);
-    setComposerThinkingMenuOpen(false);
-    void selectResponseMode(model.responseMode);
-  };
-
-  const selectMobileThinkingLevel = (level) => {
-    setThinkingLevel(level.id);
-    setComposerThinkingMenuOpen(false);
-    setResponseModeMenuOpen(false);
   };
 
   const goTo = (path) => {
@@ -1930,7 +1788,7 @@ export default function MobileChat() {
       mode: selectedMode,
       responseMode: selectedMode,
       aiMode: selectedMode,
-      blueMindModel: mobileModelId,
+      blueMindModel: headerModelId,
       thinkingLevel,
       chatMode: activeWriteTask ? "write_edit" : metadata.chatMode || "chat",
       writeEditTask: activeWriteTask || undefined,
@@ -2055,7 +1913,7 @@ export default function MobileChat() {
       setIsChatSending(false);
       sendLockRef.current = false;
     }
-  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, isChatSending, isGeneratingImage, isListening, mobileModelId, privateSpaceAccessToken, queueAiDelta, responseMode, scrollToBottom, setSearchParams, stopVoiceInput, thinkingLevel, writeAttachments]);
+  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, headerModelId, isChatSending, isGeneratingImage, isListening, privateSpaceAccessToken, queueAiDelta, responseMode, scrollToBottom, setSearchParams, stopVoiceInput, thinkingLevel, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -2364,159 +2222,6 @@ export default function MobileChat() {
       setAttachmentSheetOpen(true);
     };
 
-    const activeMobileModel = getMobileModelById(mobileModelId, responseMode);
-    const activeThinkingLevel = MOBILE_THINKING_LEVELS.find((level) => level.id === thinkingLevel) || MOBILE_THINKING_LEVELS[1];
-    const composerModelMenuOpen = responseModeMenuOpen && responseModeMenuPlacement === "composer";
-    const composerMenuLayout = composerModelMenuLayout || getComposerModelMenuLayout(composerModelButtonRef.current);
-    const selectedModelRowClass = isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-primary)]/10 text-[var(--bm-primary)]";
-    const idleModelRowClass = isDark ? "text-white hover:bg-white/[0.07]" : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]";
-    const dropdownSurfaceClass = isDark
-      ? "bg-[var(--bm-bg-card)] text-white ring-white/[0.08] shadow-[0_12px_28px_rgba(0,0,0,0.28)]"
-      : "bg-white text-[var(--bm-text-primary)] ring-[var(--bm-border)] shadow-[0_12px_28px_rgba(15,23,42,0.10)]";
-
-    const composerModelSelector = (
-      <div className="relative inline-flex min-w-0 shrink-0">
-        <button
-          ref={composerModelButtonRef}
-          type="button"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            setResponseModeMenuPlacement("composer");
-            setResponseModeMenuOpen((open) => {
-              const nextOpen = responseModeMenuPlacement === "composer" ? !open : true;
-              if (nextOpen) {
-                window.requestAnimationFrame(updateComposerModelMenuLayout);
-              }
-              return nextOpen;
-            });
-          }}
-          className={isDark ? "inline-flex h-9 max-w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-white/[0.07] px-2.5 text-[13px] font-bold text-white active:bg-white/[0.12]" : "inline-flex h-9 max-w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--bm-hover-bg)] px-2.5 text-[13px] font-bold text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]"}
-          aria-label="Select BlueMind model"
-          aria-expanded={composerModelMenuOpen}
-        >
-          <span className="truncate">{activeMobileModel.label}</span>
-          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${composerModelMenuOpen ? "rotate-180" : ""}`} />
-        </button>
-
-        <AnimatePresence>
-          {composerModelMenuOpen && (
-            <>
-              <button
-                type="button"
-                className="fixed inset-0 z-40 cursor-default"
-                onClick={() => {
-                  setComposerThinkingMenuOpen(false);
-                  setResponseModeMenuOpen(false);
-                }}
-                aria-label="Close BlueMind model menu"
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                onPointerDown={(event) => event.stopPropagation()}
-                className="fixed z-50 overflow-visible"
-                style={{
-                  bottom: `${composerMenuLayout?.bottom ?? 72}px`,
-                  left: `${composerMenuLayout?.left ?? 16}px`,
-                  width: `${composerMenuLayout?.menuWidth ?? 220}px`,
-                }}
-              >
-                <div
-                  className={`overflow-y-auto rounded-[20px] p-1.5 ring-1 ${dropdownSurfaceClass}`}
-                  style={{ maxHeight: `${composerMenuLayout?.maxHeight ?? 300}px` }}
-                >
-                  {MOBILE_BLUEMIND_MODELS.map((model) => {
-                    const selected = activeMobileModel.id === model.id;
-                    return (
-                      <button
-                        key={model.id}
-                        type="button"
-                        onMouseEnter={() => setComposerThinkingMenuOpen(false)}
-                        onFocus={() => setComposerThinkingMenuOpen(false)}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          selectMobileModel(model);
-                        }}
-                        className={`flex min-h-[42px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${selected ? selectedModelRowClass : idleModelRowClass}`}
-                      >
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                          {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate">{model.label}</span>
-                      </button>
-                    );
-                  })}
-
-                  <div className={`my-1.5 h-px ${isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]"}`} />
-
-                  <button
-                    type="button"
-                    onMouseEnter={() => setComposerThinkingMenuOpen(true)}
-                    onFocus={() => setComposerThinkingMenuOpen(true)}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setComposerThinkingMenuOpen((open) => !open);
-                    }}
-                    className={`flex min-h-[42px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${composerThinkingMenuOpen ? selectedModelRowClass : idleModelRowClass}`}
-                    aria-haspopup="menu"
-                    aria-expanded={composerThinkingMenuOpen}
-                  >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center" />
-                    <span className="min-w-0 flex-1 truncate">Thinking</span>
-                    <ChevronRight className={`h-4 w-4 shrink-0 ${isDark ? "text-white/70" : "text-[var(--bm-text-muted)]"}`} />
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {composerThinkingMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, x: composerMenuLayout?.submenuSide === "left" ? 4 : -4, scale: 0.98 }}
-                      animate={{ opacity: 1, x: 0, scale: 1 }}
-                      exit={{ opacity: 0, x: composerMenuLayout?.submenuSide === "left" ? 4 : -4, scale: 0.98 }}
-                      transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                      className={`absolute bottom-0 z-50 rounded-[20px] p-1.5 ring-1 ${dropdownSurfaceClass}`}
-                      style={{
-                        maxHeight: `${composerMenuLayout?.maxHeight ?? 300}px`,
-                        width: `${composerMenuLayout?.submenuWidth ?? 132}px`,
-                        ...(composerMenuLayout?.submenuSide === "left"
-                          ? { right: "calc(100% + 6px)" }
-                          : { left: "calc(100% + 6px)" }),
-                      }}
-                      onMouseEnter={() => setComposerThinkingMenuOpen(true)}
-                    >
-                      {MOBILE_THINKING_LEVELS.map((level) => {
-                        const selected = activeThinkingLevel.id === level.id;
-                        return (
-                          <button
-                            key={level.id}
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              selectMobileThinkingLevel(level);
-                            }}
-                            className={`flex min-h-[40px] w-full items-center gap-2 rounded-[14px] px-2.5 text-left text-sm font-extrabold transition-colors ${selected ? selectedModelRowClass : idleModelRowClass}`}
-                          >
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                              {selected && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">{level.label}</span>
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-
     return (
     <motion.div
       layout
@@ -2621,7 +2326,6 @@ export default function MobileChat() {
         onSendAction={isChatSending ? stopChatGeneration : isListening ? stopVoiceInput : undefined}
         isDark={isDark}
         variant="mobile"
-        modelSelector={composerModelSelector}
         minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
         maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
         testId="mobile-chat-input"

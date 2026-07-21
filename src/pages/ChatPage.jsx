@@ -5040,11 +5040,6 @@ export default function ChatPage() {
             stopLabel={t("stopGenerating")}
             isDark={isDark}
             appColor={appColor}
-            responseMode={responseMode}
-            modelId={desktopModelId}
-            onResponseModeChange={handleResponseModeSelect}
-            thinkingLevel={thinkingLevel}
-            onThinkingLevelChange={setThinkingLevel}
             inputDirectionStyle={inputDirectionStyle}
             actionMenu={actionMenu}
             pendingPanel={pendingPanel}
