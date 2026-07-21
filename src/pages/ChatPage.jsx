@@ -5050,40 +5050,7 @@ export default function ChatPage() {
   };
 
   const hasMessages = messages.length > 0;
-  const renderAiModeOptions = ({ itemClassName, iconClassName, checkClassName }) => (
-    AI_MODES.map((mode) => {
-      const ModeIcon = mode.icon;
-      const selected = responseMode === mode.id;
-      return (
-        <button
-          key={mode.id}
-          type="button"
-          onClick={() => handleResponseModeSelect(mode.id)}
-          className={cn(
-            itemClassName,
-            selected
-              ? isDark
-                ? "bg-white/[0.1] text-white"
-                : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
-              : isDark
-                ? "text-white hover:bg-white/[0.07]"
-                : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
-          )}
-          title={mode.description}
-          role="menuitemradio"
-          aria-checked={selected}
-        >
-          <span className="flex min-w-0 items-center gap-2.5">
-            <ModeIcon className={iconClassName} />
-            <span className="truncate">{getAiSpecializationLabel(mode)}</span>
-          </span>
-          {selected && <Check className={cn(checkClassName, isDark ? "text-white" : "text-[var(--bm-primary)]")} />}
-        </button>
-      );
-    })
-  );
-
-  const renderDesktopAiSpecializationSelector = () => {
+  const renderAiSpecializationSelector = ({ mobile = false } = {}) => {
     if (chatSessionMode === "writing") return null;
 
     return (
@@ -5097,7 +5064,7 @@ export default function ChatPage() {
               onClick={() => setResponseModeMenuOpen((open) => !open)}
               className={cn(
                 "inline-flex h-10 min-w-0 items-center justify-between gap-2 rounded-full border px-3 text-sm font-bold transition-colors",
-                "max-w-[calc(100vw-5.75rem)] sm:min-w-[150px] sm:px-3.5",
+                mobile ? "max-w-[220px]" : "max-w-[calc(100vw-5.75rem)] sm:min-w-[150px] sm:px-3.5",
                 isDark
                   ? "border-white/[0.1] bg-white/[0.055] text-white hover:bg-white/[0.09]"
                   : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] shadow-sm hover:bg-[var(--bm-hover-bg)]",
@@ -5123,87 +5090,44 @@ export default function ChatPage() {
               transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
               className={cn(
                 "absolute top-[calc(100%+8px)] z-50 w-[260px] overflow-hidden rounded-[18px] border p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.24)]",
-                "left-0",
+                mobile ? "left-1/2 -translate-x-1/2" : "left-0",
                 isDark
                   ? "border-white/[0.1] bg-[#202020] text-white"
                   : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]",
               )}
               role="menu"
             >
-              {renderAiModeOptions({
-                itemClassName: "flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors",
-                iconClassName: "h-4 w-4 shrink-0 stroke-[2.2]",
-                checkClassName: "h-[18px] w-[18px] shrink-0 stroke-[2.5]",
+              {AI_MODES.map((mode) => {
+                const ModeIcon = mode.icon;
+                const selected = responseMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => handleResponseModeSelect(mode.id)}
+                    className={cn(
+                      "flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors",
+                      selected
+                        ? isDark
+                          ? "bg-white/[0.1] text-white"
+                          : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                        : isDark
+                          ? "text-white hover:bg-white/[0.07]"
+                          : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
+                    )}
+                    title={mode.description}
+                    role="menuitemradio"
+                    aria-checked={selected}
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <ModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
+                      <span className="truncate">{getAiSpecializationLabel(mode)}</span>
+                    </span>
+                    {selected && <Check className={cn("h-[18px] w-[18px] shrink-0 stroke-[2.5]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />}
+                  </button>
+                );
               })}
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  };
-
-  const renderMobileAiSpecializationSelector = () => {
-    if (chatSessionMode === "writing") return null;
-
-    return (
-      <div ref={responseModeMenuRef} className="relative" aria-label="Mobile AI specialization selector">
-        {(() => {
-          const activeAiMode = getAiMode(responseMode);
-          const ActiveModeIcon = activeAiMode.icon;
-          return (
-            <button
-              type="button"
-              onClick={() => setResponseModeMenuOpen((open) => !open)}
-              className={cn(
-                "inline-flex h-10 max-w-[220px] min-w-0 items-center justify-between gap-2 rounded-full border px-3 text-sm font-bold transition-colors",
-                isDark
-                  ? "border-white/[0.1] bg-white/[0.055] text-white active:bg-white/[0.09]"
-                  : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]",
-              )}
-              aria-haspopup="menu"
-              aria-expanded={responseModeMenuOpen}
-              title={activeAiMode.description}
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <ActiveModeIcon className="h-4 w-4 shrink-0 stroke-[2.2]" />
-                <span className="truncate">{getAiSpecializationLabel(activeAiMode)}</span>
-              </span>
-              <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", responseModeMenuOpen && "rotate-180")} />
-            </button>
-          );
-        })()}
-        <AnimatePresence>
-          {responseModeMenuOpen && (
-            <>
-              <button
-                type="button"
-                className="fixed inset-0 z-[45] cursor-default"
-                onClick={() => setResponseModeMenuOpen(false)}
-                aria-label="Close AI mode menu"
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                className={cn(
-                  "fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[24px] border p-2 shadow-[0_20px_58px_rgba(0,0,0,0.24)]",
-                  isDark
-                    ? "border-white/[0.1] bg-[#202020] text-white"
-                    : "border-black/[0.07] bg-white text-[var(--bm-text-primary)]",
-                )}
-                style={{ maxHeight: "min(72vh, 560px)" }}
-                role="menu"
-              >
-                <div className="max-h-[inherit] overflow-y-auto">
-                  {renderAiModeOptions({
-                    itemClassName: "flex min-h-[46px] w-full items-center justify-between gap-3 rounded-[16px] px-3.5 py-2 text-left text-[15px] font-extrabold transition-colors",
-                    iconClassName: "h-[18px] w-[18px] shrink-0 stroke-[2.3]",
-                    checkClassName: "h-5 w-5 shrink-0 stroke-[3]",
-                  })}
-                </div>
-              </motion.div>
-            </>
           )}
         </AnimatePresence>
       </div>
@@ -5476,7 +5400,7 @@ export default function ChatPage() {
                 <PanelLeft className="h-5 w-5" />
               </button>
               <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
-                {renderMobileAiSpecializationSelector()}
+                {renderAiSpecializationSelector({ mobile: true })}
               </div>
               <button
                 onClick={handleNewChat}
@@ -5495,7 +5419,7 @@ export default function ChatPage() {
           ) : (
             <>
           <div className="flex items-center gap-3">
-            {renderDesktopAiSpecializationSelector()}
+            {renderAiSpecializationSelector()}
             {chatSessionMode === "private" && activePrivateSpace && (
               <div className={cn("flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold", isDark ? "bg-white/10 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
                 <Lock className="h-3.5 w-3.5" />
