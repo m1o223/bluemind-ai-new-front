@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { getGoogleSignInErrorMessage, signInWithGoogle } from "@/services/authService";
 
@@ -32,10 +33,10 @@ function AuthPillButton({ children, icon, onClick, disabled, ariaLabel, testId }
       disabled={disabled}
       aria-label={ariaLabel}
       data-testid={testId}
-      className="relative flex h-14 w-full min-w-0 items-center justify-center rounded-full bg-white px-5 text-[15px] font-bold text-black transition duration-150 ease-out hover:bg-white/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+      className="relative flex h-[60px] w-full min-w-0 items-center justify-center rounded-[30px] bg-white px-6 text-xl font-semibold text-black transition duration-150 ease-out hover:bg-white/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#121923] active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {icon ? (
-        <span className="absolute left-5 flex h-6 w-6 items-center justify-center text-black">
+        <span className="absolute left-6 flex h-6 w-6 items-center justify-center text-black">
           {icon}
         </span>
       ) : null}
@@ -75,13 +76,14 @@ export default function MobileWelcome() {
       }}
       data-testid="mobile-auth-welcome"
     >
+      <BlueMindAnimatedBackground />
       <section className="mx-auto flex h-full w-full max-w-[430px] flex-col">
-        <div className="relative min-h-0 flex-1 bg-[linear-gradient(180deg,#0a315f_0%,#174f86_100%)]">
+        <div className="relative min-h-0 flex-1">
           <button
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Go back"
-            className="absolute left-5 top-4 inline-flex h-10 items-center gap-1 rounded-full bg-white/16 px-4 text-sm font-bold text-white transition duration-150 ease-out hover:bg-white/22 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.98]"
+            className="absolute left-5 top-4 z-10 inline-flex h-10 items-center gap-1 rounded-full bg-white/16 px-4 text-sm font-bold text-white transition duration-150 ease-out hover:bg-white/22 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.98]"
             style={{ marginTop: "env(safe-area-inset-top)" }}
             data-testid="mobile-auth-back-button"
           >
@@ -90,8 +92,8 @@ export default function MobileWelcome() {
           </button>
         </div>
 
-        <div className="relative z-10 -mt-10 w-full rounded-t-[44px] bg-black px-6 pb-8 pt-9 text-white shadow-none">
-          <div className="mx-auto flex w-full max-w-[360px] flex-col gap-3">
+        <div className="relative z-10 mx-auto mb-5 w-[92%] rounded-[40px] bg-[#121923] px-7 py-7 text-white shadow-none">
+          <div className="mx-auto flex w-full flex-col">
             <AuthPillButton
               onClick={handleGoogleLogin}
               disabled={isGoogleLoading}
@@ -102,6 +104,8 @@ export default function MobileWelcome() {
               Continue with Google
             </AuthPillButton>
 
+            <div className="h-4" />
+
             <AuthPillButton
               onClick={() => toast.info("Apple sign-in is being prepared.")}
               ariaLabel="Continue with Apple"
@@ -111,10 +115,10 @@ export default function MobileWelcome() {
               Continue with Apple
             </AuthPillButton>
 
-            <div className="flex items-center gap-3 py-3" aria-hidden="true">
-              <div className="h-px flex-1 bg-white/18" />
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">or</span>
-              <div className="h-px flex-1 bg-white/18" />
+            <div className="flex items-center gap-4 py-6" aria-hidden="true">
+              <div className="h-px flex-1 bg-white/16" />
+              <span className="text-sm font-semibold text-white/62">or</span>
+              <div className="h-px flex-1 bg-white/16" />
             </div>
 
             <AuthPillButton
@@ -124,6 +128,8 @@ export default function MobileWelcome() {
             >
               Create Account
             </AuthPillButton>
+
+            <div className="h-4" />
 
             <AuthPillButton
               onClick={() => navigate("/mobile/email")}
