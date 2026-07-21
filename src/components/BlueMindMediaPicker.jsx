@@ -19,9 +19,7 @@ export default function BlueMindMediaPicker({
 }) {
   const isMobile = variant === "mobile";
   const backdrop = isDark ? "bg-black/45" : "bg-slate-900/20";
-  const panelClass = isDark
-    ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.96] text-white"
-    : "border-black/[0.08] bg-white/[0.96] text-[var(--bm-text-primary)]";
+  const panelClass = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
   const mutedText = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
   const divider = isDark ? "bg-white/[0.1]" : "bg-[var(--bm-border)]";
   const actionCardClass = isDark
@@ -85,7 +83,7 @@ export default function BlueMindMediaPicker({
 
           <motion.section
             className={cn(
-              "absolute inset-x-0 bottom-0 border-t shadow-[0_-26px_80px_rgba(15,23,42,0.24)] backdrop-blur-2xl",
+              "bm-glass-panel absolute inset-x-0 bottom-0 border-t",
               isMobile ? "rounded-t-[30px] px-4 pb-5 pt-3" : "mx-auto max-w-3xl rounded-t-[32px] px-5 pb-6 pt-4",
               panelClass,
             )}
@@ -179,7 +177,7 @@ export default function BlueMindMediaPicker({
                   key={tool.label}
                   type="button"
                   onClick={tool.action}
-                  className={cn("flex min-h-[64px] w-full items-center rounded-[20px] px-2.5 text-left", iconClasses.iconText, interactionClasses.menuItem)}
+                  className={cn("bm-glass-menu-item flex min-h-[68px] w-full items-center rounded-[20px] px-3 text-left", iconClasses.iconText, interactionClasses.menuItem)}
                 >
                   <tool.icon className={cn("shrink-0", iconClasses.button)} />
                   <span className="min-w-0 flex-1">

@@ -2426,13 +2426,15 @@ export default function MobileChat() {
                 initial={{ opacity: 0, y: 6, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                transition={{ duration: 0.16 }}
-                className={`absolute right-0 top-12 z-[95] w-40 overflow-hidden rounded-2xl border py-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[var(--bm-bg-elevated)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                className={`bm-glass-panel absolute right-0 top-12 z-[95] w-44 overflow-hidden rounded-[22px] border p-1.5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}
+                role="menu"
               >
                 <button
                   type="button"
                   onClick={() => openRenameDialog(item)}
-                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
+                  className={isDark ? `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
+                  role="menuitem"
                 >
                   <Pencil className={iconClasses.button} />
                   Rename
@@ -2440,7 +2442,8 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={() => handleShareConversation(item)}
-                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
+                  className={isDark ? `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
+                  role="menuitem"
                 >
                   <Share2 className={iconClasses.button} />
                   Share
@@ -2451,7 +2454,8 @@ export default function MobileChat() {
                     setChatMenuTarget(null);
                     setDeleteTarget(item);
                   }}
-                  className={isDark ? `flex w-full items-center px-3 py-2.5 text-left font-semibold text-red-300 active:bg-red-950/30 ${typeClasses.small} ${iconClasses.iconText}` : `flex w-full items-center px-3 py-2.5 text-left font-semibold text-red-500 active:bg-red-50 ${typeClasses.small} ${iconClasses.iconText}`}
+                  className={isDark ? `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold text-red-300 active:bg-red-950/30 ${typeClasses.small} ${iconClasses.iconText}` : `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold text-red-500 active:bg-red-50 ${typeClasses.small} ${iconClasses.iconText}`}
+                  role="menuitem"
                 >
                   <Trash2 className={iconClasses.button} />
                   Delete
@@ -2524,8 +2528,8 @@ export default function MobileChat() {
                   initial={{ opacity: 0, y: 8, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                  transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                  className={`pointer-events-auto fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[24px] border shadow-[0_20px_58px_rgba(0,0,0,0.24)] ${
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className={`bm-glass-panel pointer-events-auto fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[28px] border ${
                     isDark
                       ? "border-white/[0.1] bg-[#202020] text-white"
                       : "border-black/[0.07] bg-white text-[var(--bm-text-primary)]"
@@ -2533,7 +2537,7 @@ export default function MobileChat() {
                   style={{ maxHeight: "min(72vh, 560px)" }}
                   role="menu"
                 >
-                  <div className="max-h-[inherit] overflow-y-auto p-3">
+                  <div className="max-h-[inherit] overflow-y-auto p-4">
                     <section>
                       <div className={`mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em] ${
                         isDark ? "border-white/[0.08] text-white/55" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]"
@@ -2548,7 +2552,7 @@ export default function MobileChat() {
                               key={model.id}
                               type="button"
                               onClick={() => setHeaderModelId(model.id)}
-                              className={`flex min-h-[46px] w-full items-center justify-between gap-3 rounded-[16px] px-3.5 py-2 text-left text-[15px] font-extrabold transition-colors ${
+                              className={`bm-glass-menu-item flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${
                                 selected
                                   ? isDark
                                     ? "bg-white/[0.1] text-white"
@@ -2592,7 +2596,7 @@ export default function MobileChat() {
                               key={mode.id}
                               type="button"
                               onClick={() => selectResponseMode(mode.id)}
-                              className={`flex min-h-[46px] w-full items-center justify-between gap-3 rounded-[16px] px-3.5 py-2 text-left text-[15px] font-extrabold transition-colors ${
+                              className={`bm-glass-menu-item flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${
                                 selected
                                   ? isDark
                                     ? "bg-white/[0.1] text-white"
@@ -2625,7 +2629,7 @@ export default function MobileChat() {
                       <button
                         type="button"
                         onClick={() => setHeaderThinkingEnabled((enabled) => !enabled)}
-                        className={`flex min-h-[48px] w-full items-center justify-between gap-3 rounded-[16px] px-3.5 py-2 text-left text-[15px] font-extrabold transition-colors ${
+                        className={`bm-glass-menu-item flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${
                           headerThinkingEnabled
                             ? isDark
                               ? "bg-white/[0.1] text-white"
@@ -2964,21 +2968,23 @@ export default function MobileChat() {
                     </button>
 
                     {openSearchMenuItemId === item.id && (
-                      <div className={`absolute right-2 top-11 z-10 w-36 overflow-hidden rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}>
+                      <div className={`bm-glass-panel absolute right-2 top-11 z-10 w-40 overflow-hidden rounded-[22px] border p-1.5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`} role="menu">
                         <button
                           type="button"
                           onClick={() => {
                             setExpandedSearchItemId((current) => current === item.id ? null : item.id);
                             setOpenSearchMenuItemId(null);
                           }}
-                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                          className={isDark ? "bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                          role="menuitem"
                         >
                           Learn More
                         </button>
                         <button
                           type="button"
                           onClick={() => copySearchItemName(item)}
-                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                          className={isDark ? "bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                          role="menuitem"
                         >
                           Copy Name
                         </button>
@@ -2989,7 +2995,8 @@ export default function MobileChat() {
                             item,
                             intent: "learn_more_about_selected_item",
                           })}
-                          className={isDark ? "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "h-9 w-full rounded-xl px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                          className={isDark ? "bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold active:bg-white/[0.08]" : "bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold active:bg-[var(--bm-hover-bg)]"}
+                          role="menuitem"
                         >
                           Ask AI
                         </button>

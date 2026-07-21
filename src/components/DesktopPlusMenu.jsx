@@ -18,9 +18,7 @@ export default function DesktopPlusMenu({
   const menuRef = useRef(null);
   const [placement, setPlacement] = useState("above");
 
-  const surfaceClass = isDark
-    ? "border-white/[0.1] bg-[#202020] text-white shadow-[0_18px_50px_rgba(0,0,0,0.24)]"
-    : "border-black/[0.06] bg-white text-[var(--bm-text-primary)] shadow-[0_18px_50px_rgba(15,23,42,0.12)]";
+  const surfaceClass = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
   const iconClass = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
   const dividerClass = isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]";
 
@@ -67,7 +65,7 @@ export default function DesktopPlusMenu({
         type="button"
         onClick={item.action}
         className={cn(
-          "flex min-h-[44px] w-full items-center gap-2.5 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors",
+          "bm-glass-menu-item flex min-h-[48px] w-full items-center gap-3 rounded-[16px] px-3.5 py-2.5 text-left text-sm font-bold transition-colors",
           isDark
             ? "text-white hover:bg-white/[0.07]"
             : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]",
@@ -93,7 +91,7 @@ export default function DesktopPlusMenu({
           <motion.div
             ref={menuRef}
             className={cn(
-              "absolute left-0 z-[86] w-[240px] overflow-hidden rounded-[18px] border p-1.5",
+              "bm-glass-panel absolute left-0 z-[86] w-[240px] overflow-hidden rounded-[24px] border p-2",
               placement === "below" ? "top-[calc(100%+8px)]" : "bottom-[calc(100%+8px)]",
               surfaceClass,
             )}
@@ -101,13 +99,13 @@ export default function DesktopPlusMenu({
             initial={{ opacity: 0, y: placement === "below" ? -4 : 4, scale: 0.98, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}
             animate={{ opacity: 1, y: 0, scale: 1, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}
             exit={{ opacity: 0, y: placement === "below" ? -4 : 4, scale: 0.98, transformOrigin: placement === "below" ? "18px 0%" : "18px 100%" }}
-            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="space-y-0.5">{pickerItems.map(renderRow)}</div>
+            <div className="space-y-1">{pickerItems.map(renderRow)}</div>
 
             <div className={cn("my-1.5 h-px", dividerClass)} />
 
-            <div className="space-y-0.5">{toolItems.map(renderRow)}</div>
+            <div className="space-y-1">{toolItems.map(renderRow)}</div>
           </motion.div>
         </>
       )}

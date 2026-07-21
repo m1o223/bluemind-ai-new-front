@@ -441,6 +441,46 @@ select {
   transition-duration: 110ms;
 }
 
+.bm-glass-panel,
+:where([role="menu"]) {
+  border-color: color-mix(in srgb, var(--bm-border) 72%, transparent) !important;
+  background: color-mix(in srgb, var(--bm-bg-card) 74%, transparent) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(24px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(145%) !important;
+}
+
+html[data-theme="light"] .bm-glass-panel,
+html[data-theme="light"] :where([role="menu"]) {
+  border-color: rgba(15, 23, 42, 0.07) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme="dark"] .bm-glass-panel,
+html[data-theme="dark"] :where([role="menu"]) {
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  background: rgba(18, 18, 18, 0.68) !important;
+  box-shadow: 0 26px 78px rgba(0, 0, 0, 0.34) !important;
+}
+
+.bm-glass-menu-item {
+  border-radius: 16px;
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 180ms;
+  transition-timing-function: var(--bm-motion-ease);
+}
+
+.bm-glass-menu-item:not(:disabled):not([aria-disabled="true"]):hover,
+:where([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]):not(:disabled):not([aria-disabled="true"]):hover {
+  background-color: color-mix(in srgb, var(--bm-hover-bg) 78%, transparent) !important;
+}
+
+.bm-glass-menu-item:not(:disabled):not([aria-disabled="true"]):active,
+:where([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]):not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(0.985);
+}
+
 .bm-icon-interactive {
   cursor: pointer;
   transition-property: color, background-color, border-color, box-shadow, opacity, transform;

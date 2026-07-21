@@ -3812,23 +3812,25 @@ export default function ChatPage() {
 
       {openSearchMenuItemId === item.id && (
         <div className={cn(
-          "absolute right-4 top-14 z-20 w-40 overflow-hidden rounded-2xl border p-1 shadow-xl",
-          isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"
-        )}>
+          "bm-glass-panel absolute right-4 top-14 z-20 w-44 overflow-hidden rounded-[22px] border p-1.5",
+          isDark ? "text-white" : "text-[var(--bm-text-primary)]"
+        )} role="menu">
           <button
             type="button"
             onClick={() => {
               setExpandedSearchItemId((current) => current === item.id ? null : item.id);
               setOpenSearchMenuItemId(null);
             }}
-            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+            className={cn("bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+            role="menuitem"
           >
             Learn More
           </button>
           <button
             type="button"
             onClick={() => copySearchItemName(item)}
-            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+            className={cn("bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+            role="menuitem"
           >
             Copy Name
           </button>
@@ -3839,7 +3841,8 @@ export default function ChatPage() {
               item,
               intent: "learn_more_about_selected_item",
             })}
-            className={cn("h-10 w-full rounded-xl px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+            className={cn("bm-glass-menu-item min-h-10 w-full rounded-[15px] px-3 text-left text-xs font-bold", isDark ? "hover:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)]")}
+            role="menuitem"
           >
             Ask AI
           </button>
@@ -5087,9 +5090,9 @@ export default function ChatPage() {
               initial={{ opacity: 0, y: 6, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 4, scale: 0.98 }}
-              transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className={cn(
-                "absolute top-[calc(100%+8px)] z-50 w-[260px] overflow-hidden rounded-[18px] border p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.24)]",
+                "absolute top-[calc(100%+8px)] z-50 w-[270px] overflow-hidden rounded-[24px] border p-2",
                 mobile ? "left-1/2 -translate-x-1/2" : "left-0",
                 isDark
                   ? "border-white/[0.1] bg-[#202020] text-white"
@@ -5106,7 +5109,7 @@ export default function ChatPage() {
                     type="button"
                     onClick={() => handleResponseModeSelect(mode.id)}
                     className={cn(
-                      "flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left text-sm font-bold transition-colors",
+                        "bm-glass-menu-item flex min-h-[48px] w-full items-center justify-between gap-3 rounded-[16px] px-3.5 py-2.5 text-left text-sm font-bold transition-colors",
                       selected
                         ? isDark
                           ? "bg-white/[0.1] text-white"

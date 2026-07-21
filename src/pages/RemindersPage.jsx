@@ -128,17 +128,19 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
 
               <div
                 className={cn(
-                  "absolute right-0 top-9 rounded-lg border shadow-lg z-20 py-1 w-28",
-                  isDark ? "bg-[var(--bm-bg-card)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]",
+                  "bm-glass-panel absolute right-0 top-9 z-20 w-32 rounded-[20px] border p-1.5",
+                  isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]",
                 )}
                 data-testid={`reminder-dropdown-${reminder._id}`}
+                role="menu"
               >
                 <button
                   onClick={() => {
                     onEdit(reminder)
                     setMenuOpen(false)
                   }}
-                  className={cn("w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-bg-elevated)]")}
+                  className={cn("bm-glass-menu-item min-h-10 w-full rounded-[14px] px-3 py-2 text-left text-sm transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}
+                  role="menuitem"
                 >
                   {t("edit")}
                 </button>
@@ -148,7 +150,8 @@ function ReminderCard({ reminder, onEdit, onDelete, t, language, isDark, appColo
                     onDelete(reminder._id)
                     setMenuOpen(false)
                   }}
-                  className={cn("w-full px-3 py-2 text-sm text-red-500 text-left transition-colors cursor-pointer", isDark ? "hover:bg-red-950/30" : "hover:bg-[var(--bm-hover-bg)]")}
+                  className={cn("bm-glass-menu-item min-h-10 w-full rounded-[14px] px-3 py-2 text-sm text-red-500 text-left transition-colors cursor-pointer", isDark ? "hover:bg-red-950/30" : "hover:bg-[var(--bm-hover-bg)]")}
+                  role="menuitem"
                 >
                   {t("delete")}
                 </button>

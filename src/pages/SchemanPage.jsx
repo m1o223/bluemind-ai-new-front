@@ -3104,8 +3104,9 @@ function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startS
                 initial={{ opacity: 0, y: 6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                className={cn("absolute bottom-12 left-0 z-30 w-52 rounded-2xl border p-1.5 shadow-lg", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)]" : "border-[var(--bm-border)] bg-white")}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                className={cn("bm-glass-panel absolute bottom-12 left-0 z-30 w-56 rounded-[22px] border p-2", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}
+                role="menu"
               >
                 <button
                   type="button"
@@ -3113,7 +3114,8 @@ function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startS
                     setAddMenuOpen(false);
                     cameraInputRef.current?.click();
                   }}
-                  className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                  className={cn("bm-glass-menu-item flex min-h-[44px] w-full items-center gap-3 rounded-[15px] px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                  role="menuitem"
                 >
                   <Camera className={iconClasses.button} />
                   Camera
@@ -3124,7 +3126,8 @@ function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startS
                     setAddMenuOpen(false);
                     imageInputRef.current?.click();
                   }}
-                  className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                  className={cn("bm-glass-menu-item flex min-h-[44px] w-full items-center gap-3 rounded-[15px] px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                  role="menuitem"
                 >
                   <Paperclip className={iconClasses.button} />
                   Upload Image
@@ -3135,7 +3138,8 @@ function ScheduleAssistant({ isDark, appColor, blocks, selectedWeekStart, startS
                     setAddMenuOpen(false);
                     documentInputRef.current?.click();
                   }}
-                  className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                  className={cn("bm-glass-menu-item flex min-h-[44px] w-full items-center gap-3 rounded-[15px] px-3 py-2.5 text-left font-bold", typeClasses.small, interactionClasses.menuItem)}
+                  role="menuitem"
                 >
                   <FileText className={iconClasses.button} />
                   Upload Document
@@ -3303,29 +3307,30 @@ function ScheduleToolbarButton({ children, onClick, active = false, appColor, ac
 }
 
 function ScheduleCardMenu({ schedule, isDark, onOpen, onRename, onDuplicate, onTogglePin, onDelete }) {
-  const itemClass = cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-bold transition-colors", typeClasses.small);
+  const itemClass = cn("bm-glass-menu-item flex min-h-10 w-full items-center gap-2 rounded-[15px] px-3 py-2 text-left font-bold transition-colors", typeClasses.small);
   return (
     <div
-      className={cn("absolute right-0 top-10 z-30 w-44 rounded-2xl border p-1.5 shadow-xl", isDark ? "border-white/[0.10] bg-[var(--bm-bg-modal)]" : "border-[var(--bm-border)] bg-white")}
+      className={cn("bm-glass-panel absolute right-0 top-10 z-30 w-48 rounded-[22px] border p-1.5", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}
       onClick={(event) => event.stopPropagation()}
+      role="menu"
     >
-      <button type="button" onClick={onOpen} className={cn(itemClass, interactionClasses.menuItem)}>
+      <button type="button" onClick={onOpen} className={cn(itemClass, interactionClasses.menuItem)} role="menuitem">
         <Calendar className={iconClasses.button} />
         Open
       </button>
-      <button type="button" onClick={onRename} className={cn(itemClass, interactionClasses.menuItem)}>
+      <button type="button" onClick={onRename} className={cn(itemClass, interactionClasses.menuItem)} role="menuitem">
         <PenLine className={iconClasses.button} />
         Rename
       </button>
-      <button type="button" onClick={onDuplicate} className={cn(itemClass, interactionClasses.menuItem)}>
+      <button type="button" onClick={onDuplicate} className={cn(itemClass, interactionClasses.menuItem)} role="menuitem">
         <Copy className={iconClasses.button} />
         Duplicate
       </button>
-      <button type="button" onClick={onTogglePin} className={cn(itemClass, interactionClasses.menuItem)}>
+      <button type="button" onClick={onTogglePin} className={cn(itemClass, interactionClasses.menuItem)} role="menuitem">
         <Star className={iconClasses.button} fill={schedule.pinned ? "currentColor" : "none"} />
         {schedule.pinned ? "Unpin" : "Pin"}
       </button>
-      <button type="button" onClick={onDelete} className={cn(itemClass, "text-red-600 hover:bg-red-500/10")}>
+      <button type="button" onClick={onDelete} className={cn(itemClass, "text-red-600 hover:bg-red-500/10")} role="menuitem">
         <Trash2 className={iconClasses.button} />
         Delete
       </button>
