@@ -18,16 +18,14 @@ export default function BlueMindSendButton({
     backgroundColor: "rgba(62,62,62,0.16)",
     borderColor: "rgba(255,255,255,0.1)",
     color: "rgba(255,255,255,0.5)",
-    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.036) 44%, rgba(255,255,255,0.018))",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 1px 0 0 rgba(255,255,255,0.09), inset -1px 0 0 rgba(255,255,255,0.065), inset 0 -16px 30px rgba(255,255,255,0.024), 0 14px 38px rgba(0,0,0,0.3)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.035), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.055), 0 12px 30px rgba(0,0,0,0.28)",
     backdropFilter: "blur(40px) saturate(1.32)",
     WebkitBackdropFilter: "blur(40px) saturate(1.32)",
   } : undefined;
   const mobileActiveStyle = compact && isActive ? {
     backgroundColor: "rgba(37,99,235,0.34)",
     borderColor: "rgba(255,255,255,0.16)",
-    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.05) 34%, rgba(37,99,235,0.42))",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), inset 1px 0 0 rgba(255,255,255,0.1), inset -1px 0 0 rgba(255,255,255,0.07), inset 0 -16px 30px rgba(255,255,255,0.03), 0 14px 38px rgba(37,99,235,0.22), 0 14px 38px rgba(0,0,0,0.3)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -1px 0 rgba(255,255,255,0.045), inset 1px 0 0 rgba(255,255,255,0.08), inset -1px 0 0 rgba(255,255,255,0.06), 0 12px 30px rgba(0,0,0,0.28)",
     backdropFilter: "blur(40px) saturate(1.35)",
     WebkitBackdropFilter: "blur(40px) saturate(1.35)",
   } : undefined;

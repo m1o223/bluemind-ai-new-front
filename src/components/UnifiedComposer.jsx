@@ -109,14 +109,12 @@ export default function UnifiedComposer({
   const mobileGlassIconButtonClass =
     "border border-white/[0.1] bg-[rgba(62,62,62,0.16)] text-white/85 backdrop-blur-[40px] hover:bg-[rgba(82,82,82,0.22)] hover:text-white active:bg-[rgba(92,92,92,0.26)]";
   const mobileGlassIconStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 1px 0 0 rgba(255,255,255,0.09), inset -1px 0 0 rgba(255,255,255,0.065), inset 0 -16px 30px rgba(255,255,255,0.024), 0 14px 38px rgba(0,0,0,0.3)",
-    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.036) 44%, rgba(255,255,255,0.018))",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.035), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.055), 0 12px 30px rgba(0,0,0,0.28)",
     backdropFilter: "blur(40px) saturate(1.32)",
     WebkitBackdropFilter: "blur(40px) saturate(1.32)",
   };
   const mobileComposerGlassStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 1px 0 0 rgba(255,255,255,0.085), inset -1px 0 0 rgba(255,255,255,0.06), inset 0 -28px 54px rgba(255,255,255,0.024), 0 24px 76px rgba(0,0,0,0.34)",
-    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.115), rgba(255,255,255,0.034) 46%, rgba(255,255,255,0.018))",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(255,255,255,0.035), inset 1px 0 0 rgba(255,255,255,0.075), inset -1px 0 0 rgba(255,255,255,0.055), 0 20px 62px rgba(0,0,0,0.34)",
     backdropFilter: "blur(40px) saturate(1.3)",
     WebkitBackdropFilter: "blur(40px) saturate(1.3)",
   };
@@ -216,7 +214,7 @@ export default function UnifiedComposer({
       style={isListening ? {
         backgroundColor: appColor,
         borderColor: "rgba(255,255,255,0.16)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 12px 34px rgba(0,0,0,0.3)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.04), inset 1px 0 0 rgba(255,255,255,0.075), inset -1px 0 0 rgba(255,255,255,0.055), 0 12px 30px rgba(0,0,0,0.28)",
       } : isMobile ? mobileGlassIconStyle : undefined}
       aria-label={voiceLabel}
     >

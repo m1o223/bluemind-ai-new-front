@@ -558,14 +558,12 @@ export default function MobileChat() {
   const mobileGlassSelectorClass =
     "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-4 text-sm font-bold capitalize text-white backdrop-blur-[40px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-[rgba(82,82,82,0.22)]";
   const mobileGlassControlStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 1px 0 0 rgba(255,255,255,0.09), inset -1px 0 0 rgba(255,255,255,0.065), inset 0 -18px 34px rgba(255,255,255,0.026), 0 18px 48px rgba(0,0,0,0.32)",
-    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.035) 42%, rgba(255,255,255,0.018))",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.035), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.055), 0 14px 36px rgba(0,0,0,0.3)",
     backdropFilter: "blur(40px) saturate(1.32)",
     WebkitBackdropFilter: "blur(40px) saturate(1.32)",
   };
   const mobileGlassPanelStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), inset 1px 0 0 rgba(255,255,255,0.075), inset -1px 0 0 rgba(255,255,255,0.055), inset 0 -24px 46px rgba(255,255,255,0.024), 0 30px 96px rgba(0,0,0,0.4)",
-    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.11), rgba(255,255,255,0.03) 48%, rgba(255,255,255,0.018))",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -1px 0 rgba(255,255,255,0.03), inset 1px 0 0 rgba(255,255,255,0.06), inset -1px 0 0 rgba(255,255,255,0.045), 0 24px 70px rgba(0,0,0,0.38)",
     backdropFilter: "blur(40px) saturate(1.28)",
     WebkitBackdropFilter: "blur(40px) saturate(1.28)",
   };
