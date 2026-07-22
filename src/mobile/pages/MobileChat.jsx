@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, animate, motion, useAnimationFrame, useMotionValue } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowUp,
@@ -467,9 +467,13 @@ export default function MobileChat() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [responseModeMenuPosition, setResponseModeMenuPosition] = useState(null);
-  const [featureCarouselIndex, setFeatureCarouselIndex] = useState(0);
-  const [featureCarouselTransition, setFeatureCarouselTransition] = useState(true);
-  const [featureCarouselResumeAt, setFeatureCarouselResumeAt] = useState(0);
+  const [featureCarouselActiveIndex, setFeatureCarouselActiveIndex] = useState(0);
+  const [featureCarouselStep, setFeatureCarouselStep] = useState(0);
+  const featureCarouselX = useMotionValue(0);
+  const featureCarouselTrackRef = useRef(null);
+  const featureCarouselAnimationRef = useRef(null);
+  const featureCarouselDraggingRef = useRef(false);
+  const featureCarouselPauseUntilRef = useRef(0);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
@@ -765,55 +769,111 @@ export default function MobileChat() {
     };
   }, [responseModeMenuOpen, updateResponseModeMenuPosition]);
 
+  const normalizeFeatureCarouselX = useCallback((nextX) => {
+    const cycleWidth = featureCarouselStep * featureCarouselCount;
+    if (!cycleWidth) return nextX;
+
+    let normalizedX = nextX;
+    while (normalizedX <= -cycleWidth * 2) normalizedX += cycleWidth;
+    while (normalizedX > 0) normalizedX -= cycleWidth;
+    return normalizedX;
+  }, [featureCarouselCount, featureCarouselStep]);
+
+  const updateFeatureCarouselActiveIndex = useCallback((nextX) => {
+    const cycleWidth = featureCarouselStep * featureCarouselCount;
+    if (!cycleWidth) return;
+
+    const progress = ((-(nextX + cycleWidth) % cycleWidth) + cycleWidth) % cycleWidth;
+    const nextIndex = Math.round(progress / featureCarouselStep) % featureCarouselCount;
+    setFeatureCarouselActiveIndex((current) => current === nextIndex ? current : nextIndex);
+  }, [featureCarouselCount, featureCarouselStep]);
+
   useEffect(() => {
-    if (menuOpen || menuSearchOpen) return undefined;
+    const cycleWidth = featureCarouselStep * featureCarouselCount;
+    if (!cycleWidth || featureCarouselX.get() !== 0) return;
+    featureCarouselX.set(-cycleWidth);
+  }, [featureCarouselCount, featureCarouselStep, featureCarouselX]);
 
-    const now = Date.now();
-    const delay = Math.max(4500, featureCarouselResumeAt - now + 4500);
-    const timer = window.setTimeout(() => {
-      setFeatureCarouselTransition(true);
-      setFeatureCarouselIndex((index) => index + 1);
-    }, delay);
+  useLayoutEffect(() => {
+    const measureFeatureCarousel = () => {
+      const firstCard = featureCarouselTrackRef.current?.querySelector("[data-feature-card='true']");
+      if (!firstCard) return;
 
-    return () => window.clearTimeout(timer);
-  }, [featureCarouselIndex, featureCarouselResumeAt, menuOpen, menuSearchOpen]);
+      const rect = firstCard.getBoundingClientRect();
+      const styles = window.getComputedStyle(featureCarouselTrackRef.current);
+      const gap = Number.parseFloat(styles.columnGap || styles.gap || "0") || 0;
+      setFeatureCarouselStep(rect.width + gap);
+    };
 
-  const pauseFeatureCarousel = useCallback(() => {
-    setFeatureCarouselResumeAt(Date.now() + 2600);
+    measureFeatureCarousel();
+    window.addEventListener("resize", measureFeatureCarousel);
+    window.visualViewport?.addEventListener("resize", measureFeatureCarousel);
+
+    return () => {
+      window.removeEventListener("resize", measureFeatureCarousel);
+      window.visualViewport?.removeEventListener("resize", measureFeatureCarousel);
+    };
   }, []);
 
-  const moveFeatureCarousel = useCallback((direction) => {
-    pauseFeatureCarousel();
-    if (direction > 0) {
-      setFeatureCarouselTransition(true);
-      setFeatureCarouselIndex((index) => index + 1);
-      return;
-    }
+  const pauseFeatureCarousel = useCallback((duration = 2600) => {
+    featureCarouselPauseUntilRef.current = performance.now() + duration;
+  }, []);
 
-    if (featureCarouselIndex === 0) {
-      setFeatureCarouselTransition(false);
-      setFeatureCarouselIndex(featureCarouselCount);
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          setFeatureCarouselTransition(true);
-          setFeatureCarouselIndex(featureCarouselCount - 1);
-        });
-      });
-      return;
-    }
-
-    setFeatureCarouselTransition(true);
-    setFeatureCarouselIndex((index) => index - 1);
-  }, [featureCarouselCount, featureCarouselIndex, pauseFeatureCarousel]);
-
-  const handleFeatureCarouselTransitionEnd = useCallback(() => {
-    if (featureCarouselIndex !== featureCarouselCount) return;
-    setFeatureCarouselTransition(false);
-    setFeatureCarouselIndex(0);
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => setFeatureCarouselTransition(true));
+  const settleFeatureCarousel = useCallback((targetX, duration = 0.75) => {
+    featureCarouselAnimationRef.current?.stop?.();
+    const normalizedTarget = normalizeFeatureCarouselX(targetX);
+    featureCarouselAnimationRef.current = animate(featureCarouselX, normalizedTarget, {
+      duration,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (latest) => updateFeatureCarouselActiveIndex(normalizeFeatureCarouselX(latest)),
+      onComplete: () => {
+        const nextX = normalizeFeatureCarouselX(featureCarouselX.get());
+        featureCarouselX.set(nextX);
+        updateFeatureCarouselActiveIndex(nextX);
+      },
     });
-  }, [featureCarouselCount, featureCarouselIndex]);
+  }, [featureCarouselX, normalizeFeatureCarouselX, updateFeatureCarouselActiveIndex]);
+
+  const handleFeatureCarouselDragStart = useCallback(() => {
+    featureCarouselAnimationRef.current?.stop?.();
+    featureCarouselDraggingRef.current = true;
+    pauseFeatureCarousel(3000);
+  }, [pauseFeatureCarousel]);
+
+  const handleFeatureCarouselDragEnd = useCallback((_, info) => {
+    featureCarouselDraggingRef.current = false;
+    if (!featureCarouselStep) return;
+    pauseFeatureCarousel(2800);
+
+    const projectedX = featureCarouselX.get() + info.velocity.x * 0.18;
+    const cycleWidth = featureCarouselStep * featureCarouselCount;
+    const targetIndex = Math.round(-(projectedX + cycleWidth) / featureCarouselStep);
+    settleFeatureCarousel(-cycleWidth - targetIndex * featureCarouselStep, 0.82);
+  }, [featureCarouselStep, featureCarouselX, pauseFeatureCarousel, settleFeatureCarousel]);
+
+  const goToFeatureCarouselCard = useCallback((index) => {
+    if (!featureCarouselStep) return;
+    pauseFeatureCarousel(3000);
+    const cycleWidth = featureCarouselStep * featureCarouselCount;
+    const currentX = normalizeFeatureCarouselX(featureCarouselX.get());
+    const currentIndex = Math.round(-(currentX + cycleWidth) / featureCarouselStep);
+    const currentModulo = ((currentIndex % featureCarouselCount) + featureCarouselCount) % featureCarouselCount;
+    const directDelta = index - currentModulo;
+    const forwardDelta = directDelta < 0 ? directDelta + featureCarouselCount : directDelta;
+    const backwardDelta = directDelta > 0 ? directDelta - featureCarouselCount : directDelta;
+    const delta = Math.abs(forwardDelta) <= Math.abs(backwardDelta) ? forwardDelta : backwardDelta;
+    settleFeatureCarousel(-cycleWidth - (currentIndex + delta) * featureCarouselStep, 0.9);
+  }, [featureCarouselCount, featureCarouselStep, featureCarouselX, normalizeFeatureCarouselX, pauseFeatureCarousel, settleFeatureCarousel]);
+
+  useAnimationFrame((_, delta) => {
+    if (!featureCarouselStep || menuOpen || menuSearchOpen || featureCarouselDraggingRef.current) return;
+    if (performance.now() < featureCarouselPauseUntilRef.current) return;
+
+    const pixelsPerMs = featureCarouselStep / 5200;
+    const nextX = normalizeFeatureCarouselX(featureCarouselX.get() - pixelsPerMs * delta);
+    featureCarouselX.set(nextX);
+    updateFeatureCarouselActiveIndex(nextX);
+  });
 
   const {
     isListening,
@@ -2661,36 +2721,28 @@ export default function MobileChat() {
   };
 
   const renderFeatureCarousel = () => {
-    const carouselCards = [...mobileFeatureCards, mobileFeatureCards[0]];
-    const visibleIndex = featureCarouselIndex % featureCarouselCount;
+    const carouselCards = [...mobileFeatureCards, ...mobileFeatureCards, ...mobileFeatureCards];
 
     return (
       <section className="shrink-0 pb-3 pt-2" data-testid="mobile-feature-carousel">
         <div className="overflow-hidden">
           <motion.div
+            ref={featureCarouselTrackRef}
             className="flex gap-3 px-4"
+            style={{ x: featureCarouselX }}
             drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.08}
-            onDragStart={pauseFeatureCarousel}
-            onDragEnd={(_, info) => {
-              if (info.offset.x < -42 || info.velocity.x < -350) {
-                moveFeatureCarousel(1);
-                return;
-              }
-              if (info.offset.x > 42 || info.velocity.x > 350) {
-                moveFeatureCarousel(-1);
-              }
-            }}
-            animate={{ x: `calc(${featureCarouselIndex} * -1 * (86vw + 12px))` }}
-            transition={featureCarouselTransition ? { duration: 0.62, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
-            onAnimationComplete={handleFeatureCarouselTransitionEnd}
+            dragMomentum={false}
+            dragElastic={0}
+            onDragStart={handleFeatureCarouselDragStart}
+            onDrag={() => updateFeatureCarouselActiveIndex(normalizeFeatureCarouselX(featureCarouselX.get()))}
+            onDragEnd={handleFeatureCarouselDragEnd}
           >
             {carouselCards.map((card, index) => {
               const FeatureIcon = card.icon;
               return (
                 <article
                   key={`${card.title}-${index}`}
+                  data-feature-card="true"
                   className="relative flex h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-4 py-3 text-white/90 backdrop-blur-[42px]"
                   style={mobileGlassPanelStyle}
                 >
@@ -2738,14 +2790,19 @@ export default function MobileChat() {
             <button
               key={card.title}
               type="button"
-              onClick={() => {
-                pauseFeatureCarousel();
-                setFeatureCarouselTransition(true);
-                setFeatureCarouselIndex(index);
-              }}
-              className={`h-1.5 rounded-full transition-all duration-300 ${visibleIndex === index ? "w-4 bg-white/85" : "w-1.5 bg-white/25"}`}
+              onClick={() => goToFeatureCarouselCard(index)}
+              className="relative h-2 w-5 rounded-full"
               aria-label={`Show ${card.title}`}
-            />
+            >
+              <motion.span
+                className="absolute left-1/2 top-1/2 block h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+                animate={{
+                  width: featureCarouselActiveIndex === index ? 16 : 6,
+                  opacity: featureCarouselActiveIndex === index ? 0.72 : 0.22,
+                }}
+                transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </button>
           ))}
         </div>
       </section>
