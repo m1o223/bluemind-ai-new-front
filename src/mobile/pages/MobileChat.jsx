@@ -668,6 +668,7 @@ export default function MobileChat() {
   );
 
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0 || writeAttachments.length > 0;
+  const isToolFocusMode = isImageMode || isWriteEditMode || isSearchMode || Boolean(activeWriteTask);
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
   const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
@@ -2505,31 +2506,40 @@ export default function MobileChat() {
         )}
       </AnimatePresence>
 
-      <div
-        className="-mx-4 mb-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        data-testid="mobile-quick-action-chips"
-      >
-        <div className="flex w-max min-w-full items-center gap-2.5">
-          {quickActionChips.map((action) => {
-            const ActionIcon = action.icon;
-            return (
-              <motion.button
-                key={action.label}
-                type="button"
-                onClick={action.onClick}
-                whileTap={{ scale: 0.96 }}
-                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3.5 text-[13px] font-bold text-white/84 backdrop-blur-[42px] transition-colors hover:bg-[rgba(96,96,96,0.2)] active:bg-[rgba(106,106,106,0.22)]"
-                style={mobileGlassControlStyle}
-                aria-label={action.label}
-              >
-                <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.3] text-white/74" />
-                <span className="whitespace-nowrap">{action.label}</span>
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
+      <AnimatePresence initial={false}>
+        {!isToolFocusMode && (
+          <motion.div
+            key="mobile-quick-action-chips"
+            className="-mx-4 mb-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-testid="mobile-quick-action-chips"
+            initial={{ opacity: 0, height: 0, y: 8 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: 8 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="flex w-max min-w-full items-center gap-2.5">
+              {quickActionChips.map((action) => {
+                const ActionIcon = action.icon;
+                return (
+                  <motion.button
+                    key={action.label}
+                    type="button"
+                    onClick={action.onClick}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3.5 text-[13px] font-bold text-white/84 backdrop-blur-[42px] transition-colors hover:bg-[rgba(96,96,96,0.2)] active:bg-[rgba(106,106,106,0.22)]"
+                    style={mobileGlassControlStyle}
+                    aria-label={action.label}
+                  >
+                    <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.3] text-white/74" />
+                    <span className="whitespace-nowrap">{action.label}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <UnifiedComposer
         value={message}
@@ -2716,7 +2726,15 @@ export default function MobileChat() {
     const carouselCards = [...mobileFeatureCards, ...mobileFeatureCards, ...mobileFeatureCards];
 
     return (
-      <section className="shrink-0 pb-3 pt-2" data-testid="mobile-feature-carousel">
+      <motion.section
+        key="mobile-feature-carousel"
+        className="shrink-0 overflow-hidden pb-3 pt-2"
+        data-testid="mobile-feature-carousel"
+        initial={{ opacity: 0, height: 0, y: -8 }}
+        animate={{ opacity: 1, height: "auto", y: 0 }}
+        exit={{ opacity: 0, height: 0, y: -8 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="overflow-hidden">
           <motion.div
             ref={featureCarouselTrackRef}
@@ -2776,7 +2794,7 @@ export default function MobileChat() {
           </motion.div>
         </div>
 
-      </section>
+      </motion.section>
     );
   };
 
@@ -3025,7 +3043,9 @@ export default function MobileChat() {
         </div>
       </header>
 
-      {renderFeatureCarousel()}
+      <AnimatePresence initial={false}>
+        {!isToolFocusMode && renderFeatureCarousel()}
+      </AnimatePresence>
 
       {(chatSessionMode === "private" || chatSessionMode === "hidden") && (
         <div className={`z-30 flex items-center justify-between border-b px-4 py-2 text-xs font-bold ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
@@ -3042,7 +3062,13 @@ export default function MobileChat() {
       <section className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={messagesScrollRef}
-          className={isEmptyChat ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5" : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"}
+          className={
+            isToolFocusMode
+              ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-2"
+              : isEmptyChat
+                ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5"
+                : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"
+          }
         >
 
           {generatedImages.length > 0 && (
