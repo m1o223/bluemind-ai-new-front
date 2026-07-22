@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AnimatePresence, animate, motion, useMotionValue } from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue, useScroll, useTransform } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowUp,
@@ -429,7 +429,157 @@ const DESKTOP_IMAGE_IDEAS = [
     prompt: "Create cinematic concept art with dramatic composition, rich atmosphere, layered depth, premium lighting, and a clear visual story.",
     thumbnail: createIdeaThumbnail("concept-art", "#1E1B4B", "#4338CA", "#FB7185"),
   },
+  {
+    id: "action-figure",
+    title: "Action Figure",
+    category: "Collectibles",
+    description: "Turn an idea into a collectible toy render.",
+    prompt: "Create a premium action figure product render with detailed packaging, dramatic studio lighting, polished plastic materials, and a collectible display feel.",
+    thumbnail: createIdeaThumbnail("action-figure", "#172554", "#2563EB", "#F97316"),
+  },
+  {
+    id: "pixel-art",
+    title: "Pixel Art",
+    category: "Game Art",
+    description: "Create crisp retro-inspired game visuals.",
+    prompt: "Create polished pixel art with a clear silhouette, charming details, limited palette, clean lighting, and a premium retro game aesthetic.",
+    thumbnail: createIdeaThumbnail("pixel-art", "#111827", "#1D4ED8", "#FACC15"),
+  },
+  {
+    id: "fashion",
+    title: "Fashion",
+    category: "Style",
+    description: "Explore editorial outfits and looks.",
+    prompt: "Create a high-end fashion editorial image with refined styling, elegant fabrics, confident pose, premium lighting, and a modern BlueMind-inspired mood.",
+    thumbnail: createIdeaThumbnail("fashion", "#0F172A", "#475569", "#93C5FD"),
+  },
+  {
+    id: "interior-design",
+    title: "Interior Design",
+    category: "Home",
+    description: "Design calm premium living spaces.",
+    prompt: "Create a premium interior design concept with calm materials, soft natural light, clean furniture, thoughtful spacing, and elegant blue-gray accents.",
+    thumbnail: createIdeaThumbnail("interior-design", "#1E3A5F", "#64748B", "#BFDBFE"),
+  },
+  {
+    id: "icons",
+    title: "Icons",
+    category: "UI Assets",
+    description: "Create a consistent icon set.",
+    prompt: "Create a professional app icon set with consistent stroke, rounded geometry, clean spacing, subtle blue accents, and a premium UI product feel.",
+    thumbnail: createIdeaThumbnail("icons", "#0B1220", "#2563EB", "#E0F2FE"),
+  },
+  {
+    id: "sticker-style",
+    title: "Sticker Style",
+    category: "Social",
+    description: "Make expressive sticker artwork.",
+    prompt: "Create a playful premium sticker-style illustration with clean outlines, expressive shape language, soft shading, and a transparent-background-ready composition.",
+    thumbnail: createIdeaThumbnail("sticker-style", "#075985", "#38BDF8", "#FDE68A"),
+  },
+  {
+    id: "food-photography",
+    title: "Food",
+    category: "Photography",
+    description: "Create appetizing food visuals.",
+    prompt: "Create premium food photography with natural texture, appetizing composition, soft restaurant lighting, realistic ingredients, and editorial polish.",
+    thumbnail: createIdeaThumbnail("food-photography", "#7C2D12", "#EA580C", "#FED7AA"),
+  },
+  {
+    id: "landscape",
+    title: "Landscape",
+    category: "Scenery",
+    description: "Build cinematic outdoor worlds.",
+    prompt: "Create a cinematic landscape with atmospheric depth, elegant light, realistic terrain, balanced composition, and a premium calm visual tone.",
+    thumbnail: createIdeaThumbnail("landscape", "#0F3A4A", "#2563EB", "#BAE6FD"),
+  },
+  {
+    id: "poster-design",
+    title: "Poster Design",
+    category: "Graphic Design",
+    description: "Compose bold visual posters.",
+    prompt: "Create a premium poster design with strong hierarchy, clean typography zones, cinematic focal image, refined spacing, and BlueMind blue accents.",
+    thumbnail: createIdeaThumbnail("poster-design", "#111827", "#1E40AF", "#F8FAFC"),
+  },
+  {
+    id: "album-cover",
+    title: "Album Cover",
+    category: "Music",
+    description: "Create atmospheric cover art.",
+    prompt: "Create premium album cover artwork with strong mood, clean composition, memorable visual symbol, refined lighting, and elegant modern typography space.",
+    thumbnail: createIdeaThumbnail("album-cover", "#020617", "#334155", "#60A5FA"),
+  },
 ];
+
+const IMAGE_GALLERY_TILE_HEIGHTS = [198, 252, 224, 286, 214, 264, 236, 304, 220, 274];
+
+function MobileImageGalleryTile({ item, index, selected, onSelect }) {
+  const tileRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: tileRef,
+    offset: ["start end", "end start"],
+  });
+  const imageY = useTransform(scrollYProgress, [0, 1], [14, -14]);
+  const height = IMAGE_GALLERY_TILE_HEIGHTS[index % IMAGE_GALLERY_TILE_HEIGHTS.length];
+
+  return (
+    <motion.button
+      ref={tileRef}
+      type="button"
+      onClick={() => onSelect(item)}
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, delay: Math.min(index * 0.018, 0.18), ease: [0.22, 1, 0.36, 1] }}
+      whileTap={{ scale: 0.975 }}
+      className="group mb-3 block w-full break-inside-avoid overflow-visible text-left"
+      aria-pressed={selected}
+    >
+      <motion.div
+        animate={{
+          scale: selected ? 1.025 : 1,
+          boxShadow: selected
+            ? "0 0 0 2px rgba(37,99,235,0.9), 0 16px 42px rgba(37,99,235,0.18)"
+            : "0 10px 28px rgba(0,0,0,0.12)",
+        }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full overflow-hidden rounded-[24px]"
+        style={{ height }}
+      >
+        <motion.img
+          src={item.thumbnail}
+          alt=""
+          className="absolute inset-x-0 -top-4 h-[calc(100%+32px)] w-full object-cover transition-transform duration-500 group-active:scale-[1.03]"
+          style={{ y: imageY }}
+          draggable="false"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/72 via-black/18 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-3">
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/62">
+            {item.category}
+          </span>
+          <span className="mt-0.5 block text-[14px] font-black leading-4 text-white/94">
+            {item.title}
+          </span>
+        </div>
+
+        <AnimatePresence>
+          {selected && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.72 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.72 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bm-primary)] text-white shadow-[0_10px_24px_rgba(37,99,235,0.34)]"
+              aria-hidden="true"
+            >
+              <Check className="h-4 w-4 stroke-[3]" />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </motion.button>
+  );
+}
 
 function formatConversationTime(value, language = "en") {
   if (!value) return "";
@@ -671,7 +821,7 @@ export default function MobileChat() {
   const isToolFocusMode = isImageMode || isWriteEditMode || isSearchMode || Boolean(activeWriteTask);
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
   const shouldPinComposer = true;
-  const shouldShowImageTemplates = isImageMode && !message.trim() && attachedImages.length === 0 && !isGeneratingImage;
+  const shouldShowImageTemplates = isImageMode && (!message.trim() || Boolean(selectedImageTemplate)) && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
   const shouldShowSearchCards = isSearchMode && messages.length === 0 && generatedImages.length === 0;
   const {
@@ -1579,7 +1729,10 @@ export default function MobileChat() {
   };
 
   const selectImageTemplate = (template) => {
-    setPendingImageTemplate(template);
+    setIsImageMode(true);
+    setSelectedImageTemplate(template);
+    setPendingImageTemplate(null);
+    setMessage(template.prompt);
     setImageModeError("");
     setImageModeStatus("");
   };
@@ -2375,7 +2528,7 @@ export default function MobileChat() {
 
   const renderComposerArea = (centered = false, separatePlus = centered) => {
     const composerModePill = isImageMode
-      ? { label: "Create Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
+      ? { label: selectedImageTemplate?.title ? `Create Image • ${selectedImageTemplate.title}` : "Create Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
       : (isWriteEditMode || activeWriteTask)
         ? { label: "Write/Edit", onClear: exitWriteEditMode, clearLabel: "Exit write edit mode" }
         : isSearchMode
@@ -3150,88 +3303,15 @@ export default function MobileChat() {
 
           {shouldShowImageTemplates && (
             <div className="pt-2">
-              <AnimatePresence>
-                {pendingImageTemplate && (
-                  <motion.div
-                    key={pendingImageTemplate.id}
-                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    className={`mx-auto mb-4 w-full rounded-[26px] border p-4 text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-xl ${
-                      isDark
-                        ? "border-white/[0.1] bg-[var(--bm-bg-card)]/[0.88] text-white"
-                        : "border-white/70 bg-white/[0.78] text-[var(--bm-text-primary)]"
-                    }`}
-                    style={{
-                      backdropFilter: "blur(18px)",
-                      WebkitBackdropFilter: "blur(18px)",
-                    }}
-                  >
-                    <h3 className="text-base font-bold tracking-tight">{pendingImageTemplate.title}</h3>
-                    <p className={`mx-auto mt-1 max-w-[260px] text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
-                      {pendingImageTemplate.description || "Create polished image artwork from your photo."}
-                    </p>
-                    <div className="mt-4 grid gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openTemplateImageInput(imageInputRef)}
-                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]"}
-                      >
-                        <Image className="h-[18px] w-[18px]" />
-                        <span>Upload Image</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openTemplateImageInput(cameraInputRef)}
-                        className={isDark ? "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.08] text-sm font-bold text-white active:bg-white/[0.13]" : "flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--bm-hover-bg)] text-sm font-bold text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]"}
-                      >
-                        <Camera className="h-[18px] w-[18px]" />
-                        <span>Take Photo</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="columns-2 gap-3 [column-fill:_balance]" data-testid="mobile-image-inspiration-gallery">
                 {DESKTOP_IMAGE_IDEAS.map((item, index) => (
-                  <motion.button
-                    key={item.title}
-                    type="button"
-                    onClick={() => selectImageTemplate(item)}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.16) }}
-                    whileHover={{ y: -5 }}
-                    whileTap={{ scale: 0.985 }}
-                    className={`group overflow-hidden rounded-[24px] border text-left shadow-sm transition ${
-                      isDark
-                        ? "border-white/[0.08] bg-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.1]"
-                        : "border-white/75 bg-white/82 shadow-slate-200/70 hover:border-[#D8E1F4] hover:bg-white hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
-                    }`}
-                  >
-                    <div className="relative aspect-[1.35] overflow-hidden">
-                      <img
-                        src={item.thumbnail}
-                        alt=""
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        draggable="false"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                      <span className="absolute left-3 top-3 rounded-full bg-white/18 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur">
-                        {item.category}
-                      </span>
-                    </div>
-                    <div className="p-3">
-                      <span className={`block text-sm font-bold leading-5 ${isDark ? "text-white" : "text-[var(--bm-text-primary)]"}`}>
-                        {item.title}
-                      </span>
-                      <span className={`mt-1 line-clamp-2 block text-[11px] font-medium leading-4 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
-                        {item.description}
-                      </span>
-                    </div>
-                  </motion.button>
+                  <MobileImageGalleryTile
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    selected={selectedImageTemplate?.id === item.id}
+                    onSelect={selectImageTemplate}
+                  />
                 ))}
               </div>
             </div>
