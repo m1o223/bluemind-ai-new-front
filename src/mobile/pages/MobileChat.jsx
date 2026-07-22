@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
@@ -466,7 +466,7 @@ export default function MobileChat() {
   const isDark = resolvedTheme === "dark";
   const [menuOpen, setMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
-  const [responseModeMenuPlacement, setResponseModeMenuPlacement] = useState("header");
+  const [responseModeMenuPosition, setResponseModeMenuPosition] = useState(null);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
@@ -535,6 +535,7 @@ export default function MobileChat() {
   const touchStartXRef = useRef(null);
   const sheetTouchStartYRef = useRef(null);
   const searchInputRef = useRef(null);
+  const aiSelectorButtonRef = useRef(null);
   const composerInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -667,6 +668,48 @@ export default function MobileChat() {
     node.style.height = `${Math.max(nextHeight, 50)}px`;
     node.style.overflowY = node.scrollHeight > maxHeight ? "auto" : "hidden";
   }, [isImageMode, isWriteEditMode]);
+
+  const updateResponseModeMenuPosition = useCallback(() => {
+    const button = aiSelectorButtonRef.current;
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const viewportWidth = window.visualViewport?.width || window.innerWidth;
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const safeHorizontalPadding = 14;
+    const preferredWidth = Math.min(Math.max(viewportWidth * 0.82, 280), 390);
+    const width = Math.min(preferredWidth, viewportWidth - safeHorizontalPadding * 2);
+
+    setResponseModeMenuPosition({
+      left: rect.left + rect.width / 2,
+      top: rect.bottom + 10,
+      width,
+      maxHeight: Math.max(260, Math.min(viewportHeight - rect.bottom - 24, 560)),
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!responseModeMenuOpen) {
+      setResponseModeMenuPosition(null);
+      return undefined;
+    }
+
+    updateResponseModeMenuPosition();
+
+    const viewport = window.visualViewport;
+    const update = () => updateResponseModeMenuPosition();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+    };
+  }, [responseModeMenuOpen, updateResponseModeMenuPosition]);
 
   const {
     isListening,
@@ -2510,26 +2553,26 @@ export default function MobileChat() {
 
         <div className="pointer-events-none absolute inset-x-0 top-3 flex items-center justify-center">
           <button
+            ref={aiSelectorButtonRef}
             type="button"
             onClick={() => {
-              setResponseModeMenuPlacement("header");
-              setResponseModeMenuOpen((open) => responseModeMenuPlacement === "header" ? !open : true);
+              setResponseModeMenuOpen((open) => !open);
             }}
             className={mobileGlassSelectorClass}
             style={mobileGlassControlStyle}
             aria-label="Select AI mode"
-            aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "header"}
+            aria-expanded={responseModeMenuOpen}
           >
             {(() => {
               const SelectedModeIcon = getAiMode(responseMode).icon;
               return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
             })()}
             <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen && responseModeMenuPlacement === "header" ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
           <AnimatePresence>
-            {responseModeMenuOpen && responseModeMenuPlacement === "header" && (
+            {responseModeMenuOpen && responseModeMenuPosition && (
               <>
                 <button
                   type="button"
@@ -2538,13 +2581,17 @@ export default function MobileChat() {
                   aria-label="Close AI mode menu"
                 />
                 <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                  initial={{ opacity: 0, x: "-50%", y: 8, scale: 0.97 }}
+                  animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: "-50%", y: 6, scale: 0.97 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="pointer-events-auto fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[28px] border border-white/[0.09] bg-white/[0.075] text-white backdrop-blur-[32px]"
+                  className="pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border border-white/[0.09] bg-white/[0.075] text-white backdrop-blur-[32px]"
                   style={{
-                    maxHeight: "min(72vh, 560px)",
+                    left: responseModeMenuPosition.left,
+                    top: responseModeMenuPosition.top,
+                    width: responseModeMenuPosition.width,
+                    maxHeight: responseModeMenuPosition.maxHeight,
+                    transformOrigin: "top center",
                     ...mobileGlassPanelStyle,
                   }}
                   role="menu"
