@@ -13,6 +13,15 @@ export default function BlueMindSendButton({
   compact = false,
   className,
 }) {
+  const isActive = isBusy || canSend;
+  const mobileInactiveStyle = compact && !isActive ? {
+    backgroundColor: "rgba(255,255,255,0.055)",
+    borderColor: "rgba(255,255,255,0.08)",
+    color: "rgba(255,255,255,0.48)",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
+  } : undefined;
+
   return (
     <motion.button
       type={isBusy ? "button" : "submit"}
@@ -21,12 +30,14 @@ export default function BlueMindSendButton({
       whileTap={!isBusy && canSend ? { scale: compact ? 0.92 : 0.93 } : undefined}
       transition={{ duration: compact ? 0.18 : 0.16, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-45",
-        compact ? "h-8 w-8 shadow-[0_10px_24px_rgba(25,59,104,0.20)]" : "h-11 w-11 shadow-[0_12px_28px_rgba(25,59,104,0.22)]",
-        isBusy || canSend ? "hover:opacity-95" : "",
+        "flex shrink-0 items-center justify-center rounded-full transition-all disabled:cursor-not-allowed",
+        compact
+          ? "h-10 w-10 border shadow-[0_10px_30px_rgba(0,0,0,0.26)]"
+          : "h-11 w-11 text-white shadow-[0_12px_28px_rgba(25,59,104,0.22)] disabled:opacity-45",
+        isActive ? "text-white hover:opacity-95" : compact ? "" : "",
         className,
       )}
-      style={{ backgroundColor: isBusy || canSend ? appColor : "var(--bm-text-muted)" }}
+      style={mobileInactiveStyle || { backgroundColor: isActive ? appColor : "var(--bm-text-muted)" }}
       aria-label={isBusy ? stopLabel : sendLabel}
     >
       {isBusy ? (

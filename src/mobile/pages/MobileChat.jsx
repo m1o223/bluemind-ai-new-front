@@ -547,11 +547,17 @@ export default function MobileChat() {
   const loadedConversationRef = useRef(null);
 
   const activeConversationId = searchParams.get("conversation");
-  const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
-  const panelColor = isDark ? "var(--bm-bg-card)" : "#FFFFFF";
-  const borderColor = isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]";
-  const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
-  const textColor = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
+  const surfaceColor = "#050505";
+  const panelColor = "rgba(30,30,30,0.55)";
+  const borderColor = "border-white/[0.08]";
+  const mutedText = "text-[#B8B8B8]";
+  const textColor = "text-white";
+  const mobileGlassControlClass =
+    "flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.08] bg-[rgba(30,30,30,0.55)] text-white shadow-[0_14px_36px_rgba(0,0,0,0.34)] backdrop-blur-[24px] transition-all duration-200 ease-out active:scale-95 active:bg-white/[0.08]";
+  const mobileGlassSelectorClass =
+    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.08] bg-[rgba(30,30,30,0.55)] px-4 text-sm font-bold capitalize text-white shadow-[0_14px_38px_rgba(0,0,0,0.34)] backdrop-blur-[24px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-white/[0.08]";
+  const mobileGlassMenuSelectedClass = "bg-black/25 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]";
+  const mobileGlassMenuIdleClass = "text-white hover:bg-white/[0.05] active:bg-white/[0.08]";
 
   const bluemindMenuItems = [
     { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
@@ -2481,12 +2487,12 @@ export default function MobileChat() {
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
-      <header className={`relative z-40 flex h-16 items-center justify-between border-b px-4 ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
+      <header className="relative z-40 flex h-16 items-center justify-between border-b border-white/[0.03] px-4" style={{ backgroundColor: surfaceColor }}>
         <div className="flex w-12 items-center justify-start">
           <button
             type="button"
             onClick={openMenu}
-            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+            className={mobileGlassControlClass}
             aria-label="Open menu"
           >
             <span className="flex h-5 w-6 flex-col items-start justify-center gap-[7px]" aria-hidden="true">
@@ -2503,7 +2509,7 @@ export default function MobileChat() {
               setResponseModeMenuPlacement("header");
               setResponseModeMenuOpen((open) => responseModeMenuPlacement === "header" ? !open : true);
             }}
-            className={isDark ? "pointer-events-auto inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.055] px-3 text-sm font-bold capitalize text-white active:bg-white/[0.1]" : "pointer-events-auto inline-flex h-10 max-w-[190px] items-center gap-1.5 rounded-full border border-[var(--bm-border)] bg-white px-3 text-sm font-bold capitalize text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"}
+            className={mobileGlassSelectorClass}
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "header"}
           >
@@ -2529,19 +2535,16 @@ export default function MobileChat() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.97 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className={`bm-glass-panel pointer-events-auto fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[28px] border ${
-                    isDark
-                      ? "border-white/[0.1] bg-[#202020] text-white"
-                      : "border-black/[0.07] bg-white text-[var(--bm-text-primary)]"
-                  }`}
-                  style={{ maxHeight: "min(72vh, 560px)" }}
+                  className="pointer-events-auto fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[28px] border border-white/[0.08] bg-[rgba(30,30,30,0.55)] text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-[24px]"
+                  style={{
+                    maxHeight: "min(72vh, 560px)",
+                    WebkitBackdropFilter: "blur(24px)",
+                  }}
                   role="menu"
                 >
                   <div className="max-h-[inherit] overflow-y-auto p-4">
                     <section>
-                      <div className={`mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em] ${
-                        isDark ? "border-white/[0.08] text-white/55" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]"
-                      }`}>
+                      <div className="mb-2 border-b border-white/[0.08] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
                         BlueMind Models
                       </div>
                       <div className="space-y-1">
@@ -2552,15 +2555,7 @@ export default function MobileChat() {
                               key={model.id}
                               type="button"
                               onClick={() => setHeaderModelId(model.id)}
-                              className={`bm-glass-menu-item flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${
-                                selected
-                                  ? isDark
-                                    ? "bg-white/[0.1] text-white"
-                                    : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
-                                  : isDark
-                                    ? "text-white hover:bg-white/[0.07]"
-                                    : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
-                              }`}
+                              className={`flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${selected ? mobileGlassMenuSelectedClass : mobileGlassMenuIdleClass}`}
                               role="menuitemradio"
                               aria-checked={selected}
                             >
@@ -2568,13 +2563,13 @@ export default function MobileChat() {
                                 <span className="truncate">{model.label}</span>
                                 {model.badge && (
                                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
-                                    isDark ? "bg-white/[0.1] text-white" : "bg-[var(--bm-primary)] text-white"
+                                    "bg-white/[0.1] text-white"
                                   }`}>
                                     🆕 {model.badge}
                                   </span>
                                 )}
                               </span>
-                              {selected && <Check className={`h-5 w-5 shrink-0 stroke-[3] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
+                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-white" />}
                             </button>
                           );
                         })}
@@ -2582,9 +2577,7 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className={`mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em] ${
-                        isDark ? "border-white/[0.08] text-white/55" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]"
-                      }`}>
+                      <div className="mb-2 border-b border-white/[0.08] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
                         AI Modes
                       </div>
                       <div className="space-y-1">
@@ -2596,15 +2589,7 @@ export default function MobileChat() {
                               key={mode.id}
                               type="button"
                               onClick={() => selectResponseMode(mode.id)}
-                              className={`bm-glass-menu-item flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${
-                                selected
-                                  ? isDark
-                                    ? "bg-white/[0.1] text-white"
-                                    : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
-                                  : isDark
-                                    ? "text-white hover:bg-white/[0.07]"
-                                    : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
-                              }`}
+                              className={`flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${selected ? mobileGlassMenuSelectedClass : mobileGlassMenuIdleClass}`}
                               title={mode.description}
                               role="menuitemradio"
                               aria-checked={selected}
@@ -2613,7 +2598,7 @@ export default function MobileChat() {
                                 <ModeIcon className="h-[18px] w-[18px] shrink-0 stroke-[2.3]" />
                                 <span className="truncate">{getAiSpecializationLabel(mode)}</span>
                               </span>
-                              {selected && <Check className={`h-5 w-5 shrink-0 stroke-[3] ${isDark ? "text-white" : "text-[var(--bm-primary)]"}`} />}
+                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-white" />}
                             </button>
                           );
                         })}
@@ -2621,36 +2606,18 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className={`mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em] ${
-                        isDark ? "border-white/[0.08] text-white/55" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]"
-                      }`}>
+                      <div className="mb-2 border-b border-white/[0.08] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
                         Thinking
                       </div>
                       <button
                         type="button"
                         onClick={() => setHeaderThinkingEnabled((enabled) => !enabled)}
-                        className={`bm-glass-menu-item flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${
-                          headerThinkingEnabled
-                            ? isDark
-                              ? "bg-white/[0.1] text-white"
-                              : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
-                            : isDark
-                              ? "text-white hover:bg-white/[0.07]"
-                              : "text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]"
-                        }`}
+                        className={`flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${headerThinkingEnabled ? mobileGlassMenuSelectedClass : mobileGlassMenuIdleClass}`}
                         role="menuitemcheckbox"
                         aria-checked={headerThinkingEnabled}
                       >
                         <span>Enable Thinking</span>
-                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
-                          headerThinkingEnabled
-                            ? isDark
-                              ? "border-white bg-white text-[#202020]"
-                              : "border-[var(--bm-primary)] bg-[var(--bm-primary)] text-white"
-                            : isDark
-                              ? "border-white/25"
-                              : "border-[var(--bm-border)]"
-                        }`}>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${headerThinkingEnabled ? "border-white bg-white text-[#050505]" : "border-white/25"}`}>
                           {headerThinkingEnabled && <Check className="h-4 w-4 stroke-[3]" />}
                         </span>
                       </button>
@@ -2666,7 +2633,7 @@ export default function MobileChat() {
           <button
             type="button"
             onClick={startNewChat}
-            className={isDark ? "flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+            className={mobileGlassControlClass}
             aria-label="New chat"
           >
             <PenLine className="h-5 w-5" />

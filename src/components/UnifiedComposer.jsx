@@ -106,6 +106,8 @@ export default function UnifiedComposer({
   const textareaMinHeight = isMobile ? 50 : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
   const useSubtleAddButton = isMobile || isIdleState;
+  const mobileGlassIconButtonClass =
+    "border border-white/[0.08] bg-white/[0.055] text-white/85 shadow-[0_10px_30px_rgba(0,0,0,0.26)] backdrop-blur-[24px] hover:bg-white/[0.075] hover:text-white active:bg-white/[0.09]";
 
   const normalizedAttachments = useMemo(
     () => attachments.filter(Boolean),
@@ -167,14 +169,16 @@ export default function UnifiedComposer({
       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
-        isMobile ? "h-9 w-9" : "h-11 w-11",
-        useSubtleAddButton
+        isMobile ? "h-10 w-10" : "h-11 w-11",
+        isMobile
+          ? mobileGlassIconButtonClass
+          : useSubtleAddButton
           ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)]"
           : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
       )}
       style={{
-        backdropFilter: "blur(18px)",
-        WebkitBackdropFilter: "blur(18px)",
+        backdropFilter: isMobile ? "blur(24px)" : "blur(18px)",
+        WebkitBackdropFilter: isMobile ? "blur(24px)" : "blur(18px)",
       }}
       aria-label={addLabel}
     >
@@ -187,15 +191,20 @@ export default function UnifiedComposer({
       type="button"
       onClick={onVoice}
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full transition-colors duration-200",
-        isMobile ? "h-9 w-9" : "h-[38px] w-[38px]",
-        isListening
+        "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
+        isMobile ? "h-10 w-10" : "h-[38px] w-[38px]",
+        isMobile
+          ? mobileGlassIconButtonClass
+          : isListening
           ? "text-white"
           : isDark
             ? "text-[var(--bm-text-secondary)] hover:text-white"
             : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]",
       )}
-      style={isListening ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : undefined}
+      style={isListening ? { backgroundColor: appColor, borderColor: "rgba(255,255,255,0.16)" } : isMobile ? {
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+      } : undefined}
       aria-label={voiceLabel}
     >
       <Mic className={isMobile ? "h-5 w-5" : "h-[19px] w-[19px]"} />
@@ -218,11 +227,8 @@ export default function UnifiedComposer({
   if (isMobile) {
     const mobileBoxClasses = cn(
       "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
-      "rounded-[26px] px-2.5 py-2 shadow-[0_12px_32px_rgba(15,23,42,0.12)]",
+      "rounded-[28px] border-white/[0.08] bg-[rgba(30,30,30,0.55)] px-3 py-2.5 text-white shadow-[0_18px_60px_rgba(0,0,0,0.34)] focus-within:border-white/[0.12] focus-within:bg-[rgba(36,36,36,0.62)]",
       hasAttachments ? "min-h-[148px]" : "min-h-[92px]",
-      isDark
-        ? "border-white/[0.09] bg-[var(--bm-bg-card)]/[0.97] focus-within:bg-[var(--bm-bg-elevated)]"
-        : "border-[var(--bm-border)] bg-white/96 focus-within:border-[var(--bm-border)]",
     );
 
     return (
@@ -241,8 +247,8 @@ export default function UnifiedComposer({
             onClick={focusTextarea}
             className={mobileBoxClasses}
             style={{
-              backdropFilter: "blur(18px)",
-              WebkitBackdropFilter: "blur(18px)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
             }}
             data-composer-mode={composerState}
             data-testid="unified-composer-box"
@@ -326,12 +332,12 @@ export default function UnifiedComposer({
                   className={cn(
                     inputClasses.composer,
                     "relative z-10 block w-full resize-none bg-transparent px-1 pb-1 text-[16px] font-medium leading-6 outline-none",
-                    isDark ? "text-white placeholder:text-[var(--bm-text-muted)]/80" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]/85",
+                    "text-white placeholder:text-[#8F8F8F]",
                   )}
                   style={{
                     ...inputDirectionStyle,
                     letterSpacing: "0",
-                    caretColor: isDark ? "#FFFFFF" : "var(--bm-text-primary)",
+                    caretColor: "#FFFFFF",
                     maxHeight: `${maxTextHeight}px`,
                     minHeight: `${textareaMinHeight}px`,
                   }}
@@ -341,7 +347,7 @@ export default function UnifiedComposer({
                 <div className="mt-2 flex min-h-10 w-full items-center gap-2.5">
                   {addButton}
                   <div className="min-w-0 flex-1" />
-                  <div className="flex shrink-0 items-center gap-0.5">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     {voiceButton}
                     {sendButton}
                   </div>
