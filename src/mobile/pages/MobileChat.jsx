@@ -41,7 +41,6 @@ import ChatImageAttachments, { resolveAttachmentPreviewUrl } from "@/components/
 import MessageResponse from "@/components/MessageResponse";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
-import BlueMindMediaPicker from "@/components/BlueMindMediaPicker";
 import SettingsSheet from "@/components/settings/SettingsSheet";
 import { useApp } from "@/context/AppContext";
 import { iconClasses, typeClasses } from "@/lib/interactions";
@@ -2781,6 +2780,77 @@ export default function MobileChat() {
     );
   };
 
+  const renderMobilePlusMenu = () => {
+    const plusActions = [
+      { label: "Camera", icon: Camera, onClick: () => openFileInput(cameraInputRef, "camera") },
+      { label: "Photos", icon: Image, onClick: () => openFileInput(imageInputRef, "photos") },
+      { label: "Files", icon: FileText, onClick: () => openFileInput(fileInputRef, "files") },
+      { label: "Write / Edit", icon: PenLine, onClick: enterWriteEditMode },
+      { label: "Create Images", icon: Sparkles, onClick: enterImageMode },
+      { label: "Search", icon: Search, onClick: enterSearchMode },
+    ];
+
+    return (
+      <AnimatePresence>
+        {attachmentSheetOpen && (
+          <div className="fixed inset-0 z-[88] flex items-end justify-center px-5 pb-[calc(env(safe-area-inset-bottom)+118px)]">
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/38 backdrop-blur-[5px]"
+              onClick={closeAttachmentSheet}
+              aria-label="Close action menu"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            />
+
+            <motion.section
+              className="relative z-10 w-full max-w-[356px] rounded-[32px] border border-white/[0.055] bg-[rgba(78,78,78,0.18)] p-4 text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.016),inset_1px_0_0_rgba(255,255,255,0.032),inset_-1px_0_0_rgba(255,255,255,0.026),0_24px_68px_rgba(0,0,0,0.34)] backdrop-blur-[42px]"
+              initial={{ opacity: 0, y: 18, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.95 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              data-testid="mobile-plus-action-menu"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                {plusActions.map((action) => {
+                  const ActionIcon = action.icon;
+                  return (
+                    <motion.button
+                      key={action.label}
+                      type="button"
+                      onClick={action.onClick}
+                      whileTap={{ scale: 0.96 }}
+                      transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                      className="flex h-[88px] min-w-0 flex-col items-center justify-center rounded-[24px] border border-white/[0.05] bg-[rgba(255,255,255,0.032)] px-2 text-center font-extrabold text-white/86 shadow-[inset_0_1px_0_rgba(255,255,255,0.09)] transition-colors active:bg-[rgba(255,255,255,0.065)]"
+                    >
+                      <ActionIcon className="mb-2 h-7 w-7 stroke-[2.25] text-white/78" />
+                      <span className="text-[13px] leading-tight tracking-tight">{action.label}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex justify-center">
+                <motion.button
+                  type="button"
+                  onClick={closeAttachmentSheet}
+                  whileTap={{ scale: 0.94 }}
+                  transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-[42px] active:bg-[rgba(106,106,106,0.2)]"
+                  aria-label="Close action menu"
+                >
+                  <X className="h-5 w-5 stroke-[2.4]" />
+                </motion.button>
+              </div>
+            </motion.section>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  };
+
   return (
     <main
       className={`fixed inset-0 flex flex-col overflow-hidden ${textColor}`}
@@ -3503,133 +3573,7 @@ export default function MobileChat() {
         )}
       </AnimatePresence>
 
-      <BlueMindMediaPicker
-        open={attachmentSheetOpen}
-        onClose={closeAttachmentSheet}
-        isDark={isDark}
-        variant="mobile"
-        onCamera={() => openFileInput(cameraInputRef, "camera")}
-        onAllPhotos={() => openFileInput(imageInputRef, "photos")}
-        photosInputProps={{
-          accept: "image/*",
-          multiple: true,
-          onChange: handleImageSelection,
-        }}
-        onFiles={() => openFileInput(fileInputRef, "files")}
-        onCreateImage={enterImageMode}
-        onWriteEdit={enterWriteEditMode}
-        onSearch={enterSearchMode}
-      />
-
-      <AnimatePresence>
-        {false && attachmentSheetOpen && (
-          <div className="fixed inset-0 z-50">
-            <motion.button
-              type="button"
-              className="absolute inset-0 bg-black/35"
-              onClick={closeAttachmentSheet}
-              aria-label="Close attachment menu"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            />
-            <motion.section
-              className={`absolute inset-x-0 bottom-0 rounded-t-[28px] border-t px-4 pb-5 pt-3 shadow-[0_-24px_70px_rgba(15,23,42,0.2)] ${borderColor}`}
-              style={{
-                backgroundColor: panelColor,
-                paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
-              }}
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              onTouchStart={handleSheetTouchStart}
-              onTouchEnd={handleSheetTouchEnd}
-              data-testid="mobile-attachment-sheet"
-            >
-              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/55" />
-
-              <div className="grid gap-2">
-                <button
-                  type="button"
-                  onClick={enterImageMode}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
-                >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
-                    <Image className="h-5 w-5" />
-                  </span>
-                  <span>Create Image</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={enterWriteEditMode}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
-                >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
-                    <PenLine className="h-5 w-5" />
-                  </span>
-                  <span>Write /Edit</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={enterSearchMode}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
-                >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
-                    <Search className="h-5 w-5" />
-                  </span>
-                  <span>Search</span>
-                </button>
-
-                <div className={`my-2 h-px ${isDark ? "bg-white/[0.08]" : "bg-[var(--bm-border)]"}`} />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    enterImageMode();
-                    openFileInput(cameraInputRef);
-                  }}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
-                >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
-                    <Camera className="h-5 w-5" />
-                  </span>
-                  <span>Camera</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    enterImageMode();
-                    closeAttachmentSheet();
-                    setImageSourceSheetOpen(true);
-                  }}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
-                >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
-                    <Image className="h-5 w-5" />
-                  </span>
-                  <span>Upload Image</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openFileInput(fileInputRef)}
-                  className={isDark ? "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-white active:bg-white/[0.08]" : "flex h-[52px] items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
-                >
-                  <span className={isDark ? "flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.07] text-white" : "flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]"}>
-                    <FileText className="h-5 w-5" />
-                  </span>
-                  <span>Upload File / PDF</span>
-                </button>
-              </div>
-            </motion.section>
-          </div>
-        )}
-      </AnimatePresence>
+      {renderMobilePlusMenu()}
 
       <AnimatePresence>
         {imageSourceSheetOpen && (
