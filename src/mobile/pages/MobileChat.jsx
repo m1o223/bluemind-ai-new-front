@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AnimatePresence, animate, motion, useAnimationFrame, useMotionValue } from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowUp,
@@ -467,13 +467,13 @@ export default function MobileChat() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [responseModeMenuPosition, setResponseModeMenuPosition] = useState(null);
-  const [featureCarouselActiveIndex, setFeatureCarouselActiveIndex] = useState(0);
   const [featureCarouselStep, setFeatureCarouselStep] = useState(0);
   const featureCarouselX = useMotionValue(0);
   const featureCarouselTrackRef = useRef(null);
   const featureCarouselAnimationRef = useRef(null);
+  const featureCarouselAutoTimerRef = useRef(null);
+  const scheduleFeatureCarouselAutoRef = useRef(null);
   const featureCarouselDraggingRef = useRef(false);
-  const featureCarouselPauseUntilRef = useRef(0);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
@@ -779,15 +779,6 @@ export default function MobileChat() {
     return normalizedX;
   }, [featureCarouselCount, featureCarouselStep]);
 
-  const updateFeatureCarouselActiveIndex = useCallback((nextX) => {
-    const cycleWidth = featureCarouselStep * featureCarouselCount;
-    if (!cycleWidth) return;
-
-    const progress = ((-(nextX + cycleWidth) % cycleWidth) + cycleWidth) % cycleWidth;
-    const nextIndex = Math.round(progress / featureCarouselStep) % featureCarouselCount;
-    setFeatureCarouselActiveIndex((current) => current === nextIndex ? current : nextIndex);
-  }, [featureCarouselCount, featureCarouselStep]);
-
   useEffect(() => {
     const cycleWidth = featureCarouselStep * featureCarouselCount;
     if (!cycleWidth || featureCarouselX.get() !== 0) return;
@@ -815,65 +806,67 @@ export default function MobileChat() {
     };
   }, []);
 
-  const pauseFeatureCarousel = useCallback((duration = 2600) => {
-    featureCarouselPauseUntilRef.current = performance.now() + duration;
+  const scheduleFeatureCarouselAuto = useCallback((delay = 7200) => {
+    window.clearTimeout(featureCarouselAutoTimerRef.current);
+    if (!featureCarouselStep || menuOpen || menuSearchOpen) return;
+
+    featureCarouselAutoTimerRef.current = window.setTimeout(() => {
+      const cycleWidth = featureCarouselStep * featureCarouselCount;
+      const currentX = normalizeFeatureCarouselX(featureCarouselX.get());
+      const currentIndex = Math.round(-(currentX + cycleWidth) / featureCarouselStep);
+      const targetX = -cycleWidth - (currentIndex + 1) * featureCarouselStep;
+
+      featureCarouselAnimationRef.current?.stop?.();
+      featureCarouselAnimationRef.current = animate(featureCarouselX, normalizeFeatureCarouselX(targetX), {
+        duration: 3.8,
+        ease: [0.42, 0, 0.58, 1],
+        onComplete: () => {
+          const nextX = normalizeFeatureCarouselX(featureCarouselX.get());
+          featureCarouselX.set(nextX);
+          scheduleFeatureCarouselAutoRef.current?.(7200);
+        },
+      });
+    }, delay);
+  }, [featureCarouselCount, featureCarouselStep, featureCarouselX, menuOpen, menuSearchOpen, normalizeFeatureCarouselX]);
+
+  const pauseFeatureCarousel = useCallback(() => {
+    window.clearTimeout(featureCarouselAutoTimerRef.current);
   }, []);
 
-  const settleFeatureCarousel = useCallback((targetX, duration = 0.75) => {
-    featureCarouselAnimationRef.current?.stop?.();
-    const normalizedTarget = normalizeFeatureCarouselX(targetX);
-    featureCarouselAnimationRef.current = animate(featureCarouselX, normalizedTarget, {
-      duration,
-      ease: [0.22, 1, 0.36, 1],
-      onUpdate: (latest) => updateFeatureCarouselActiveIndex(normalizeFeatureCarouselX(latest)),
-      onComplete: () => {
-        const nextX = normalizeFeatureCarouselX(featureCarouselX.get());
-        featureCarouselX.set(nextX);
-        updateFeatureCarouselActiveIndex(nextX);
-      },
-    });
-  }, [featureCarouselX, normalizeFeatureCarouselX, updateFeatureCarouselActiveIndex]);
+  useEffect(() => {
+    scheduleFeatureCarouselAutoRef.current = scheduleFeatureCarouselAuto;
+  }, [scheduleFeatureCarouselAuto]);
+
+  useEffect(() => {
+    scheduleFeatureCarouselAuto(7200);
+    return () => window.clearTimeout(featureCarouselAutoTimerRef.current);
+  }, [scheduleFeatureCarouselAuto]);
 
   const handleFeatureCarouselDragStart = useCallback(() => {
     featureCarouselAnimationRef.current?.stop?.();
     featureCarouselDraggingRef.current = true;
-    pauseFeatureCarousel(3000);
+    pauseFeatureCarousel();
   }, [pauseFeatureCarousel]);
 
   const handleFeatureCarouselDragEnd = useCallback((_, info) => {
     featureCarouselDraggingRef.current = false;
     if (!featureCarouselStep) return;
-    pauseFeatureCarousel(2800);
+    pauseFeatureCarousel();
 
     const projectedX = featureCarouselX.get() + info.velocity.x * 0.18;
     const cycleWidth = featureCarouselStep * featureCarouselCount;
     const targetIndex = Math.round(-(projectedX + cycleWidth) / featureCarouselStep);
-    settleFeatureCarousel(-cycleWidth - targetIndex * featureCarouselStep, 0.82);
-  }, [featureCarouselStep, featureCarouselX, pauseFeatureCarousel, settleFeatureCarousel]);
-
-  const goToFeatureCarouselCard = useCallback((index) => {
-    if (!featureCarouselStep) return;
-    pauseFeatureCarousel(3000);
-    const cycleWidth = featureCarouselStep * featureCarouselCount;
-    const currentX = normalizeFeatureCarouselX(featureCarouselX.get());
-    const currentIndex = Math.round(-(currentX + cycleWidth) / featureCarouselStep);
-    const currentModulo = ((currentIndex % featureCarouselCount) + featureCarouselCount) % featureCarouselCount;
-    const directDelta = index - currentModulo;
-    const forwardDelta = directDelta < 0 ? directDelta + featureCarouselCount : directDelta;
-    const backwardDelta = directDelta > 0 ? directDelta - featureCarouselCount : directDelta;
-    const delta = Math.abs(forwardDelta) <= Math.abs(backwardDelta) ? forwardDelta : backwardDelta;
-    settleFeatureCarousel(-cycleWidth - (currentIndex + delta) * featureCarouselStep, 0.9);
-  }, [featureCarouselCount, featureCarouselStep, featureCarouselX, normalizeFeatureCarouselX, pauseFeatureCarousel, settleFeatureCarousel]);
-
-  useAnimationFrame((_, delta) => {
-    if (!featureCarouselStep || menuOpen || menuSearchOpen || featureCarouselDraggingRef.current) return;
-    if (performance.now() < featureCarouselPauseUntilRef.current) return;
-
-    const pixelsPerMs = featureCarouselStep / 5200;
-    const nextX = normalizeFeatureCarouselX(featureCarouselX.get() - pixelsPerMs * delta);
-    featureCarouselX.set(nextX);
-    updateFeatureCarouselActiveIndex(nextX);
-  });
+    featureCarouselAnimationRef.current?.stop?.();
+    featureCarouselAnimationRef.current = animate(featureCarouselX, normalizeFeatureCarouselX(-cycleWidth - targetIndex * featureCarouselStep), {
+      duration: 1.05,
+      ease: [0.22, 1, 0.36, 1],
+      onComplete: () => {
+        const nextX = normalizeFeatureCarouselX(featureCarouselX.get());
+        featureCarouselX.set(nextX);
+        scheduleFeatureCarouselAuto(2800);
+      },
+    });
+  }, [featureCarouselCount, featureCarouselStep, featureCarouselX, normalizeFeatureCarouselX, pauseFeatureCarousel, scheduleFeatureCarouselAuto]);
 
   const {
     isListening,
@@ -2734,7 +2727,6 @@ export default function MobileChat() {
             dragMomentum={false}
             dragElastic={0}
             onDragStart={handleFeatureCarouselDragStart}
-            onDrag={() => updateFeatureCarouselActiveIndex(normalizeFeatureCarouselX(featureCarouselX.get()))}
             onDragEnd={handleFeatureCarouselDragEnd}
           >
             {carouselCards.map((card, index) => {
@@ -2785,26 +2777,6 @@ export default function MobileChat() {
           </motion.div>
         </div>
 
-        <div className="mt-2 flex items-center justify-center gap-1.5">
-          {mobileFeatureCards.map((card, index) => (
-            <button
-              key={card.title}
-              type="button"
-              onClick={() => goToFeatureCarouselCard(index)}
-              className="relative h-2 w-5 rounded-full"
-              aria-label={`Show ${card.title}`}
-            >
-              <motion.span
-                className="absolute left-1/2 top-1/2 block h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
-                animate={{
-                  width: featureCarouselActiveIndex === index ? 16 : 6,
-                  opacity: featureCarouselActiveIndex === index ? 0.72 : 0.22,
-                }}
-                transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
-              />
-            </button>
-          ))}
-        </div>
       </section>
     );
   };
