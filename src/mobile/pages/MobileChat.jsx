@@ -553,26 +553,26 @@ export default function MobileChat() {
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = "#050505";
-  const panelColor = "rgba(62,62,62,0.16)";
-  const borderColor = "border-white/[0.08]";
-  const mutedText = "text-[#B8B8B8]";
-  const textColor = "text-white";
+  const panelColor = "rgba(78,78,78,0.18)";
+  const borderColor = "border-white/[0.055]";
+  const mutedText = "text-[#B7B7B7]";
+  const textColor = "text-white/90";
   const mobileGlassControlClass =
-    "flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] text-white backdrop-blur-[40px] transition-all duration-200 ease-out active:scale-95 active:bg-[rgba(82,82,82,0.22)]";
+    "flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/85 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-95 active:bg-[rgba(96,96,96,0.2)]";
   const mobileGlassSelectorClass =
-    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-4 text-sm font-bold capitalize text-white backdrop-blur-[40px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-[rgba(82,82,82,0.22)]";
+    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-4 text-sm font-bold capitalize text-white/90 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-[rgba(96,96,96,0.2)]";
   const mobileGlassControlStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.035), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.055), 0 14px 36px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(40px) saturate(1.32)",
-    WebkitBackdropFilter: "blur(40px) saturate(1.32)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 14px 34px rgba(0,0,0,0.24)",
+    backdropFilter: "blur(42px) saturate(1.18)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.18)",
   };
   const mobileGlassPanelStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -1px 0 rgba(255,255,255,0.03), inset 1px 0 0 rgba(255,255,255,0.06), inset -1px 0 0 rgba(255,255,255,0.045), 0 24px 70px rgba(0,0,0,0.38)",
-    backdropFilter: "blur(40px) saturate(1.28)",
-    WebkitBackdropFilter: "blur(40px) saturate(1.28)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(255,255,255,0.016), inset 1px 0 0 rgba(255,255,255,0.032), inset -1px 0 0 rgba(255,255,255,0.026), 0 24px 68px rgba(0,0,0,0.3)",
+    backdropFilter: "blur(42px) saturate(1.16)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
   };
-  const mobileGlassMenuSelectedClass = "bg-[rgba(92,92,92,0.2)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]";
-  const mobileGlassMenuIdleClass = "text-white hover:bg-[rgba(92,92,92,0.14)] active:bg-[rgba(92,92,92,0.2)]";
+  const mobileGlassMenuSelectedClass = "bg-[rgba(106,106,106,0.16)] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]";
+  const mobileGlassMenuIdleClass = "text-white/85 hover:bg-[rgba(106,106,106,0.1)] active:bg-[rgba(106,106,106,0.15)]";
 
   const mobileFeatureCards = useMemo(() => [
     {
@@ -2467,11 +2467,11 @@ export default function MobileChat() {
                 onClick={action.onClick}
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-3.5 text-[13px] font-bold text-white/90 backdrop-blur-[40px] transition-colors hover:bg-[rgba(82,82,82,0.22)] active:bg-[rgba(92,92,92,0.26)]"
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3.5 text-[13px] font-bold text-white/84 backdrop-blur-[42px] transition-colors hover:bg-[rgba(96,96,96,0.2)] active:bg-[rgba(106,106,106,0.22)]"
                 style={mobileGlassControlStyle}
                 aria-label={action.label}
               >
-                <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.3] text-white/85" />
+                <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.3] text-white/74" />
                 <span className="whitespace-nowrap">{action.label}</span>
               </motion.button>
             );
@@ -2554,10 +2554,10 @@ export default function MobileChat() {
               key={action.label}
               type="button"
               onClick={action.onClick}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.075] px-3 text-[13px] font-bold text-white backdrop-blur-[32px] transition-all duration-200 ease-out active:scale-[0.98] active:bg-white/[0.12]"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 text-[13px] font-bold text-white/84 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.98] active:bg-[rgba(106,106,106,0.22)]"
               style={mobileGlassControlStyle}
             >
-              <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.2] text-white/85" />
+              <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.2] text-white/74" />
               <span className="whitespace-nowrap">{action.label}</span>
             </button>
           );
@@ -2691,7 +2691,7 @@ export default function MobileChat() {
               return (
                 <article
                   key={`${card.title}-${index}`}
-                  className="relative flex h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-4 py-3 text-white backdrop-blur-[40px]"
+                  className="relative flex h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-4 py-3 text-white/90 backdrop-blur-[42px]"
                   style={mobileGlassPanelStyle}
                 >
                   <div
@@ -2700,27 +2700,27 @@ export default function MobileChat() {
                     aria-hidden="true"
                   />
                   <div
-                    className="mr-3 flex h-full w-[34%] min-w-[92px] shrink-0 items-center justify-center rounded-[24px] border border-white/[0.08] bg-[rgba(255,255,255,0.045)]"
+                    className="mr-3 flex h-full w-[34%] min-w-[92px] shrink-0 items-center justify-center rounded-[24px] border border-white/[0.045] bg-[rgba(255,255,255,0.028)]"
                     style={{
-                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 1px 0 0 rgba(255,255,255,0.045), inset -1px 0 0 rgba(255,255,255,0.035)",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.02)",
                     }}
                   >
                     <div className="relative flex h-[72px] w-[72px] items-center justify-center">
-                      <span className="absolute inset-0 rounded-full border border-white/[0.08]" />
+                      <span className="absolute inset-0 rounded-full border border-white/[0.045]" />
                       <span className="absolute h-12 w-12 rounded-full" style={{ backgroundColor: card.glow }} />
                       <FeatureIcon className="relative h-9 w-9 stroke-[2.2]" style={{ color: card.accent }} />
                     </div>
                   </div>
 
                   <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center">
-                    <h3 className="truncate text-base font-black tracking-tight">{card.title}</h3>
-                    <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-4 text-[#B8B8B8]">
+                    <h3 className="truncate text-base font-black tracking-tight text-white/90">{card.title}</h3>
+                    <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-4 text-[#B7B7B7]">
                       {card.description}
                     </p>
                     <button
                       type="button"
                       onClick={() => goTo(card.path)}
-                      className="mt-2 inline-flex h-8 w-fit items-center gap-1 rounded-full border border-white/[0.1] bg-[rgba(82,82,82,0.18)] px-3 text-[12px] font-black text-white transition-all active:scale-95 active:bg-[rgba(92,92,92,0.24)]"
+                      className="mt-2 inline-flex h-8 w-fit items-center gap-1 rounded-full border border-white/[0.055] bg-[rgba(96,96,96,0.16)] px-3 text-[12px] font-black text-white/88 transition-all active:scale-95 active:bg-[rgba(106,106,106,0.2)]"
                       style={mobileGlassControlStyle}
                     >
                       {card.cta}
@@ -2815,7 +2815,7 @@ export default function MobileChat() {
                   animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
                   exit={{ opacity: 0, x: "-50%", y: 6, scale: 0.97 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border border-white/[0.09] bg-white/[0.075] text-white backdrop-blur-[32px]"
+                  className="pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88 backdrop-blur-[42px]"
                   style={{
                     left: responseModeMenuPosition.left,
                     top: responseModeMenuPosition.top,
@@ -2828,7 +2828,7 @@ export default function MobileChat() {
                 >
                   <div className="max-h-[inherit] overflow-y-auto p-4">
                     <section>
-                      <div className="mb-2 border-b border-white/[0.08] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
+                      <div className="mb-2 border-b border-white/[0.045] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/48">
                         BlueMind Models
                       </div>
                       <div className="space-y-1">
@@ -2847,13 +2847,13 @@ export default function MobileChat() {
                                 <span className="truncate">{model.label}</span>
                                 {model.badge && (
                                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
-                                    "bg-white/[0.1] text-white"
+                                    "bg-white/[0.065] text-white/90"
                                   }`}>
                                     🆕 {model.badge}
                                   </span>
                                 )}
                               </span>
-                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-white" />}
+                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-white/88" />}
                             </button>
                           );
                         })}
@@ -2861,7 +2861,7 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className="mb-2 border-b border-white/[0.08] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
+                      <div className="mb-2 border-b border-white/[0.045] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/48">
                         AI Modes
                       </div>
                       <div className="space-y-1">
@@ -2882,7 +2882,7 @@ export default function MobileChat() {
                                 <ModeIcon className="h-[18px] w-[18px] shrink-0 stroke-[2.3]" />
                                 <span className="truncate">{getAiSpecializationLabel(mode)}</span>
                               </span>
-                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-white" />}
+                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-white/88" />}
                             </button>
                           );
                         })}
@@ -2890,7 +2890,7 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className="mb-2 border-b border-white/[0.08] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
+                      <div className="mb-2 border-b border-white/[0.045] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/48">
                         Thinking
                       </div>
                       <button
@@ -2901,7 +2901,7 @@ export default function MobileChat() {
                         aria-checked={headerThinkingEnabled}
                       >
                         <span>Enable Thinking</span>
-                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${headerThinkingEnabled ? "border-white bg-white text-[#050505]" : "border-white/25"}`}>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${headerThinkingEnabled ? "border-white/45 bg-white/82 text-[#050505]" : "border-white/14"}`}>
                           {headerThinkingEnabled && <Check className="h-4 w-4 stroke-[3]" />}
                         </span>
                       </button>

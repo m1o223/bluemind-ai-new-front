@@ -107,16 +107,16 @@ export default function UnifiedComposer({
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
   const useSubtleAddButton = isMobile || isIdleState;
   const mobileGlassIconButtonClass =
-    "border border-white/[0.1] bg-[rgba(62,62,62,0.16)] text-white/85 backdrop-blur-[40px] hover:bg-[rgba(82,82,82,0.22)] hover:text-white active:bg-[rgba(92,92,92,0.26)]";
+    "border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/78 backdrop-blur-[42px] hover:bg-[rgba(96,96,96,0.2)] hover:text-white/88 active:bg-[rgba(106,106,106,0.22)]";
   const mobileGlassIconStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.035), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.055), 0 12px 30px rgba(0,0,0,0.28)",
-    backdropFilter: "blur(40px) saturate(1.32)",
-    WebkitBackdropFilter: "blur(40px) saturate(1.32)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 12px 28px rgba(0,0,0,0.23)",
+    backdropFilter: "blur(42px) saturate(1.18)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.18)",
   };
   const mobileComposerGlassStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(255,255,255,0.035), inset 1px 0 0 rgba(255,255,255,0.075), inset -1px 0 0 rgba(255,255,255,0.055), 0 20px 62px rgba(0,0,0,0.34)",
-    backdropFilter: "blur(40px) saturate(1.3)",
-    WebkitBackdropFilter: "blur(40px) saturate(1.3)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(255,255,255,0.016), inset 1px 0 0 rgba(255,255,255,0.032), inset -1px 0 0 rgba(255,255,255,0.026), 0 20px 58px rgba(0,0,0,0.28)",
+    backdropFilter: "blur(42px) saturate(1.16)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
   };
 
   const normalizedAttachments = useMemo(
@@ -213,8 +213,9 @@ export default function UnifiedComposer({
       )}
       style={isListening ? {
         backgroundColor: appColor,
-        borderColor: "rgba(255,255,255,0.16)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.04), inset 1px 0 0 rgba(255,255,255,0.075), inset -1px 0 0 rgba(255,255,255,0.055), 0 12px 30px rgba(0,0,0,0.28)",
+        borderColor: "rgba(255,255,255,0.09)",
+        color: "rgba(255,255,255,0.9)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 12px 28px rgba(0,0,0,0.23)",
       } : isMobile ? mobileGlassIconStyle : undefined}
       aria-label={voiceLabel}
     >
@@ -238,7 +239,7 @@ export default function UnifiedComposer({
   if (isMobile) {
     const mobileBoxClasses = cn(
       "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
-      "rounded-[28px] border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-3 py-2.5 text-white backdrop-blur-[40px] focus-within:border-white/[0.15] focus-within:bg-[rgba(82,82,82,0.22)]",
+      "rounded-[28px] border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 py-2.5 text-white/90 backdrop-blur-[42px] focus-within:border-white/[0.075] focus-within:bg-[rgba(96,96,96,0.2)]",
       hasAttachments ? "min-h-[148px]" : "min-h-[92px]",
     );
 
@@ -279,7 +280,7 @@ export default function UnifiedComposer({
                       onClick={modePill.onClear}
                       className={cn(
                         "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
-                        "border border-white/[0.1] bg-[rgba(62,62,62,0.16)] text-white active:bg-[rgba(92,92,92,0.22)]",
+                        "border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/85 active:bg-[rgba(106,106,106,0.2)]",
                       )}
                       style={mobileGlassIconStyle}
                       aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
@@ -317,7 +318,7 @@ export default function UnifiedComposer({
                       <button
                         type="button"
                         onClick={onClearAttachments}
-                        className="h-9 shrink-0 rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-3 text-xs font-bold text-white hover:bg-[rgba(82,82,82,0.22)]"
+                      className="h-9 shrink-0 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 text-xs font-bold text-white/85 hover:bg-[rgba(96,96,96,0.2)]"
                         style={mobileGlassIconStyle}
                       >
                         Clear
@@ -339,12 +340,12 @@ export default function UnifiedComposer({
                   className={cn(
                     inputClasses.composer,
                     "relative z-10 block w-full resize-none bg-transparent px-1 pb-1 text-[16px] font-medium leading-6 outline-none",
-                    "text-white placeholder:text-[#8F8F8F]",
+                    "text-white/90 placeholder:text-[#8F8F8F]",
                   )}
                   style={{
                     ...inputDirectionStyle,
                     letterSpacing: "0",
-                    caretColor: "#FFFFFF",
+                    caretColor: "rgba(255,255,255,0.9)",
                     maxHeight: `${maxTextHeight}px`,
                     minHeight: `${textareaMinHeight}px`,
                   }}
