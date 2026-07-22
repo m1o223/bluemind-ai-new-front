@@ -33,10 +33,10 @@ function AuthPillButton({ children, icon, onClick, disabled, ariaLabel, testId }
       disabled={disabled}
       aria-label={ariaLabel}
       data-testid={testId}
-      className="relative flex h-[60px] w-full min-w-0 items-center justify-center rounded-[30px] bg-white px-6 text-xl font-semibold text-black transition duration-150 ease-out hover:bg-white/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#121923] active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+      className="relative flex h-[60px] w-full min-w-0 items-center justify-center rounded-[30px] border border-white/[0.075] bg-[rgba(42,51,63,0.58)] px-6 text-xl font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[26px] transition duration-150 ease-out hover:bg-[rgba(54,64,78,0.64)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/28 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {icon ? (
-        <span className="absolute left-6 flex h-6 w-6 items-center justify-center text-black">
+        <span className="absolute left-6 flex h-6 w-6 items-center justify-center text-white/88">
           {icon}
         </span>
       ) : null}
@@ -64,7 +64,7 @@ export default function MobileWelcome() {
 
   return (
     <main
-      className="overflow-hidden bg-[#0b315e] text-white"
+      className="overflow-hidden bg-[#07090d] text-white"
       style={{
         position: "fixed",
         inset: 0,
@@ -76,14 +76,14 @@ export default function MobileWelcome() {
       }}
       data-testid="mobile-auth-welcome"
     >
-      <BlueMindAnimatedBackground />
+      <BlueMindAnimatedBackground className="bm-mobile-auth-flow" />
       <section className="mx-auto flex h-full w-full max-w-[430px] flex-col">
         <div className="relative min-h-0 flex-1">
           <button
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Go back"
-            className="absolute left-5 top-4 z-10 inline-flex h-10 items-center gap-1 rounded-full bg-white/16 px-4 text-sm font-bold text-white transition duration-150 ease-out hover:bg-white/22 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.98]"
+            className="absolute left-5 top-4 z-10 inline-flex h-10 items-center gap-1 rounded-full border border-white/[0.08] bg-[rgba(42,51,63,0.42)] px-4 text-sm font-bold text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_30px_rgba(0,0,0,0.18)] backdrop-blur-[24px] transition duration-150 ease-out hover:bg-[rgba(54,64,78,0.50)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.98]"
             style={{ marginTop: "env(safe-area-inset-top)" }}
             data-testid="mobile-auth-back-button"
           >
@@ -92,14 +92,14 @@ export default function MobileWelcome() {
           </button>
         </div>
 
-        <div className="relative z-10 mx-auto mb-5 w-[92%] rounded-[40px] bg-[#121923] px-7 py-7 text-white shadow-none">
+        <div className="relative z-10 mx-auto mb-5 w-[92%] rounded-[40px] border border-white/[0.055] bg-[rgba(13,18,25,0.84)] px-7 py-7 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_-18px_60px_rgba(0,0,0,0.28)] backdrop-blur-[24px]">
           <div className="mx-auto flex w-full flex-col">
             <AuthPillButton
               onClick={handleGoogleLogin}
               disabled={isGoogleLoading}
               ariaLabel="Continue with Google"
               testId="mobile-google-auth-button"
-              icon={isGoogleLoading ? <BlueMindLoadingDots className="text-black" /> : <GoogleIcon />}
+              icon={isGoogleLoading ? <BlueMindLoadingDots className="text-white" /> : <GoogleIcon />}
             >
               Continue with Google
             </AuthPillButton>
@@ -116,9 +116,9 @@ export default function MobileWelcome() {
             </AuthPillButton>
 
             <div className="flex items-center gap-4 py-6" aria-hidden="true">
-              <div className="h-px flex-1 bg-white/16" />
-              <span className="text-sm font-semibold text-white/62">or</span>
-              <div className="h-px flex-1 bg-white/16" />
+              <div className="h-px flex-1 bg-white/10" />
+              <span className="text-sm font-semibold text-white/50">or</span>
+              <div className="h-px flex-1 bg-white/10" />
             </div>
 
             <AuthPillButton

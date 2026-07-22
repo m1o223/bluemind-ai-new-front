@@ -39,10 +39,10 @@ function SocialButton({ children, icon, onClick, disabled, testId }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="relative flex h-[60px] w-full items-center justify-center rounded-[30px] bg-white px-6 text-xl font-semibold text-black transition duration-150 hover:bg-white/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#121923] active:scale-[0.985] disabled:opacity-60"
+      className="relative flex h-[60px] w-full items-center justify-center rounded-[30px] border border-white/[0.075] bg-[rgba(42,51,63,0.58)] px-6 text-xl font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[26px] transition duration-150 hover:bg-[rgba(54,64,78,0.64)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/28 active:scale-[0.985] disabled:opacity-60"
       data-testid={testId}
     >
-      <span className="absolute left-6 flex h-6 w-6 items-center justify-center text-black">{icon}</span>
+      <span className="absolute left-6 flex h-6 w-6 items-center justify-center text-white/88">{icon}</span>
       <span className="px-8 text-center leading-none">{children}</span>
     </button>
   );
@@ -119,7 +119,7 @@ export default function MobileRegister() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 overflow-y-auto bg-[#0b315e] text-white"
+      className="fixed inset-0 overflow-y-auto bg-[#07090d] text-white"
       style={{
         minHeight: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
@@ -127,13 +127,13 @@ export default function MobileRegister() {
       }}
       data-testid="mobile-register-page"
     >
-      <BlueMindAnimatedBackground />
+      <BlueMindAnimatedBackground className="bm-mobile-auth-flow" />
       <section className="relative z-10 mx-auto flex min-h-full w-full max-w-[430px] flex-col">
         <div className="relative min-h-[28dvh] flex-1">
           <button
             type="button"
             onClick={() => navigate("/mobile/email")}
-            className="absolute left-5 top-4 inline-flex h-10 items-center gap-1 rounded-full bg-white/16 px-4 text-sm font-bold text-white transition duration-150 hover:bg-white/22 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.98]"
+            className="absolute left-5 top-4 inline-flex h-10 items-center gap-1 rounded-full border border-white/[0.08] bg-[rgba(42,51,63,0.42)] px-4 text-sm font-bold text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_30px_rgba(0,0,0,0.18)] backdrop-blur-[24px] transition duration-150 hover:bg-[rgba(54,64,78,0.50)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.98]"
             style={{ marginTop: "env(safe-area-inset-top)" }}
             aria-label="Back"
           >
@@ -142,12 +142,12 @@ export default function MobileRegister() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="relative z-10 mx-auto mb-5 w-[92%] rounded-[40px] bg-[#121923] px-7 py-7 text-white">
+        <form onSubmit={handleSubmit} className="relative z-10 mx-auto mb-5 w-[92%] rounded-[40px] border border-white/[0.055] bg-[rgba(13,18,25,0.84)] px-7 py-7 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_-18px_60px_rgba(0,0,0,0.28)] backdrop-blur-[24px]">
           <SocialButton
             onClick={handleGoogleLogin}
             disabled={Boolean(socialLoading)}
             testId="mobile-register-google-login"
-            icon={socialLoading === "google" ? <BlueMindLoadingDots className="text-black" /> : <GoogleIcon />}
+            icon={socialLoading === "google" ? <BlueMindLoadingDots className="text-white" /> : <GoogleIcon />}
           >
             Continue with Google
           </SocialButton>
@@ -164,63 +164,63 @@ export default function MobileRegister() {
           </SocialButton>
 
           <div className="flex items-center gap-4 py-6" aria-hidden="true">
-            <div className="h-px flex-1 bg-white/16" />
-            <span className="text-sm font-semibold text-white/62">or</span>
-            <div className="h-px flex-1 bg-white/16" />
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-sm font-semibold text-white/50">or</span>
+            <div className="h-px flex-1 bg-white/10" />
           </div>
 
           <div className="mb-6 text-center">
-            <h1 className="text-4xl font-bold leading-tight tracking-tight">{t("createAccount")}</h1>
-            <p className="mt-2 text-lg font-medium text-white/62">{t("createAccountSubtitle")}</p>
+            <h1 className="text-4xl font-bold leading-tight tracking-tight text-white/95">{t("createAccount")}</h1>
+            <p className="mt-2 text-lg font-medium text-white/54">{t("createAccountSubtitle")}</p>
           </div>
 
           <div className="space-y-[18px]">
           <div>
-            <label className="mb-2 block text-base font-semibold text-white">{t("fullName")}</label>
+            <label className="mb-2 block text-base font-semibold text-white/88">{t("fullName")}</label>
             <div className="relative">
-              <User className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-white/52" />
+              <User className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-white/46" />
               <Input
                 type="text"
                 value={formData.fullName}
                 onChange={(event) => setFormData({ ...formData, fullName: event.target.value })}
                 placeholder={t("enterFullName")}
-                className="h-[58px] rounded-[20px] border-0 bg-[#1a2531] !pl-[58px] !pr-5 text-base font-semibold text-white placeholder:text-white/38 focus-visible:ring-1 focus-visible:ring-white/16"
+                className="h-[58px] rounded-[22px] border border-white/[0.055] bg-[rgba(44,53,65,0.58)] !pl-[58px] !pr-5 text-base font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] placeholder:text-white/34 backdrop-blur-[18px] focus-visible:ring-1 focus-visible:ring-white/18"
                 data-testid="mobile-fullname-input"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-base font-semibold text-white">{t("email")}</label>
+            <label className="mb-2 block text-base font-semibold text-white/88">{t("email")}</label>
             <div className="relative">
-              <Mail className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-white/52" />
+              <Mail className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-white/46" />
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(event) => setFormData({ ...formData, email: event.target.value })}
                 placeholder={t("enterEmail")}
-                className="h-[58px] rounded-[20px] border-0 bg-[#1a2531] !pl-[58px] !pr-5 text-base font-semibold text-white placeholder:text-white/38 focus-visible:ring-1 focus-visible:ring-white/16"
+                className="h-[58px] rounded-[22px] border border-white/[0.055] bg-[rgba(44,53,65,0.58)] !pl-[58px] !pr-5 text-base font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] placeholder:text-white/34 backdrop-blur-[18px] focus-visible:ring-1 focus-visible:ring-white/18"
                 data-testid="mobile-register-email-input"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-base font-semibold text-white">{t("password")}</label>
+            <label className="mb-2 block text-base font-semibold text-white/88">{t("password")}</label>
             <div className="relative">
-              <Lock className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-white/52" />
+              <Lock className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-white/46" />
               <Input
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={(event) => setFormData({ ...formData, password: event.target.value })}
                 placeholder={t("createPassword")}
-                className="h-[58px] rounded-[20px] border-0 bg-[#1a2531] !pl-[58px] !pr-[58px] text-base font-semibold text-white placeholder:text-white/38 focus-visible:ring-1 focus-visible:ring-white/16"
+                className="h-[58px] rounded-[22px] border border-white/[0.055] bg-[rgba(44,53,65,0.58)] !pl-[58px] !pr-[58px] text-base font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] placeholder:text-white/34 backdrop-blur-[18px] focus-visible:ring-1 focus-visible:ring-white/18"
                 data-testid="mobile-register-password-input"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-white/52"
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-white/46 transition hover:text-white/70"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
@@ -231,11 +231,11 @@ export default function MobileRegister() {
               {passwordRequirements.map((requirement) => (
                 <div key={requirement.label} className="flex items-center gap-2">
                   <div
-                    className={cn("flex h-4 w-4 items-center justify-center rounded-full border transition-colors", requirement.met ? "border-[var(--bm-primary)] bg-[var(--bm-primary)]" : "border-white/22 bg-[#1a2531]")}
+                    className={cn("flex h-4 w-4 items-center justify-center rounded-full border transition-colors", requirement.met ? "border-[var(--bm-primary)] bg-[var(--bm-primary)]" : "border-white/16 bg-[rgba(44,53,65,0.58)]")}
                   >
                     {requirement.met && <Check className="h-2.5 w-2.5 text-white" />}
                   </div>
-                  <span className={cn("text-sm font-semibold", requirement.met ? "text-white" : "text-white/62")}>
+                  <span className={cn("text-sm font-semibold", requirement.met ? "text-white/88" : "text-white/54")}>
                     {requirement.label}
                   </span>
                 </div>
@@ -247,7 +247,7 @@ export default function MobileRegister() {
             type="submit"
             disabled={!isFormValid || isLoading}
             actionState={actionState}
-            className="mt-6 h-[60px] w-full rounded-[30px] text-xl font-semibold text-white disabled:opacity-50"
+            className="mt-6 h-[60px] w-full rounded-[30px] text-xl font-semibold text-white/95 shadow-[0_18px_42px_rgba(25,91,164,0.25)] disabled:opacity-50"
             style={{ backgroundColor: "var(--bluemind-app-color, var(--bm-primary))" }}
             data-testid="mobile-register-submit-button"
           >
@@ -262,7 +262,7 @@ export default function MobileRegister() {
           <button
             type="button"
             onClick={() => navigate("/mobile/email")}
-            className="mt-4 flex h-[60px] w-full items-center justify-center rounded-[30px] bg-white px-6 text-xl font-semibold text-black transition hover:bg-white/95 active:scale-[0.985]"
+            className="mt-4 flex h-[60px] w-full items-center justify-center rounded-[30px] border border-white/[0.075] bg-[rgba(42,51,63,0.58)] px-6 text-xl font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[26px] transition hover:bg-[rgba(54,64,78,0.64)] active:scale-[0.985]"
           >
             Login
           </button>
