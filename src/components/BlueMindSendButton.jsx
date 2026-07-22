@@ -15,11 +15,17 @@ export default function BlueMindSendButton({
 }) {
   const isActive = isBusy || canSend;
   const mobileInactiveStyle = compact && !isActive ? {
-    backgroundColor: "rgba(255,255,255,0.055)",
-    borderColor: "rgba(255,255,255,0.08)",
-    color: "rgba(255,255,255,0.48)",
-    backdropFilter: "blur(24px)",
-    WebkitBackdropFilter: "blur(24px)",
+    backgroundColor: "rgba(255,255,255,0.075)",
+    borderColor: "rgba(255,255,255,0.09)",
+    color: "rgba(255,255,255,0.5)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.045), inset 0 -14px 26px rgba(255,255,255,0.018), 0 12px 34px rgba(0,0,0,0.3)",
+    backdropFilter: "blur(32px) saturate(1.24)",
+    WebkitBackdropFilter: "blur(32px) saturate(1.24)",
+  } : undefined;
+  const mobileActiveStyle = compact && isActive ? {
+    backgroundColor: appColor,
+    borderColor: "rgba(255,255,255,0.16)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 1px 0 0 rgba(255,255,255,0.08), inset -1px 0 0 rgba(255,255,255,0.055), 0 14px 36px rgba(37,99,235,0.28), 0 12px 34px rgba(0,0,0,0.28)",
   } : undefined;
 
   return (
@@ -32,12 +38,12 @@ export default function BlueMindSendButton({
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all disabled:cursor-not-allowed",
         compact
-          ? "h-10 w-10 border shadow-[0_10px_30px_rgba(0,0,0,0.26)]"
+          ? "h-10 w-10 border"
           : "h-11 w-11 text-white shadow-[0_12px_28px_rgba(25,59,104,0.22)] disabled:opacity-45",
         isActive ? "text-white hover:opacity-95" : compact ? "" : "",
         className,
       )}
-      style={mobileInactiveStyle || { backgroundColor: isActive ? appColor : "var(--bm-text-muted)" }}
+      style={mobileInactiveStyle || mobileActiveStyle || { backgroundColor: isActive ? appColor : "var(--bm-text-muted)" }}
       aria-label={isBusy ? stopLabel : sendLabel}
     >
       {isBusy ? (

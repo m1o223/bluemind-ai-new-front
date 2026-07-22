@@ -548,16 +548,24 @@ export default function MobileChat() {
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = "#050505";
-  const panelColor = "rgba(30,30,30,0.55)";
+  const panelColor = "rgba(255,255,255,0.065)";
   const borderColor = "border-white/[0.08]";
   const mutedText = "text-[#B8B8B8]";
   const textColor = "text-white";
   const mobileGlassControlClass =
-    "flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.08] bg-[rgba(30,30,30,0.55)] text-white shadow-[0_14px_36px_rgba(0,0,0,0.34)] backdrop-blur-[24px] transition-all duration-200 ease-out active:scale-95 active:bg-white/[0.08]";
+    "flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.075] text-white backdrop-blur-[32px] transition-all duration-200 ease-out active:scale-95 active:bg-white/[0.12]";
   const mobileGlassSelectorClass =
-    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.08] bg-[rgba(30,30,30,0.55)] px-4 text-sm font-bold capitalize text-white shadow-[0_14px_38px_rgba(0,0,0,0.34)] backdrop-blur-[24px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-white/[0.08]";
-  const mobileGlassMenuSelectedClass = "bg-black/25 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]";
-  const mobileGlassMenuIdleClass = "text-white hover:bg-white/[0.05] active:bg-white/[0.08]";
+    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.075] px-4 text-sm font-bold capitalize text-white backdrop-blur-[32px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-white/[0.12]";
+  const mobileGlassControlStyle = {
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.045), inset 0 -16px 30px rgba(255,255,255,0.018), 0 16px 44px rgba(0,0,0,0.34)",
+    WebkitBackdropFilter: "blur(32px) saturate(1.25)",
+  };
+  const mobileGlassPanelStyle = {
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 1px 0 0 rgba(255,255,255,0.055), inset -1px 0 0 rgba(255,255,255,0.04), 0 28px 90px rgba(0,0,0,0.42)",
+    WebkitBackdropFilter: "blur(32px) saturate(1.22)",
+  };
+  const mobileGlassMenuSelectedClass = "bg-white/[0.105] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]";
+  const mobileGlassMenuIdleClass = "text-white hover:bg-white/[0.065] active:bg-white/[0.1]";
 
   const bluemindMenuItems = [
     { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
@@ -2365,13 +2373,10 @@ export default function MobileChat() {
               key={action.label}
               type="button"
               onClick={action.onClick}
-              className={`inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-[13px] font-bold transition-colors active:scale-[0.99] ${
-                isDark
-                  ? "border-white/[0.08] bg-white/[0.06] text-white shadow-[0_10px_28px_rgba(0,0,0,0.18)] active:bg-white/[0.11]"
-                  : "border-[var(--bm-border)] bg-white/90 text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]"
-              }`}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.075] px-3 text-[13px] font-bold text-white backdrop-blur-[32px] transition-all duration-200 ease-out active:scale-[0.98] active:bg-white/[0.12]"
+              style={mobileGlassControlStyle}
             >
-              <ActionIcon className={`h-4 w-4 shrink-0 stroke-[2.2] ${isDark ? "text-white/85" : "text-[var(--bm-primary)]"}`} />
+              <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.2] text-white/85" />
               <span className="whitespace-nowrap">{action.label}</span>
             </button>
           );
@@ -2493,6 +2498,7 @@ export default function MobileChat() {
             type="button"
             onClick={openMenu}
             className={mobileGlassControlClass}
+            style={mobileGlassControlStyle}
             aria-label="Open menu"
           >
             <span className="flex h-5 w-6 flex-col items-start justify-center gap-[7px]" aria-hidden="true">
@@ -2510,6 +2516,7 @@ export default function MobileChat() {
               setResponseModeMenuOpen((open) => responseModeMenuPlacement === "header" ? !open : true);
             }}
             className={mobileGlassSelectorClass}
+            style={mobileGlassControlStyle}
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen && responseModeMenuPlacement === "header"}
           >
@@ -2535,10 +2542,10 @@ export default function MobileChat() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.97 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="pointer-events-auto fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[28px] border border-white/[0.08] bg-[rgba(30,30,30,0.55)] text-white shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-[24px]"
+                  className="pointer-events-auto fixed left-1/2 top-[calc(env(safe-area-inset-top)+5rem)] z-50 w-[82vw] min-w-[280px] max-w-[390px] -translate-x-1/2 overflow-hidden rounded-[28px] border border-white/[0.09] bg-white/[0.075] text-white backdrop-blur-[32px]"
                   style={{
                     maxHeight: "min(72vh, 560px)",
-                    WebkitBackdropFilter: "blur(24px)",
+                    ...mobileGlassPanelStyle,
                   }}
                   role="menu"
                 >
@@ -2634,6 +2641,7 @@ export default function MobileChat() {
             type="button"
             onClick={startNewChat}
             className={mobileGlassControlClass}
+            style={mobileGlassControlStyle}
             aria-label="New chat"
           >
             <PenLine className="h-5 w-5" />
