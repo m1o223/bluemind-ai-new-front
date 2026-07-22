@@ -103,7 +103,7 @@ export default function UnifiedComposer({
   const isAttachmentState = hasAttachments || Boolean(modePill);
   const isTypingState = isMobile ? hasText : !isAttachmentState && (isFocused || hasText);
   const isIdleState = isMobile ? !isTypingState : !isAttachmentState && !isTypingState;
-  const textareaMinHeight = isMobile ? 50 : (isIdleState ? 30 : 38);
+  const textareaMinHeight = isMobile ? 44 : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
   const useSubtleAddButton = isMobile || isIdleState;
   const mobileGlassIconButtonClass =
@@ -239,12 +239,12 @@ export default function UnifiedComposer({
   if (isMobile) {
     const mobileBoxClasses = cn(
       "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
-      "rounded-[28px] border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 py-2.5 text-white/90 backdrop-blur-[42px] focus-within:border-white/[0.075] focus-within:bg-[rgba(96,96,96,0.2)]",
-      hasAttachments ? "min-h-[148px]" : "min-h-[92px]",
+      "rounded-[28px] border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 py-2 text-white/90 backdrop-blur-[42px] focus-within:border-white/[0.075] focus-within:bg-[rgba(96,96,96,0.2)]",
+      hasAttachments ? "min-h-[140px]" : "min-h-[84px]",
     );
 
     return (
-      <form className="space-y-2" onSubmit={onSubmit} data-composer-state={composerState}>
+      <form className="-mx-1 space-y-2" onSubmit={onSubmit} data-composer-state={composerState}>
         {pendingPanel}
         {actionMenu}
 
@@ -352,7 +352,7 @@ export default function UnifiedComposer({
                   data-testid={testId}
                 />
 
-                <div className="mt-2 flex min-h-10 w-full items-center gap-2.5">
+                <div className="mt-1.5 flex min-h-10 w-full items-center gap-2.5">
                   {addButton}
                   <div className="min-w-0 flex-1" />
                   <div className="flex shrink-0 items-center gap-1.5">
