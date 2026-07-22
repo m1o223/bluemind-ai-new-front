@@ -107,16 +107,18 @@ export default function UnifiedComposer({
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
   const useSubtleAddButton = isMobile || isIdleState;
   const mobileGlassIconButtonClass =
-    "border border-white/[0.09] bg-white/[0.075] text-white/85 backdrop-blur-[32px] hover:bg-white/[0.105] hover:text-white active:bg-white/[0.13]";
+    "border border-white/[0.1] bg-[rgba(62,62,62,0.16)] text-white/85 backdrop-blur-[40px] hover:bg-[rgba(82,82,82,0.22)] hover:text-white active:bg-[rgba(92,92,92,0.26)]";
   const mobileGlassIconStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.045), inset 0 -14px 26px rgba(255,255,255,0.018), 0 12px 34px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(32px) saturate(1.24)",
-    WebkitBackdropFilter: "blur(32px) saturate(1.24)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 1px 0 0 rgba(255,255,255,0.09), inset -1px 0 0 rgba(255,255,255,0.065), inset 0 -16px 30px rgba(255,255,255,0.024), 0 14px 38px rgba(0,0,0,0.3)",
+    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.036) 44%, rgba(255,255,255,0.018))",
+    backdropFilter: "blur(40px) saturate(1.32)",
+    WebkitBackdropFilter: "blur(40px) saturate(1.32)",
   };
   const mobileComposerGlassStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 1px 0 0 rgba(255,255,255,0.065), inset -1px 0 0 rgba(255,255,255,0.045), inset 0 -22px 44px rgba(255,255,255,0.018), 0 22px 70px rgba(0,0,0,0.36)",
-    backdropFilter: "blur(32px) saturate(1.22)",
-    WebkitBackdropFilter: "blur(32px) saturate(1.22)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 1px 0 0 rgba(255,255,255,0.085), inset -1px 0 0 rgba(255,255,255,0.06), inset 0 -28px 54px rgba(255,255,255,0.024), 0 24px 76px rgba(0,0,0,0.34)",
+    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.115), rgba(255,255,255,0.034) 46%, rgba(255,255,255,0.018))",
+    backdropFilter: "blur(40px) saturate(1.3)",
+    WebkitBackdropFilter: "blur(40px) saturate(1.3)",
   };
 
   const normalizedAttachments = useMemo(
@@ -238,7 +240,7 @@ export default function UnifiedComposer({
   if (isMobile) {
     const mobileBoxClasses = cn(
       "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
-      "rounded-[28px] border-white/[0.09] bg-white/[0.075] px-3 py-2.5 text-white backdrop-blur-[32px] focus-within:border-white/[0.14] focus-within:bg-white/[0.105]",
+      "rounded-[28px] border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-3 py-2.5 text-white backdrop-blur-[40px] focus-within:border-white/[0.15] focus-within:bg-[rgba(82,82,82,0.22)]",
       hasAttachments ? "min-h-[148px]" : "min-h-[92px]",
     );
 
@@ -279,7 +281,7 @@ export default function UnifiedComposer({
                       onClick={modePill.onClear}
                       className={cn(
                         "inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold transition-colors",
-                        "border border-white/[0.09] bg-white/[0.075] text-white active:bg-white/[0.12]",
+                        "border border-white/[0.1] bg-[rgba(62,62,62,0.16)] text-white active:bg-[rgba(92,92,92,0.22)]",
                       )}
                       style={mobileGlassIconStyle}
                       aria-label={modePill.clearLabel || `Clear ${modePill.label}`}
@@ -317,7 +319,7 @@ export default function UnifiedComposer({
                       <button
                         type="button"
                         onClick={onClearAttachments}
-                        className="h-9 shrink-0 rounded-full border border-white/[0.09] bg-white/[0.075] px-3 text-xs font-bold text-white hover:bg-white/[0.105]"
+                        className="h-9 shrink-0 rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-3 text-xs font-bold text-white hover:bg-[rgba(82,82,82,0.22)]"
                         style={mobileGlassIconStyle}
                       >
                         Clear

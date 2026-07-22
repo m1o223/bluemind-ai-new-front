@@ -549,24 +549,28 @@ export default function MobileChat() {
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = "#050505";
-  const panelColor = "rgba(255,255,255,0.065)";
+  const panelColor = "rgba(62,62,62,0.16)";
   const borderColor = "border-white/[0.08]";
   const mutedText = "text-[#B8B8B8]";
   const textColor = "text-white";
   const mobileGlassControlClass =
-    "flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.075] text-white backdrop-blur-[32px] transition-all duration-200 ease-out active:scale-95 active:bg-white/[0.12]";
+    "flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] text-white backdrop-blur-[40px] transition-all duration-200 ease-out active:scale-95 active:bg-[rgba(82,82,82,0.22)]";
   const mobileGlassSelectorClass =
-    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.075] px-4 text-sm font-bold capitalize text-white backdrop-blur-[32px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-white/[0.12]";
+    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-4 text-sm font-bold capitalize text-white backdrop-blur-[40px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-[rgba(82,82,82,0.22)]";
   const mobileGlassControlStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 1px 0 0 rgba(255,255,255,0.07), inset -1px 0 0 rgba(255,255,255,0.045), inset 0 -16px 30px rgba(255,255,255,0.018), 0 16px 44px rgba(0,0,0,0.34)",
-    WebkitBackdropFilter: "blur(32px) saturate(1.25)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.24), inset 1px 0 0 rgba(255,255,255,0.09), inset -1px 0 0 rgba(255,255,255,0.065), inset 0 -18px 34px rgba(255,255,255,0.026), 0 18px 48px rgba(0,0,0,0.32)",
+    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.035) 42%, rgba(255,255,255,0.018))",
+    backdropFilter: "blur(40px) saturate(1.32)",
+    WebkitBackdropFilter: "blur(40px) saturate(1.32)",
   };
   const mobileGlassPanelStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 1px 0 0 rgba(255,255,255,0.055), inset -1px 0 0 rgba(255,255,255,0.04), 0 28px 90px rgba(0,0,0,0.42)",
-    WebkitBackdropFilter: "blur(32px) saturate(1.22)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), inset 1px 0 0 rgba(255,255,255,0.075), inset -1px 0 0 rgba(255,255,255,0.055), inset 0 -24px 46px rgba(255,255,255,0.024), 0 30px 96px rgba(0,0,0,0.4)",
+    backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.11), rgba(255,255,255,0.03) 48%, rgba(255,255,255,0.018))",
+    backdropFilter: "blur(40px) saturate(1.28)",
+    WebkitBackdropFilter: "blur(40px) saturate(1.28)",
   };
-  const mobileGlassMenuSelectedClass = "bg-white/[0.105] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]";
-  const mobileGlassMenuIdleClass = "text-white hover:bg-white/[0.065] active:bg-white/[0.1]";
+  const mobileGlassMenuSelectedClass = "bg-[rgba(92,92,92,0.2)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]";
+  const mobileGlassMenuIdleClass = "text-white hover:bg-[rgba(92,92,92,0.14)] active:bg-[rgba(92,92,92,0.2)]";
 
   const bluemindMenuItems = [
     { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
