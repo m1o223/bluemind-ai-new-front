@@ -2283,6 +2283,14 @@ export default function MobileChat() {
       setAttachmentSheetOpen(true);
     };
 
+    const quickActionChips = [
+      { label: "Write / Edit", icon: Edit3, onClick: enterWriteEditMode },
+      { label: "Create Images", icon: Image, onClick: enterImageMode },
+      { label: "Search", icon: Search, onClick: enterSearchMode },
+      { label: "Open Camera", icon: Camera, onClick: () => openFileInput(cameraInputRef, "camera") },
+      { label: "Files / Photos", icon: FileText, onClick: () => openFileInput(imageInputRef, "photos") },
+    ];
+
     return (
     <motion.div
       layout
@@ -2344,6 +2352,32 @@ export default function MobileChat() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div
+        className="-mx-4 mb-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-testid="mobile-quick-action-chips"
+      >
+        <div className="flex w-max min-w-full items-center gap-2.5">
+          {quickActionChips.map((action) => {
+            const ActionIcon = action.icon;
+            return (
+              <motion.button
+                key={action.label}
+                type="button"
+                onClick={action.onClick}
+                whileTap={{ scale: 0.96 }}
+                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-3.5 text-[13px] font-bold text-white/90 backdrop-blur-[40px] transition-colors hover:bg-[rgba(82,82,82,0.22)] active:bg-[rgba(92,92,92,0.26)]"
+                style={mobileGlassControlStyle}
+                aria-label={action.label}
+              >
+                <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.3] text-white/85" />
+                <span className="whitespace-nowrap">{action.label}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
 
       <UnifiedComposer
         value={message}
