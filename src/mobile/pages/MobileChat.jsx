@@ -467,6 +467,9 @@ export default function MobileChat() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [responseModeMenuPosition, setResponseModeMenuPosition] = useState(null);
+  const [featureCarouselIndex, setFeatureCarouselIndex] = useState(0);
+  const [featureCarouselTransition, setFeatureCarouselTransition] = useState(true);
+  const [featureCarouselResumeAt, setFeatureCarouselResumeAt] = useState(0);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
@@ -546,6 +549,7 @@ export default function MobileChat() {
   const sendLockRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
   const loadedConversationRef = useRef(null);
+  const featureCarouselCount = 5;
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = "#050505";
@@ -569,6 +573,54 @@ export default function MobileChat() {
   };
   const mobileGlassMenuSelectedClass = "bg-[rgba(92,92,92,0.2)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]";
   const mobileGlassMenuIdleClass = "text-white hover:bg-[rgba(92,92,92,0.14)] active:bg-[rgba(92,92,92,0.2)]";
+
+  const mobileFeatureCards = useMemo(() => [
+    {
+      title: "Smart Hub",
+      description: "Organize BlueMind tools in one intelligent workspace.",
+      cta: "Explore",
+      path: "/mobile/smart-hub",
+      icon: Brain,
+      accent: "rgba(96,165,250,0.72)",
+      glow: "rgba(59,130,246,0.22)",
+    },
+    {
+      title: "AI Plans",
+      description: "Turn goals into clear steps and smarter routines.",
+      cta: "Try Now",
+      path: "/mobile/ai-plans",
+      icon: Sparkles,
+      accent: "rgba(125,211,252,0.72)",
+      glow: "rgba(14,165,233,0.2)",
+    },
+    {
+      title: "Learning",
+      description: "Study faster with guided lessons and focused help.",
+      cta: "Open",
+      path: "/mobile/learning",
+      icon: BookOpen,
+      accent: "rgba(147,197,253,0.72)",
+      glow: "rgba(96,165,250,0.2)",
+    },
+    {
+      title: "Reminders",
+      description: "Keep important tasks visible at the right time.",
+      cta: "Open",
+      path: "/mobile/reminders",
+      icon: Bell,
+      accent: "rgba(191,219,254,0.76)",
+      glow: "rgba(59,130,246,0.18)",
+    },
+    {
+      title: "Schedule",
+      description: "Plan your day with BlueMind's smart calendar tools.",
+      cta: "Explore",
+      path: "/mobile/schedule",
+      icon: Clipboard,
+      accent: "rgba(56,189,248,0.72)",
+      glow: "rgba(56,189,248,0.18)",
+    },
+  ], []);
 
   const bluemindMenuItems = [
     { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
@@ -712,6 +764,56 @@ export default function MobileChat() {
       viewport?.removeEventListener("scroll", update);
     };
   }, [responseModeMenuOpen, updateResponseModeMenuPosition]);
+
+  useEffect(() => {
+    if (menuOpen || menuSearchOpen) return undefined;
+
+    const now = Date.now();
+    const delay = Math.max(4500, featureCarouselResumeAt - now + 4500);
+    const timer = window.setTimeout(() => {
+      setFeatureCarouselTransition(true);
+      setFeatureCarouselIndex((index) => index + 1);
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [featureCarouselIndex, featureCarouselResumeAt, menuOpen, menuSearchOpen]);
+
+  const pauseFeatureCarousel = useCallback(() => {
+    setFeatureCarouselResumeAt(Date.now() + 2600);
+  }, []);
+
+  const moveFeatureCarousel = useCallback((direction) => {
+    pauseFeatureCarousel();
+    if (direction > 0) {
+      setFeatureCarouselTransition(true);
+      setFeatureCarouselIndex((index) => index + 1);
+      return;
+    }
+
+    if (featureCarouselIndex === 0) {
+      setFeatureCarouselTransition(false);
+      setFeatureCarouselIndex(featureCarouselCount);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          setFeatureCarouselTransition(true);
+          setFeatureCarouselIndex(featureCarouselCount - 1);
+        });
+      });
+      return;
+    }
+
+    setFeatureCarouselTransition(true);
+    setFeatureCarouselIndex((index) => index - 1);
+  }, [featureCarouselCount, featureCarouselIndex, pauseFeatureCarousel]);
+
+  const handleFeatureCarouselTransitionEnd = useCallback(() => {
+    if (featureCarouselIndex !== featureCarouselCount) return;
+    setFeatureCarouselTransition(false);
+    setFeatureCarouselIndex(0);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setFeatureCarouselTransition(true));
+    });
+  }, [featureCarouselCount, featureCarouselIndex]);
 
   const {
     isListening,
@@ -2558,6 +2660,98 @@ export default function MobileChat() {
     );
   };
 
+  const renderFeatureCarousel = () => {
+    const carouselCards = [...mobileFeatureCards, mobileFeatureCards[0]];
+    const visibleIndex = featureCarouselIndex % featureCarouselCount;
+
+    return (
+      <section className="shrink-0 pb-3 pt-2" data-testid="mobile-feature-carousel">
+        <div className="overflow-hidden">
+          <motion.div
+            className="flex gap-3 px-4"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.08}
+            onDragStart={pauseFeatureCarousel}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -42 || info.velocity.x < -350) {
+                moveFeatureCarousel(1);
+                return;
+              }
+              if (info.offset.x > 42 || info.velocity.x > 350) {
+                moveFeatureCarousel(-1);
+              }
+            }}
+            animate={{ x: `calc(${featureCarouselIndex} * -1 * (86vw + 12px))` }}
+            transition={featureCarouselTransition ? { duration: 0.62, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
+            onAnimationComplete={handleFeatureCarouselTransitionEnd}
+          >
+            {carouselCards.map((card, index) => {
+              const FeatureIcon = card.icon;
+              return (
+                <article
+                  key={`${card.title}-${index}`}
+                  className="relative flex h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border border-white/[0.1] bg-[rgba(62,62,62,0.16)] px-4 py-3 text-white backdrop-blur-[40px]"
+                  style={mobileGlassPanelStyle}
+                >
+                  <div
+                    className="absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl"
+                    style={{ backgroundColor: card.glow }}
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="mr-3 flex h-full w-[34%] min-w-[92px] shrink-0 items-center justify-center rounded-[24px] border border-white/[0.08] bg-[rgba(255,255,255,0.045)]"
+                    style={{
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 1px 0 0 rgba(255,255,255,0.045), inset -1px 0 0 rgba(255,255,255,0.035)",
+                    }}
+                  >
+                    <div className="relative flex h-[72px] w-[72px] items-center justify-center">
+                      <span className="absolute inset-0 rounded-full border border-white/[0.08]" />
+                      <span className="absolute h-12 w-12 rounded-full" style={{ backgroundColor: card.glow }} />
+                      <FeatureIcon className="relative h-9 w-9 stroke-[2.2]" style={{ color: card.accent }} />
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center">
+                    <h3 className="truncate text-base font-black tracking-tight">{card.title}</h3>
+                    <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-4 text-[#B8B8B8]">
+                      {card.description}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => goTo(card.path)}
+                      className="mt-2 inline-flex h-8 w-fit items-center gap-1 rounded-full border border-white/[0.1] bg-[rgba(82,82,82,0.18)] px-3 text-[12px] font-black text-white transition-all active:scale-95 active:bg-[rgba(92,92,92,0.24)]"
+                      style={mobileGlassControlStyle}
+                    >
+                      {card.cta}
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </motion.div>
+        </div>
+
+        <div className="mt-2 flex items-center justify-center gap-1.5">
+          {mobileFeatureCards.map((card, index) => (
+            <button
+              key={card.title}
+              type="button"
+              onClick={() => {
+                pauseFeatureCarousel();
+                setFeatureCarouselTransition(true);
+                setFeatureCarouselIndex(index);
+              }}
+              className={`h-1.5 rounded-full transition-all duration-300 ${visibleIndex === index ? "w-4 bg-white/85" : "w-1.5 bg-white/25"}`}
+              aria-label={`Show ${card.title}`}
+            />
+          ))}
+        </div>
+      </section>
+    );
+  };
+
   return (
     <main
       className={`fixed inset-0 flex flex-col overflow-hidden ${textColor}`}
@@ -2731,6 +2925,8 @@ export default function MobileChat() {
           </button>
         </div>
       </header>
+
+      {renderFeatureCarousel()}
 
       {(chatSessionMode === "private" || chatSessionMode === "hidden") && (
         <div className={`z-30 flex items-center justify-between border-b px-4 py-2 text-xs font-bold ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
