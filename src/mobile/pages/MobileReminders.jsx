@@ -44,9 +44,10 @@ const STATUS_LABELS = {
   cancelled: "Cancelled",
 };
 
-const mobileGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
+const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
+const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
 const mobileGlassControlClass = "bm-mobile-glass-control";
-const mobileGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
+const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
 
 function reminderId(reminder) {
   return reminder?._id || reminder?.id;
@@ -289,7 +290,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
       exit={{ opacity: 0, y: -8 }}
       className={cn(
         "relative rounded-[24px] border p-4 shadow-sm transition",
-        isDark ? mobileGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
+        isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
         highlighted && "ring-2",
       )}
       style={highlighted ? { "--tw-ring-color": appColor } : undefined}
@@ -346,7 +347,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                   <div
                     className={cn(
                       "absolute right-0 top-10 z-20 w-36 overflow-hidden rounded-2xl border py-1 shadow-xl",
-                      isDark ? mobileGlassMenuClass : "border-[#2F7DF6]/[0.16] bg-white/85 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_16px_36px_rgba(15,85,170,0.12)] backdrop-blur-[22px]",
+                      isDark ? mobileNeutralGlassMenuClass : "border-black/[0.08] bg-white/85 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_16px_36px_rgba(15,23,42,0.10)] backdrop-blur-[22px]",
                     )}
                   >
                     <button
@@ -378,11 +379,11 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
             <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
-              <CalendarDays className="h-3.5 w-3.5" style={{ color: appColor }} />
+              <CalendarDays className="h-3.5 w-3.5" />
               {formatDate(reminder.reminderDate || reminder.date, language)}
             </span>
             <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
-              <Clock className="h-3.5 w-3.5" style={{ color: appColor }} />
+              <Clock className="h-3.5 w-3.5" />
               {formatTime(reminder.time, language)}
             </span>
             <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
@@ -390,7 +391,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
             </span>
             {(reminder.recurrence?.frequency || "none") !== "none" && (
               <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
-                <Repeat2 className="h-3.5 w-3.5" style={{ color: appColor }} />
+                <Repeat2 className="h-3.5 w-3.5" />
                 {reminder.recurrence.frequency}
               </span>
             )}
@@ -409,7 +410,7 @@ function NotificationPanel({ debug, busy, isDark, appColor, onEnable, onRefresh,
     <section
       className={cn(
         "rounded-[24px] border p-4",
-        isDark ? mobileGlassSurfaceClass : "border-black/[0.08] bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
+        mobileBlueGlassSurfaceClass,
       )}
       data-testid="mobile-notification-panel"
     >
@@ -773,8 +774,7 @@ export default function MobileReminders() {
 
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2"
-            style={{ color: appColor }}
+            className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white"
           />
           <input
             value={searchQuery}
@@ -785,7 +785,7 @@ export default function MobileReminders() {
               typeClasses.body,
               "pl-14 pr-4 font-semibold backdrop-blur-[24px]",
               isDark
-                ? "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] placeholder:text-white/42"
+                ? `${mobileNeutralGlassSurfaceClass} placeholder:text-white/42`
                 : "border-black/[0.06] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_12px_28px_rgba(15,23,42,0.08)]",
             )}
             data-testid="mobile-reminder-search"
@@ -827,7 +827,7 @@ export default function MobileReminders() {
                 isDark ? "bg-white/[0.08]" : "bg-white shadow-sm",
               )}
             >
-              <Clock className="h-6 w-6" style={{ color: appColor }} />
+              <Clock className={cn("h-6 w-6", isDark ? "text-white/70" : "text-[var(--bm-text-secondary)]")} />
             </div>
             <h2 className="text-base font-semibold">
               {searchQuery ? "No matching reminders" : "No reminders yet"}
