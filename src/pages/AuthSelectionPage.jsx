@@ -1,9 +1,72 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
+import {
+  AppleIcon,
+  AuthButton,
+  AuthDivider,
+  AuthHeader,
+  AuthPage,
+  GoogleIcon,
+} from "@/components/auth/AuthPrimitives";
+import { getGoogleSignInErrorMessage, signInWithGoogle } from "@/services/authService";
+import { getPreferredAppRoute } from "@/services/navigationPreferences";
+
 export default function AuthSelectionPage() {
+  const navigate = useNavigate();
+  const [socialLoading, setSocialLoading] = useState("");
+
+  const handleGoogleLogin = async () => {
+    setSocialLoading("google");
+    try {
+      const session = await signInWithGoogle();
+      navigate(getPreferredAppRoute(session));
+    } catch (error) {
+      toast.error(getGoogleSignInErrorMessage(error, "Google sign-in failed"));
+    } finally {
+      setSocialLoading("");
+    }
+  };
+
   return (
-    <main
-      className="min-h-screen bg-black"
-      data-testid="auth-selection-page"
-      aria-label="Authentication page"
-    />
+    <AuthPage testId="auth-selection-page">
+      <div className="w-full">
+        <AuthHeader
+          title="Get Started with BlueMind AI"
+          description="Choose how you want to enter your BlueMind workspace."
+        />
+
+        <div className="space-y-4">
+          <AuthButton
+            onClick={handleGoogleLogin}
+            disabled={Boolean(socialLoading)}
+            icon={socialLoading === "google" ? <BlueMindLoadingDots /> : <GoogleIcon />}
+            testId="google-login"
+          >
+            Continue with Google
+          </AuthButton>
+          <AuthButton
+            onClick={() => toast.info("Apple sign-in is being prepared.")}
+            disabled={Boolean(socialLoading)}
+            icon={<AppleIcon />}
+          >
+            Continue with Apple
+          </AuthButton>
+        </div>
+
+        <AuthDivider />
+
+        <div className="space-y-4">
+          <AuthButton onClick={() => navigate("/auth/login")} testId="signin-option-button">
+            Login
+          </AuthButton>
+          <AuthButton onClick={() => navigate("/auth/register")} testId="register-option-button">
+            Create Account
+          </AuthButton>
+        </div>
+      </div>
+    </AuthPage>
   );
 }
