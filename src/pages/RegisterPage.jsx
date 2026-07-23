@@ -29,6 +29,8 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const requirements = useMemo(() => [
     { label: "Minimum 8 characters", met: formData.password.length >= 8 },
@@ -93,26 +95,32 @@ export default function RegisterPage() {
           type="email"
           value={formData.email}
           onChange={(event) => setFormData({ ...formData, email: event.target.value })}
-          placeholder="Email"
+          placeholder="example@email.com"
           autoComplete="email"
           testId="email-input"
         />
         <AuthInput
           label="Password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={formData.password}
           onChange={(event) => setFormData({ ...formData, password: event.target.value })}
-          placeholder="Password"
+          placeholder="Enter your password"
           autoComplete="new-password"
           testId="password-input"
+          showPasswordToggle
+          passwordVisible={showPassword}
+          onTogglePassword={() => setShowPassword((value) => !value)}
         />
         <AuthInput
           label="Confirm Password"
-          type="password"
+          type={showConfirmPassword ? "text" : "password"}
           value={formData.confirmPassword}
           onChange={(event) => setFormData({ ...formData, confirmPassword: event.target.value })}
-          placeholder="Confirm password"
+          placeholder="Confirm your password"
           autoComplete="new-password"
+          showPasswordToggle
+          passwordVisible={showConfirmPassword}
+          onTogglePassword={() => setShowConfirmPassword((value) => !value)}
         />
 
         <PasswordChecklist

@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Mail, Lock } from "lucide-react";
+import { ArrowLeft, Check, Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 export function GoogleIcon() {
   return (
@@ -78,7 +78,7 @@ export function AuthButton({
       data-testid={testId}
       className={`relative flex h-[58px] w-full items-center justify-center rounded-[29px] px-6 text-[17px] font-semibold transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 ${
         isPrimary
-          ? "bg-[var(--bm-primary)] text-white shadow-[0_18px_46px_rgba(25,91,164,0.28)] hover:bg-[var(--bm-primary-hover)]"
+          ? "border border-[#7db7ff]/[0.22] bg-[rgba(25,91,164,0.72)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_46px_rgba(25,91,164,0.30)] backdrop-blur-[24px] hover:bg-[rgba(31,111,199,0.78)]"
           : "border border-white/[0.075] bg-white/[0.09] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_42px_rgba(0,0,0,0.28)] backdrop-blur-[24px] hover:bg-white/[0.13]"
       }`}
     >
@@ -110,6 +110,9 @@ export function AuthInput({
   placeholder,
   testId,
   autoComplete,
+  showPasswordToggle = false,
+  passwordVisible = false,
+  onTogglePassword,
 }) {
   const Icon = type === "email" ? Mail : Lock;
   return (
@@ -124,8 +127,18 @@ export function AuthInput({
           placeholder={placeholder}
           autoComplete={autoComplete}
           data-testid={testId}
-          className="h-[58px] w-full rounded-[29px] border border-white/[0.075] bg-white/[0.09] pl-[60px] pr-6 text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_42px_rgba(0,0,0,0.20)] outline-none backdrop-blur-[24px] transition placeholder:text-white/34 focus:border-white/[0.16] focus:bg-white/[0.13] focus:ring-2 focus:ring-white/[0.06]"
+          className={`h-[58px] w-full rounded-[29px] border border-white/[0.075] bg-white/[0.09] pl-[60px] ${showPasswordToggle ? "pr-[60px]" : "pr-6"} text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_42px_rgba(0,0,0,0.20)] outline-none backdrop-blur-[24px] transition placeholder:text-white/34 focus:border-white/[0.16] focus:bg-white/[0.13] focus:ring-2 focus:ring-white/[0.06]`}
         />
+        {showPasswordToggle ? (
+          <button
+            type="button"
+            onClick={onTogglePassword}
+            aria-label={passwordVisible ? "Hide password" : "Show password"}
+            className="absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white transition hover:bg-white/[0.08]"
+          >
+            {passwordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
+        ) : null}
       </span>
     </label>
   );
@@ -137,7 +150,7 @@ export function PasswordChecklist({ requirements }) {
       {requirements.map((requirement) => (
         <div key={requirement.label} className="flex items-center gap-3 text-sm font-medium">
           <span className={requirement.met ? "text-[var(--bm-primary)]" : "text-white/38"}>
-            {requirement.met ? <Check className="h-4 w-4" /> : "○"}
+            {requirement.met ? <Check className="h-4 w-4" /> : <span className="block h-3.5 w-3.5 rounded-full border border-current" />}
           </span>
           <span className={requirement.met ? "text-white/86" : "text-white/42"}>
             {requirement.label}

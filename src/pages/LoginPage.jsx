@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const isFormValid = formData.email.trim() && formData.password.trim();
 
   const handleSubmit = async (event) => {
@@ -71,18 +72,21 @@ export default function LoginPage() {
           type="email"
           value={formData.email}
           onChange={(event) => setFormData({ ...formData, email: event.target.value })}
-          placeholder="Email"
+          placeholder="example@email.com"
           autoComplete="email"
           testId="email-input"
         />
         <AuthInput
           label="Password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={formData.password}
           onChange={(event) => setFormData({ ...formData, password: event.target.value })}
-          placeholder="Password"
+          placeholder="Enter your password"
           autoComplete="current-password"
           testId="password-input"
+          showPasswordToggle
+          passwordVisible={showPassword}
+          onTogglePassword={() => setShowPassword((value) => !value)}
         />
 
         <div className="flex justify-end">
