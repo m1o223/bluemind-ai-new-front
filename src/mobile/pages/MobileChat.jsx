@@ -11,7 +11,6 @@ import {
   ChevronDown,
   ChevronRight,
   Check,
-  Clock3,
   Clipboard,
   FileText,
   Image,
@@ -27,7 +26,6 @@ import {
   RotateCcw,
   Search,
   Share2,
-  Settings,
   Sparkles,
   Square,
   ThumbsDown,
@@ -786,14 +784,6 @@ export default function MobileChat() {
     { label: "Learning", path: "/mobile/learning", icon: BookOpen },
     { label: "AI Plans", path: "/mobile/ai-plans", icon: Sparkles },
     { label: "Schedule", path: "/mobile/schedule", icon: Clipboard },
-    {
-      label: t("settings"),
-      action: () => {
-        closeMenu();
-        setSettingsSheetOpen(true);
-      },
-      icon: Settings,
-    },
   ];
 
   const visibleConversations = useMemo(() => {
@@ -2833,20 +2823,19 @@ export default function MobileChat() {
     return (
       <div
         key={menuId}
-        className={`relative border-b py-3 last:border-b-0 ${isDark ? "border-white/[0.06]" : "border-[var(--bm-border)]"}`}
+        className={`relative rounded-[18px] py-2.5 ${isActive ? "bg-white/[0.045]" : ""}`}
       >
         <button
           type="button"
           onClick={() => openConversation(item.conversationId)}
-          className={`flex w-full min-w-0 items-start pr-10 text-left ${iconClasses.iconText}`}
+          className="flex w-full min-w-0 items-start pr-10 text-left"
           data-testid={`mobile-chat-row-${item.conversationId}`}
         >
-          <MessageSquare className={`mt-0.5 shrink-0 ${iconClasses.sidebar} ${isActive ? isDark ? "text-white" : "text-[var(--bm-primary)]" : isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`} />
           <span className="min-w-0 flex-1">
-            <span className={`block truncate font-semibold ${typeClasses.body} ${isActive ? isDark ? "text-white" : "text-[var(--bm-primary)]" : textColor}`}>
+            <span className={`block truncate text-[14px] font-medium leading-5 text-white`}>
               {item.title || t("newChat")}
             </span>
-            <span className={`mt-1 block truncate font-medium ${typeClasses.small} ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+            <span className="mt-1 block truncate text-[11px] font-medium leading-4 text-white/48">
               {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
             </span>
           </span>
@@ -4028,7 +4017,7 @@ Everything will be deleted when you leave.</p>
             />
 
             <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-5 pt-[calc(env(safe-area-inset-top)+22px)]">
-              <h2 className={`text-[21px] font-extrabold leading-none tracking-tight ${isDark ? "text-white/94" : "text-[var(--bm-text-primary)]"}`}>BlueMind AI</h2>
+              <h2 className="text-[19px] font-medium leading-none tracking-tight text-white">BlueMind AI</h2>
             </div>
 
             <button
@@ -4041,25 +4030,13 @@ Everything will be deleted when you leave.</p>
               <Search className="h-5 w-5 stroke-[2.35]" />
             </button>
 
-            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-[calc(env(safe-area-inset-top)+78px)]">
-              <section className="space-y-1 py-2">
-                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>CHAT</p>
-                <button
-                  type="button"
-                  onClick={() => document.getElementById("mobile-history-chats")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
-                >
-                  <Clock3 className={`shrink-0 ${iconClasses.sidebar}`} />
-                  <span>Recent Chats</span>
-                </button>
-              </section>
-
-              <section className="mt-5 space-y-1">
-                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>CHAT MODES</p>
+            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-[calc(env(safe-area-inset-top)+76px)]">
+              <section className="space-y-0.5 py-1">
+                <p className="pb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-white">CHAT MODES</p>
                 <button
                   type="button"
                   onClick={selectNormalChat}
-                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "normal" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
+                  className={`flex min-h-[46px] w-full items-center rounded-2xl border text-left text-[14px] font-medium text-white active:bg-white/[0.08] ${iconClasses.iconText} ${chatSessionMode === "normal" ? "border-white/[0.075] bg-white/[0.065] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px]" : "border-transparent"}`}
                 >
                   <MessageSquare className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Normal Chat</span>
@@ -4067,7 +4044,7 @@ Everything will be deleted when you leave.</p>
                 <button
                   type="button"
                   onClick={openPrivateChatModal}
-                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "private" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
+                  className={`flex min-h-[46px] w-full items-center rounded-2xl border text-left text-[14px] font-medium text-white active:bg-white/[0.08] ${iconClasses.iconText} ${chatSessionMode === "private" ? "border-white/[0.075] bg-white/[0.065] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px]" : "border-transparent"}`}
                 >
                   <Lock className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Private Chat</span>
@@ -4075,7 +4052,7 @@ Everything will be deleted when you leave.</p>
                 <button
                   type="button"
                   onClick={selectWritingMode}
-                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "writing" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
+                  className={`flex min-h-[46px] w-full items-center rounded-2xl border text-left text-[14px] font-medium text-white active:bg-white/[0.08] ${iconClasses.iconText} ${chatSessionMode === "writing" ? "border-white/[0.075] bg-white/[0.065] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px]" : "border-transparent"}`}
                 >
                   <PenLine className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Writing Mode</span>
@@ -4086,21 +4063,21 @@ Everything will be deleted when you leave.</p>
                     closeMenu();
                     setHiddenChatModalOpen(true);
                   }}
-                  className={`${isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"} flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "hidden" ? (isDark ? "bg-white/[0.08]" : "bg-[var(--bm-active-bg)]") : ""}`}
+                  className={`flex min-h-[46px] w-full items-center rounded-2xl border text-left text-[14px] font-medium text-white active:bg-white/[0.08] ${iconClasses.iconText} ${chatSessionMode === "hidden" ? "border-white/[0.075] bg-white/[0.065] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px]" : "border-transparent"}`}
                 >
                   <Glasses className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Hidden Chat</span>
                 </button>
               </section>
 
-              <section className="mt-5 space-y-1">
-                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>BLUEMIND</p>
+              <section className="mt-4 space-y-0.5">
+                <p className="pb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-white">BLUEMIND</p>
                 {bluemindMenuItems.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => runMenuAction(item)}
-                    className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
+                    className={`flex min-h-[46px] w-full items-center rounded-2xl border border-transparent text-left text-[14px] font-medium text-white active:bg-white/[0.08] ${iconClasses.iconText}`}
                   >
                     <item.icon className={`shrink-0 ${iconClasses.sidebar}`} />
                     <span>{item.label}</span>
@@ -4108,8 +4085,8 @@ Everything will be deleted when you leave.</p>
                 ))}
               </section>
 
-              <section id="mobile-history-chats" className="mt-6">
-                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>HISTORY</p>
+              <section id="mobile-history-chats" className="mt-5">
+                <p className="pb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-white">HISTORY</p>
 
                 {isLoadingConversations && (
                   <div className={`py-3 font-medium ${typeClasses.small} ${mutedText}`}>{t("loadingConversation")}</div>
