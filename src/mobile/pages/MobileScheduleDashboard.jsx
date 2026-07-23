@@ -38,6 +38,10 @@ import { uploadChatImage } from "@/services/imageService";
 
 const STORAGE_KEY = "bluemind-mobile-schedule-dashboard-v1";
 
+const mobileBlueGlassControlClass = "border-[#2F7DF6]/[0.24] bg-[rgba(15,62,140,0.42)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.18),0_12px_28px_rgba(5,18,45,0.24)] backdrop-blur-[26px] active:bg-[rgba(24,82,175,0.46)]";
+const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
+const mobileBlueGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
+
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_NAMES = [
   "January",
@@ -675,13 +679,13 @@ function ScheduleContextMenuPortal({ open, rect, isDark, onClose, onEdit, onDele
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: hasSpaceAbove ? 4 : -4, scale: 0.98 }}
         transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-        className={cn("fixed z-[191] w-36 overflow-hidden rounded-2xl border p-1 shadow-2xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}
+        className={cn("fixed z-[191] w-36 overflow-hidden rounded-2xl border p-1 shadow-2xl", isDark ? mobileBlueGlassMenuClass : "border-[#2F7DF6]/[0.16] bg-white/85 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_16px_36px_rgba(15,85,170,0.12)] backdrop-blur-[22px]")}
         style={{ top, left }}
       >
         <button
           type="button"
           onClick={onEdit}
-          className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "hover:bg-white/[0.08] active:bg-white/[0.08]" : "hover:bg-[var(--bm-hover-bg)] active:bg-[var(--bm-hover-bg)]")}
+          className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "text-white hover:bg-white/[0.08] active:bg-white/[0.08]" : "hover:bg-[#2F7DF6]/[0.08] active:bg-[#2F7DF6]/[0.08]")}
         >
           <Edit3 className="h-4 w-4" />
           Edit
@@ -715,7 +719,7 @@ function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
                     return (
                       <div
                         key={event.id}
-                        className={cn("relative flex items-center gap-3 rounded-[24px] border p-3", isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}
+                        className={cn("relative flex items-center gap-3 rounded-[24px] border p-3", isDark ? mobileBlueGlassSurfaceClass : "border-[#2F7DF6]/[0.10] bg-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_12px_28px_rgba(15,85,170,0.08)] backdrop-blur-[18px]")}
                       >
                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: color }}>
                           <Icon className={iconClasses.button} />
@@ -730,7 +734,7 @@ function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
                         <button
                           type="button"
                           onClick={(clickEvent) => onOpenMenu(event.id, clickEvent)}
-                          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "text-white active:bg-white/[0.1]" : "text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]")}
+                          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ease-out", isDark ? mobileBlueGlassControlClass : "border-[#2F7DF6]/[0.14] bg-white/80 text-[var(--bm-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,85,170,0.10)] backdrop-blur-[18px] active:bg-[#2F7DF6]/[0.08]")}
                           aria-label={`Open actions for ${event.title}`}
                         >
                           <MoreVertical className={iconClasses.button} />
@@ -918,7 +922,7 @@ export default function MobileScheduleDashboard() {
         className={cn(
           "relative flex min-h-[50px] flex-col items-center justify-center rounded-[18px] transition-colors duration-150 ease-out",
           selected
-            ? "bg-[var(--bm-primary)] text-white shadow-[0_10px_22px_rgba(47,125,246,0.2)]"
+            ? "border border-[#2F7DF6]/[0.26] bg-[rgba(47,125,246,0.92)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_10px_22px_rgba(47,125,246,0.24)]"
             : isDark
               ? "text-white active:bg-white/[0.08]"
               : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
@@ -940,10 +944,10 @@ export default function MobileScheduleDashboard() {
           <ArrowLeft className={iconClasses.button} />
         </button>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setScheduleListOpen(true)} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]")} aria-label="View all schedules">
+          <button type="button" onClick={() => setScheduleListOpen(true)} className={cn("flex h-10 w-10 items-center justify-center rounded-full border transition-colors duration-150 ease-out", isDark ? mobileBlueGlassControlClass : "border-[#2F7DF6]/[0.14] bg-white/80 text-[var(--bm-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,85,170,0.10)] backdrop-blur-[18px] active:bg-[#2F7DF6]/[0.08]")} aria-label="View all schedules">
             <CalendarDays className={iconClasses.button} />
           </button>
-          <button type="button" onClick={() => setActionSheetOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bm-primary)] text-white shadow-[0_10px_22px_rgba(47,125,246,0.22)] transition-transform duration-150 ease-out active:scale-[0.98]" aria-label="Create schedule">
+          <button type="button" onClick={() => setActionSheetOpen(true)} className={cn("flex h-10 w-10 items-center justify-center rounded-full border transition-transform duration-150 ease-out active:scale-[0.98]", mobileBlueGlassControlClass)} aria-label="Create schedule">
             <Plus className={iconClasses.button} />
           </button>
         </div>
@@ -1006,7 +1010,7 @@ export default function MobileScheduleDashboard() {
                     key={event.id}
                     layout
                     whileTap={{ scale: 0.99 }}
-                    className={cn("relative flex w-full items-center gap-3 rounded-[26px] border p-3 text-left shadow-sm transition-colors duration-150 ease-out", isDark ? "border-white/10 bg-white/[0.06]" : "border-white bg-white")}
+                    className={cn("relative flex w-full items-center gap-3 rounded-[26px] border p-3 text-left shadow-sm transition-colors duration-150 ease-out", isDark ? mobileBlueGlassSurfaceClass : "border-[#2F7DF6]/[0.10] bg-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_12px_28px_rgba(15,85,170,0.08)] backdrop-blur-[18px]")}
                   >
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: color }}>
                       <Icon className={iconClasses.button} />
@@ -1021,7 +1025,7 @@ export default function MobileScheduleDashboard() {
                     <button
                       type="button"
                       onClick={(clickEvent) => openEventMenu(event.id, clickEvent)}
-                      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "text-white active:bg-white/[0.1]" : "text-[var(--bm-text-secondary)] active:bg-[var(--bm-hover-bg)]")}
+                      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ease-out", isDark ? mobileBlueGlassControlClass : "border-[#2F7DF6]/[0.14] bg-white/80 text-[var(--bm-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,85,170,0.10)] backdrop-blur-[18px] active:bg-[#2F7DF6]/[0.08]")}
                       aria-label={`Open actions for ${event.title}`}
                     >
                       <MoreVertical className={iconClasses.button} />

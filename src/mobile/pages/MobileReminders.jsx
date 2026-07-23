@@ -44,8 +44,9 @@ const STATUS_LABELS = {
   cancelled: "Cancelled",
 };
 
-const mobileGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[28px]";
-const mobileGlassControlClass = "border-white/[0.075] bg-[rgba(42,42,42,0.32)] text-white/86 shadow-[inset_0_1px_0_rgba(255,255,255,0.11),0_12px_28px_rgba(0,0,0,0.20)] backdrop-blur-[26px] transition active:scale-95 active:bg-[rgba(70,70,70,0.34)]";
+const mobileGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
+const mobileGlassControlClass = "border-[#2F7DF6]/[0.24] bg-[rgba(15,62,140,0.42)] text-white/90 shadow-[inset_0_1px_0_rgba(125,182,255,0.18),0_12px_28px_rgba(5,18,45,0.24)] backdrop-blur-[26px] transition active:scale-95 active:bg-[rgba(24,82,175,0.46)]";
+const mobileGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 
 function reminderId(reminder) {
   return reminder?._id || reminder?.id;
@@ -349,7 +350,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                   <div
                     className={cn(
                       "absolute right-0 top-10 z-20 w-36 overflow-hidden rounded-2xl border py-1 shadow-xl",
-                      isDark ? "border-white/10 bg-[var(--bm-bg-elevated)]" : "border-black/10 bg-white",
+                      isDark ? mobileGlassMenuClass : "border-[#2F7DF6]/[0.16] bg-white/85 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_16px_36px_rgba(15,85,170,0.12)] backdrop-blur-[22px]",
                     )}
                   >
                     <button
@@ -358,7 +359,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                         onEdit(reminder);
                         setMenuOpen(false);
                       }}
-                      className={cn("w-full px-4 py-3 text-left text-sm", isDark ? "hover:bg-white/[0.08]" : "hover:bg-black/5")}
+                      className={cn("w-full px-4 py-3 text-left text-sm", isDark ? "text-white hover:bg-white/[0.08]" : "hover:bg-[#2F7DF6]/[0.08]")}
                     >
                       Edit
                     </button>
