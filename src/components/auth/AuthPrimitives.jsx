@@ -95,9 +95,9 @@ export function AuthButton({
 export function AuthDivider() {
   return (
     <div className="my-6 flex w-full items-center gap-4" aria-hidden="true">
-      <div className="h-px flex-1 bg-white/10" />
+      <div className="h-px flex-1 bg-white/[0.085]" />
       <span className="text-xs font-semibold tracking-[0.22em] text-white/42">OR</span>
-      <div className="h-px flex-1 bg-white/10" />
+      <div className="h-px flex-1 bg-white/[0.085]" />
     </div>
   );
 }
@@ -116,7 +116,7 @@ export function AuthInput({
     <label className="block">
       <span className="mb-2 block text-sm font-semibold text-white/74">{label}</span>
       <span className="relative block">
-        <Icon className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-white/36" />
+        <Icon className="pointer-events-none absolute left-6 top-1/2 h-5 w-5 -translate-y-1/2 text-white" />
         <input
           type={type}
           value={value}
@@ -124,7 +124,7 @@ export function AuthInput({
           placeholder={placeholder}
           autoComplete={autoComplete}
           data-testid={testId}
-          className="h-[58px] w-full rounded-[22px] border border-white/[0.075] bg-white/[0.08] pl-[56px] pr-5 text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10)] outline-none backdrop-blur-[22px] transition placeholder:text-white/30 focus:border-white/[0.16] focus:bg-white/[0.105] focus:ring-2 focus:ring-white/[0.06]"
+          className="h-[58px] w-full rounded-[29px] border border-white/[0.075] bg-white/[0.09] pl-[60px] pr-6 text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_42px_rgba(0,0,0,0.20)] outline-none backdrop-blur-[24px] transition placeholder:text-white/34 focus:border-white/[0.16] focus:bg-white/[0.13] focus:ring-2 focus:ring-white/[0.06]"
         />
       </span>
     </label>
@@ -133,17 +133,11 @@ export function AuthInput({
 
 export function PasswordChecklist({ requirements }) {
   return (
-    <div className="space-y-2 rounded-[20px] border border-white/[0.06] bg-white/[0.045] p-4 backdrop-blur-[18px]">
+    <div className="space-y-2">
       {requirements.map((requirement) => (
         <div key={requirement.label} className="flex items-center gap-3 text-sm font-medium">
-          <span
-            className={`flex h-5 w-5 items-center justify-center rounded-full border transition ${
-              requirement.met
-                ? "border-[var(--bm-primary)] bg-[var(--bm-primary)] text-white"
-                : "border-white/14 text-transparent"
-            }`}
-          >
-            <Check className="h-3.5 w-3.5" />
+          <span className={requirement.met ? "text-[var(--bm-primary)]" : "text-white/38"}>
+            {requirement.met ? <Check className="h-4 w-4" /> : "○"}
           </span>
           <span className={requirement.met ? "text-white/86" : "text-white/42"}>
             {requirement.label}

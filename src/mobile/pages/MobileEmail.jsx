@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { CircleHelp } from "lucide-react";
 
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import {
@@ -87,8 +88,9 @@ export default function MobileEmail() {
           <button
             type="button"
             onClick={() => navigate("/auth/forgot-password")}
-            className="text-sm font-semibold text-white/44 transition hover:text-white/70"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/54 underline underline-offset-4 transition hover:text-white/80"
           >
+            <CircleHelp className="h-3.5 w-3.5" />
             Forgot Password
           </button>
         </div>
@@ -109,7 +111,7 @@ export default function MobileEmail() {
           <button
             type="button"
             onClick={() => navigate("/mobile/register")}
-            className="font-semibold text-white transition hover:text-white/72"
+            className="font-semibold text-white underline underline-offset-4 transition hover:text-white/72"
           >
             Create Account
           </button>

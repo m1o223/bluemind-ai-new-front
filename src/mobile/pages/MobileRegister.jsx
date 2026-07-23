@@ -137,7 +137,7 @@ export default function MobileRegister() {
           <button
             type="button"
             onClick={() => navigate("/mobile/email")}
-            className="font-semibold text-white transition hover:text-white/72"
+            className="font-semibold text-white underline underline-offset-4 transition hover:text-white/72"
           >
             Login
           </button>

@@ -138,7 +138,7 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => navigate("/auth/login")}
-            className="font-semibold text-white transition hover:text-white/72"
+            className="font-semibold text-white underline underline-offset-4 transition hover:text-white/72"
             data-testid="signin-link"
           >
             Login
