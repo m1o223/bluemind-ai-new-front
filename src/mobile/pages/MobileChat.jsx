@@ -36,7 +36,7 @@ import {
   X,
 } from "lucide-react";
 
-import BrandLogo, { APP_NAME } from "@/components/BrandLogo";
+import { APP_NAME } from "@/components/BrandLogo";
 import ChatImageAttachments, { resolveAttachmentPreviewUrl } from "@/components/ChatImageAttachments";
 import MessageResponse from "@/components/MessageResponse";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
@@ -75,7 +75,7 @@ import {
   renamePrivateSpaceChat,
   unlockPrivateSpace,
 } from "@/services/privateSpaceService";
-import { AUTH_SESSION_CLEARED_EVENT } from "@/services/storageKeys";
+import { AUTH_SESSION_CLEARED_EVENT, readStoredUser } from "@/services/storageKeys";
 import { updatePreferences } from "@/services/profileService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 import useVoiceInput from "@/hooks/useVoiceInput";
@@ -614,6 +614,10 @@ export default function MobileChat() {
   const { prefs, resolvedTheme, t, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuUser = readStoredUser() || {};
+  const menuUserName = menuUser.name || menuUser.fullName || menuUser.displayName || menuUser.email || "Profile";
+  const menuUserInitial = String(menuUserName).trim().charAt(0).toUpperCase() || "B";
+  const menuUserAvatar = menuUser.avatarUrl || menuUser.photoURL || menuUser.photoUrl || menuUser.imageUrl || "";
   const [responseModeMenuOpen, setResponseModeMenuOpen] = useState(false);
   const [responseModeMenuPosition, setResponseModeMenuPosition] = useState(null);
   const [featureCarouselStep, setFeatureCarouselStep] = useState(0);
@@ -4014,42 +4018,23 @@ Everything will be deleted when you leave.</p>
               onTouchEnd={handleTouchEnd}
               data-testid="mobile-side-menu"
             >
-            <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
-              <div className={`flex items-center ${iconClasses.iconText}`}>
-                <BrandLogo showName={false} small logoClassName={iconClasses.sidebarLogo} />
-                <h2 className={`${typeClasses.cardTitle} font-extrabold leading-tight tracking-tight`}>BlueMind AI</h2>
-              </div>
-              <button
-                type="button"
-                onClick={closeMenu}
-                className={isDark ? "flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-[var(--bm-border)] active:bg-[var(--bm-hover-bg)]"}
-                aria-label="Close menu"
-              >
-                <X className={iconClasses.sidebar} />
-              </button>
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-5 pt-[calc(env(safe-area-inset-top)+22px)]">
+              <h2 className={`text-[21px] font-extrabold leading-none tracking-tight ${isDark ? "text-white/94" : "text-[var(--bm-text-primary)]"}`}>BlueMind AI</h2>
             </div>
 
-            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
+            <button
+              type="button"
+              onClick={openMenuSearch}
+              className="absolute right-5 top-[calc(env(safe-area-inset-top)+14px)] z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-[42px] active:scale-95 active:bg-[rgba(106,106,106,0.2)]"
+              aria-label="Search"
+              style={mobileGlassControlStyle}
+            >
+              <Search className="h-5 w-5 stroke-[2.35]" />
+            </button>
+
+            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-[calc(env(safe-area-inset-top)+78px)]">
               <section className="space-y-1 py-2">
                 <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mutedText}`}>CHAT</p>
-                <button
-                  type="button"
-                  onClick={startNewChat}
-                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
-                >
-                  <Pencil className={`shrink-0 ${iconClasses.sidebar}`} />
-                  <span>{t("newChat")}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={openMenuSearch}
-                  className={isDark ? `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}` : `flex min-h-[50px] w-full items-center rounded-2xl text-left font-semibold text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)] ${typeClasses.body} ${iconClasses.iconText}`}
-                >
-                  <Search className={`shrink-0 ${iconClasses.sidebar}`} />
-                  <span>{t("search")}</span>
-                </button>
-
                 <button
                   type="button"
                   onClick={() => document.getElementById("mobile-history-chats")?.scrollIntoView({ behavior: "smooth", block: "start" })}
@@ -4132,6 +4117,37 @@ Everything will be deleted when you leave.</p>
                 {conversations.slice(0, 18).map((item) => renderMobileConversationRow(item, "menu"))}
               </section>
             </nav>
+
+            <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-4">
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="flex h-[52px] flex-1 items-center justify-center gap-2.5 rounded-full bg-[#0B3F8A] px-5 text-[15px] font-extrabold text-white shadow-[0_18px_42px_rgba(11,63,138,0.34)] transition-transform active:scale-[0.98]"
+                aria-label={t("newChat")}
+              >
+                <Pencil className="h-5 w-5 stroke-[2.35]" />
+                <span>{t("newChat")}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  closeMenu();
+                  setSettingsSheetOpen(true);
+                }}
+                className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] p-[5px] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-[42px] transition-transform active:scale-95"
+                aria-label={menuUserName}
+                style={mobileGlassControlStyle}
+              >
+                <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)] text-base font-black text-white/88">
+                  {menuUserAvatar ? (
+                    <img src={menuUserAvatar} alt="" className="h-full w-full object-cover" draggable="false" />
+                  ) : (
+                    menuUserInitial
+                  )}
+                </span>
+              </button>
+            </div>
           </motion.section>
           </motion.div>
         )}
