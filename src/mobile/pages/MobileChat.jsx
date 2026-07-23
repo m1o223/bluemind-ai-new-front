@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, animate, motion, useMotionValue, useScroll, useTransform } from "framer-motion";
 import { toast } from "sonner";
 import {
+  ArrowLeft,
   ArrowUp,
   Bell,
   BookOpen,
@@ -3463,7 +3464,8 @@ export default function MobileChat() {
                     <button
                       type="button"
                       onClick={() => setOpenSearchMenuItemId((current) => current === item.id ? null : item.id)}
-                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur active:bg-black/50"
+                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.11),0_10px_22px_rgba(0,0,0,0.2)] backdrop-blur-[30px] transition active:scale-95 active:bg-[rgba(106,106,106,0.22)]"
+                      style={mobileGlassControlStyle}
                       aria-label={`Open actions for ${item.title}`}
                     >
                       <MoreVertical className={iconClasses.button} />
@@ -4188,7 +4190,7 @@ Everything will be deleted when you leave.</p>
                 className={isDark ? "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
                 aria-label="Back to menu"
               >
-                <ChevronDown className={`rotate-90 ${iconClasses.button}`} />
+                <ArrowLeft className={iconClasses.button} />
               </button>
               <h2 className={`${typeClasses.sectionTitle} font-extrabold tracking-tight`}>Search</h2>
               <button

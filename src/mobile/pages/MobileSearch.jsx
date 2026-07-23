@@ -6,7 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import MessageResponse from "@/components/MessageResponse";
 import { useApp } from "@/context/AppContext";
-import { interactionClasses } from "@/lib/interactions";
+import { cn } from "@/lib/utils";
+import { iconClasses, interactionClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
 import { streamChatMessage } from "@/services/chatService";
 
@@ -16,6 +17,9 @@ const SEARCH_SUGGESTIONS = [
   "Compare travel options",
   "Find learning resources",
 ];
+
+const mobileSearchGlassSurfaceClass = "border-white/[0.075] bg-[rgba(78,78,78,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.11),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[32px]";
+const mobileSearchGlassControlClass = "border-white/[0.075] bg-[rgba(78,78,78,0.18)] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_12px_28px_rgba(0,0,0,0.22)] backdrop-blur-[32px] transition active:scale-95 active:bg-[rgba(106,106,106,0.22)]";
 
 export default function MobileSearch() {
   const navigate = useNavigate();
@@ -27,10 +31,15 @@ export default function MobileSearch() {
   const [isSearching, setIsSearching] = useState(false);
 
   const surfaceColor = isDark ? "var(--bm-bg-app)" : "var(--bm-bg-app)";
-  const panelColor = isDark ? "var(--bm-bg-card)" : "#FFFFFF";
   const textColor = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
   const borderColor = isDark ? "border-white/[0.08]" : "border-[var(--bm-border)]";
   const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
+  const glassSurface = isDark
+    ? mobileSearchGlassSurfaceClass
+    : "border-white/80 bg-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]";
+  const glassControl = isDark
+    ? mobileSearchGlassControlClass
+    : "border-white/80 bg-white/76 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_24px_rgba(15,23,42,0.1)] backdrop-blur-[22px] transition active:scale-95 active:bg-white";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -81,10 +90,10 @@ export default function MobileSearch() {
         <button
           type="button"
           onClick={() => navigate("/mobile/chat")}
-          className={isDark ? `flex h-11 w-11 items-center justify-center rounded-full text-white ${interactionClasses.iconButton}` : `flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] ${interactionClasses.iconButton}`}
+          className={cn("flex h-11 w-11 items-center justify-center rounded-full border", glassControl, interactionClasses.iconButton)}
           aria-label="Back"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className={iconClasses.button} />
         </button>
         <div>
           <h1 className="text-base font-bold">Search</h1>
@@ -96,9 +105,7 @@ export default function MobileSearch() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`mb-4 overflow-hidden rounded-[30px] border p-4 shadow-sm ${
-            isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-white/80 bg-white/70 shadow-slate-200/70"
-          }`}
+          className={cn("mb-4 overflow-hidden rounded-[30px] border p-4", glassSurface)}
         >
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Discover with BlueMind</h2>
@@ -112,7 +119,7 @@ export default function MobileSearch() {
                 onClick={() => setQuery(item)}
                 className={
                   isDark
-                    ? `snap-start whitespace-nowrap rounded-full border border-white/[0.08] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-[var(--bm-text-secondary)] ${interactionClasses.menuItem}`
+                    ? `snap-start whitespace-nowrap rounded-full border border-white/[0.07] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-[var(--bm-text-secondary)] backdrop-blur-[22px] ${interactionClasses.menuItem}`
                     : `snap-start whitespace-nowrap rounded-full border border-black/[0.05] bg-white/75 px-4 py-2 text-sm font-semibold text-[var(--bm-text-secondary)] shadow-sm ${interactionClasses.menuItem}`
                 }
               >
@@ -126,8 +133,7 @@ export default function MobileSearch() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-[24px] border p-4 text-sm font-medium leading-6 ${borderColor}`}
-            style={{ backgroundColor: panelColor }}
+            className={cn("rounded-[24px] border p-4 text-sm font-medium leading-6", glassSurface)}
           >
             <MessageResponse
               message={{ role: "ai", content: answer, metadata: { chatMode: "web_search", responseMode: "smart" } }}
@@ -144,8 +150,8 @@ export default function MobileSearch() {
       </section>
 
       <form className="px-4 pb-3" onSubmit={handleSubmit}>
-        <div className={`flex min-h-[58px] items-end gap-2 rounded-[28px] border p-2 shadow-sm ${borderColor}`} style={{ backgroundColor: panelColor }}>
-          <Search className={`mb-3 ml-2 h-5 w-5 shrink-0 ${mutedText}`} />
+        <div className={cn("flex min-h-[58px] items-end gap-2 rounded-[28px] border py-2 pl-4 pr-2", glassSurface)}>
+          <Search className={`mb-3 h-5 w-5 shrink-0 ${mutedText}`} />
           <textarea
             value={query}
             onChange={(event) => setQuery(event.target.value)}
