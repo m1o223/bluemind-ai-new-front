@@ -3988,7 +3988,7 @@ Everything will be deleted when you leave.</p>
             />
 
             <motion.section
-              className={`relative z-10 flex h-full w-[80vw] max-w-[360px] flex-col overflow-hidden rounded-r-[30px] border-r border-white/[0.055] shadow-[18px_0_58px_rgba(0,0,0,0.34)] backdrop-blur-[32px] ${textColor}`}
+              className={`relative z-10 flex h-full w-[84vw] flex-col overflow-hidden rounded-r-[30px] border-r border-white/[0.055] shadow-[18px_0_58px_rgba(0,0,0,0.34)] backdrop-blur-[32px] ${textColor}`}
               style={{
                 backgroundColor: isDark ? "rgba(16,16,16,0.94)" : "rgba(255,255,255,0.94)",
                 paddingTop: "env(safe-area-inset-top)",
