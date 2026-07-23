@@ -9,12 +9,12 @@
   --bm-error: #DC2626;
   --bm-warning: #EA580C;
   --bm-info: #0284C7;
-  --bm-bg-app: #1A1A1A;
-  --bm-bg-sidebar: #1A1A1A;
-  --bm-bg-card: #202020;
-  --bm-bg-elevated: #262626;
-  --bm-bg-input: #202020;
-  --bm-bg-modal: #202020;
+  --bm-bg-app: #050505;
+  --bm-bg-sidebar: #050505;
+  --bm-bg-card: #050505;
+  --bm-bg-elevated: #050505;
+  --bm-bg-input: #050505;
+  --bm-bg-modal: #050505;
   --bm-border: rgba(255, 255, 255, 0.08);
   --bm-border-strong: rgba(255, 255, 255, 0.14);
   --bm-text-primary: #FFFFFF;
@@ -69,17 +69,17 @@
 
 @layer base {
   :root {
-    --background: 0 0% 13%;
+    --background: 0 0% 2%;
     --foreground: 0 0% 100%;
-    --card: 0 0% 18%;
+    --card: 0 0% 2%;
     --card-foreground: 0 0% 100%;
-    --popover: 0 0% 18%;
+    --popover: 0 0% 2%;
     --popover-foreground: 0 0% 100%;
     --primary: 160 83% 35%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 19%;
+    --secondary: 0 0% 2%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 19%;
+    --muted: 0 0% 2%;
     --muted-foreground: 0 0% 71%;
     --accent: 160 83% 35%;
     --accent-foreground: 0 0% 100%;
@@ -154,12 +154,12 @@ html[data-theme="light"] body {
 }
 
 html[data-theme="dark"] body {
-  --bm-bg-app: #000000;
-  --bm-bg-sidebar: #000000;
-  --bm-bg-card: #000000;
-  --bm-bg-elevated: #000000;
-  --bm-bg-input: #000000;
-  --bm-bg-modal: #000000;
+  --bm-bg-app: #050505;
+  --bm-bg-sidebar: #050505;
+  --bm-bg-card: #050505;
+  --bm-bg-elevated: #050505;
+  --bm-bg-input: #050505;
+  --bm-bg-modal: #050505;
   --bm-border: rgba(255, 255, 255, 0.10);
   --bm-border-strong: rgba(255, 255, 255, 0.18);
   --bm-text-primary: #FFFFFF;
@@ -187,6 +187,9 @@ html[data-theme="dark"] body {
   color: var(--bm-text-primary);
 }
 
+html[data-theme="dark"] .bg-black,
+html[data-theme="dark"] .bg-\[\#000000\],
+html[data-theme="dark"] .bg-\[\#050505\],
 html[data-theme="dark"] .bg-\[\#202020\],
 html[data-theme="dark"] .bg-\[\#1A1A1A\],
 html[data-theme="dark"] .bg-\[\#262626\],
@@ -203,7 +206,7 @@ html[data-theme="dark"] .bg-white\/\[0\.06\],
 html[data-theme="dark"] .bg-white\/\[0\.07\],
 html[data-theme="dark"] .bg-white\/\[0\.075\],
 html[data-theme="dark"] .bg-white\/\[0\.08\] {
-  background-color: #000000 !important;
+  background-color: var(--bm-bg-app) !important;
 }
 
 html.capacitor-native,
