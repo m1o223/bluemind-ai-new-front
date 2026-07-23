@@ -3955,8 +3955,19 @@ Everything will be deleted when you leave.</p>
 
       <AnimatePresence>
         {menuOpen && (
+          <div className="fixed inset-0 z-[70] overflow-hidden">
+            <motion.button
+              type="button"
+              className="absolute inset-y-0 right-0 z-0 w-[16vw] bg-black/45 backdrop-blur-[7px]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              onClick={closeMenu}
+              aria-label="Close menu"
+            />
             <motion.section
-              className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-black text-white"
+              className="absolute inset-y-0 left-0 z-10 flex w-[84vw] flex-col overflow-hidden bg-black text-white shadow-[18px_0_48px_rgba(0,0,0,0.26)]"
               style={{
                 paddingTop: "env(safe-area-inset-top)",
                 paddingBottom: "env(safe-area-inset-bottom)",
@@ -3967,7 +3978,7 @@ Everything will be deleted when you leave.</p>
               exit={{ x: "-100%", opacity: 0.96 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               drag="x"
-              dragConstraints={{ left: typeof window === "undefined" ? -420 : -window.innerWidth, right: 0 }}
+              dragConstraints={{ left: typeof window === "undefined" ? -420 : -window.innerWidth * 0.88, right: 0 }}
               dragElastic={0.06}
               onDragEnd={(_, info) => {
                 if (info.offset.x < -70 || info.velocity.x < -520) {
@@ -4112,6 +4123,7 @@ Everything will be deleted when you leave.</p>
               </button>
             </div>
           </motion.section>
+          </div>
         )}
       </AnimatePresence>
 
