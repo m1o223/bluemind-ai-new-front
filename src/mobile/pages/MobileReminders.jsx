@@ -44,6 +44,9 @@ const STATUS_LABELS = {
   cancelled: "Cancelled",
 };
 
+const mobileGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[28px]";
+const mobileGlassControlClass = "border-white/[0.075] bg-[rgba(42,42,42,0.32)] text-white/86 shadow-[inset_0_1px_0_rgba(255,255,255,0.11),0_12px_28px_rgba(0,0,0,0.20)] backdrop-blur-[26px] transition active:scale-95 active:bg-[rgba(70,70,70,0.34)]";
+
 function reminderId(reminder) {
   return reminder?._id || reminder?.id;
 }
@@ -288,7 +291,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
       exit={{ opacity: 0, y: -8 }}
       className={cn(
         "relative rounded-[24px] border p-4 shadow-sm transition",
-        isDark ? "border-white/10 bg-white/[0.055] text-white" : "border-black/[0.08] bg-white text-[var(--bm-text-primary)]",
+        isDark ? mobileGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
         highlighted && "ring-2",
       )}
       style={highlighted ? { "--tw-ring-color": appColor } : undefined}
@@ -327,8 +330,8 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                 type="button"
                 onClick={() => setMenuOpen((value) => !value)}
                 className={cn(
-                  "grid h-9 w-9 place-items-center rounded-full",
-                  isDark ? "text-white/60 hover:bg-white/[0.10]" : "text-[var(--bm-text-secondary)] hover:bg-black/5",
+                  "grid h-9 w-9 place-items-center rounded-full border",
+                  isDark ? mobileGlassControlClass : "border-black/[0.06] bg-white/70 text-[var(--bm-text-secondary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,23,42,0.08)] backdrop-blur-[18px] hover:bg-white",
                 )}
                 aria-label="Reminder actions"
               >
@@ -409,7 +412,7 @@ function NotificationPanel({ debug, busy, isDark, appColor, onEnable, onRefresh,
     <section
       className={cn(
         "rounded-[24px] border p-4",
-        isDark ? "border-white/10 bg-white/[0.055]" : "border-black/[0.08] bg-white",
+        isDark ? mobileGlassSurfaceClass : "border-black/[0.08] bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
       )}
       data-testid="mobile-notification-panel"
     >
@@ -728,8 +731,8 @@ export default function MobileReminders() {
               type="button"
               onClick={() => navigate("/mobile/chat")}
               className={cn(
-                "grid h-10 w-10 place-items-center rounded-full",
-                isDark ? "bg-white/[0.08] text-white" : "bg-white text-[var(--bm-text-primary)] shadow-sm",
+                "grid h-10 w-10 place-items-center rounded-full border",
+                isDark ? mobileGlassControlClass : "border-black/[0.06] bg-white/75 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,23,42,0.08)] backdrop-blur-[18px]",
               )}
               aria-label="Back to chat"
             >
@@ -749,8 +752,11 @@ export default function MobileReminders() {
               setEditingReminder(null);
               setModalOpen(true);
             }}
-            className="grid h-11 w-11 place-items-center rounded-full text-white shadow-sm"
-            style={{ backgroundColor: appColor }}
+            className={cn(
+              "grid h-11 w-11 place-items-center rounded-full border",
+              isDark ? mobileGlassControlClass : "border-black/[0.06] bg-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,23,42,0.08)] backdrop-blur-[18px]",
+            )}
+            style={{ color: appColor }}
             aria-label="Create reminder"
             data-testid="mobile-create-reminder"
           >
@@ -772,14 +778,21 @@ export default function MobileReminders() {
 
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2"
+            className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2"
             style={{ color: appColor }}
           />
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search reminders"
-            className={cn(inputClasses.search, typeClasses.body, "pl-11 pr-4 font-semibold")}
+            className={cn(
+              inputClasses.search,
+              typeClasses.body,
+              "pl-14 pr-4 font-semibold backdrop-blur-[24px]",
+              isDark
+                ? "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] placeholder:text-white/42"
+                : "border-black/[0.06] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_12px_28px_rgba(15,23,42,0.08)]",
+            )}
             data-testid="mobile-reminder-search"
           />
         </div>
