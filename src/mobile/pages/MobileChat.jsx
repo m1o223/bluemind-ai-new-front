@@ -3972,13 +3972,13 @@ Everything will be deleted when you leave.</p>
           >
             <motion.button
               type="button"
-              className="absolute inset-y-0 left-[84vw] right-0 bg-black/44 backdrop-blur-[5px]"
+              className="absolute inset-y-0 left-[84vw] right-0 rounded-l-[34px] border-l border-white/[0.08] bg-black/56 shadow-[-18px_0_42px_rgba(0,0,0,0.34)] backdrop-blur-[8px]"
               onClick={closeMenu}
               aria-label="Close menu"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, x: 28 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 28 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             />
 
             <motion.section
@@ -3990,10 +3990,10 @@ Everything will be deleted when you leave.</p>
                 boxShadow: "inset -1px 0 0 rgba(255,255,255,0.035), 10px 0 34px rgba(0,0,0,0.22)",
                 touchAction: "pan-y",
               }}
-              initial={{ x: "-104%", opacity: 0.92 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "-104%", opacity: 0.92 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ x: "-104%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-104%" }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               drag="x"
               dragConstraints={{ left: -220, right: 0 }}
               dragElastic={0.08}
