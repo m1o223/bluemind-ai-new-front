@@ -48,6 +48,9 @@ const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,
 const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
 const mobileGlassControlClass = "bm-mobile-glass-control";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
+const reminderBeforeOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+const reminderFormGlassFieldClass = "min-w-0 border-white/[0.08] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_30px_rgba(0,0,0,0.16)] backdrop-blur-[24px] placeholder:text-white/45";
+const reminderFormGlassButtonClass = "border border-white/[0.08] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_30px_rgba(0,0,0,0.16)] backdrop-blur-[24px] transition active:scale-[0.985]";
 
 function reminderId(reminder) {
   return reminder?._id || reminder?.id;
@@ -98,6 +101,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
     description: "",
     date: "",
     time: "09:00",
+    reminderBefore: 0,
     recurrence: { frequency: "none", interval: 1 },
   });
 
@@ -107,6 +111,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
       description: reminder?.description || "",
       date: reminder?.reminderDate || reminder?.date || "",
       time: reminder?.reminderTime || toInputTime(reminder?.time),
+      reminderBefore: Number(reminder?.reminderBefore || 0),
       recurrence: reminder?.recurrence || { frequency: "none", interval: 1 },
     });
   }, [reminder, isOpen]);
@@ -131,6 +136,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
         frequency: form.recurrence?.frequency || "none",
         interval: Number(form.recurrence?.interval || 1),
       },
+      reminderBefore: Number(form.reminderBefore || 0),
       status: reminder?.status || "upcoming",
     });
   };
@@ -172,13 +178,13 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-2">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-2">
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium opacity-70">Title</span>
             <input
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-              className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
+              className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
               placeholder="What should BlueMind remind you about?"
             />
           </label>
@@ -188,35 +194,53 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
             <textarea
               value={form.description}
               onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-              className={cn(inputClasses.textarea, typeClasses.body, "resize-none font-semibold")}
+              className={cn(inputClasses.textarea, typeClasses.body, reminderFormGlassFieldClass, "resize-none font-semibold")}
               placeholder="Optional note"
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 min-[390px]:grid-cols-2">
+            <label className="block min-w-0">
               <span className="mb-1.5 block text-xs font-medium opacity-70">Date</span>
               <input
                 type="date"
                 value={form.date}
                 onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
-                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
+                className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
               />
             </label>
 
-            <label className="block">
+            <label className="block min-w-0">
               <span className="mb-1.5 block text-xs font-medium opacity-70">Time</span>
               <input
                 type="time"
                 value={form.time}
                 onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
-                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
+                className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
               />
             </label>
           </div>
 
-          <div className="grid grid-cols-[1fr_92px] gap-3">
-            <label className="block">
+          <label className="block min-w-0">
+            <span className="mb-1.5 block text-xs font-medium opacity-70">Reminder Before</span>
+            <select
+              value={form.reminderBefore}
+              onChange={(event) => setForm((prev) => ({
+                ...prev,
+                reminderBefore: Number(event.target.value),
+              }))}
+              className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
+            >
+              {reminderBeforeOptions.map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {minutes === 0 ? "None" : `${minutes} minutes`}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="grid grid-cols-1 gap-x-4 gap-y-3 min-[390px]:grid-cols-[minmax(0,1fr)_104px]">
+            <label className="block min-w-0">
               <span className="mb-1.5 block text-xs font-medium opacity-70">Repeat</span>
               <select
                 value={form.recurrence.frequency}
@@ -224,7 +248,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
                   ...prev,
                   recurrence: { ...prev.recurrence, frequency: event.target.value },
                 }))}
-                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
+                className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
               >
                 <option value="none">Does not repeat</option>
                 <option value="daily">Daily</option>
@@ -243,7 +267,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
                   ...prev,
                   recurrence: { ...prev.recurrence, interval: event.target.value },
                 }))}
-                className={cn(inputClasses.field, typeClasses.body, "font-semibold")}
+                className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
               />
             </label>
           </div>
@@ -254,7 +278,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
             onClick={onClose}
             className={cn(
               "h-12 flex-1 rounded-2xl text-sm font-semibold",
-                isDark ? "bg-white/[0.10] text-white" : "bg-black/5 text-[var(--bm-text-primary)]",
+              reminderFormGlassButtonClass,
             )}
           >
             Cancel
@@ -262,8 +286,11 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
           <button
             type="submit"
             disabled={!isValid}
-            className="h-12 flex-1 rounded-2xl text-sm font-semibold text-white disabled:opacity-45"
-            style={{ backgroundColor: appColor }}
+            className="h-12 flex-1 rounded-2xl border text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_16px_34px_rgba(47,125,246,0.24)] backdrop-blur-[18px] transition active:scale-[0.985] disabled:opacity-45"
+            style={{
+              backgroundColor: appColor,
+              borderColor: "rgba(255,255,255,0.14)",
+            }}
           >
             Save
           </button>
