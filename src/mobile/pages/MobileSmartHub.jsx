@@ -45,8 +45,8 @@ function HubCard({ item, index, isDark, appColor, accentText }) {
         spacingClasses.card,
         interactionClasses.card,
         isDark
-          ? "border-white/[0.08] bg-[var(--bm-bg-elevated)] shadow-black/20"
-          : "border-[var(--bm-border)] bg-white shadow-slate-200/80",
+          ? "border-white/[0.075] bg-[rgba(38,38,38,0.34)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[28px]"
+          : "border-black/[0.08] bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
       )}
     >
       <div
