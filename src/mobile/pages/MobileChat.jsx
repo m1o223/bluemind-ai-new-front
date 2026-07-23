@@ -787,7 +787,6 @@ export default function MobileChat() {
     {
       label: t("settings"),
       action: () => {
-        closeMenu();
         setSettingsSheetOpen(true);
       },
       icon: Settings,
@@ -4139,7 +4138,6 @@ Everything will be deleted when you leave.</p>
               <button
                 type="button"
                 onClick={() => {
-                  closeMenu();
                   setSettingsSheetOpen(true);
                 }}
                 className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] p-[5px] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-[42px] transition-transform active:scale-95"
@@ -4339,6 +4337,7 @@ Everything will be deleted when you leave.</p>
       <SettingsSheet
         open={settingsSheetOpen}
         mobile
+        layeredOverMenu={menuOpen}
         onClose={() => setSettingsSheetOpen(false)}
       />
     </main>

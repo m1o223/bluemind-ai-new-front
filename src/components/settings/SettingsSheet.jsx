@@ -314,6 +314,7 @@ export default function SettingsSheet({
   mobile = false,
   initialPane = "main",
   overlay = true,
+  layeredOverMenu = false,
 }) {
   const navigate = useNavigate();
   const { prefs, resolvedTheme, setPrefs } = useApp();
@@ -1162,6 +1163,16 @@ export default function SettingsSheet({
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: "100%", opacity: 0.96 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      drag={mobile ? "y" : false}
+      dragDirectionLock
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={{ top: 0, bottom: 0.22 }}
+      onDragEnd={(_, info) => {
+        if (!mobile) return;
+        if (info.offset.y > 92 || info.velocity.y > 620) {
+          close();
+        }
+      }}
       className={cn(
         "relative flex w-full flex-col overflow-hidden shadow-[0_-28px_90px_rgba(0,0,0,0.18)]",
         isDark ? "bg-[var(--bm-bg-card)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
@@ -1264,7 +1275,10 @@ export default function SettingsSheet({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[140] flex items-end justify-center bg-black/55 backdrop-blur-[14px] md:items-center md:p-6"
+        className={cn(
+          "fixed inset-0 z-[140] flex items-end justify-center md:items-center md:p-6",
+          layeredOverMenu ? "bg-black/35 backdrop-blur-[8px]" : "bg-black/55 backdrop-blur-[14px]",
+        )}
         onClick={close}
       >
         <div className="w-full md:flex md:justify-center" onClick={(event) => event.stopPropagation()}>
