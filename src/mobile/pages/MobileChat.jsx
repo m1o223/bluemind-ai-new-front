@@ -689,6 +689,7 @@ export default function MobileChat() {
   const [imageSourceSheetOpen, setImageSourceSheetOpen] = useState(false);
   const attachedImagesRef = useRef([]);
   const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
   const sheetTouchStartYRef = useRef(null);
   const searchInputRef = useRef(null);
   const aiSelectorButtonRef = useRef(null);
@@ -1216,6 +1217,18 @@ export default function MobileChat() {
     attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "contain";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscrollBehavior;
+    };
+  }, [menuOpen]);
+
   const closeMenu = () => {
     setMenuOpen(false);
     setMenuSearchOpen(false);
@@ -1635,12 +1648,14 @@ export default function MobileChat() {
 
   const handleTouchStart = (event) => {
     touchStartXRef.current = event.touches?.[0]?.clientX ?? null;
+    touchStartYRef.current = event.touches?.[0]?.clientY ?? null;
   };
 
   const handleTouchEnd = (event) => {
     const startX = touchStartXRef.current;
     const endX = event.changedTouches?.[0]?.clientX;
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
     if (typeof startX === "number" && typeof endX === "number" && startX - endX > 70) {
       closeMenu();
     }
@@ -1648,20 +1663,45 @@ export default function MobileChat() {
 
   const handlePageTouchStart = (event) => {
     touchStartXRef.current = event.touches?.[0]?.clientX ?? null;
+    touchStartYRef.current = event.touches?.[0]?.clientY ?? null;
+  };
+
+  const handlePageTouchMove = (event) => {
+    const startX = touchStartXRef.current;
+    const startY = touchStartYRef.current;
+    const currentTouch = event.touches?.[0];
+    if (
+      !menuOpen &&
+      !menuSearchOpen &&
+      typeof startX === "number" &&
+      typeof startY === "number" &&
+      currentTouch &&
+      startX <= 26 &&
+      currentTouch.clientX - startX > 12 &&
+      Math.abs(currentTouch.clientY - startY) < 42
+    ) {
+      event.preventDefault();
+    }
   };
 
   const handlePageTouchEnd = (event) => {
     const startX = touchStartXRef.current;
+    const startY = touchStartYRef.current;
     const endX = event.changedTouches?.[0]?.clientX;
+    const endY = event.changedTouches?.[0]?.clientY;
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
 
     if (
       !menuOpen &&
       !menuSearchOpen &&
       typeof startX === "number" &&
+      typeof startY === "number" &&
       typeof endX === "number" &&
-      startX <= 24 &&
-      endX - startX > 82
+      typeof endY === "number" &&
+      startX <= 26 &&
+      endX - startX > 76 &&
+      Math.abs(endY - startY) < 54
     ) {
       openMenu();
     }
@@ -3032,6 +3072,7 @@ export default function MobileChat() {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
       onTouchStart={handlePageTouchStart}
+      onTouchMove={handlePageTouchMove}
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
@@ -3927,29 +3968,52 @@ Everything will be deleted when you leave.</p>
 
       <AnimatePresence>
         {menuOpen && (
-          <motion.section
-            className={`fixed inset-0 z-[70] flex flex-col overflow-hidden ${textColor}`}
-            style={{
-              backgroundColor: surfaceColor,
-              paddingTop: "env(safe-area-inset-top)",
-              paddingBottom: "env(safe-area-inset-bottom)",
-            }}
-            initial={{ x: "-100%", opacity: 0.94 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "-100%", opacity: 0.96 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            drag="x"
-            dragConstraints={{ left: -160, right: 0 }}
-            dragElastic={0.12}
-            onDragEnd={(_, info) => {
-              if (info.offset.x < -90 || info.velocity.x < -600) {
-                closeMenu();
-              }
-            }}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            data-testid="mobile-full-screen-menu"
+          <motion.div
+            className="fixed inset-0 z-[70] overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            data-testid="mobile-menu-overlay"
           >
+            <motion.button
+              type="button"
+              className="absolute inset-0 bg-black/40 backdrop-blur-[5px]"
+              onClick={closeMenu}
+              aria-label="Close menu"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            />
+
+            <motion.section
+              className={`relative z-10 flex h-full w-[80vw] max-w-[360px] flex-col overflow-hidden rounded-r-[30px] border-r border-white/[0.055] shadow-[18px_0_58px_rgba(0,0,0,0.34)] backdrop-blur-[32px] ${textColor}`}
+              style={{
+                backgroundColor: isDark ? "rgba(16,16,16,0.94)" : "rgba(255,255,255,0.94)",
+                paddingTop: "env(safe-area-inset-top)",
+                paddingBottom: "env(safe-area-inset-bottom)",
+                boxShadow: "inset -1px 0 0 rgba(255,255,255,0.035), inset 0 1px 0 rgba(255,255,255,0.08), 18px 0 58px rgba(0,0,0,0.34)",
+                WebkitBackdropFilter: "blur(32px) saturate(1.08)",
+                backdropFilter: "blur(32px) saturate(1.08)",
+                touchAction: "pan-y",
+              }}
+              initial={{ x: "-104%", opacity: 0.92 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "-104%", opacity: 0.92 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              drag="x"
+              dragConstraints={{ left: -220, right: 0 }}
+              dragElastic={0.08}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -70 || info.velocity.x < -520) {
+                  closeMenu();
+                }
+              }}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              data-testid="mobile-side-menu"
+            >
             <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-4">
               <div className={`flex items-center ${iconClasses.iconText}`}>
                 <BrandLogo showName={false} small logoClassName={iconClasses.sidebarLogo} />
@@ -4069,6 +4133,7 @@ Everything will be deleted when you leave.</p>
               </section>
             </nav>
           </motion.section>
+          </motion.div>
         )}
       </AnimatePresence>
 
