@@ -824,6 +824,7 @@ export default function MobileChat() {
 
   const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0 || writeAttachments.length > 0;
   const isToolFocusMode = isImageMode || isWriteEditMode || isSearchMode || Boolean(activeWriteTask);
+  const isSmartFocusMode = isToolFocusMode || message.trim().length > 0;
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
   const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && (!message.trim() || Boolean(selectedImageTemplate)) && attachedImages.length === 0 && !isGeneratingImage;
@@ -2704,7 +2705,7 @@ export default function MobileChat() {
       </AnimatePresence>
 
       <AnimatePresence initial={false}>
-        {!isToolFocusMode && (
+        {!isSmartFocusMode && (
           <motion.div
             key="mobile-quick-action-chips"
             className="-mx-4 mb-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -2712,7 +2713,7 @@ export default function MobileChat() {
             initial={{ opacity: 0, height: 0, y: 8 }}
             animate={{ opacity: 1, height: "auto", y: 0 }}
             exit={{ opacity: 0, height: 0, y: 8 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.23, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="flex w-max min-w-full items-center gap-2.5">
               {quickActionChips.map((action) => {
@@ -2925,12 +2926,12 @@ export default function MobileChat() {
     return (
       <motion.section
         key="mobile-feature-carousel"
-        className="shrink-0 overflow-hidden pb-3 pt-2"
+        className="shrink-0 overflow-hidden pb-3 pt-20"
         data-testid="mobile-feature-carousel"
         initial={{ opacity: 0, height: 0, y: -8 }}
         animate={{ opacity: 1, height: "auto", y: 0 }}
         exit={{ opacity: 0, height: 0, y: -8 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.23, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="overflow-hidden">
           <motion.div
@@ -3080,12 +3081,12 @@ export default function MobileChat() {
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
-      <header className="relative z-40 flex h-16 items-center justify-between border-b border-white/[0.03] px-4" style={{ backgroundColor: surfaceColor }}>
+      <header className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-40 flex h-16 items-center justify-between px-4">
         <div className="flex w-12 items-center justify-start">
           <button
             type="button"
             onClick={openMenu}
-            className={mobileGlassControlClass}
+            className={`pointer-events-auto ${mobileGlassControlClass}`}
             style={mobileGlassControlStyle}
             aria-label="Open menu"
           >
@@ -3103,7 +3104,7 @@ export default function MobileChat() {
             onClick={() => {
               setResponseModeMenuOpen((open) => !open);
             }}
-            className={mobileGlassSelectorClass}
+            className={`pointer-events-auto ${mobileGlassSelectorClass}`}
             style={mobileGlassControlStyle}
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen}
@@ -3232,7 +3233,7 @@ export default function MobileChat() {
           <button
             type="button"
             onClick={startNewChat}
-            className={mobileGlassControlClass}
+            className={`pointer-events-auto ${mobileGlassControlClass}`}
             style={mobileGlassControlStyle}
             aria-label="New chat"
           >
@@ -3242,7 +3243,7 @@ export default function MobileChat() {
       </header>
 
       <AnimatePresence initial={false}>
-        {!isToolFocusMode && renderFeatureCarousel()}
+        {!isSmartFocusMode && renderFeatureCarousel()}
       </AnimatePresence>
 
       {(chatSessionMode === "private" || chatSessionMode === "hidden") && (
@@ -3261,8 +3262,8 @@ export default function MobileChat() {
         <div
           ref={messagesScrollRef}
           className={
-            isToolFocusMode
-              ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-2"
+            isSmartFocusMode
+              ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
               : isEmptyChat
                 ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5"
                 : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"
