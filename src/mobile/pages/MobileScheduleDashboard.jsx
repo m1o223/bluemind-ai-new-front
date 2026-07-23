@@ -11,10 +11,10 @@ import {
   ChevronDown,
   Clock3,
   Dumbbell,
-  Edit3,
   GraduationCap,
   MoreVertical,
   Moon,
+  PenLine,
   Plus,
   Repeat,
   Sparkles,
@@ -198,7 +198,7 @@ function ScheduleActionSheet({ open, isDark, onClose, onManual, onAi }) {
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/35" />
             <div className="space-y-2">
               <button type="button" onClick={onManual} className={cn("flex min-h-[58px] w-full items-center gap-3 rounded-3xl px-4 text-left font-bold", isDark ? "bg-white/[0.07] active:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] active:bg-[var(--bm-active-bg)]")}>
-                <Edit3 className={iconClasses.card} />
+                <PenLine className={iconClasses.card} />
                 <span>Create manually</span>
               </button>
               <button type="button" onClick={onAi} className="flex min-h-[58px] w-full items-center gap-3 rounded-3xl bg-[var(--bm-primary)] px-4 text-left font-bold text-white active:opacity-90">
@@ -687,7 +687,7 @@ function ScheduleContextMenuPortal({ open, rect, isDark, onClose, onEdit, onDele
           onClick={onEdit}
           className={cn("flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold transition-colors", isDark ? "text-white hover:bg-white/[0.08] active:bg-white/[0.08]" : "hover:bg-[#2F7DF6]/[0.08] active:bg-[#2F7DF6]/[0.08]")}
         >
-          <Edit3 className="h-4 w-4" />
+          <PenLine className="h-4 w-4" />
           Edit
         </button>
         <button

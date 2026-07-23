@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   Bell,
-  Calendar,
+  CalendarDays,
   CheckCircle2,
   Clock,
   MoreVertical,
@@ -20,7 +20,7 @@ import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
-import { inputClasses, typeClasses } from "@/lib/interactions";
+import { iconClasses, inputClasses, typeClasses } from "@/lib/interactions";
 import { useApp } from "@/context/AppContext";
 import {
   createReminder,
@@ -336,7 +336,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                 )}
                 aria-label="Reminder actions"
               >
-                <MoreVertical className="h-[18px] w-[18px]" />
+                <MoreVertical className={iconClasses.button} />
               </button>
 
               {menuOpen && (
@@ -382,7 +382,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
             <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>
-              <Calendar className="h-3.5 w-3.5" style={{ color: appColor }} />
+              <CalendarDays className="h-3.5 w-3.5" style={{ color: appColor }} />
               {formatDate(reminder.reminderDate || reminder.date, language)}
             </span>
             <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", isDark ? "bg-white/[0.08] text-white/[0.72]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-secondary)]")}>

@@ -21,7 +21,7 @@ import {
   MonitorSmartphone,
   Moon,
   Palette,
-  Pencil,
+  PenLine,
   Shield,
   Settings,
   Sun,
@@ -610,7 +610,7 @@ export default function SettingsSheet({
           {saving === "avatar" ? (
             <BlueMindLoadingDots />
           ) : (
-            <Pencil className="h-4 w-4" />
+            <PenLine className="h-4 w-4" />
           )}
         </button>
       </div>

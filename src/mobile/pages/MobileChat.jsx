@@ -21,9 +21,7 @@ import {
   MessageSquare,
   Mic,
   PenLine,
-  Pencil,
   Plus,
-  Edit3,
   RotateCcw,
   Search,
   Share2,
@@ -2635,7 +2633,7 @@ export default function MobileChat() {
     };
 
     const quickActionChips = [
-      { label: "Write / Edit", icon: Edit3, onClick: enterWriteEditMode },
+      { label: "Write / Edit", icon: PenLine, onClick: enterWriteEditMode },
       { label: "Create Images", icon: Image, onClick: enterImageMode },
       { label: "Search", icon: Search, onClick: enterSearchMode },
       { label: "Open Camera", icon: Camera, onClick: () => openFileInput(cameraInputRef, "camera") },
@@ -2793,7 +2791,7 @@ export default function MobileChat() {
   const renderHomeQuickActions = () => {
     const quickActions = [
       { label: "Create Image", icon: Image, onClick: enterImageMode },
-      { label: "Write / Edit", icon: Edit3, onClick: enterWriteEditMode },
+      { label: "Write / Edit", icon: PenLine, onClick: enterWriteEditMode },
       { label: "Search", icon: Search, onClick: enterSearchMode },
     ];
 
@@ -2888,7 +2886,7 @@ export default function MobileChat() {
                   className={isDark ? `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
                   role="menuitem"
                 >
-                  <Pencil className={iconClasses.button} />
+                  <PenLine className={iconClasses.button} />
                   Rename
                 </button>
                 <button
@@ -3469,7 +3467,7 @@ export default function MobileChat() {
                       className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur active:bg-black/50"
                       aria-label={`Open actions for ${item.title}`}
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreVertical className={iconClasses.button} />
                     </button>
 
                     {openSearchMenuItemId === item.id && (
@@ -3590,7 +3588,7 @@ export default function MobileChat() {
                           { id: "copy", icon: messageFeedback[item.id]?.copied ? Check : Clipboard, label: t("copy"), onClick: () => handleCopyMessage(item) },
                           { id: "like", icon: ThumbsUp, label: t("like"), onClick: () => handleLikeMessage(item), active: messageFeedback[item.id]?.rating === "like" },
                           { id: "dislike", icon: ThumbsDown, label: t("dislike"), onClick: () => handleDislikeMessage(item), active: messageFeedback[item.id]?.rating === "dislike" },
-                          { id: "edit", icon: Edit3, label: t("edit"), onClick: () => handleEditMessage(item) },
+                          { id: "edit", icon: PenLine, label: t("edit"), onClick: () => handleEditMessage(item) },
                           { id: "regenerate", icon: RotateCcw, label: t("regenerate"), onClick: () => handleRegenerateMessage(item) },
                           { id: "share", icon: Share2, label: t("share"), onClick: () => handleShareMessage(item) },
                           { id: "more", icon: MoreVertical, label: t("more"), onClick: handleMoreMessage },
@@ -3886,7 +3884,7 @@ export default function MobileChat() {
                           setPrivateSpaceActionMenuId((current) => current === space.privateSpaceId ? null : space.privateSpaceId);
                         }}
                       >
-                        <MoreVertical className="h-5 w-5" />
+                        <MoreVertical className={iconClasses.button} />
                       </button>
                       {privateSpaceActionMenuId === space.privateSpaceId && (
                         <div className={`absolute right-2 top-12 z-10 w-36 rounded-2xl border p-1 shadow-xl ${isDark ? "border-white/10 bg-[var(--bm-bg-elevated)]" : "border-black/10 bg-white"}`}>
@@ -4134,7 +4132,7 @@ Everything will be deleted when you leave.</p>
                 className="flex h-[50px] w-[58%] items-center justify-center gap-2.5 rounded-full bg-[#0B3F8A] px-4 text-[14px] font-extrabold text-white shadow-[0_16px_36px_rgba(11,63,138,0.32)] transition-transform active:scale-[0.98]"
                 aria-label={t("newChat")}
               >
-                <Pencil className="h-5 w-5 stroke-[2.35]" />
+                <PenLine className="h-5 w-5 stroke-[2.35]" />
                 <span>{t("newChat")}</span>
               </button>
 
