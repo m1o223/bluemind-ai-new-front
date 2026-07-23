@@ -38,7 +38,6 @@ import { uploadChatImage } from "@/services/imageService";
 
 const STORAGE_KEY = "bluemind-mobile-schedule-dashboard-v1";
 
-const mobileBlueGlassControlClass = "border-[#2F7DF6]/[0.24] bg-[rgba(15,62,140,0.42)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.18),0_12px_28px_rgba(5,18,45,0.24)] backdrop-blur-[26px] active:bg-[rgba(24,82,175,0.46)]";
 const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileBlueGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 
@@ -259,7 +258,7 @@ function MobileModalShell({ open, isDark, title, onClose, children, contentClass
               <div className="flex h-14 shrink-0 items-center justify-between px-5 pt-2">
                 <span className="w-10" />
                 <h2 className="truncate text-base font-extrabold">{title}</h2>
-                <button type="button" onClick={onClose} className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]")} aria-label={`Close ${title}`}>
+                <button type="button" onClick={onClose} className="bm-mobile-glass-control" aria-label={`Close ${title}`}>
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -734,7 +733,7 @@ function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
                         <button
                           type="button"
                           onClick={(clickEvent) => onOpenMenu(event.id, clickEvent)}
-                          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ease-out", isDark ? mobileBlueGlassControlClass : "border-[#2F7DF6]/[0.14] bg-white/80 text-[var(--bm-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,85,170,0.10)] backdrop-blur-[18px] active:bg-[#2F7DF6]/[0.08]")}
+                          className="bm-mobile-glass-control"
                           aria-label={`Open actions for ${event.title}`}
                         >
                           <MoreVertical className={iconClasses.button} />
@@ -940,14 +939,14 @@ export default function MobileScheduleDashboard() {
   return (
     <main className={cn("min-h-screen overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.875rem,env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[#F7FAFF] text-[var(--bm-text-primary)]")}>
       <header className="flex items-center justify-between">
-        <button type="button" onClick={() => navigate(-1)} className={cn("flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 ease-out", isDark ? "bg-white/[0.08] text-white active:bg-white/[0.13]" : "bg-white text-[var(--bm-text-primary)] shadow-sm active:bg-[var(--bm-hover-bg)]")} aria-label="Back">
+        <button type="button" onClick={() => navigate(-1)} className="bm-mobile-glass-control" aria-label="Back">
           <ArrowLeft className={iconClasses.button} />
         </button>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setScheduleListOpen(true)} className={cn("flex h-10 w-10 items-center justify-center rounded-full border transition-colors duration-150 ease-out", isDark ? mobileBlueGlassControlClass : "border-[#2F7DF6]/[0.14] bg-white/80 text-[var(--bm-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,85,170,0.10)] backdrop-blur-[18px] active:bg-[#2F7DF6]/[0.08]")} aria-label="View all schedules">
+          <button type="button" onClick={() => setScheduleListOpen(true)} className="bm-mobile-glass-control" aria-label="View all schedules">
             <CalendarDays className={iconClasses.button} />
           </button>
-          <button type="button" onClick={() => setActionSheetOpen(true)} className={cn("flex h-10 w-10 items-center justify-center rounded-full border transition-transform duration-150 ease-out active:scale-[0.98]", mobileBlueGlassControlClass)} aria-label="Create schedule">
+          <button type="button" onClick={() => setActionSheetOpen(true)} className="bm-mobile-glass-control" aria-label="Create schedule">
             <Plus className={iconClasses.button} />
           </button>
         </div>
@@ -1025,7 +1024,7 @@ export default function MobileScheduleDashboard() {
                     <button
                       type="button"
                       onClick={(clickEvent) => openEventMenu(event.id, clickEvent)}
-                      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ease-out", isDark ? mobileBlueGlassControlClass : "border-[#2F7DF6]/[0.14] bg-white/80 text-[var(--bm-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,85,170,0.10)] backdrop-blur-[18px] active:bg-[#2F7DF6]/[0.08]")}
+                      className="bm-mobile-glass-control"
                       aria-label={`Open actions for ${event.title}`}
                     >
                       <MoreVertical className={iconClasses.button} />

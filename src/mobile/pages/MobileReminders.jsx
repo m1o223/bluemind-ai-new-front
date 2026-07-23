@@ -45,7 +45,7 @@ const STATUS_LABELS = {
 };
 
 const mobileGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
-const mobileGlassControlClass = "border-[#2F7DF6]/[0.24] bg-[rgba(15,62,140,0.42)] text-white/90 shadow-[inset_0_1px_0_rgba(125,182,255,0.18),0_12px_28px_rgba(5,18,45,0.24)] backdrop-blur-[26px] transition active:scale-95 active:bg-[rgba(24,82,175,0.46)]";
+const mobileGlassControlClass = "bm-mobile-glass-control";
 const mobileGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 
 function reminderId(reminder) {
@@ -164,10 +164,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
           <button
             type="button"
             onClick={onClose}
-            className={cn(
-              "grid h-10 w-10 place-items-center rounded-full",
-              isDark ? "bg-white/10 text-white" : "bg-black/5 text-[var(--bm-text-primary)]",
-            )}
+            className="bm-mobile-glass-control"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -331,8 +328,7 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
                 type="button"
                 onClick={() => setMenuOpen((value) => !value)}
                 className={cn(
-                  "grid h-9 w-9 place-items-center rounded-full border",
-                  isDark ? mobileGlassControlClass : "border-black/[0.06] bg-white/70 text-[var(--bm-text-secondary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,23,42,0.08)] backdrop-blur-[18px] hover:bg-white",
+                  mobileGlassControlClass,
                 )}
                 aria-label="Reminder actions"
               >
@@ -732,8 +728,7 @@ export default function MobileReminders() {
               type="button"
               onClick={() => navigate("/mobile/chat")}
               className={cn(
-                "grid h-10 w-10 place-items-center rounded-full border",
-                isDark ? mobileGlassControlClass : "border-black/[0.06] bg-white/75 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,23,42,0.08)] backdrop-blur-[18px]",
+                mobileGlassControlClass,
               )}
               aria-label="Back to chat"
             >
@@ -754,8 +749,7 @@ export default function MobileReminders() {
               setModalOpen(true);
             }}
             className={cn(
-              "grid h-11 w-11 place-items-center rounded-full border",
-              isDark ? mobileGlassControlClass : "border-black/[0.06] bg-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_22px_rgba(15,23,42,0.08)] backdrop-blur-[18px]",
+              mobileGlassControlClass,
             )}
             style={{ color: appColor }}
             aria-label="Create reminder"

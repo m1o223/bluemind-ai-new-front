@@ -17,6 +17,7 @@ import {
   Image,
   Lock,
   Glasses,
+  Menu,
   MoreVertical,
   MessageSquare,
   Mic,
@@ -713,7 +714,7 @@ export default function MobileChat() {
   const mutedText = "text-[#B7B7B7]";
   const textColor = "text-white/90";
   const mobileGlassControlClass =
-    "flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/85 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-95 active:bg-[rgba(96,96,96,0.2)]";
+    "bm-mobile-glass-control";
   const mobileGlassSelectorClass =
     "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-4 text-sm font-bold capitalize text-white/90 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-[rgba(96,96,96,0.2)]";
   const mobileGlassControlStyle = {
@@ -2671,7 +2672,7 @@ export default function MobileChat() {
               <button
                 type="button"
                 onClick={continueWriteTaskWithoutAttachment}
-                className={isDark ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                className="bm-mobile-glass-control"
                 aria-label="Continue without attachment"
               >
                 <X className="h-4 w-4" />
@@ -2846,8 +2847,7 @@ export default function MobileChat() {
             event.stopPropagation();
             setChatMenuTarget((current) => current === menuId ? null : menuId);
           }}
-          className="absolute right-0 top-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_24px_rgba(0,0,0,0.2)] backdrop-blur-[32px] transition active:scale-95 active:bg-[rgba(106,106,106,0.22)]"
-          style={mobileGlassControlStyle}
+          className="bm-mobile-glass-control absolute right-0 top-2"
           aria-label="Conversation actions"
           data-testid={`mobile-chat-menu-${item.conversationId}`}
         >
@@ -3043,7 +3043,7 @@ export default function MobileChat() {
                   onClick={closeAttachmentSheet}
                   whileTap={{ scale: 0.94 }}
                   transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                  className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-[42px] active:bg-[rgba(106,106,106,0.2)]"
+                  className="bm-mobile-glass-control"
                   aria-label="Close action menu"
                 >
                   <X className="h-5 w-5 stroke-[2.4]" />
@@ -3076,13 +3076,9 @@ export default function MobileChat() {
             type="button"
             onClick={openMenu}
             className={`pointer-events-auto ${mobileGlassControlClass}`}
-            style={mobileGlassControlStyle}
             aria-label="Open menu"
           >
-            <span className="flex h-5 w-6 flex-col items-start justify-center gap-[7px]" aria-hidden="true">
-              <span className="block h-[2.5px] w-[23px] rounded-[999px] bg-current" />
-              <span className="block h-[2.5px] w-[13px] rounded-[999px] bg-current" />
-            </span>
+            <Menu />
           </button>
         </div>
 
@@ -3223,7 +3219,6 @@ export default function MobileChat() {
             type="button"
             onClick={startNewChat}
             className={`pointer-events-auto ${mobileGlassControlClass}`}
-            style={mobileGlassControlStyle}
             aria-label="New chat"
           >
             <PenLine className="h-5 w-5" />
@@ -3291,7 +3286,7 @@ export default function MobileChat() {
               <button
                 type="button"
                 onClick={exitImageMode}
-                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                className="bm-mobile-glass-control"
                 aria-label="Exit create image mode"
               >
                 <X className="h-5 w-5" />
@@ -3305,7 +3300,7 @@ export default function MobileChat() {
               <button
                 type="button"
                 onClick={exitWriteEditMode}
-                className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                className="bm-mobile-glass-control"
                 aria-label="Exit write edit mode"
               >
                 <X className="h-5 w-5" />
@@ -3322,7 +3317,7 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={exitSearchMode}
-                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                  className="bm-mobile-glass-control"
                   aria-label="Exit search mode"
                 >
                   <X className="h-5 w-5" />
@@ -3455,8 +3450,7 @@ export default function MobileChat() {
                     <button
                       type="button"
                       onClick={() => setOpenSearchMenuItemId((current) => current === item.id ? null : item.id)}
-                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.11),0_10px_22px_rgba(0,0,0,0.2)] backdrop-blur-[30px] transition active:scale-95 active:bg-[rgba(106,106,106,0.22)]"
-                      style={mobileGlassControlStyle}
+                      className="bm-mobile-glass-control absolute right-2 top-2"
                       aria-label={`Open actions for ${item.title}`}
                     >
                       <MoreVertical className={iconClasses.button} />
@@ -3630,13 +3624,11 @@ export default function MobileChat() {
               initial={{ opacity: 0, y: 10, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.94 }}
-              className={`fixed left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl ${
-                isDark ? "border-white/[0.12] bg-[var(--bm-bg-elevated)]/90 text-white active:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[var(--bm-primary)] active:bg-white"
-              }`}
+              className="bm-mobile-glass-control fixed left-1/2 z-30 -translate-x-1/2"
               style={{ bottom: `calc(env(safe-area-inset-bottom) + ${composerKeyboardOffset + 146}px)` }}
               aria-label="Scroll to bottom"
             >
-              <ChevronDown className="h-5 w-5 stroke-[2.4]" />
+              <ChevronDown />
             </motion.button>
           )}
         </AnimatePresence>
@@ -3753,7 +3745,7 @@ export default function MobileChat() {
                 <button
                   type="button"
                   onClick={closeImageSourceSheet}
-                  className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "flex h-10 w-10 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                  className="bm-mobile-glass-control"
                   aria-label="Close image source"
                 >
                   <X className="h-5 w-5" />
@@ -3847,7 +3839,7 @@ export default function MobileChat() {
                   <h2 className="text-lg font-bold">Private Chat</h2>
                   <p className={`text-sm ${mutedText}`}>Unlock a private chat inside your account.</p>
                 </div>
-                <button type="button" className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full bg-white/10" : "flex h-10 w-10 items-center justify-center rounded-full bg-black/5"} onClick={() => setPrivateSpaceModalOpen(false)}>
+                <button type="button" className="bm-mobile-glass-control" onClick={() => setPrivateSpaceModalOpen(false)}>
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -3870,7 +3862,7 @@ export default function MobileChat() {
                       </button>
                       <button
                         type="button"
-                        className={`absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full ${isDark ? "active:bg-white/10" : "active:bg-black/5"}`}
+                        className="bm-mobile-glass-control absolute right-2 top-1/2 -translate-y-1/2"
                         onClick={(event) => {
                           event.stopPropagation();
                           setPrivateSpaceActionMenuId((current) => current === space.privateSpaceId ? null : space.privateSpaceId);
@@ -3946,7 +3938,7 @@ export default function MobileChat() {
             <motion.div className={`w-full rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]"}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} onClick={(event) => event.stopPropagation()}>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-bold">Hidden Chat</h2>
-                <button type="button" className={isDark ? "flex h-10 w-10 items-center justify-center rounded-full bg-white/10" : "flex h-10 w-10 items-center justify-center rounded-full bg-black/5"} onClick={() => setHiddenChatModalOpen(false)}>
+                <button type="button" className="bm-mobile-glass-control" onClick={() => setHiddenChatModalOpen(false)}>
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -3997,9 +3989,8 @@ Everything will be deleted when you leave.</p>
             <button
               type="button"
               onClick={closeMenu}
-              className="absolute left-5 top-[calc(env(safe-area-inset-top)+14px)] z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-[42px] active:scale-95 active:bg-[rgba(106,106,106,0.2)]"
+              className="bm-mobile-glass-control absolute left-5 top-[calc(env(safe-area-inset-top)+14px)] z-30"
               aria-label="Close menu"
-              style={mobileGlassControlStyle}
             >
               <ArrowLeft className={iconClasses.button} />
             </button>
@@ -4011,9 +4002,8 @@ Everything will be deleted when you leave.</p>
             <button
               type="button"
               onClick={openMenuSearch}
-              className="absolute right-5 top-[calc(env(safe-area-inset-top)+14px)] z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-[42px] active:scale-95 active:bg-[rgba(106,106,106,0.2)]"
+              className="bm-mobile-glass-control absolute right-5 top-[calc(env(safe-area-inset-top)+14px)] z-30"
               aria-label="Search"
-              style={mobileGlassControlStyle}
             >
               <Search className="h-5 w-5 stroke-[2.35]" />
             </button>
@@ -4152,7 +4142,7 @@ Everything will be deleted when you leave.</p>
               <button
                 type="button"
                 onClick={closeMenuSearch}
-                className={isDark ? "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-white active:bg-white/[0.08]" : "absolute left-4 flex h-11 w-11 items-center justify-center rounded-full text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]"}
+                className="bm-mobile-glass-control absolute left-4"
                 aria-label="Back to menu"
               >
                 <ArrowLeft className={iconClasses.button} />
@@ -4161,7 +4151,7 @@ Everything will be deleted when you leave.</p>
               <button
                 type="button"
                 onClick={closeMenuSearch}
-                className={isDark ? "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.08] text-white active:bg-white/[0.13]" : "absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--bm-text-primary)] shadow-sm ring-1 ring-[var(--bm-border)] active:bg-[var(--bm-hover-bg)]"}
+                className="bm-mobile-glass-control absolute right-4"
                 aria-label="Close search"
               >
                 <X className={iconClasses.button} />

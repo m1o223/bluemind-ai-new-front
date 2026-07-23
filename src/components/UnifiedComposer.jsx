@@ -106,8 +106,6 @@ export default function UnifiedComposer({
   const textareaMinHeight = isMobile ? 44 : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
   const useSubtleAddButton = isMobile || isIdleState;
-  const mobileGlassIconButtonClass =
-    "border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/78 backdrop-blur-[42px] hover:bg-[rgba(96,96,96,0.2)] hover:text-white/88 active:bg-[rgba(106,106,106,0.22)]";
   const mobileGlassIconStyle = {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 12px 28px rgba(0,0,0,0.23)",
     backdropFilter: "blur(42px) saturate(1.18)",
@@ -179,20 +177,20 @@ export default function UnifiedComposer({
       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
-        isMobile ? "h-10 w-10" : "h-11 w-11",
+        isMobile ? "bm-mobile-glass-control" : "h-11 w-11",
         isMobile
-          ? mobileGlassIconButtonClass
+          ? ""
           : useSubtleAddButton
           ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)]"
           : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
       )}
-      style={isMobile ? mobileGlassIconStyle : {
+      style={isMobile ? undefined : {
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
       }}
       aria-label={addLabel}
     >
-      <Plus className={isMobile ? "h-4 w-4" : "h-[21px] w-[21px]"} />
+      <Plus className={isMobile ? "" : "h-[21px] w-[21px]"} />
     </motion.button>
   );
 
@@ -202,24 +200,24 @@ export default function UnifiedComposer({
       onClick={onVoice}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
-        isMobile ? "h-10 w-10" : "h-[38px] w-[38px]",
+        isMobile ? "bm-mobile-glass-control" : "h-[38px] w-[38px]",
         isMobile
-          ? mobileGlassIconButtonClass
+          ? ""
           : isListening
           ? "text-white"
           : isDark
             ? "text-[var(--bm-text-secondary)] hover:text-white"
             : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]",
       )}
-      style={isListening ? {
+      style={isListening && !isMobile ? {
         backgroundColor: appColor,
         borderColor: "rgba(255,255,255,0.09)",
         color: "rgba(255,255,255,0.9)",
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 12px 28px rgba(0,0,0,0.23)",
-      } : isMobile ? mobileGlassIconStyle : undefined}
+      } : undefined}
       aria-label={voiceLabel}
     >
-      <Mic className={isMobile ? "h-5 w-5" : "h-[19px] w-[19px]"} />
+      <Mic className={isMobile ? "" : "h-[19px] w-[19px]"} />
     </button>
   );
 

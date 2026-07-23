@@ -19,8 +19,6 @@ const SEARCH_SUGGESTIONS = [
 ];
 
 const mobileSearchGlassSurfaceClass = "border-white/[0.075] bg-[rgba(78,78,78,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.11),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[32px]";
-const mobileSearchGlassControlClass = "border-white/[0.075] bg-[rgba(78,78,78,0.18)] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_12px_28px_rgba(0,0,0,0.22)] backdrop-blur-[32px] transition active:scale-95 active:bg-[rgba(106,106,106,0.22)]";
-
 export default function MobileSearch() {
   const navigate = useNavigate();
   const { resolvedTheme } = useApp();
@@ -37,9 +35,6 @@ export default function MobileSearch() {
   const glassSurface = isDark
     ? mobileSearchGlassSurfaceClass
     : "border-white/80 bg-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]";
-  const glassControl = isDark
-    ? mobileSearchGlassControlClass
-    : "border-white/80 bg-white/76 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_24px_rgba(15,23,42,0.1)] backdrop-blur-[22px] transition active:scale-95 active:bg-white";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -90,7 +85,7 @@ export default function MobileSearch() {
         <button
           type="button"
           onClick={() => navigate("/mobile/chat")}
-          className={cn("flex h-11 w-11 items-center justify-center rounded-full border", glassControl, interactionClasses.iconButton)}
+          className={cn("bm-mobile-glass-control", interactionClasses.iconButton)}
           aria-label="Back"
         >
           <ArrowLeft className={iconClasses.button} />
@@ -162,8 +157,7 @@ export default function MobileSearch() {
           <button
             type="submit"
             disabled={!query.trim() || isSearching}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-45 ${interactionClasses.iconButton}`}
-            style={{ backgroundColor: "var(--bluemind-app-color, var(--bm-primary))" }}
+            className={`bm-mobile-glass-control ${interactionClasses.iconButton}`}
             aria-label="Send search"
           >
             {isSearching ? <BlueMindLoadingDots /> : <Send className="h-5 w-5" />}

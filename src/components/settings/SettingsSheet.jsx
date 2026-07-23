@@ -605,7 +605,7 @@ export default function SettingsSheet({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className={cn("absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bm-primary)] text-white shadow-lg ring-4", isDark ? "ring-[var(--bm-bg-card)]" : "ring-[var(--bm-bg-app)]")}
+          className="bm-mobile-glass-control absolute bottom-0 right-0"
           aria-label="Edit profile picture"
         >
           {saving === "avatar" ? (
@@ -1186,12 +1186,12 @@ export default function SettingsSheet({
         {pane === "main" ? (
           <span className="w-10" />
         ) : (
-          <button type="button" onClick={backToMain} className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]")} aria-label="Back">
+          <button type="button" onClick={backToMain} className="bm-mobile-glass-control" aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
         <h2 className="text-base font-extrabold">{pane === "main" ? "Settings" : childTitles[pane] || "Settings"}</h2>
-        <button type="button" onClick={close} className={cn("flex h-10 w-10 items-center justify-center rounded-full", isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]")} aria-label="Close settings">
+        <button type="button" onClick={close} className="bm-mobile-glass-control" aria-label="Close settings">
           <X className="h-5 w-5" />
         </button>
       </div>

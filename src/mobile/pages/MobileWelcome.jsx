@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -83,12 +83,11 @@ export default function MobileWelcome() {
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Go back"
-            className="absolute left-5 top-4 z-10 inline-flex h-10 items-center gap-1 rounded-full border border-white/[0.08] bg-[rgba(42,51,63,0.42)] px-4 text-sm font-bold text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_30px_rgba(0,0,0,0.18)] backdrop-blur-[24px] transition duration-150 ease-out hover:bg-[rgba(54,64,78,0.50)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.98]"
+            className="bm-mobile-glass-control absolute left-5 top-4 z-10"
             style={{ marginTop: "env(safe-area-inset-top)" }}
             data-testid="mobile-auth-back-button"
           >
-            <span>Back</span>
-            <ArrowRight className="h-4 w-4 stroke-[2.4]" />
+            <ArrowLeft />
           </button>
         </div>
 
