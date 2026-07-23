@@ -3983,7 +3983,7 @@ Everything will be deleted when you leave.</p>
           >
             <motion.button
               type="button"
-              className="absolute inset-0 bg-black/40 backdrop-blur-[5px]"
+              className="absolute inset-y-0 left-[84vw] right-0 bg-black/44 backdrop-blur-[5px]"
               onClick={closeMenu}
               aria-label="Close menu"
               initial={{ opacity: 0 }}
@@ -3993,14 +3993,12 @@ Everything will be deleted when you leave.</p>
             />
 
             <motion.section
-              className={`relative z-10 flex h-full w-[84vw] flex-col overflow-hidden rounded-r-[30px] border-r border-white/[0.055] shadow-[18px_0_58px_rgba(0,0,0,0.34)] backdrop-blur-[32px] ${textColor}`}
+              className={`relative z-10 flex h-full w-[84vw] flex-col overflow-hidden ${textColor}`}
               style={{
-                backgroundColor: isDark ? "rgba(16,16,16,0.94)" : "rgba(255,255,255,0.94)",
+                backgroundColor: isDark ? "rgba(12,12,13,0.985)" : "rgba(255,255,255,0.985)",
                 paddingTop: "env(safe-area-inset-top)",
                 paddingBottom: "env(safe-area-inset-bottom)",
-                boxShadow: "inset -1px 0 0 rgba(255,255,255,0.035), inset 0 1px 0 rgba(255,255,255,0.08), 18px 0 58px rgba(0,0,0,0.34)",
-                WebkitBackdropFilter: "blur(32px) saturate(1.08)",
-                backdropFilter: "blur(32px) saturate(1.08)",
+                boxShadow: "inset -1px 0 0 rgba(255,255,255,0.035), 10px 0 34px rgba(0,0,0,0.22)",
                 touchAction: "pan-y",
               }}
               initial={{ x: "-104%", opacity: 0.92 }}
@@ -4019,6 +4017,16 @@ Everything will be deleted when you leave.</p>
               onTouchEnd={handleTouchEnd}
               data-testid="mobile-side-menu"
             >
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[calc(env(safe-area-inset-top)+74px)] backdrop-blur-[6px]"
+              style={{
+                background: isDark
+                  ? "linear-gradient(to bottom, rgba(12,12,13,0.96), rgba(12,12,13,0.76), rgba(12,12,13,0))"
+                  : "linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(255,255,255,0.76), rgba(255,255,255,0))",
+              }}
+              aria-hidden="true"
+            />
+
             <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-5 pt-[calc(env(safe-area-inset-top)+22px)]">
               <h2 className={`text-[21px] font-extrabold leading-none tracking-tight ${isDark ? "text-white/94" : "text-[var(--bm-text-primary)]"}`}>BlueMind AI</h2>
             </div>
@@ -4119,11 +4127,11 @@ Everything will be deleted when you leave.</p>
               </section>
             </nav>
 
-            <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-3 px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-4">
+            <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-start gap-3 px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-4">
               <button
                 type="button"
                 onClick={startNewChat}
-                className="flex h-[52px] flex-1 items-center justify-center gap-2.5 rounded-full bg-[#0B3F8A] px-5 text-[15px] font-extrabold text-white shadow-[0_18px_42px_rgba(11,63,138,0.34)] transition-transform active:scale-[0.98]"
+                className="flex h-[50px] w-[58%] items-center justify-center gap-2.5 rounded-full bg-[#0B3F8A] px-4 text-[14px] font-extrabold text-white shadow-[0_16px_36px_rgba(11,63,138,0.32)] transition-transform active:scale-[0.98]"
                 aria-label={t("newChat")}
               >
                 <Pencil className="h-5 w-5 stroke-[2.35]" />
