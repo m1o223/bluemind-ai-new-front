@@ -626,6 +626,7 @@ export default function MobileChat() {
   const scheduleFeatureCarouselAutoRef = useRef(null);
   const featureCarouselDraggingRef = useRef(false);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
+  const [isComposerFocused, setIsComposerFocused] = useState(false);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -816,6 +817,15 @@ export default function MobileChat() {
   const isToolFocusMode = isImageMode || isWriteEditMode || isSearchMode || Boolean(activeWriteTask);
   const isSmartFocusMode = isToolFocusMode || message.trim().length > 0;
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
+  const shouldShowQuickActions =
+    isEmptyChat &&
+    !isComposerFocused &&
+    !hasComposerContent &&
+    !isChatSending &&
+    !isGeneratingImage &&
+    !isUploadingImages &&
+    !isListening &&
+    !isOpeningConversation;
   const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && (!message.trim() || Boolean(selectedImageTemplate)) && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
@@ -835,6 +845,7 @@ export default function MobileChat() {
       const viewport = window.visualViewport;
       const activeElement = document.activeElement;
       const composerFocused = activeElement === composerInputRef.current;
+      setIsComposerFocused(composerFocused);
 
       if (!viewport) {
         setComposerKeyboardOffset(0);
@@ -2695,7 +2706,7 @@ export default function MobileChat() {
       </AnimatePresence>
 
       <AnimatePresence initial={false}>
-        {!isSmartFocusMode && (
+        {shouldShowQuickActions && (
           <motion.div
             key="mobile-quick-action-chips"
             className="-mx-4 mb-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -3070,7 +3081,7 @@ export default function MobileChat() {
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
-      <header className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-40 flex h-16 items-center justify-between px-4">
+      <header className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-40 flex h-16 items-center justify-between bg-transparent px-4 shadow-none backdrop-blur-0">
         <div className="flex w-12 items-center justify-start">
           <button
             type="button"
