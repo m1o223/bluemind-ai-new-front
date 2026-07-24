@@ -903,11 +903,20 @@ export default function MobileChat() {
     });
   }, []);
 
+  const closeResponseModeMenu = useCallback(() => {
+    setResponseModeMenuOpen(false);
+  }, []);
+
+  const toggleResponseModeMenu = useCallback(() => {
+    setResponseModeMenuOpen((open) => {
+      if (open) return false;
+      updateResponseModeMenuPosition();
+      return true;
+    });
+  }, [updateResponseModeMenuPosition]);
+
   useLayoutEffect(() => {
-    if (!responseModeMenuOpen) {
-      setResponseModeMenuPosition(null);
-      return undefined;
-    }
+    if (!responseModeMenuOpen) return undefined;
 
     updateResponseModeMenuPosition();
 
@@ -1041,9 +1050,9 @@ export default function MobileChat() {
 
   const redirectToMobileLogin = useCallback(() => {
     closeMenu();
-    setResponseModeMenuOpen(false);
+    closeResponseModeMenu();
     navigate("/mobile", { replace: true });
-  }, [navigate]);
+  }, [closeResponseModeMenu, navigate]);
 
   const ensureMobileChatAuth = useCallback(async () => {
     try {
@@ -1242,6 +1251,7 @@ export default function MobileChat() {
   };
 
   const openMenu = () => {
+    closeResponseModeMenu();
     setMenuOpen(true);
     setMenuSearchOpen(false);
   };
@@ -1259,7 +1269,7 @@ export default function MobileChat() {
   const selectResponseMode = async (mode) => {
     const nextMode = normalizeAiModeId(mode);
     setResponseMode(nextMode);
-    setResponseModeMenuOpen(false);
+    closeResponseModeMenu();
     try {
       await updatePreferences({ aiMode: nextMode });
     } catch (error) {
@@ -3097,9 +3107,7 @@ export default function MobileChat() {
           <button
             ref={aiSelectorButtonRef}
             type="button"
-            onClick={() => {
-              setResponseModeMenuOpen((open) => !open);
-            }}
+            onClick={toggleResponseModeMenu}
             className={`pointer-events-auto ${mobileGlassSelectorClass}`}
             style={mobileGlassControlStyle}
             aria-label="Select AI mode"
@@ -3113,20 +3121,20 @@ export default function MobileChat() {
             <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
-          <AnimatePresence>
+          <AnimatePresence onExitComplete={() => setResponseModeMenuPosition(null)}>
             {responseModeMenuOpen && responseModeMenuPosition && (
               <>
                 <button
                   type="button"
                   className="pointer-events-auto fixed inset-0 z-[45] cursor-default"
-                  onClick={() => setResponseModeMenuOpen(false)}
+                  onClick={closeResponseModeMenu}
                   aria-label="Close AI mode menu"
                 />
                 <motion.div
-                  initial={{ opacity: 0, x: "-50%", y: 8, scale: 0.97 }}
+                  initial={{ opacity: 0, x: "-50%", y: -8, scale: 0.98 }}
                   animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: "-50%", y: 6, scale: 0.97 }}
-                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  exit={{ opacity: 0, x: "-50%", y: -8, scale: 0.98 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                   className="pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88 backdrop-blur-[42px]"
                   style={{
                     left: responseModeMenuPosition.left,
