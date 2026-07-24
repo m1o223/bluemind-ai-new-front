@@ -626,7 +626,6 @@ export default function MobileChat() {
   const scheduleFeatureCarouselAutoRef = useRef(null);
   const featureCarouselDraggingRef = useRef(false);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
-  const [isComposerFocused, setIsComposerFocused] = useState(false);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -817,15 +816,6 @@ export default function MobileChat() {
   const isToolFocusMode = isImageMode || isWriteEditMode || isSearchMode || Boolean(activeWriteTask);
   const isSmartFocusMode = isToolFocusMode || message.trim().length > 0;
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
-  const shouldShowQuickActions =
-    isEmptyChat &&
-    !isComposerFocused &&
-    !hasComposerContent &&
-    !isChatSending &&
-    !isGeneratingImage &&
-    !isUploadingImages &&
-    !isListening &&
-    !isOpeningConversation;
   const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && (!message.trim() || Boolean(selectedImageTemplate)) && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
@@ -845,7 +835,6 @@ export default function MobileChat() {
       const viewport = window.visualViewport;
       const activeElement = document.activeElement;
       const composerFocused = activeElement === composerInputRef.current;
-      setIsComposerFocused(composerFocused);
 
       if (!viewport) {
         setComposerKeyboardOffset(0);
@@ -2716,7 +2705,7 @@ export default function MobileChat() {
       </AnimatePresence>
 
       <AnimatePresence initial={false}>
-        {shouldShowQuickActions && (
+        {!isSmartFocusMode && (
           <motion.div
             key="mobile-quick-action-chips"
             className="-mx-4 mb-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
