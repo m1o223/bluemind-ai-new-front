@@ -4,6 +4,7 @@ import { AnimatePresence, animate, motion, useMotionValue, useScroll, useTransfo
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  ArrowDown,
   ArrowUp,
   Bell,
   BookOpen,
@@ -3626,18 +3627,30 @@ export default function MobileChat() {
 
         <AnimatePresence>
           {showScrollToBottom && (
-            <motion.button
-              type="button"
-              onClick={() => scrollToBottom("smooth")}
+            <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.94 }}
-              className="bm-mobile-glass-control fixed left-1/2 z-30 -translate-x-1/2"
+              className="pointer-events-none fixed inset-x-0 z-30"
               style={{ bottom: `calc(env(safe-area-inset-bottom) + ${composerKeyboardOffset + 146}px)` }}
-              aria-label="Scroll to bottom"
             >
-              <ChevronDown />
-            </motion.button>
+              <div className="mx-auto flex w-full max-w-[430px] justify-center px-4">
+                <button
+                  type="button"
+                  onClick={() => scrollToBottom("smooth")}
+                  className="bm-mobile-glass-control pointer-events-auto"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    minWidth: 38,
+                    minHeight: 38,
+                  }}
+                  aria-label="Scroll to bottom"
+                >
+                  <ArrowDown className="h-5 w-5 stroke-[2.35]" />
+                </button>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
           <input
