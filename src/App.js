@@ -34,6 +34,8 @@ import MobileSmartHub from "@/mobile/pages/MobileSmartHub";
 import MobileWelcome from "@/mobile/pages/MobileWelcome";
 import MobileEmail from "@/mobile/pages/MobileEmail";
 import MobileRegister from "@/mobile/pages/MobileRegister";
+import MobileForgotPassword from "@/mobile/pages/MobileForgotPassword";
+import MobileResetPassword from "@/mobile/pages/MobileResetPassword";
 import { getAndroidMobilePath, isNativeAndroidApp } from "@/capacitorRuntime";
 import { restoreExistingSession } from "@/services/authService";
 import { getPreferredAppRoute } from "@/services/navigationPreferences";
@@ -165,6 +167,8 @@ function AppContent() {
             <Route index element={<MobileWelcome />} />
             <Route path="email" element={<MobileEmail />} />
             <Route path="register" element={<MobileRegister />} />
+            <Route path="forgot-password" element={<MobileForgotPassword />} />
+            <Route path="reset-password" element={<MobileResetPassword />} />
             <Route path="chat" element={<MobileAccessRoute><MobileChat /></MobileAccessRoute>} />
             <Route path="search" element={<MobileAccessRoute><MobileSearch /></MobileAccessRoute>} />
             <Route path="create-image" element={<MobileAccessRoute><MobileCreateImage /></MobileAccessRoute>} />

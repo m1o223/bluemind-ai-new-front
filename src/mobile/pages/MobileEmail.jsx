@@ -91,7 +91,7 @@ export default function MobileEmail() {
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => navigate("/auth/forgot-password")}
+            onClick={() => navigate("/mobile/forgot-password")}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/54 underline underline-offset-4 transition hover:text-white/80"
           >
             <CircleHelp className="h-3.5 w-3.5" />
