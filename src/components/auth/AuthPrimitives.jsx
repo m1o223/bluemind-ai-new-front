@@ -38,9 +38,9 @@ export function AuthBackButton({ onClick, label = "Back" }) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="fixed left-5 top-[calc(env(safe-area-inset-top)+20px)] z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_36px_rgba(0,0,0,0.32)] backdrop-blur-[24px] transition duration-200 hover:bg-white/[0.12] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-95"
+      className="bm-mobile-glass-control fixed left-5 top-[calc(env(safe-area-inset-top)+20px)] z-20"
     >
-      <ArrowLeft className="h-[19px] w-[19px] stroke-[2.4]" />
+      <ArrowLeft />
     </button>
   );
 }

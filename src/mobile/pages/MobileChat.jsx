@@ -716,9 +716,9 @@ export default function MobileChat() {
   const mobileGlassControlClass =
     "bm-mobile-glass-control";
   const mobileGlassSelectorClass =
-    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-4 text-sm font-bold capitalize text-white/90 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-[rgba(96,96,96,0.2)]";
+    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.052] bg-[rgba(78,78,78,0.16)] px-4 text-sm font-bold capitalize text-white/90 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-[rgba(96,96,96,0.18)]";
   const mobileGlassControlStyle = {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 14px 34px rgba(0,0,0,0.24)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.014), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.022), 0 12px 28px rgba(0,0,0,0.22)",
     backdropFilter: "blur(42px) saturate(1.18)",
     WebkitBackdropFilter: "blur(42px) saturate(1.18)",
   };

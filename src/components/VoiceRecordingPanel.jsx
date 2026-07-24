@@ -29,13 +29,12 @@ export default function VoiceRecordingPanel({
         type="button"
         onClick={onCancel}
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-full transition-colors",
-          compact ? "h-10 w-10" : "h-11 w-11",
-          isDark ? "bg-white/[0.08] text-white hover:bg-white/[0.12]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)] hover:bg-[var(--bm-active-bg)]",
+          "bm-mobile-glass-control",
+          !compact && "h-11 w-11 min-h-11 min-w-11",
         )}
         aria-label="Cancel voice input"
       >
-        <X className={compact ? "h-4 w-4" : "h-5 w-5"} />
+        <X />
       </button>
 
       <div className="flex min-w-0 flex-1 items-center justify-center gap-[3px]" aria-label="Live microphone waveform">
@@ -68,13 +67,12 @@ export default function VoiceRecordingPanel({
         type="button"
         onClick={onFinish}
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(25,59,104,0.2)] transition-transform active:scale-95",
-          compact ? "h-10 w-10" : "h-11 w-11",
+          "bm-mobile-glass-control",
+          !compact && "h-11 w-11 min-h-11 min-w-11",
         )}
-        style={{ backgroundColor: appColor }}
         aria-label="Finish voice input"
       >
-        <ArrowUp className={compact ? "h-[18px] w-[18px] -translate-y-[1px] stroke-[2.8]" : "h-5 w-5 -translate-y-[1px] stroke-[2.8]"} />
+        <ArrowUp className="-translate-y-[1px] scale-y-[1.06]" />
       </button>
     </motion.div>
   );
