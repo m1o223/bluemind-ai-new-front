@@ -627,6 +627,7 @@ export default function MobileChat() {
   const scheduleFeatureCarouselAutoRef = useRef(null);
   const featureCarouselDraggingRef = useRef(false);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
+  const [chatHomeDismissed, setChatHomeDismissed] = useState(false);
   const [menuSearchOpen, setMenuSearchOpen] = useState(false);
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [conversations, setConversations] = useState([]);
@@ -813,10 +814,13 @@ export default function MobileChat() {
     [selectedSearchCategory],
   );
 
-  const hasComposerContent = message.trim().length > 0 || attachedImages.length > 0 || writeAttachments.length > 0;
+  const hasTypedMessage = message.trim().length > 0;
+  const hasConversationMessages = messages.length > 0;
+  const hasGeneratedOutput = generatedImages.length > 0;
+  const hasComposerContent = hasTypedMessage || attachedImages.length > 0 || writeAttachments.length > 0;
   const isToolFocusMode = isImageMode || isWriteEditMode || isSearchMode || Boolean(activeWriteTask);
-  const isSmartFocusMode = isToolFocusMode || message.trim().length > 0;
-  const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && messages.length === 0 && generatedImages.length === 0;
+  const isSmartFocusMode = isToolFocusMode || hasTypedMessage;
+  const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && !hasConversationMessages && !hasGeneratedOutput;
   const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && (!message.trim() || Boolean(selectedImageTemplate)) && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
@@ -1037,6 +1041,42 @@ export default function MobileChat() {
     },
     onError: (messageText) => toast.error(messageText),
   });
+
+  const shouldShowChatHome =
+    isEmptyChat &&
+    !chatHomeDismissed &&
+    !hasComposerContent &&
+    !isChatSending &&
+    !isGeneratingImage &&
+    !isUploadingImages &&
+    !isListening &&
+    !isOpeningConversation;
+
+  useEffect(() => {
+    if (
+      hasComposerContent ||
+      hasConversationMessages ||
+      hasGeneratedOutput ||
+      isChatSending ||
+      isGeneratingImage ||
+      isUploadingImages ||
+      isListening ||
+      isOpeningConversation ||
+      isToolFocusMode
+    ) {
+      setChatHomeDismissed(true);
+    }
+  }, [
+    hasComposerContent,
+    hasConversationMessages,
+    hasGeneratedOutput,
+    isChatSending,
+    isGeneratingImage,
+    isUploadingImages,
+    isListening,
+    isOpeningConversation,
+    isToolFocusMode,
+  ]);
 
   const redirectToMobileLogin = useCallback(() => {
     closeMenu();
@@ -1330,6 +1370,7 @@ export default function MobileChat() {
         return [];
       });
       setMessages(mapMobileConversationMessages(conversation));
+      setChatHomeDismissed(true);
       loadedConversationRef.current = conversation.conversationId;
 
       if (updateUrl) {
@@ -1356,6 +1397,7 @@ export default function MobileChat() {
 
   const startNewChat = () => {
     closeMenu();
+    setChatHomeDismissed(false);
     setMessages([]);
     setMessage("");
     setIsImageMode(false);
@@ -2706,7 +2748,7 @@ export default function MobileChat() {
       </AnimatePresence>
 
       <AnimatePresence initial={false}>
-        {!isSmartFocusMode && (
+        {shouldShowChatHome && (
           <motion.div
             key="mobile-quick-action-chips"
             className="-mx-4 mb-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -2742,6 +2784,7 @@ export default function MobileChat() {
 
       <UnifiedComposer
         value={message}
+        onFocus={() => setChatHomeDismissed(true)}
         onChange={(event) => {
           setMessage(event.target.value);
           if (!isImageMode && !isWriteEditMode) {
@@ -3236,7 +3279,7 @@ export default function MobileChat() {
       </header>
 
       <AnimatePresence initial={false}>
-        {!isSmartFocusMode && renderFeatureCarousel()}
+        {shouldShowChatHome && renderFeatureCarousel()}
       </AnimatePresence>
 
       {(chatSessionMode === "private" || chatSessionMode === "hidden") && (
@@ -3257,7 +3300,7 @@ export default function MobileChat() {
           className={
             isSmartFocusMode
               ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
-              : isEmptyChat
+              : shouldShowChatHome
                 ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5"
                 : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"
           }

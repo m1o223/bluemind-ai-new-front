@@ -64,6 +64,8 @@ export default function UnifiedComposer({
   value,
   onChange,
   onInput,
+  onFocus,
+  onBlur,
   onSubmit,
   onKeyDown,
   inputRef,
@@ -331,8 +333,14 @@ export default function UnifiedComposer({
                   onChange={onChange}
                   onInput={onInput}
                   onKeyDown={onKeyDown}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
+                  onFocus={(event) => {
+                    setIsFocused(true);
+                    onFocus?.(event);
+                  }}
+                  onBlur={(event) => {
+                    setIsFocused(false);
+                    onBlur?.(event);
+                  }}
                   rows={1}
                   placeholder={placeholder}
                   className={cn(
@@ -482,8 +490,14 @@ export default function UnifiedComposer({
                   onChange={onChange}
                   onInput={onInput}
                   onKeyDown={onKeyDown}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
+                  onFocus={(event) => {
+                    setIsFocused(true);
+                    onFocus?.(event);
+                  }}
+                  onBlur={(event) => {
+                    setIsFocused(false);
+                    onBlur?.(event);
+                  }}
                   rows={1}
                   placeholder={placeholder}
                   className={cn(
