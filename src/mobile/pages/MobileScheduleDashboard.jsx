@@ -191,7 +191,7 @@ function ScheduleActionSheet({ open, isDark, onClose, onManual, onAi }) {
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
               "absolute bottom-0 left-0 right-0 rounded-t-[32px] border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl",
-              isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]",
+              isDark ? "border-white/10 bg-[var(--bm-bg-app)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]",
             )}
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/35" />
@@ -547,7 +547,7 @@ function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
   const attachmentMenu = attachmentMenuOpen ? (
     <div className="fixed inset-0 z-[160]">
       <button type="button" className="absolute inset-0 cursor-default" onClick={() => setAttachmentMenuOpen(false)} aria-label="Close attachment menu" />
-      <div className={cn("absolute bottom-[118px] left-6 right-6 overflow-hidden rounded-[24px] border p-2 shadow-2xl", isDark ? "border-white/10 bg-[#202020] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}>
+      <div className={cn("absolute bottom-[118px] left-6 right-6 overflow-hidden rounded-[24px] border p-2 shadow-2xl", isDark ? "border-white/10 bg-[var(--bm-bg-app)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}>
         {[
           ["Camera", () => cameraInputRef.current?.click()],
           ["Photos", () => photosInputRef.current?.click()],

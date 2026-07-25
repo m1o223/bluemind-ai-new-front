@@ -75,7 +75,7 @@ export async function setupCapacitorRuntime() {
 
     try {
       await StatusBar.setOverlaysWebView({ overlay: false });
-      await StatusBar.setBackgroundColor({ color: "#050505" });
+      await StatusBar.setBackgroundColor({ color: "#000000" });
       await StatusBar.setStyle({ style: Style.Light });
     } catch (error) {
       console.warn("Could not configure Android status bar", error);

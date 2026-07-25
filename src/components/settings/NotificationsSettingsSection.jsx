@@ -512,7 +512,7 @@ export default function NotificationsSettingsSection({ mobile = false, isDark = 
               key={category.id}
               type="button"
               onClick={() => navigate(`${basePath}/notifications/${category.id}`)}
-              className={cn("flex w-full items-center gap-3 rounded-[22px] border p-3 text-left shadow-sm transition-colors", panelClass, isDark ? "hover:bg-[#292929]" : "hover:bg-[var(--bm-bg-elevated)]")}
+              className={cn("flex w-full items-center gap-3 rounded-[22px] border p-3 text-left shadow-sm transition-colors", panelClass, isDark ? "hover:bg-[var(--bm-bg-app)]" : "hover:bg-[var(--bm-bg-elevated)]")}
               data-testid={`notification-category-link-${category.id}`}
             >
               <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-icon-primary)]")}>

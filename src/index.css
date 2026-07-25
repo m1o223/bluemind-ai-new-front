@@ -9,12 +9,12 @@
   --bm-error: #DC2626;
   --bm-warning: #EA580C;
   --bm-info: #0284C7;
-  --bm-bg-app: #050505;
-  --bm-bg-sidebar: #050505;
-  --bm-bg-card: #050505;
-  --bm-bg-elevated: #050505;
-  --bm-bg-input: #050505;
-  --bm-bg-modal: #050505;
+  --bm-bg-app: #000000;
+  --bm-bg-sidebar: #000000;
+  --bm-bg-card: #000000;
+  --bm-bg-elevated: #000000;
+  --bm-bg-input: #000000;
+  --bm-bg-modal: #000000;
   --bm-border: rgba(255, 255, 255, 0.08);
   --bm-border-strong: rgba(255, 255, 255, 0.14);
   --bm-text-primary: #FFFFFF;
@@ -69,17 +69,17 @@
 
 @layer base {
   :root {
-    --background: 0 0% 2%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 100%;
-    --card: 0 0% 2%;
+    --card: 0 0% 0%;
     --card-foreground: 0 0% 100%;
-    --popover: 0 0% 2%;
+    --popover: 0 0% 0%;
     --popover-foreground: 0 0% 100%;
     --primary: 160 83% 35%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 2%;
+    --secondary: 0 0% 0%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 2%;
+    --muted: 0 0% 0%;
     --muted-foreground: 0 0% 71%;
     --accent: 160 83% 35%;
     --accent-foreground: 0 0% 100%;
@@ -154,12 +154,12 @@ html[data-theme="light"] body {
 }
 
 html[data-theme="dark"] body {
-  --bm-bg-app: #050505;
-  --bm-bg-sidebar: #050505;
-  --bm-bg-card: #050505;
-  --bm-bg-elevated: #050505;
-  --bm-bg-input: #050505;
-  --bm-bg-modal: #050505;
+  --bm-bg-app: #000000;
+  --bm-bg-sidebar: #000000;
+  --bm-bg-card: #000000;
+  --bm-bg-elevated: #000000;
+  --bm-bg-input: #000000;
+  --bm-bg-modal: #000000;
   --bm-border: rgba(255, 255, 255, 0.10);
   --bm-border-strong: rgba(255, 255, 255, 0.18);
   --bm-text-primary: #FFFFFF;
@@ -189,10 +189,6 @@ html[data-theme="dark"] body {
 
 html[data-theme="dark"] .bg-black,
 html[data-theme="dark"] .bg-\[\#000000\],
-html[data-theme="dark"] .bg-\[\#050505\],
-html[data-theme="dark"] .bg-\[\#202020\],
-html[data-theme="dark"] .bg-\[\#1A1A1A\],
-html[data-theme="dark"] .bg-\[\#262626\],
 html[data-theme="dark"] .bg-white\/5,
 html[data-theme="dark"] .bg-white\/10,
 html[data-theme="dark"] .bg-white\/15,
@@ -520,7 +516,7 @@ html[data-theme="light"] :where([role="menu"]) {
 html[data-theme="dark"] .bm-glass-panel,
 html[data-theme="dark"] :where([role="menu"]) {
   border-color: rgba(255, 255, 255, 0.10) !important;
-  background: rgba(18, 18, 18, 0.68) !important;
+  background: #000000 !important;
   box-shadow: 0 26px 78px rgba(0, 0, 0, 0.34) !important;
 }
 

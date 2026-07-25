@@ -709,8 +709,8 @@ export default function MobileChat() {
   const featureCarouselCount = 5;
 
   const activeConversationId = searchParams.get("conversation");
-  const surfaceColor = "#050505";
-  const panelColor = "rgba(78,78,78,0.18)";
+  const surfaceColor = "#000000";
+  const panelColor = "#000000";
   const borderColor = "border-white/[0.055]";
   const mutedText = "text-[#B7B7B7]";
   const textColor = "text-white/90";
@@ -3211,7 +3211,7 @@ export default function MobileChat() {
                         aria-checked={headerThinkingEnabled}
                       >
                         <span>Enable Thinking</span>
-                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${headerThinkingEnabled ? "border-white/45 bg-white/82 text-[#050505]" : "border-white/14"}`}>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${headerThinkingEnabled ? "border-white/45 bg-white/82 text-[#000000]" : "border-white/14"}`}>
                           {headerThinkingEnabled && <Check className="h-4 w-4 stroke-[3]" />}
                         </span>
                       </button>

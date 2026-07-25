@@ -996,7 +996,7 @@ function Sidebar({
           {item.id === "recent_chats" && recentsOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setRecentsOpen(false)} />
-              <div className={cn("absolute left-full top-0 z-30 ml-3 w-[min(20rem,calc(100vw-6rem))] rounded-3xl border p-3 shadow-[0_24px_70px_rgba(15,23,42,0.25)] backdrop-blur-[18px]", isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/70 bg-white/95 text-[var(--bm-text-primary)]")}>
+              <div className={cn("absolute left-full top-0 z-30 ml-3 w-[min(20rem,calc(100vw-6rem))] rounded-3xl border p-3 shadow-[0_24px_70px_rgba(15,23,42,0.25)] backdrop-blur-[18px]", isDark ? "border-white/10 bg-[var(--bm-bg-app)]/95 text-white" : "border-white/70 bg-white/95 text-[var(--bm-text-primary)]")}>
                 <p className={cn("mb-2 px-2 font-semibold uppercase tracking-[0.14em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{t("recents")}</p>
                 <div className="max-h-[420px] space-y-1 overflow-y-auto">
                   {history.slice(0, 12).map((historyItem) => (
@@ -1141,7 +1141,7 @@ function Sidebar({
                   transition={{ duration: 0.16, ease: "easeOut" }}
                   className={cn(
                     "absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-[22px] border p-2 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-[18px]",
-                    isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/75 bg-white/95 text-[var(--bm-text-primary)]",
+                    isDark ? "border-white/10 bg-[var(--bm-bg-app)]/95 text-white" : "border-white/75 bg-white/95 text-[var(--bm-text-primary)]",
                   )}
                   onClick={(event) => event.stopPropagation()}
                 >
@@ -1211,7 +1211,7 @@ function Sidebar({
               className={cn(
                 "absolute z-30 rounded-3xl border p-3 shadow-[0_24px_70px_rgba(15,23,42,0.24)] backdrop-blur-[20px]",
                 isHistoryOpen ? "left-[18px] right-[18px] top-[142px]" : "left-full top-[154px] ml-3 w-[min(20rem,calc(100vw-6rem))]",
-                isDark ? "border-white/10 bg-[#232323]/95 text-white" : "border-white/70 bg-white/95 text-[var(--bm-text-primary)]",
+                isDark ? "border-white/10 bg-[var(--bm-bg-app)]/95 text-white" : "border-white/70 bg-white/95 text-[var(--bm-text-primary)]",
               )}
               onClick={(event) => event.stopPropagation()}
             >
@@ -5095,7 +5095,7 @@ export default function ChatPage() {
                 "absolute top-[calc(100%+8px)] z-50 w-[270px] overflow-hidden rounded-[24px] border p-2",
                 mobile ? "left-1/2 -translate-x-1/2" : "left-0",
                 isDark
-                  ? "border-white/[0.1] bg-[#202020] text-white"
+                  ? "border-white/[0.1] bg-[var(--bm-bg-app)] text-white"
                   : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]",
               )}
               role="menu"
@@ -5624,7 +5624,7 @@ export default function ChatPage() {
               exit={{ opacity: 0, y: 8, scale: 0.94 }}
               className={cn(
                 "fixed left-1/2 z-50 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-xl transition-colors",
-                isDark ? "border-white/[0.12] bg-[var(--bm-bg-elevated)]/90 text-white hover:bg-[#2E2E2E]" : "border-black/[0.06] bg-white/90 text-[var(--bm-primary)] hover:bg-white"
+                isDark ? "border-white/[0.12] bg-[var(--bm-bg-elevated)]/90 text-white hover:bg-[var(--bm-bg-app)]" : "border-black/[0.06] bg-white/90 text-[var(--bm-primary)] hover:bg-white"
               )}
               style={{ bottom: "8.5rem" }}
               aria-label="Scroll to bottom"
