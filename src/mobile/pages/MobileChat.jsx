@@ -512,7 +512,7 @@ const DESKTOP_IMAGE_IDEAS = [
 
 const IMAGE_GALLERY_TILE_HEIGHTS = [198, 252, 224, 286, 214, 264, 236, 304, 220, 274];
 
-function MobileImageGalleryTile({ item, index, selected, onSelect }) {
+function MobileImageGalleryTile({ item, index, selected, onSelect, loopHidden = false }) {
   const tileRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: tileRef,
@@ -526,22 +526,23 @@ function MobileImageGalleryTile({ item, index, selected, onSelect }) {
       ref={tileRef}
       type="button"
       onClick={() => onSelect(item)}
+      tabIndex={loopHidden ? -1 : undefined}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.24, delay: Math.min(index * 0.018, 0.18), ease: [0.22, 1, 0.36, 1] }}
       whileTap={{ scale: 0.975 }}
-      className="group mb-3 block w-full break-inside-avoid overflow-visible text-left"
+      className="group mb-1 block w-full break-inside-avoid overflow-visible text-left"
       aria-pressed={selected}
     >
       <motion.div
         animate={{
-          scale: selected ? 1.025 : 1,
+          scale: selected ? 1.018 : 1,
           boxShadow: selected
-            ? "0 0 0 2px rgba(37,99,235,0.9), 0 16px 42px rgba(37,99,235,0.18)"
-            : "0 10px 28px rgba(0,0,0,0.12)",
+            ? "0 0 0 2px rgba(37,99,235,0.88)"
+            : "0 0 0 1px rgba(255,255,255,0.04)",
         }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full overflow-hidden rounded-[24px]"
+        className="relative w-full overflow-hidden rounded-[14px]"
         style={{ height }}
       >
         <motion.img
@@ -551,15 +552,6 @@ function MobileImageGalleryTile({ item, index, selected, onSelect }) {
           style={{ y: imageY }}
           draggable="false"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/72 via-black/18 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-3">
-          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/62">
-            {item.category}
-          </span>
-          <span className="mt-0.5 block text-[14px] font-black leading-4 text-white/94">
-            {item.title}
-          </span>
-        </div>
 
         <AnimatePresence>
           {selected && (
@@ -576,6 +568,14 @@ function MobileImageGalleryTile({ item, index, selected, onSelect }) {
           )}
         </AnimatePresence>
       </motion.div>
+      <div className="px-1 pb-2 pt-1">
+        <span className="block truncate text-[10px] font-bold uppercase tracking-[0.12em] text-white/48">
+          {item.category}
+        </span>
+        <span className="block truncate text-[13px] font-black leading-4 text-white/88">
+          {item.title}
+        </span>
+      </div>
     </motion.button>
   );
 }
@@ -679,6 +679,7 @@ export default function MobileChat() {
   const [expandedSearchItemId, setExpandedSearchItemId] = useState(null);
   const [searchConfirm, setSearchConfirm] = useState(null);
   const [selectedImageTemplate, setSelectedImageTemplate] = useState(null);
+  const [imageTemplateConfirm, setImageTemplateConfirm] = useState(null);
   const [pendingImageTemplate, setPendingImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -700,6 +701,11 @@ export default function MobileChat() {
   const searchInputRef = useRef(null);
   const aiSelectorButtonRef = useRef(null);
   const composerInputRef = useRef(null);
+  const imageGalleryViewportRef = useRef(null);
+  const imageGalleryLoopRef = useRef(null);
+  const imageGalleryAutoFrameRef = useRef(null);
+  const imageGalleryAutoPausedRef = useRef(false);
+  const imageGalleryResumeTimerRef = useRef(null);
   const cameraInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -836,6 +842,70 @@ export default function MobileChat() {
     watch: [messages, isChatSending],
     isStreaming: isChatSending,
   });
+
+  const pauseImageGalleryAutoScroll = useCallback(() => {
+    imageGalleryAutoPausedRef.current = true;
+    window.clearTimeout(imageGalleryResumeTimerRef.current);
+  }, []);
+
+  const resumeImageGalleryAutoScroll = useCallback((delay = 1200) => {
+    window.clearTimeout(imageGalleryResumeTimerRef.current);
+    imageGalleryResumeTimerRef.current = window.setTimeout(() => {
+      imageGalleryAutoPausedRef.current = false;
+    }, delay);
+  }, []);
+
+  useEffect(() => {
+    if (!shouldShowImageTemplates) {
+      return undefined;
+    }
+
+    const viewport = imageGalleryViewportRef.current;
+    const loopBlock = imageGalleryLoopRef.current;
+    if (!viewport || !loopBlock) {
+      return undefined;
+    }
+
+    imageGalleryAutoPausedRef.current = false;
+    let lastFrame = performance.now();
+
+    const tick = (timestamp) => {
+      const delta = Math.min(48, timestamp - lastFrame);
+      lastFrame = timestamp;
+
+      if (!imageGalleryAutoPausedRef.current && document.visibilityState !== "hidden") {
+        const loopHeight = loopBlock.offsetHeight;
+        if (loopHeight > viewport.clientHeight) {
+          viewport.scrollTop += delta * 0.006;
+          if (viewport.scrollTop >= loopHeight) {
+            viewport.scrollTop -= loopHeight;
+          }
+        }
+      }
+
+      imageGalleryAutoFrameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    imageGalleryAutoFrameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(imageGalleryAutoFrameRef.current);
+      window.clearTimeout(imageGalleryResumeTimerRef.current);
+      imageGalleryAutoPausedRef.current = false;
+    };
+  }, [shouldShowImageTemplates]);
+
+  useEffect(() => {
+    if (!imageTemplateConfirm) {
+      return undefined;
+    }
+
+    pauseImageGalleryAutoScroll();
+
+    return () => {
+      resumeImageGalleryAutoScroll(900);
+    };
+  }, [imageTemplateConfirm, pauseImageGalleryAutoScroll, resumeImageGalleryAutoScroll]);
 
   useEffect(() => {
     const updateKeyboardState = () => {
@@ -1354,6 +1424,7 @@ export default function MobileChat() {
       setExpandedSearchItemId(null);
       setSearchConfirm(null);
       setSelectedImageTemplate(null);
+      setImageTemplateConfirm(null);
       setPendingImageTemplate(null);
       setGeneratedImages([]);
       setImageModeError("");
@@ -1410,6 +1481,7 @@ export default function MobileChat() {
     setExpandedSearchItemId(null);
     setSearchConfirm(null);
     setSelectedImageTemplate(null);
+    setImageTemplateConfirm(null);
     setGeneratedImages([]);
     setImageModeError("");
     setImageModeStatus("");
@@ -1782,6 +1854,7 @@ export default function MobileChat() {
   const exitImageMode = () => {
     setIsImageMode(false);
     setSelectedImageTemplate(null);
+    setImageTemplateConfirm(null);
     setPendingImageTemplate(null);
     setImageModeError("");
     setImageModeStatus("");
@@ -1827,10 +1900,24 @@ export default function MobileChat() {
   const selectImageTemplate = (template) => {
     setIsImageMode(true);
     setSelectedImageTemplate(template);
+    setImageTemplateConfirm(null);
     setPendingImageTemplate(null);
     setMessage(template.prompt);
     setImageModeError("");
     setImageModeStatus("");
+  };
+
+  const requestImageTemplateUse = (template) => {
+    setImageTemplateConfirm(template);
+  };
+
+  const cancelImageTemplateUse = () => {
+    setImageTemplateConfirm(null);
+  };
+
+  const confirmImageTemplateUse = () => {
+    if (!imageTemplateConfirm) return;
+    selectImageTemplate(imageTemplateConfirm);
   };
 
   const activateWriteTask = (template, files = []) => {
@@ -3392,20 +3479,79 @@ export default function MobileChat() {
           )}
 
           {shouldShowImageTemplates && (
-            <div className="pt-2">
-              <div className="columns-2 gap-3 [column-fill:_balance]" data-testid="mobile-image-inspiration-gallery">
-                {DESKTOP_IMAGE_IDEAS.map((item, index) => (
-                  <MobileImageGalleryTile
-                    key={item.id}
-                    item={item}
-                    index={index}
-                    selected={selectedImageTemplate?.id === item.id}
-                    onSelect={selectImageTemplate}
-                  />
+            <div className="-mx-3 pt-2">
+              <div
+                ref={imageGalleryViewportRef}
+                className="max-h-[calc(100dvh-210px)] overflow-y-auto overscroll-contain px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                data-testid="mobile-image-inspiration-gallery"
+                onPointerDown={pauseImageGalleryAutoScroll}
+                onPointerUp={() => resumeImageGalleryAutoScroll(1400)}
+                onPointerCancel={() => resumeImageGalleryAutoScroll(1400)}
+                onPointerLeave={() => resumeImageGalleryAutoScroll(1400)}
+                onWheel={() => {
+                  pauseImageGalleryAutoScroll();
+                  resumeImageGalleryAutoScroll(1600);
+                }}
+              >
+                {[0, 1].map((loopIndex) => (
+                  <div
+                    key={`image-gallery-loop-${loopIndex}`}
+                    ref={loopIndex === 0 ? imageGalleryLoopRef : undefined}
+                    className="columns-2 gap-1 [column-fill:_balance]"
+                    aria-hidden={loopIndex > 0}
+                  >
+                    {DESKTOP_IMAGE_IDEAS.map((item, index) => (
+                      <MobileImageGalleryTile
+                        key={`${loopIndex}-${item.id}`}
+                        item={item}
+                        index={index + loopIndex * DESKTOP_IMAGE_IDEAS.length}
+                        selected={selectedImageTemplate?.id === item.id}
+                        onSelect={requestImageTemplateUse}
+                        loopHidden={loopIndex > 0}
+                      />
+                    ))}
+                  </div>
                 ))}
               </div>
             </div>
           )}
+
+          <AnimatePresence>
+            {shouldShowImageTemplates && imageTemplateConfirm && (
+              <motion.div
+                key="image-template-confirm"
+                initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed inset-x-4 z-40 mx-auto max-w-[398px] rounded-[28px] border border-white/[0.06] bg-[rgba(28,28,28,0.72)] p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_22px_54px_rgba(0,0,0,0.34)] backdrop-blur-[34px]"
+                style={{ bottom: "calc(env(safe-area-inset-bottom) + 112px)" }}
+                role="dialog"
+                aria-label="Use selected image style"
+              >
+                <p className="text-center text-[15px] font-extrabold">Use this image?</p>
+                <p className="mt-1 truncate text-center text-xs font-semibold text-white/58">
+                  {imageTemplateConfirm.title}
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={cancelImageTemplateUse}
+                    className="min-h-11 rounded-full border border-white/[0.055] bg-white/[0.08] text-sm font-bold text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.11)] backdrop-blur-[24px] active:scale-[0.98]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmImageTemplateUse}
+                    className="min-h-11 rounded-full border border-[#7db7ff]/[0.20] bg-[rgba(25,91,164,0.72)] text-sm font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(255,255,255,0.025),0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-[24px] active:scale-[0.98]"
+                  >
+                    Use
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {shouldShowWriteEditTemplates && (
             <div className="pt-2">
