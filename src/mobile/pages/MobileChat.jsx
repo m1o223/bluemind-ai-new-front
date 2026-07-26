@@ -637,6 +637,8 @@ export default function MobileChat() {
   const [isSearching, setIsSearching] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [chatMenuTarget, setChatMenuTarget] = useState(null);
+  const [chatHistoryExpanded, setChatHistoryExpanded] = useState(true);
+  const [chatHistoryOverflowVisible, setChatHistoryOverflowVisible] = useState(true);
   const [renameTarget, setRenameTarget] = useState(null);
   const [renameTitle, setRenameTitle] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -1611,6 +1613,12 @@ export default function MobileChat() {
     closeMenu();
     setMenuSearchOpen(false);
     void loadConversationById(conversationId);
+  };
+
+  const toggleChatHistory = () => {
+    setChatMenuTarget(null);
+    setChatHistoryOverflowVisible(false);
+    setChatHistoryExpanded((current) => !current);
   };
 
   const openRenameDialog = (conversation) => {
@@ -4139,21 +4147,56 @@ Everything will be deleted when you leave.</p>
               </section>
 
               <section id="mobile-history-chats" className="mt-5">
-                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} text-white/72`}>HISTORY</p>
+                <button
+                  type="button"
+                  onClick={toggleChatHistory}
+                  className="flex min-h-9 w-full items-center justify-between pb-2 text-left"
+                  aria-expanded={chatHistoryExpanded}
+                  aria-controls="mobile-history-chat-list"
+                >
+                  <span className={`font-bold tracking-wide ${typeClasses.small} text-white/72`}>Recent Chats</span>
+                  <motion.span
+                    animate={{ rotate: chatHistoryExpanded ? 0 : -90 }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex h-7 w-7 items-center justify-center text-white/68"
+                    aria-hidden="true"
+                  >
+                    <ChevronDown className="h-4 w-4 stroke-[2.4]" />
+                  </motion.span>
+                </button>
 
-                {isLoadingConversations && (
-                  <div className={`py-3 font-medium ${typeClasses.small} text-white/58`}>{t("loadingConversation")}</div>
-                )}
+                <AnimatePresence initial={false}>
+                  {chatHistoryExpanded && (
+                    <motion.div
+                      id="mobile-history-chat-list"
+                      key="mobile-history-chat-list"
+                      initial={{ opacity: 0, height: 0, y: -10 }}
+                      animate={{ opacity: 1, height: "auto", y: 0 }}
+                      exit={{ opacity: 0, height: 0, y: -12 }}
+                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                      style={{ overflow: chatHistoryOverflowVisible ? "visible" : "hidden" }}
+                      onAnimationComplete={() => {
+                        if (chatHistoryExpanded) {
+                          setChatHistoryOverflowVisible(true);
+                        }
+                      }}
+                    >
+                      {isLoadingConversations && (
+                        <div className={`py-3 font-medium ${typeClasses.small} text-white/58`}>{t("loadingConversation")}</div>
+                      )}
 
-                {!isLoadingConversations && historyError && (
-                  <div className={`py-3 font-medium text-red-500 ${typeClasses.small}`}>{historyError}</div>
-                )}
+                      {!isLoadingConversations && historyError && (
+                        <div className={`py-3 font-medium text-red-500 ${typeClasses.small}`}>{historyError}</div>
+                      )}
 
-                {!isLoadingConversations && !historyError && conversations.length === 0 && (
-                  <div className={`py-3 font-medium ${typeClasses.small} text-white/58`}>{t("noChatsFound")}</div>
-                )}
+                      {!isLoadingConversations && !historyError && conversations.length === 0 && (
+                        <div className={`py-3 font-medium ${typeClasses.small} text-white/58`}>{t("noChatsFound")}</div>
+                      )}
 
-                {conversations.slice(0, 18).map((item) => renderMobileConversationRow(item, "menu"))}
+                      {conversations.slice(0, 18).map((item) => renderMobileConversationRow(item, "menu"))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </section>
             </nav>
 
