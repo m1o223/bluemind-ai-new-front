@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   BrainCircuit,
@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useApp } from "@/context/AppContext";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import BlueMindSendButton from "@/components/BlueMindSendButton";
+import BrandLogo from "@/components/BrandLogo";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, motionTokens, spacingClasses, typeClasses } from "@/lib/interactions";
@@ -126,6 +127,15 @@ const QUICK_PLAN_CARDS = [
     firstQuestion: "What should your AI-powered product help people do?",
     suggestions: ["Chatbot", "Study Tool", "Image Tool", "Research Tool", "Automation", "Recommendation System", "Assistant", "Other"],
   },
+  {
+    id: "personal",
+    icon: Target,
+    title: "Personal",
+    description: "Plan personal goals",
+    prompt: "Personal Plan",
+    firstQuestion: "What personal goal should this plan help you organize?",
+    suggestions: ["Daily Routine", "Habits", "Travel", "Budget", "Health", "Productivity", "Life Goals", "Other"],
+  },
 ];
 
 const GENERATION_STEPS = [
@@ -200,6 +210,7 @@ function PlannerComposer({
   isDark,
   appColor,
   disabled = false,
+  compact = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [listening, setListening] = useState(false);
@@ -253,7 +264,11 @@ function PlannerComposer({
         onSubmit();
       }}
     >
-      <div className={cn("rounded-[32px] border p-3 shadow-[0_22px_70px_rgba(0,0,0,0.14)]", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
+      <div className={cn(
+        "border shadow-[0_22px_70px_rgba(0,0,0,0.14)]",
+        compact ? "rounded-[30px] p-2.5" : "rounded-[32px] p-3",
+        isDark ? "border-white/[0.08] bg-white/[0.075] backdrop-blur-[28px]" : "border-[var(--bm-border)] bg-white"
+      )}>
         {attachments.length > 0 && (
           <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {attachments.map((attachment) => (
@@ -280,13 +295,19 @@ function PlannerComposer({
         <textarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          rows={3}
+          rows={compact ? 1 : 3}
           disabled={disabled}
           placeholder={placeholder}
-          className={cn(inputClasses.composer, "max-h-48 min-h-[96px] w-full resize-none bg-transparent px-2 py-2 font-semibold leading-7 outline-none", typeClasses.body, isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]")}
+          className={cn(
+            inputClasses.composer,
+            "w-full resize-none bg-transparent font-semibold outline-none",
+            compact ? "max-h-32 min-h-[48px] px-3 py-3 leading-6" : "max-h-48 min-h-[96px] px-2 py-2 leading-7",
+            typeClasses.body,
+            isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]"
+          )}
         />
 
-        <div className="mt-2 flex items-center gap-2">
+        <div className={cn("flex items-center gap-2", compact ? "mt-1" : "mt-2")}>
           <div className="relative">
             <button
               type="button"
@@ -309,9 +330,11 @@ function PlannerComposer({
             )}
           </div>
 
-          <span className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
-            {attachments.length ? `${attachments.length} attachment${attachments.length === 1 ? "" : "s"} ready` : "Add context for a better plan"}
-          </span>
+          {!compact && (
+            <span className={cn("font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+              {attachments.length ? `${attachments.length} attachment${attachments.length === 1 ? "" : "s"} ready` : "Add context for a better plan"}
+            </span>
+          )}
 
           <div className="flex-1" />
 
@@ -347,17 +370,19 @@ function ToolMenuButton({ icon: Icon, label, onClick }) {
   );
 }
 
-function StartScreen({ isDark, appColor, accentText, onStart, onBack }) {
+function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = false }) {
   const [goal, setGoal] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
 
   useEffect(() => {
+    if (mobile) return undefined;
+
     const interval = window.setInterval(() => {
       setSuggestionIndex((index) => (index + 1) % ROTATING_PLAN_SUGGESTIONS.length);
     }, 2600);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [mobile]);
 
   const submit = (nextGoal = goal, sourceCard = null) => {
     const cleanGoal = String(nextGoal || "").trim();
@@ -369,37 +394,110 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack }) {
     }
   };
 
+  if (!mobile) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+        <header className="flex items-center justify-between py-2">
+          <button type="button" onClick={onBack} className={cn("inline-flex h-11 items-center rounded-full px-3 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.menuItem)}>
+            <ArrowLeft className={iconClasses.button} />
+            Back
+          </button>
+          <span className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-extrabold", typeClasses.small)} style={{ backgroundColor: appColor, color: accentText }}>
+            Create Plan
+          </span>
+        </header>
+
+        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+          <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: appColor, color: accentText }}>
+            <Sparkles className="h-7 w-7" />
+          </div>
+          <h1 className={cn("max-w-3xl font-extrabold tracking-tight", typeClasses.pageTitle)}>What plan would you like to create today?</h1>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={ROTATING_PLAN_SUGGESTIONS[suggestionIndex]}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={motionTokens.transition}
+              className={cn("mt-4 font-bold", typeClasses.body, "text-[var(--bm-text-secondary)]")}
+            >
+              {ROTATING_PLAN_SUGGESTIONS[suggestionIndex]}
+            </motion.p>
+          </AnimatePresence>
+
+          <div className="mt-8 w-full">
+            <PlannerComposer
+              value={goal}
+              onChange={setGoal}
+              onSubmit={() => submit()}
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
+              placeholder="Tell BlueMind what you want to plan..."
+              isDark={isDark}
+              appColor={appColor}
+            />
+          </div>
+
+          <div className="mt-8 grid w-full max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {QUICK_PLAN_CARDS.map((card) => {
+              const Icon = card.icon;
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => submit(card.prompt, card)}
+                  className={cn("group rounded-[24px] border p-4 text-left shadow-sm", interactionClasses.card, isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
+                >
+                  <span className={cn("mb-4 flex h-11 w-11 items-center justify-center rounded-2xl text-[var(--bm-icon-primary)]", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)]")}>
+                    <Icon className={iconClasses.card} />
+                  </span>
+                  <span className={cn("block font-extrabold", typeClasses.cardTitle)}>{card.title}</span>
+                  <span className={cn("mt-1 block font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{card.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.section>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
-      <header className="flex items-center justify-between py-2">
-        <button type="button" onClick={onBack} className={cn("inline-flex h-11 items-center rounded-full px-3 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.menuItem)}>
-          <ArrowLeft className={iconClasses.button} />
-          Back
+      <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center py-2">
+        <button type="button" onClick={onBack} className="bm-mobile-glass-control" aria-label="Back">
+          <ArrowLeft />
         </button>
-        <span className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-extrabold", typeClasses.small)} style={{ backgroundColor: appColor, color: accentText }}>
-          Create Plan
-        </span>
+        <div />
+        <div />
       </header>
 
-      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-        <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: appColor, color: accentText }}>
-          <Sparkles className="h-7 w-7" />
-        </div>
-        <h1 className={cn("max-w-3xl font-extrabold tracking-tight", typeClasses.pageTitle)}>What plan would you like to create today?</h1>
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={ROTATING_PLAN_SUGGESTIONS[suggestionIndex]}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={motionTokens.transition}
-            className={cn("mt-4 font-bold", typeClasses.body, "text-[var(--bm-text-secondary)]")}
-          >
-            {ROTATING_PLAN_SUGGESTIONS[suggestionIndex]}
-          </motion.p>
-        </AnimatePresence>
+      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col items-center justify-center py-5 text-center">
+        <BrandLogo showName={false} small logoClassName="h-16 w-16" />
+        <h1 className="mt-5 text-[28px] font-semibold leading-tight tracking-tight">Create AI Plan</h1>
+        <p className="mt-2 text-sm font-medium text-[var(--bm-text-secondary)]">Tell BlueMind what you want to organize.</p>
 
-        <div className="mt-8 w-full">
+        <div className="mt-6 w-full overflow-hidden">
+          <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {QUICK_PLAN_CARDS.map((card) => (
+              <button
+                key={card.id}
+                type="button"
+                onClick={() => submit(card.prompt, card)}
+                className={cn(
+                  "shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition active:scale-[0.97]",
+                  isDark
+                    ? "border-white/[0.08] bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-[24px]"
+                    : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] shadow-sm"
+                )}
+              >
+                {card.title.replace(" Plan", "")}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 w-full">
           <PlannerComposer
             value={goal}
             onChange={setGoal}
@@ -409,27 +507,8 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack }) {
             placeholder="Tell BlueMind what you want to plan..."
             isDark={isDark}
             appColor={appColor}
+            compact
           />
-        </div>
-
-        <div className="mt-8 grid w-full max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {QUICK_PLAN_CARDS.map((card) => {
-            const Icon = card.icon;
-            return (
-              <button
-                key={card.id}
-                type="button"
-                onClick={() => submit(card.prompt, card)}
-                className={cn("group rounded-[24px] border p-4 text-left shadow-sm", interactionClasses.card, isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
-              >
-                <span className={cn("mb-4 flex h-11 w-11 items-center justify-center rounded-2xl text-[var(--bm-icon-primary)]", isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)]")}>
-                  <Icon className={iconClasses.card} />
-                </span>
-                <span className={cn("block font-extrabold", typeClasses.cardTitle)}>{card.title}</span>
-                <span className={cn("mt-1 block font-semibold", typeClasses.small, "text-[var(--bm-text-secondary)]")}>{card.description}</span>
-              </button>
-            );
-          })}
         </div>
       </motion.section>
     </div>
@@ -882,8 +961,10 @@ function Stat({ label, value, isDark }) {
 
 export default function AIPlansPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { prefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
+  const isMobileRoute = location.pathname.startsWith("/mobile");
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
   const [plans, setPlans] = useState([]);
@@ -959,9 +1040,17 @@ export default function AIPlansPage() {
     return (
       <PageShell isDark={isDark}>
         <StartScreen
+          mobile={isMobileRoute}
           isDark={isDark}
           appColor={appColor}
           accentText={accentText}
+          onBack={() => {
+            if (plans.length) {
+              setMode("dashboard");
+              return;
+            }
+            navigate(-1);
+          }}
           onStart={(goal, context) => {
             setDraftGoal(goal);
             setDraftContext(context || null);
