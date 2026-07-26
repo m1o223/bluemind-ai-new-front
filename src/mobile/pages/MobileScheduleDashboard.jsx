@@ -31,11 +31,19 @@ import ChatImageAttachments from "@/components/ChatImageAttachments";
 import MessageResponse from "@/components/MessageResponse";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
+import MobileNotificationControlCard from "@/mobile/components/MobileNotificationControlCard";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
 import { streamChatMessage } from "@/services/chatService";
 import { uploadChatImage } from "@/services/imageService";
+import {
+  getNotificationDebugSnapshot,
+  getNotificationStatus,
+  inspectNotificationSetup,
+  sendTestNotification,
+  setupReminderNotifications,
+} from "@/services/notificationService";
 
 const STORAGE_KEY = "bluemind-mobile-schedule-dashboard-v1";
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
@@ -922,59 +930,20 @@ function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
   );
 }
 
-function ScheduleHomeInfoPanel({ schedules, isDark, appColor, onCreate, onOpenLatest, onClearSearch }) {
+function ScheduleHomeInfoPanel({ debug, busy, isDark, appColor, onEnable, onRefresh, onTest }) {
   return (
-    <section
-      className={cn("rounded-[24px] border p-4", mobileBlueGlassSurfaceClass)}
-      data-testid="mobile-schedule-info-panel"
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-white"
-          style={{ backgroundColor: appColor }}
-        >
-          <CalendarDays className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-semibold">Schedule Ready</h2>
-          <p className={cn("mt-1 text-xs leading-5", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
-            Create, organize and continue your schedules.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <button
-          type="button"
-          onClick={onCreate}
-          className={cn(
-            "h-10 rounded-2xl text-xs font-semibold",
-            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
-          )}
-        >
-          Create
-        </button>
-        <button
-          type="button"
-          onClick={onOpenLatest}
-          disabled={!schedules.length}
-          className={cn(
-            "h-10 rounded-2xl text-xs font-semibold disabled:opacity-45",
-            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
-          )}
-        >
-          Continue
-        </button>
-        <button
-          type="button"
-          onClick={onClearSearch}
-          className="h-10 rounded-2xl text-xs font-semibold text-white"
-          style={{ backgroundColor: appColor }}
-        >
-          View All
-        </button>
-      </div>
-    </section>
+    <MobileNotificationControlCard
+      title="Schedule Notifications"
+      description="Manage schedule notification delivery for this section."
+      debug={debug}
+      busy={busy}
+      isDark={isDark}
+      appColor={appColor}
+      onEnable={onEnable}
+      onRefresh={onRefresh}
+      onTest={onTest}
+      testId="mobile-schedule-info-panel"
+    />
   );
 }
 
@@ -1089,6 +1058,12 @@ export default function MobileScheduleDashboard() {
   const [eventMenuRect, setEventMenuRect] = useState(null);
   const [scheduleListOpen, setScheduleListOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [notificationDebug, setNotificationDebug] = useState(() => getNotificationDebugSnapshot());
+  const [notificationBusy, setNotificationBusy] = useState({
+    enabling: false,
+    refreshing: false,
+    sendingTest: false,
+  });
 
   const eventDates = useMemo(() => new Set(events.map((event) => event.date)), [events]);
   const sortedEvents = useMemo(() => sortEvents(events), [events]);
@@ -1132,6 +1107,78 @@ export default function MobileScheduleDashboard() {
       window.removeEventListener("scroll", updateRect, true);
     };
   }, [eventMenuAnchorEl, eventMenuId]);
+
+  const refreshNotificationStatus = async () => {
+    setNotificationBusy((prev) => ({ ...prev, refreshing: true }));
+
+    try {
+      const debug = await inspectNotificationSetup();
+      let backendStatus = null;
+
+      try {
+        backendStatus = await getNotificationStatus();
+      } catch (error) {
+        backendStatus = { statusError: getApiErrorMessage(error, "Notification status unavailable") };
+      }
+
+      setNotificationDebug({
+        ...debug,
+        backendStatus,
+        backendDeviceSaved: Boolean(backendStatus?.devices?.length || backendStatus?.deviceCount),
+      });
+    } catch (error) {
+      setNotificationDebug((prev) => ({ ...prev, setupError: error.message }));
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, refreshing: false }));
+    }
+  };
+
+  useEffect(() => {
+    refreshNotificationStatus();
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    setNotificationBusy((prev) => ({ ...prev, enabling: true }));
+
+    try {
+      const result = await setupReminderNotifications();
+      const debug = await inspectNotificationSetup();
+
+      setNotificationDebug({
+        ...debug,
+        backendDeviceSaved: Boolean(result?.device),
+        setupError: result?.reason,
+      });
+
+      if (debug.permission === "granted" && (result?.device || debug.subscriptionExists)) {
+        toast.success("Schedule notifications enabled");
+      } else {
+        toast.error(result?.reason || "Notifications are not enabled");
+      }
+    } catch (error) {
+      setNotificationDebug((prev) => ({ ...prev, setupError: error.message }));
+      toast.error(error.message || "Notifications are not enabled");
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, enabling: false }));
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    setNotificationBusy((prev) => ({ ...prev, sendingTest: true }));
+
+    try {
+      await sendTestNotification({
+        title: "BlueMind - Schedule",
+        body: "Your Schedule notifications are connected.",
+        url: "/mobile/schedule",
+      });
+      toast.success("Test notification sent");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not send test notification"));
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, sendingTest: false }));
+    }
+  };
 
   const closeEventMenu = () => {
     setEventMenuId("");
@@ -1352,15 +1399,13 @@ export default function MobileScheduleDashboard() {
 
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-4">
         <ScheduleHomeInfoPanel
-          schedules={schedules}
+          debug={notificationDebug}
+          busy={notificationBusy}
           isDark={isDark}
           appColor={appColor}
-          onCreate={createSchedule}
-          onOpenLatest={() => {
-            const latest = filteredSchedules[0] || schedules[0];
-            if (latest) openSchedule(latest);
-          }}
-          onClearSearch={() => setSearchQuery("")}
+          onEnable={handleEnableNotifications}
+          onRefresh={refreshNotificationStatus}
+          onTest={handleSendTestNotification}
         />
 
         <div className="relative">

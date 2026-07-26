@@ -32,8 +32,10 @@ import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import BlueMindSendButton from "@/components/BlueMindSendButton";
 import BrandLogo from "@/components/BrandLogo";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
+import MobileNotificationControlCard from "@/mobile/components/MobileNotificationControlCard";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, motionTokens, spacingClasses, typeClasses } from "@/lib/interactions";
+import { getApiErrorMessage } from "@/services/api";
 import {
   applyAIPlanInstruction,
   analyzePlanningConversation,
@@ -47,7 +49,14 @@ import {
   saveAIPlans,
 } from "@/services/aiPlansService";
 import { streamHiddenChatMessage } from "@/services/chatService";
-import { queueFeatureNotification } from "@/services/notificationService";
+import {
+  getNotificationDebugSnapshot,
+  getNotificationStatus,
+  inspectNotificationSetup,
+  queueFeatureNotification,
+  sendTestNotification,
+  setupReminderNotifications,
+} from "@/services/notificationService";
 
 const ROTATING_PLAN_SUGGESTIONS = [
   "Build a study plan",
@@ -150,7 +159,6 @@ const GENERATION_STEPS = [
   "Finalizing roadmap...",
 ];
 
-const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
 const mobileGlassControlClass = "bm-mobile-glass-control";
@@ -919,66 +927,24 @@ function PlanHomeCard({ plan, index, isDark, onOpen, onDelete }) {
   );
 }
 
-function AIPlansInfoPanel({ plans, isDark, appColor, onCreate, onOpenLatest, onClearSearch }) {
+function AIPlansInfoPanel({ debug, busy, isDark, appColor, onEnable, onRefresh, onTest }) {
   return (
-    <section
-      className={cn(
-        "rounded-[24px] border p-4",
-        mobileBlueGlassSurfaceClass,
-      )}
-      data-testid="mobile-ai-plans-info-panel"
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-white"
-          style={{ backgroundColor: appColor }}
-        >
-          <Sparkles className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-semibold">AI Plans Ready</h2>
-          <p className={cn("mt-1 text-xs leading-5", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
-            Create, organize and continue your AI plans.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <button
-          type="button"
-          onClick={onCreate}
-          className={cn(
-            "h-10 rounded-2xl text-xs font-semibold",
-            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
-          )}
-        >
-          Create
-        </button>
-        <button
-          type="button"
-          onClick={onOpenLatest}
-          disabled={!plans.length}
-          className={cn(
-            "h-10 rounded-2xl text-xs font-semibold disabled:opacity-45",
-            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
-          )}
-        >
-          Continue
-        </button>
-        <button
-          type="button"
-          onClick={onClearSearch}
-          className="h-10 rounded-2xl text-xs font-semibold text-white"
-          style={{ backgroundColor: appColor }}
-        >
-          View All
-        </button>
-      </div>
-    </section>
+    <MobileNotificationControlCard
+      title="AI Plans Notifications"
+      description="Manage AI plan notification delivery for this section."
+      debug={debug}
+      busy={busy}
+      isDark={isDark}
+      appColor={appColor}
+      onEnable={onEnable}
+      onRefresh={onRefresh}
+      onTest={onTest}
+      testId="mobile-ai-plans-info-panel"
+    />
   );
 }
 
-function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete, mobile = false }) {
+function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete, mobile = false, notificationDebug, notificationBusy, onEnableNotifications, onRefreshNotifications, onTestNotification }) {
   const [searchQuery, setSearchQuery] = useState("");
   const filteredPlans = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -1034,12 +1000,13 @@ function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete
 
         <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-4">
           <AIPlansInfoPanel
-            plans={plans}
+            debug={notificationDebug}
+            busy={notificationBusy}
             isDark={isDark}
             appColor={appColor}
-            onCreate={onCreate}
-            onOpenLatest={() => plans[0] && onOpen(plans[0].id)}
-            onClearSearch={() => setSearchQuery("")}
+            onEnable={onEnableNotifications}
+            onRefresh={onRefreshNotifications}
+            onTest={onTestNotification}
           />
 
           <div className="relative">
@@ -1612,12 +1579,91 @@ export default function AIPlansPage() {
   const [draftGoal, setDraftGoal] = useState("");
   const [draftContext, setDraftContext] = useState(null);
   const [activePlanId, setActivePlanId] = useState("");
+  const [notificationDebug, setNotificationDebug] = useState(() => getNotificationDebugSnapshot());
+  const [notificationBusy, setNotificationBusy] = useState({
+    enabling: false,
+    refreshing: false,
+    sendingTest: false,
+  });
 
   useEffect(() => {
     const loaded = loadAIPlans();
     setPlans(loaded);
     setMode(loaded.length ? "dashboard" : "start");
   }, []);
+
+  const refreshNotificationStatus = async () => {
+    setNotificationBusy((prev) => ({ ...prev, refreshing: true }));
+
+    try {
+      const debug = await inspectNotificationSetup();
+      let backendStatus = null;
+
+      try {
+        backendStatus = await getNotificationStatus();
+      } catch (error) {
+        backendStatus = { statusError: getApiErrorMessage(error, "Notification status unavailable") };
+      }
+
+      setNotificationDebug({
+        ...debug,
+        backendStatus,
+        backendDeviceSaved: Boolean(backendStatus?.devices?.length || backendStatus?.deviceCount),
+      });
+    } catch (error) {
+      setNotificationDebug((prev) => ({ ...prev, setupError: error.message }));
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, refreshing: false }));
+    }
+  };
+
+  useEffect(() => {
+    if (!isMobileRoute) return;
+    refreshNotificationStatus();
+  }, [isMobileRoute]);
+
+  const handleEnableNotifications = async () => {
+    setNotificationBusy((prev) => ({ ...prev, enabling: true }));
+
+    try {
+      const result = await setupReminderNotifications();
+      const debug = await inspectNotificationSetup();
+
+      setNotificationDebug({
+        ...debug,
+        backendDeviceSaved: Boolean(result?.device),
+        setupError: result?.reason,
+      });
+
+      if (debug.permission === "granted" && (result?.device || debug.subscriptionExists)) {
+        toast.success("AI Plan notifications enabled");
+      } else {
+        toast.error(result?.reason || "Notifications are not enabled");
+      }
+    } catch (error) {
+      setNotificationDebug((prev) => ({ ...prev, setupError: error.message }));
+      toast.error(error.message || "Notifications are not enabled");
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, enabling: false }));
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    setNotificationBusy((prev) => ({ ...prev, sendingTest: true }));
+
+    try {
+      await sendTestNotification({
+        title: "BlueMind - AI Plans",
+        body: "Your AI Plan notifications are connected.",
+        url: "/mobile/ai-plans",
+      });
+      toast.success("Test notification sent");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not send test notification"));
+    } finally {
+      setNotificationBusy((prev) => ({ ...prev, sendingTest: false }));
+    }
+  };
 
   useEffect(() => {
     saveAIPlans(plans);
@@ -1732,6 +1778,11 @@ export default function AIPlansPage() {
         }}
         onBack={() => navigate("/mobile/chat")}
         onDelete={deletePlan}
+        notificationDebug={notificationDebug}
+        notificationBusy={notificationBusy}
+        onEnableNotifications={handleEnableNotifications}
+        onRefreshNotifications={refreshNotificationStatus}
+        onTestNotification={handleSendTestNotification}
       />
     );
   }

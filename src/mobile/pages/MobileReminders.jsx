@@ -3,25 +3,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
-  Bell,
   CalendarDays,
   CheckCircle2,
   Clock,
   MoreVertical,
   Plus,
-  RefreshCw,
   Repeat2,
   Search,
-  Send,
   Trash2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import { iconClasses, inputClasses, typeClasses } from "@/lib/interactions";
 import { useApp } from "@/context/AppContext";
+import MobileNotificationControlCard from "@/mobile/components/MobileNotificationControlCard";
 import {
   createReminder,
   deleteReminder,
@@ -44,7 +41,6 @@ const STATUS_LABELS = {
   cancelled: "Cancelled",
 };
 
-const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
 const mobileGlassControlClass = "bm-mobile-glass-control";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
@@ -82,13 +78,6 @@ function formatTime(value, language = "en") {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-function notificationLabel(permission) {
-  if (permission === "granted") return "Notifications Enabled";
-  if (permission === "denied") return "Notifications Disabled";
-  if (permission === "unsupported") return "Notifications Unsupported";
-  return "Notifications Not Requested";
 }
 
 function isUnauthorizedError(error) {
@@ -429,72 +418,6 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
   );
 }
 
-function NotificationPanel({ debug, busy, isDark, appColor, onEnable, onRefresh, onTest }) {
-  const permission = debug?.permission || "default";
-  const isEnabled = permission === "granted" && (debug?.subscriptionExists || debug?.backendDeviceSaved);
-
-  return (
-    <section
-      className={cn(
-        "rounded-[24px] border p-4",
-        mobileBlueGlassSurfaceClass,
-      )}
-      data-testid="mobile-notification-panel"
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-white"
-          style={{ backgroundColor: appColor }}
-        >
-          <Bell className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-semibold">{notificationLabel(permission)}</h2>
-          <p className={cn("mt-1 text-xs leading-5", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
-            Mobile reminders use the same push subscription and scheduler as desktop.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <button
-          type="button"
-          onClick={onEnable}
-          disabled={busy.enabling || isEnabled}
-          className={cn(
-            "h-10 rounded-2xl text-xs font-semibold disabled:opacity-45",
-              isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
-          )}
-        >
-          {busy.enabling ? "Enabling" : "Enable"}
-        </button>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={busy.refreshing}
-          className={cn(
-            "grid h-10 place-items-center rounded-2xl disabled:opacity-45",
-              isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
-          )}
-          aria-label="Refresh notification status"
-        >
-          {busy.refreshing ? <BlueMindLoadingDots className="text-[var(--bm-primary)]" /> : <RefreshCw className="h-4 w-4" />}
-        </button>
-        <button
-          type="button"
-          onClick={onTest}
-          disabled={busy.sendingTest}
-          className="grid h-10 place-items-center rounded-2xl text-white disabled:opacity-45"
-          style={{ backgroundColor: appColor }}
-          aria-label="Send test notification"
-        >
-          <Send className="h-4 w-4" />
-        </button>
-      </div>
-    </section>
-  );
-}
-
 export default function MobileReminders() {
   const navigate = useNavigate();
   const { reminderId: routeReminderId } = useParams();
@@ -714,7 +637,7 @@ export default function MobileReminders() {
 
     try {
       await sendTestNotification({
-        title: "BlueMind AI",
+        title: "BlueMind - Reminders",
         body: "Your mobile reminder notifications are connected.",
         url: "/mobile/reminders",
       });
@@ -789,7 +712,9 @@ export default function MobileReminders() {
       </header>
 
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-4">
-        <NotificationPanel
+        <MobileNotificationControlCard
+          title="Reminder Notifications"
+          description="Manage reminder notification delivery for this section."
           debug={notificationDebug}
           busy={notificationBusy}
           isDark={isDark}
