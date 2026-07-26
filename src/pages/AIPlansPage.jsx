@@ -45,6 +45,7 @@ import {
   saveAIPlans,
 } from "@/services/aiPlansService";
 import { streamHiddenChatMessage } from "@/services/chatService";
+import { queueFeatureNotification } from "@/services/notificationService";
 
 const ROTATING_PLAN_SUGGESTIONS = [
   "Build a study plan",
@@ -1138,6 +1139,18 @@ export default function AIPlansPage() {
     setActivePlanId(plan.id);
     setMode("detail");
     toast.success("AI plan created");
+    queueFeatureNotification({
+      type: "ai_plans",
+      sourceId: plan.id,
+      source: {
+        planTitle: plan.title,
+        status: plan.status || "ready",
+        deepLink: "/mobile/ai-plans",
+      },
+      dedupeKey: `ai_plans:${plan.id}:ready`,
+    }).catch(() => {
+      // Plan creation should not fail if notification delivery is unavailable.
+    });
   };
 
   const updatePlan = (updatedPlan) => {

@@ -166,6 +166,36 @@ export async function getNotificationStatus() {
   return unwrapApiResponse(response);
 }
 
+export async function getSmartNotificationStatus() {
+  const response = await api.get("/notifications/status");
+  return unwrapApiResponse(response);
+}
+
+export async function listSmartNotifications(params = {}) {
+  const response = await api.get("/notifications", { params });
+  return unwrapApiResponse(response)?.notifications || [];
+}
+
+export async function queueFeatureNotification({
+  type,
+  source = {},
+  sourceId,
+  scheduledFor,
+  dedupeKey,
+} = {}) {
+  if (!type) return null;
+
+  const response = await api.post("/notifications/feature-event", {
+    type,
+    source,
+    sourceId,
+    scheduledFor,
+    dedupeKey,
+  });
+
+  return unwrapApiResponse(response)?.notification || null;
+}
+
 export async function sendTestNotification(payload = {}) {
   const response = await api.post("/reminders/test-notification", payload);
   return unwrapApiResponse(response);

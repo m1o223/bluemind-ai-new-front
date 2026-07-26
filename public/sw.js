@@ -1,6 +1,6 @@
 const CACHE_NAME = "bluemind-ai-shell-v1";
 const APP_SHELL = ["/", "/manifest.json", "/bluemind-logo-black.png", "/bluemind-logo-white.png"];
-const DEFAULT_NOTIFICATION_URL = "/reminders";
+const DEFAULT_NOTIFICATION_URL = "/mobile/chat";
 
 function normalizeNotificationPayload(event) {
   let payload = {};
@@ -16,8 +16,8 @@ function normalizeNotificationPayload(event) {
   const data = payload.data || {};
 
   return {
-    title: payload.title || payload.notification?.title || "BlueMind AI",
-    body: payload.body || payload.notification?.body || data.body || "You have a reminder now.",
+    title: payload.title || payload.notification?.title || data.title || "BlueMind AI",
+    body: payload.body || payload.notification?.body || data.body || "BlueMind has an update for you.",
     icon: payload.icon || data.icon || "/bluemind-logo-black.png",
     badge: payload.badge || data.badge || "/bluemind-logo-black.png",
     tag: payload.tag || data.tag || `bluemind-${Date.now()}`,

@@ -64,6 +64,7 @@ import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/li
 import { streamChatMessage } from "@/services/chatService";
 import { analyzeScheduleDocument } from "@/services/documentService";
 import { analyzeImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import { queueFeatureNotification } from "@/services/notificationService";
 import { formatStreamErrorForDisplay, logStreamError } from "@/services/streamErrorUtils";
 
 const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
@@ -847,6 +848,45 @@ function buildScheduleContext(blocks) {
   return blocks.map((block) => (
     `- ${getBlockTitle(block)}: ${block.date || "no date"} ${block.weekday || block.days?.join(", ") || ""} ${getBlockStart(block)} to ${getBlockEnd(block)}`
   )).join("\n");
+}
+
+function getScheduleBlockDateTime(block) {
+  const date = block?.date;
+  const time = getBlockStart(block);
+  if (!date || !time) return null;
+
+  const value = new Date(`${date}T${time}:00`);
+  return Number.isNaN(value.getTime()) ? null : value;
+}
+
+function queueScheduleBlocksNotification(blocks = []) {
+  const now = Date.now();
+  const upcomingBlocks = blocks
+    .map((block) => ({ block, startsAt: getScheduleBlockDateTime(block) }))
+    .filter((item) => item.startsAt && item.startsAt.getTime() > now)
+    .sort((a, b) => a.startsAt - b.startsAt);
+  const next = upcomingBlocks[0];
+
+  if (!next) return;
+
+  const reminderBefore = 30;
+  const scheduledFor = new Date(Math.max(Date.now(), next.startsAt.getTime() - (reminderBefore * 60 * 1000)));
+
+  queueFeatureNotification({
+    type: "schedule",
+    sourceId: next.block.id,
+    source: {
+      title: getBlockTitle(next.block),
+      startTime: getBlockStart(next.block),
+      reminderBefore,
+      eventsCount: upcomingBlocks.length,
+      deepLink: "/mobile/schedule",
+    },
+    scheduledFor: scheduledFor.toISOString(),
+    dedupeKey: `schedule:${next.block.id}:${scheduledFor.toISOString()}`,
+  }).catch(() => {
+    // Schedule editing should stay local-first even if notification queueing is unavailable.
+  });
 }
 
 function buildSchedulePrompt({ messages, latestText, blocks, selectedWeekStart, initial = false }) {
@@ -3779,6 +3819,7 @@ export default function SchemanPage() {
     }));
     if (firstImportedDate) setSelectedWeekStart(startOfIsoWeek(firstImportedDate));
     setEditMode(false);
+    queueScheduleBlocksNotification(normalizedBlocks);
   };
 
   const applyScheduleCommand = (commandText) => {
@@ -3795,6 +3836,7 @@ export default function SchemanPage() {
       if (focusDate) setSelectedWeekStart(startOfIsoWeek(focusDate));
       setEditMode(false);
       toast.success(result.toast || "Schedule updated.");
+      queueScheduleBlocksNotification(result.blocks);
     }
 
     return result;
@@ -3813,6 +3855,7 @@ export default function SchemanPage() {
     setBlockModal(null);
     setEditMode(true);
     toast.success(`${nextBlocks.length} schedule ${nextBlocks.length === 1 ? "block" : "blocks"} added.`);
+    queueScheduleBlocksNotification(nextBlocks);
   };
 
   const deleteActivity = (activity) => {
