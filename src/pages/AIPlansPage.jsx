@@ -148,8 +148,10 @@ const GENERATION_STEPS = [
   "Finalizing roadmap...",
 ];
 
+const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
+const mobileGlassControlClass = "bm-mobile-glass-control";
 
 function getTextOnColor(hex) {
   const normalized = String(hex || "var(--bm-primary)").replace("#", "").padEnd(6, "0").slice(0, 6);
@@ -219,7 +221,7 @@ function formatPlanCreatedParts(value) {
   return {
     date: date.toLocaleDateString("en", {
       weekday: "long",
-      month: "long",
+      month: "short",
       day: "numeric",
     }),
     time: date.toLocaleTimeString("en", {
@@ -878,13 +880,173 @@ function PlanHomeCard({ plan, index, isDark, onOpen, onDelete }) {
   );
 }
 
-function Dashboard({ plans, isDark, onCreate, onOpen, onBack, onDelete }) {
+function AIPlansInfoPanel({ plans, isDark, appColor, onCreate, onOpenLatest, onClearSearch }) {
+  return (
+    <section
+      className={cn(
+        "rounded-[24px] border p-4",
+        mobileBlueGlassSurfaceClass,
+      )}
+      data-testid="mobile-ai-plans-info-panel"
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-white"
+          style={{ backgroundColor: appColor }}
+        >
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold">AI Plans Ready</h2>
+          <p className={cn("mt-1 text-xs leading-5", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
+            Create, organize and continue your AI plans.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={onCreate}
+          className={cn(
+            "h-10 rounded-2xl text-xs font-semibold",
+            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
+          )}
+        >
+          Create
+        </button>
+        <button
+          type="button"
+          onClick={onOpenLatest}
+          disabled={!plans.length}
+          className={cn(
+            "h-10 rounded-2xl text-xs font-semibold disabled:opacity-45",
+            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
+          )}
+        >
+          Continue
+        </button>
+        <button
+          type="button"
+          onClick={onClearSearch}
+          className="h-10 rounded-2xl text-xs font-semibold text-white"
+          style={{ backgroundColor: appColor }}
+        >
+          View All
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete, mobile = false }) {
   const [searchQuery, setSearchQuery] = useState("");
   const filteredPlans = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return plans;
     return plans.filter((plan) => String(plan.title || "").toLowerCase().includes(query));
   }, [plans, searchQuery]);
+
+  if (mobile) {
+    return (
+      <div
+        className={cn(
+          "min-h-[100dvh] pb-[max(24px,env(safe-area-inset-bottom))]",
+          isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
+        )}
+        data-testid="mobile-ai-plans-page"
+      >
+        <header
+          className={cn(
+            "sticky top-0 z-20 border-b px-4 pb-3 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-xl",
+            isDark ? "border-white/10 bg-[var(--bm-bg-app)]/92" : "border-black/[0.08] bg-[var(--bm-bg-app)]/92",
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={onBack}
+                className={cn(mobileGlassControlClass)}
+                aria-label="Back to chat"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div className="min-w-0">
+                <p className={cn("text-xs font-medium", isDark ? "text-white/[0.48]" : "text-[var(--bm-text-secondary)]")}>
+                  BlueMind AI
+                </p>
+                <h1 className="truncate text-xl font-semibold">AI Plans</h1>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onCreate}
+              className={cn(mobileGlassControlClass)}
+              style={{ color: appColor }}
+              aria-label="Create AI plan"
+              data-testid="mobile-create-ai-plan"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
+
+        <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-4">
+          <AIPlansInfoPanel
+            plans={plans}
+            isDark={isDark}
+            appColor={appColor}
+            onCreate={onCreate}
+            onOpenLatest={() => plans[0] && onOpen(plans[0].id)}
+            onClearSearch={() => setSearchQuery("")}
+          />
+
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white"
+            />
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search AI plans"
+              className={cn(
+                inputClasses.search,
+                typeClasses.body,
+                "pl-14 pr-4 font-semibold backdrop-blur-[24px]",
+                isDark
+                  ? `${mobileNeutralGlassSurfaceClass} placeholder:text-white/42`
+                  : "border-black/[0.06] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_12px_28px_rgba(15,23,42,0.08)]",
+              )}
+              data-testid="mobile-ai-plans-search"
+            />
+          </div>
+
+          <section className="space-y-3">
+            <AnimatePresence initial={false}>
+              {filteredPlans.map((plan, index) => (
+                <PlanHomeCard
+                  key={plan.id}
+                  plan={plan}
+                  index={index}
+                  isDark={isDark}
+                  onOpen={onOpen}
+                  onDelete={onDelete}
+                />
+              ))}
+            </AnimatePresence>
+
+            {filteredPlans.length === 0 && (
+              <div className={cn("rounded-[24px] border p-5 text-sm", isDark ? "border-white/10 bg-white/[0.055] text-white/60" : "border-black/[0.08] bg-white text-[var(--bm-text-secondary)]")}>
+                No matching AI plans.
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -1513,11 +1675,33 @@ export default function AIPlansPage() {
     );
   }
 
+  if (isMobileRoute) {
+    return (
+      <Dashboard
+        plans={plans}
+        isDark={isDark}
+        appColor={appColor}
+        mobile
+        onCreate={() => {
+          setDraftContext(null);
+          setMode("start");
+        }}
+        onOpen={(planId) => {
+          setActivePlanId(planId);
+          setMode("detail");
+        }}
+        onBack={() => navigate("/mobile/chat")}
+        onDelete={deletePlan}
+      />
+    );
+  }
+
   return (
     <PageShell isDark={isDark}>
       <Dashboard
         plans={plans}
         isDark={isDark}
+        appColor={appColor}
         onCreate={() => {
           setDraftContext(null);
           setMode("start");
