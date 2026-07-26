@@ -46,6 +46,27 @@ import { reportIssue } from "@/services/supportService";
 import { AVATAR_COLORS, COLOR_OPTIONS } from "@/theme/colors";
 
 const MESSAGE_COLORS = COLOR_OPTIONS;
+const SETTINGS_GLASS_CLASS = "border border-white/[0.055] bg-[rgba(78,78,78,0.18)]";
+const SETTINGS_GLASS_STYLE = {
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.014), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.022), 0 18px 48px rgba(0,0,0,0.24)",
+  backdropFilter: "blur(42px) saturate(1.16)",
+  WebkitBackdropFilter: "blur(42px) saturate(1.16)",
+};
+const SETTINGS_SHEET_GLASS_STYLE = {
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), inset 1px 0 0 rgba(255,255,255,0.018), inset -1px 0 0 rgba(255,255,255,0.016), 0 -28px 90px rgba(0,0,0,0.32)",
+  backdropFilter: "blur(38px) saturate(1.12)",
+  WebkitBackdropFilter: "blur(38px) saturate(1.12)",
+};
+const SETTINGS_BLUE_GLASS_STYLE = {
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(255,255,255,0.025), 0 16px 40px rgba(37,99,235,0.28)",
+  backdropFilter: "blur(32px) saturate(1.16)",
+  WebkitBackdropFilter: "blur(32px) saturate(1.16)",
+};
+const SETTINGS_RED_GLASS_STYLE = {
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.018), 0 16px 40px rgba(239,68,68,0.16)",
+  backdropFilter: "blur(34px) saturate(1.12)",
+  WebkitBackdropFilter: "blur(34px) saturate(1.12)",
+};
 const APPEARANCE_OPTIONS = [
   { label: "System", value: "system", icon: MonitorSmartphone },
   { label: "Dark", value: "dark", icon: Moon },
@@ -220,7 +241,7 @@ function SettingRow({ icon: Icon, title, value, trailing, accent, danger, disabl
         "flex min-h-[68px] w-full items-center border-b px-4 text-left last:border-b-0",
         iconClasses.iconText,
         onClick && interactionClasses.menuItem,
-        isDark ? "border-white/[0.07]" : "border-[var(--bm-border)]",
+        isDark ? "border-white/[0.045] active:bg-white/[0.055]" : "border-[var(--bm-border)]",
         disabled && "opacity-55",
       )}
     >
@@ -254,7 +275,10 @@ function ToggleSwitch({ checked, isDark = true }) {
 
 function SettingsCard({ children, isDark = true }) {
   return (
-    <div className={cn("overflow-hidden rounded-[26px] shadow-sm ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+    <div
+      className={cn("overflow-hidden rounded-[26px]", isDark ? SETTINGS_GLASS_CLASS : "bg-white shadow-sm ring-1 ring-black/[0.06]")}
+      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+    >
       {children}
     </div>
   );
@@ -266,14 +290,17 @@ function SectionTitle({ children, isDark = true }) {
 
 function ComingSoonPanel({ title, isDark = true }) {
   return (
-    <div className={cn("rounded-[26px] p-5 text-center ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+    <div
+      className={cn("rounded-[26px] p-5 text-center", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+    >
       <p className={cn("font-bold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{title}</p>
       <p className={cn("mt-2 font-medium", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>Coming Soon</p>
     </div>
   );
 }
 
-function SettingsInput({ label, readOnly, isDark = true, ...props }) {
+function SettingsInput({ label, readOnly, isDark = true, className, style, ...props }) {
   return (
     <label className="block">
       <span className={cn("mb-2 block font-bold uppercase tracking-[0.08em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{label}</span>
@@ -284,24 +311,28 @@ function SettingsInput({ label, readOnly, isDark = true, ...props }) {
           inputClasses.field,
           "font-semibold",
           typeClasses.body,
+          isDark && "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white placeholder:text-white/42",
           readOnly && "cursor-default text-[var(--bm-text-secondary)]",
+          className,
         )}
+        style={isDark ? { ...SETTINGS_GLASS_STYLE, ...style } : style}
       />
     </label>
   );
 }
 
-function PrimarySettingsButton({ children, loading, ...props }) {
+function PrimarySettingsButton({ children, loading, style, ...props }) {
   return (
     <button
       type="submit"
       {...props}
       className={cn(
-        "flex min-h-12 w-full items-center justify-center rounded-2xl bg-[var(--bm-primary)] px-4 font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-55",
+        "flex min-h-12 w-full items-center justify-center rounded-2xl border border-white/[0.12] bg-[rgba(37,99,235,0.78)] px-4 font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-55",
         typeClasses.small,
         interactionClasses.control,
         props.className,
       )}
+      style={{ ...SETTINGS_BLUE_GLASS_STYLE, ...style }}
     >
       {loading ? <BlueMindLoadingDots /> : children}
     </button>
@@ -655,7 +686,8 @@ export default function SettingsSheet({
         <button
           type="button"
           onClick={() => setLogoutConfirmOpen(true)}
-          className={cn("flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] text-[15px] font-bold text-red-500 ring-1 active:bg-red-500/10", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}
+          className={cn("flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] border text-[15px] font-bold active:bg-red-500/10", isDark ? "border-red-300/[0.16] bg-red-500/[0.12] text-red-300" : "border-red-500/15 bg-white text-red-500 ring-1 ring-black/[0.06]")}
+          style={isDark ? SETTINGS_RED_GLASS_STYLE : undefined}
         >
           <LogOut className="h-5 w-5" />
           Log out
@@ -702,7 +734,11 @@ export default function SettingsSheet({
       </form>
 
       {emailChange.pendingEmail && (
-        <form onSubmit={handleConfirmEmailChange} className={cn("space-y-4 rounded-[24px] p-4 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+        <form
+          onSubmit={handleConfirmEmailChange}
+          className={cn("space-y-4 rounded-[24px] p-4", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+        >
           <p className={cn("text-sm font-semibold leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
             Enter the 6-digit code sent to {emailChange.pendingEmail}.
           </p>
@@ -739,7 +775,10 @@ export default function SettingsSheet({
   );
 
   const renderEmailRecovery = () => (
-    <div className={cn("rounded-[26px] p-5 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+    <div
+      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+    >
       <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Email recovery</p>
       <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
         BlueMind does not currently expose an automated backend email-access recovery endpoint. If you are signed in and know your password, use Change Email. Otherwise, use the password recovery flow below to recover account access through your registered email.
@@ -747,7 +786,8 @@ export default function SettingsSheet({
       <button
         type="button"
         onClick={() => openChild("forgot-password")}
-        className="mt-4 min-h-12 w-full rounded-2xl bg-[var(--bm-primary)] px-4 text-sm font-extrabold text-white active:bg-[var(--bm-primary-hover)]"
+        className="mt-4 min-h-12 w-full rounded-2xl border border-white/[0.12] bg-[rgba(37,99,235,0.78)] px-4 text-sm font-extrabold text-white active:bg-[rgba(37,99,235,0.88)]"
+        style={SETTINGS_BLUE_GLASS_STYLE}
       >
         Open Password Recovery
       </button>
@@ -830,7 +870,10 @@ export default function SettingsSheet({
         </PrimarySettingsButton>
       </form>
       {passwordRecovery.sent && (
-        <div className={cn("rounded-[24px] p-4 text-sm font-semibold leading-6 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)] ring-white/[0.06]" : "bg-white text-[var(--bm-text-secondary)] ring-black/[0.06]")}>
+        <div
+          className={cn("rounded-[24px] p-4 text-sm font-semibold leading-6", isDark ? `${SETTINGS_GLASS_CLASS} text-[var(--bm-text-secondary)]` : "bg-white text-[var(--bm-text-secondary)] ring-1 ring-black/[0.06]")}
+          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+        >
           If this email belongs to a BlueMind account, a recovery email has been sent.
         </div>
       )}
@@ -838,7 +881,10 @@ export default function SettingsSheet({
   );
 
   const renderSubscription = () => (
-    <div className={cn("rounded-[26px] p-5 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+    <div
+      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+    >
       <p className={cn("text-sm font-bold uppercase tracking-[0.08em]", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>Current Plan</p>
       <p className={cn("mt-2 text-2xl font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{plan}</p>
       <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
@@ -854,7 +900,8 @@ export default function SettingsSheet({
           key={value}
           type="button"
           onClick={() => savePreference({ theme: value })}
-          className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left ring-1", isDark ? "bg-[var(--bm-bg-elevated)] text-white ring-white/[0.06]" : "bg-white text-[var(--bm-text-primary)] ring-black/[0.06]")}
+          className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left", isDark ? `${SETTINGS_GLASS_CLASS} text-white` : "bg-white text-[var(--bm-text-primary)] ring-1 ring-black/[0.06]")}
+          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
         >
           <Icon className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
           <span className="flex-1 text-[15px] font-semibold">{label}</span>
@@ -871,7 +918,8 @@ export default function SettingsSheet({
           key={language.value}
           type="button"
           onClick={() => savePreference({ appLanguage: language.value, language: language.value })}
-          className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left ring-1", isDark ? "bg-[var(--bm-bg-elevated)] text-white ring-white/[0.06]" : "bg-white text-[var(--bm-text-primary)] ring-black/[0.06]")}
+          className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left", isDark ? `${SETTINGS_GLASS_CLASS} text-white` : "bg-white text-[var(--bm-text-primary)] ring-1 ring-black/[0.06]")}
+          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
         >
           <Globe2 className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
           <span className="flex-1 text-[15px] font-semibold">{language.label}</span>
@@ -938,12 +986,17 @@ export default function SettingsSheet({
             inputClasses.textarea,
             "resize-none font-semibold",
             typeClasses.body,
+            isDark && "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white placeholder:text-white/42",
           )}
+          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
           data-testid="issue-description"
         />
       </label>
 
-      <section className={cn("rounded-[26px] p-4 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+      <section
+        className={cn("rounded-[26px] p-4", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+        style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+      >
         <p className={cn("text-sm font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Attach Screenshot</p>
         <p className={cn("mt-1 text-xs font-medium leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
           Add a screenshot, photo, or file that helps explain the issue.
@@ -952,7 +1005,8 @@ export default function SettingsSheet({
           <button
             type="button"
             onClick={() => issueCameraInputRef.current?.click()}
-            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl text-xs font-bold ring-1", isDark ? "bg-white/[0.05] text-white ring-white/[0.08]" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)] ring-black/[0.06]")}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}
+            style={isDark ? SETTINGS_GLASS_STYLE : undefined}
           >
             <Camera className="h-5 w-5" />
             Camera
@@ -960,7 +1014,8 @@ export default function SettingsSheet({
           <button
             type="button"
             onClick={() => issuePhotosInputRef.current?.click()}
-            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl text-xs font-bold ring-1", isDark ? "bg-white/[0.05] text-white ring-white/[0.08]" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)] ring-black/[0.06]")}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}
+            style={isDark ? SETTINGS_GLASS_STYLE : undefined}
           >
             <FileUp className="h-5 w-5" />
             Photos
@@ -968,7 +1023,8 @@ export default function SettingsSheet({
           <button
             type="button"
             onClick={() => issueFilesInputRef.current?.click()}
-            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl text-xs font-bold ring-1", isDark ? "bg-white/[0.05] text-white ring-white/[0.08]" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)] ring-black/[0.06]")}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}
+            style={isDark ? SETTINGS_GLASS_STYLE : undefined}
           >
             <FileUp className="h-5 w-5" />
             Files
@@ -978,7 +1034,11 @@ export default function SettingsSheet({
         {issueReport.attachments.length > 0 && (
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             {issueReport.attachments.map((attachment, index) => (
-              <div key={`${attachment.name}-${index}`} className={cn("relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-1", isDark ? "bg-[var(--bm-bg-app)] ring-white/[0.08]" : "bg-[var(--bm-bg-elevated)] ring-black/[0.06]")}>
+              <div
+                key={`${attachment.name}-${index}`}
+                className={cn("relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl", isDark ? SETTINGS_GLASS_CLASS : "bg-[var(--bm-bg-elevated)] ring-1 ring-black/[0.06]")}
+                style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+              >
                 {attachment.type.startsWith("image/") ? (
                   <img src={attachment.dataUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -1053,7 +1113,10 @@ export default function SettingsSheet({
   );
 
   const renderPrivacyPolicy = () => (
-    <div className={cn("rounded-[26px] p-5 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+    <div
+      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+    >
       <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Privacy Policy</p>
       <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
         BlueMind AI uses your account data, chat content, uploaded files, reminders, profile details, and settings to provide the app experience you request. We keep profile and preference data connected to your authenticated account so desktop and mobile stay in sync.
@@ -1065,7 +1128,10 @@ export default function SettingsSheet({
   );
 
   const renderTermsOfService = () => (
-    <div className={cn("rounded-[26px] p-5 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+    <div
+      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+    >
       <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Terms of Service</p>
       <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
         Use BlueMind AI for lawful learning, productivity, research, writing, planning, and creative work. You are responsible for reviewing AI-generated content before relying on it, submitting it, or sharing it.
@@ -1078,7 +1144,10 @@ export default function SettingsSheet({
 
   const renderAbout = () => (
     <div className="space-y-5">
-      <div className={cn("rounded-[26px] p-5 text-center ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}>
+      <div
+        className={cn("rounded-[26px] p-5 text-center", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+        style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+      >
         <p className={cn("text-xl font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</p>
         <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
           BlueMind AI is an AI-powered learning and productivity platform designed to help students organize knowledge, study smarter, manage plans, upload files, and interact with intelligent assistants.
@@ -1105,7 +1174,8 @@ export default function SettingsSheet({
             key={color.value}
             type="button"
             onClick={() => savePreference({ chatColor: color.value })}
-            className={cn("flex min-h-[74px] items-center gap-3 rounded-[24px] px-4 text-left ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.06]" : "bg-white ring-black/[0.06]")}
+            className={cn("flex min-h-[74px] items-center gap-3 rounded-[24px] px-4 text-left", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
+            style={isDark ? SETTINGS_GLASS_STYLE : undefined}
             data-testid={`message-color-${color.label.toLowerCase()}`}
           >
             <span className="h-7 w-7 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />
@@ -1174,10 +1244,11 @@ export default function SettingsSheet({
         }
       }}
       className={cn(
-        "relative flex w-full flex-col overflow-hidden shadow-[0_-28px_90px_rgba(0,0,0,0.18)]",
-        isDark ? "bg-[var(--bm-bg-card)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
+        "relative flex w-full flex-col overflow-hidden",
+        isDark ? "border border-white/[0.045] bg-[rgba(8,8,8,0.88)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)] shadow-[0_-28px_90px_rgba(0,0,0,0.18)]",
         mobile ? "h-[88dvh] rounded-t-[34px]" : "mx-auto h-[86dvh] max-w-[560px] rounded-[34px]",
       )}
+      style={isDark ? SETTINGS_SHEET_GLASS_STYLE : undefined}
       role="dialog"
       aria-modal="true"
       aria-label="Settings"
@@ -1244,15 +1315,26 @@ export default function SettingsSheet({
               initial={{ y: 18, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 18, opacity: 0 }}
-              className={cn("w-full rounded-[28px] p-5 ring-1", isDark ? "bg-[var(--bm-bg-elevated)] ring-white/[0.08]" : "bg-white ring-black/[0.08]")}
+              className={cn("w-full rounded-[28px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.08]")}
+              style={isDark ? SETTINGS_GLASS_STYLE : undefined}
             >
               <p className={cn("text-lg font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Log out?</p>
               <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>You will need to sign in again to use BlueMind AI.</p>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <button type="button" onClick={() => setLogoutConfirmOpen(false)} className={cn("min-h-12 rounded-2xl text-sm font-bold", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
+                <button
+                  type="button"
+                  onClick={() => setLogoutConfirmOpen(false)}
+                  className={cn("min-h-12 rounded-2xl border text-sm font-bold", isDark ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white" : "border-transparent bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}
+                  style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+                >
                   Cancel
                 </button>
-                <button type="button" onClick={handleLogout} className="min-h-12 rounded-2xl bg-red-600 text-sm font-bold text-white">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="min-h-12 rounded-2xl border border-red-300/[0.18] bg-red-500/[0.72] text-sm font-bold text-white"
+                  style={SETTINGS_RED_GLASS_STYLE}
+                >
                   Log out
                 </button>
               </div>
