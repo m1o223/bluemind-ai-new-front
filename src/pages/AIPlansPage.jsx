@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   BrainCircuit,
@@ -680,51 +681,33 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
   );
 }
 
-function Dashboard({ plans, isDark, appColor, accentText, onCreate, onOpen, onEdit, onToggleStatus, onDelete }) {
+function Dashboard({ plans, isDark, appColor, accentText, onCreate, onOpen, onBack, onDelete }) {
   return (
     <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>AI Plans</p>
-          <h1 className={cn("mt-2 font-extrabold tracking-tight", typeClasses.pageTitle)}>My AI Plans</h1>
-          <p className={cn("mt-2 font-semibold", typeClasses.body, isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>Open, edit, track, or continue any plan you created.</p>
-        </div>
-        <button type="button" onClick={onCreate} className={cn("inline-flex h-12 items-center justify-center rounded-2xl px-5 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.control)} style={{ backgroundColor: appColor, color: accentText }}>
-          <Plus className="h-4 w-4" />
-          New Plan
+      <header className="mb-5 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-3">
+        <button type="button" onClick={onBack} className="bm-mobile-glass-control" aria-label="Back">
+          <ArrowLeft />
         </button>
-      </div>
+        <h1 className="truncate text-center text-lg font-semibold tracking-tight">AI Plans</h1>
+        <button type="button" onClick={onCreate} className="bm-mobile-glass-control" aria-label="Create AI plan">
+          <Plus />
+        </button>
+      </header>
 
-      <div className={cn("grid md:grid-cols-2 xl:grid-cols-3", spacingClasses.cardGap)}>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {plans.map((plan, index) => {
-          const progress = getPlanProgress(plan);
-          const status = getPlanStatus(plan);
           return (
             <motion.article
               key={plan.id}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...motionTokens.transition, delay: index * 0.04 }}
-              className={cn("rounded-[28px] border shadow-sm", spacingClasses.card, interactionClasses.card, isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}
+              className={cn("rounded-[22px] border px-4 py-4 shadow-sm", interactionClasses.card, isDark ? "border-white/[0.08] bg-white/[0.055]" : "border-[var(--bm-border)] bg-white")}
             >
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h2 className={cn("truncate font-extrabold", typeClasses.cardTitle)}>{plan.title}</h2>
-                  <p className={cn("mt-2 line-clamp-2 font-semibold", typeClasses.body, isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>{plan.description}</p>
-                </div>
-                <span className={cn("rounded-full px-3 py-1 font-bold", typeClasses.small, status === "Completed" ? "bg-emerald-500/15 text-emerald-400" : status === "Active" ? "bg-sky-500/15 text-sky-400" : "bg-amber-500/15 text-amber-400")}>{status}</span>
-              </div>
-              <ProgressBar value={progress.percent} appColor={appColor} isDark={isDark} />
-              <div className={cn("mt-3 grid grid-cols-3 gap-2 font-bold", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
-                <span>{progress.percent}%</span>
-                <span>{progress.phases} phases</span>
-                <span>{progress.total} tasks</span>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <button type="button" onClick={() => onOpen(plan.id)} className={cn("rounded-2xl px-3 py-3 font-bold", typeClasses.small, interactionClasses.control)} style={{ backgroundColor: appColor, color: accentText }}>Open Plan</button>
-                <button type="button" onClick={() => onEdit(plan.id)} className={cn("rounded-2xl px-3 py-3 font-bold", typeClasses.small, interactionClasses.menuItem, isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>Edit</button>
-                <button type="button" onClick={() => onToggleStatus(plan.id)} disabled={status === "Completed"} className={cn("rounded-2xl px-3 py-3 font-bold disabled:opacity-50", typeClasses.small, interactionClasses.menuItem, isDark ? "bg-white/[0.07]" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>{plan.status === "Paused" ? "Resume" : "Pause"}</button>
-                <button type="button" onClick={() => onDelete(plan.id)} className={cn("rounded-2xl bg-red-500/10 px-3 py-3 font-bold text-red-400", typeClasses.small, interactionClasses.menuItem)}>Delete</button>
+              <h2 className="truncate text-base font-semibold tracking-tight">{plan.title}</h2>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => onOpen(plan.id)} className={cn("h-10 rounded-2xl px-3 text-sm font-semibold", interactionClasses.control)} style={{ backgroundColor: appColor, color: accentText }}>Open Plan</button>
+                <button type="button" onClick={() => onDelete(plan.id)} className={cn("h-10 rounded-2xl bg-red-500/10 px-3 text-sm font-semibold text-red-400", interactionClasses.menuItem)}>Delete</button>
               </div>
             </motion.article>
           );
@@ -898,6 +881,7 @@ function Stat({ label, value, isDark }) {
 }
 
 export default function AIPlansPage() {
+  const navigate = useNavigate();
   const { prefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
@@ -939,21 +923,6 @@ export default function AIPlansPage() {
       setMode(plans.length > 1 ? "dashboard" : "start");
     }
     toast.success("Plan deleted");
-  };
-
-  const editPlan = (planId) => {
-    const plan = plans.find((item) => item.id === planId);
-    const nextTitle = window.prompt("Edit plan title", plan?.title || "");
-    if (!nextTitle?.trim()) return;
-    updatePlan({ ...plan, title: nextTitle.trim(), updatedAt: new Date().toISOString() });
-  };
-
-  const toggleStatus = (planId) => {
-    setPlans((current) => current.map((plan) => plan.id === planId ? {
-      ...plan,
-      status: plan.status === "Paused" ? "Active" : "Paused",
-      updatedAt: new Date().toISOString(),
-    } : plan));
   };
 
   if (mode === "conversation") {
@@ -1018,8 +987,7 @@ export default function AIPlansPage() {
           setActivePlanId(planId);
           setMode("detail");
         }}
-        onEdit={editPlan}
-        onToggleStatus={toggleStatus}
+        onBack={() => navigate(-1)}
         onDelete={deletePlan}
       />
     </PageShell>
