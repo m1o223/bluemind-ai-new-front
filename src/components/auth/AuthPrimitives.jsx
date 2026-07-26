@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { ArrowLeft, Check, Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 export function GoogleIcon() {
@@ -156,6 +157,78 @@ export function PasswordChecklist({ requirements }) {
             {requirement.label}
           </span>
         </div>
+      ))}
+    </div>
+  );
+}
+
+export function ResetCodeOtpInput({ value, onChange, disabled = false, testId = "reset-code-otp" }) {
+  const inputRefs = useRef([]);
+  const digits = Array.from({ length: 6 }, (_, index) => value[index] || "");
+
+  const updateDigits = (nextDigits) => {
+    onChange(nextDigits.join("").slice(0, 6));
+  };
+
+  const handleInputChange = (index, event) => {
+    const digit = event.target.value.replace(/\D/g, "").slice(-1);
+    const nextDigits = [...digits];
+    nextDigits[index] = digit;
+    updateDigits(nextDigits);
+
+    if (digit && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index, event) => {
+    if (event.key !== "Backspace") return;
+
+    if (digits[index]) {
+      const nextDigits = [...digits];
+      nextDigits[index] = "";
+      updateDigits(nextDigits);
+      return;
+    }
+
+    if (index > 0) {
+      const nextDigits = [...digits];
+      nextDigits[index - 1] = "";
+      updateDigits(nextDigits);
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (event) => {
+    const pastedDigits = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pastedDigits) return;
+
+    event.preventDefault();
+    const nextDigits = Array.from({ length: 6 }, (_, index) => pastedDigits[index] || "");
+    updateDigits(nextDigits);
+    inputRefs.current[Math.min(pastedDigits.length, 6) - 1]?.focus();
+  };
+
+  return (
+    <div className="flex w-full justify-center gap-2.5" data-testid={testId}>
+      {digits.map((digit, index) => (
+        <input
+          key={index}
+          ref={(node) => {
+            inputRefs.current[index] = node;
+          }}
+          value={digit}
+          onChange={(event) => handleInputChange(index, event)}
+          onKeyDown={(event) => handleKeyDown(index, event)}
+          onPaste={handlePaste}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={1}
+          autoComplete={index === 0 ? "one-time-code" : "off"}
+          disabled={disabled}
+          aria-label={`Reset code digit ${index + 1}`}
+          className="h-14 min-w-0 flex-1 rounded-2xl border border-white/[0.075] bg-white/[0.09] text-center text-xl font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_42px_rgba(0,0,0,0.20)] outline-none backdrop-blur-[24px] transition placeholder:text-white/34 focus:border-white/[0.16] focus:bg-white/[0.13] focus:ring-2 focus:ring-white/[0.06] disabled:opacity-50"
+        />
       ))}
     </div>
   );

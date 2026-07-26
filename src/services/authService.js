@@ -210,12 +210,16 @@ export const requestPasswordReset = async (email) => {
   return unwrapApiResponse(response);
 };
 
-export const resetPassword = async (email, code, password) => {
-  const response = await api.post("/auth/reset-password", {
-    email,
-    code,
-    password,
-  });
+export const verifyPasswordResetCode = async (email, code) => {
+  const response = await api.post("/auth/verify-reset-code", { email, code });
+  return unwrapApiResponse(response);
+};
+
+export const resetPassword = async (emailOrPayload, code, password) => {
+  const payload = typeof emailOrPayload === "object"
+    ? emailOrPayload
+    : { email: emailOrPayload, code, password };
+  const response = await api.post("/auth/reset-password", payload);
 
   removeStoredAuthSession();
   return unwrapApiResponse(response);

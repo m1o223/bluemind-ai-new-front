@@ -1,40 +1,40 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  AuthBackButton,
+  AuthButton,
+  AuthError,
+  AuthHeader,
+  AuthInput,
+  AuthPage,
+} from "@/components/auth/AuthPrimitives";
 import { getApiErrorMessage } from "@/services/api";
 import { requestPasswordReset } from "@/services/authService";
+import { storePasswordResetEmail } from "@/services/passwordResetSession";
 import { useApp } from "@/context/AppContext";
-import BrandLogo from "@/components/BrandLogo";
-import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const { t } = useApp();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const { t, resolvedTheme } = useApp();
-  const isDark = resolvedTheme === "dark";
-  const pageClass = isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-white text-[var(--bm-text-primary)]";
-  const primaryText = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
-  const mutedText = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
-  const inputClass = "font-semibold";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!email.trim()) return;
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
 
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(trimmedEmail);
+      storePasswordResetEmail(trimmedEmail);
       toast.success(t("resetCodeSent"));
-      navigate(`/auth/reset-password?email=${encodeURIComponent(email.trim())}`);
+      navigate(`/auth/verify-reset-code?email=${encodeURIComponent(trimmedEmail)}`);
     } catch (error) {
       const message = getApiErrorMessage(error, t("couldNotRequestPasswordReset"));
       setErrorMessage(message);
@@ -45,33 +45,36 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`relative min-h-screen overflow-hidden flex items-center justify-center px-4 py-10 ${pageClass}`} data-testid="forgot-password-page">
-      <BlueMindAnimatedBackground />
-      <button onClick={() => navigate("/auth/login")} className={`absolute top-5 left-5 z-10 flex items-center gap-1.5 transition-colors cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}>
-        <ArrowLeft className="w-4 h-4" />
-        <span className="text-sm font-medium">{t("back")}</span>
-      </button>
+    <AuthPage testId="forgot-password-page">
+      <AuthBackButton onClick={() => navigate("/auth/login")} label={t("back")} />
 
-      <div className="relative z-10 w-full max-w-sm">
-        <div className="text-center mb-8">
-          <BrandLogo forceTheme={isDark ? "dark" : "light"} className="mx-auto mb-4" logoClassName="w-12 h-12" textClassName={`text-lg ${primaryText}`} />
-          <h1 className={`text-xl sm:text-2xl font-semibold ${primaryText}`}>{t("forgotPasswordTitle")}</h1>
-          <p className={`${mutedText} text-sm mt-1.5`}>{t("forgotPasswordSubtitle")}</p>
-        </div>
+      <form onSubmit={handleSubmit} className="w-full space-y-5">
+        <AuthHeader
+          title={t("forgotPasswordTitle")}
+          description={t("forgotPasswordSubtitle")}
+        />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("email")}</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("enterEmail")} className={`py-5 rounded-xl ${inputClass}`} data-testid="forgot-email-input" />
-          </div>
+        <AuthInput
+          label={t("email")}
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="example@email.com"
+          autoComplete="email"
+          testId="forgot-email-input"
+        />
 
-          <Button type="submit" disabled={!email.trim() || isLoading} className="w-full py-5 text-sm bg-[var(--bm-primary)] hover:bg-[var(--bm-primary-hover)] text-white rounded-xl font-medium disabled:opacity-50" data-testid="forgot-submit-button">
-            {isLoading ? t("sending") : t("sendResetCode")}
-          </Button>
+        <AuthButton
+          type="submit"
+          variant="primary"
+          disabled={!email.trim() || isLoading}
+          testId="forgot-submit-button"
+        >
+          {isLoading ? t("sending") : t("sendResetCode")}
+        </AuthButton>
 
-          {errorMessage && <p className="text-sm text-red-500" data-testid="forgot-error">{errorMessage}</p>}
-        </form>
-      </div>
-    </motion.div>
+        <AuthError testId="forgot-error">{errorMessage}</AuthError>
+      </form>
+    </AuthPage>
   );
 }

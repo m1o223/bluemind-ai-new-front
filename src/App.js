@@ -12,6 +12,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import LoginPage from "@/pages/LoginPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import VerifyResetCodePage from "@/pages/VerifyResetCodePage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import ChatPage from "@/pages/ChatPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -35,6 +36,7 @@ import MobileWelcome from "@/mobile/pages/MobileWelcome";
 import MobileEmail from "@/mobile/pages/MobileEmail";
 import MobileRegister from "@/mobile/pages/MobileRegister";
 import MobileForgotPassword from "@/mobile/pages/MobileForgotPassword";
+import MobileVerifyResetCode from "@/mobile/pages/MobileVerifyResetCode";
 import MobileResetPassword from "@/mobile/pages/MobileResetPassword";
 import { getAndroidMobilePath, isNativeAndroidApp } from "@/capacitorRuntime";
 import { restoreExistingSession } from "@/services/authService";
@@ -145,6 +147,7 @@ function AppContent() {
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
           <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/verify-reset-code" element={<VerifyResetCodePage />} />
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
@@ -168,6 +171,7 @@ function AppContent() {
             <Route path="email" element={<MobileEmail />} />
             <Route path="register" element={<MobileRegister />} />
             <Route path="forgot-password" element={<MobileForgotPassword />} />
+            <Route path="verify-reset-code" element={<MobileVerifyResetCode />} />
             <Route path="reset-password" element={<MobileResetPassword />} />
             <Route path="chat" element={<MobileAccessRoute><MobileChat /></MobileAccessRoute>} />
             <Route path="search" element={<MobileAccessRoute><MobileSearch /></MobileAccessRoute>} />

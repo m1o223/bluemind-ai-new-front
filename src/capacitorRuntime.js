@@ -15,6 +15,7 @@ export function getAndroidMobilePath(pathname = "/", search = "", hash = "") {
     ["/auth/login", "/mobile/email"],
     ["/auth/register", "/mobile/register"],
     ["/auth/forgot-password", "/mobile/forgot-password"],
+    ["/auth/verify-reset-code", "/mobile/verify-reset-code"],
     ["/auth/reset-password", "/mobile/reset-password"],
     ["/dashboard", "/mobile/chat"],
     ["/chat", "/mobile/chat"],

@@ -12,6 +12,7 @@ import {
 } from "@/components/auth/AuthPrimitives";
 import { getApiErrorMessage } from "@/services/api";
 import { requestPasswordReset } from "@/services/authService";
+import { storePasswordResetEmail } from "@/services/passwordResetSession";
 import { useApp } from "@/context/AppContext";
 
 export default function MobileForgotPassword() {
@@ -31,8 +32,9 @@ export default function MobileForgotPassword() {
 
     try {
       await requestPasswordReset(trimmedEmail);
+      storePasswordResetEmail(trimmedEmail);
       toast.success(t("resetCodeSent"));
-      navigate(`/mobile/reset-password?email=${encodeURIComponent(trimmedEmail)}`);
+      navigate(`/mobile/verify-reset-code?email=${encodeURIComponent(trimmedEmail)}`);
     } catch (error) {
       const message = getApiErrorMessage(error, t("couldNotRequestPasswordReset"));
       setErrorMessage(message);
