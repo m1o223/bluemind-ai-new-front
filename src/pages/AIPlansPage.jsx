@@ -13,9 +13,11 @@ import {
   Image,
   Languages,
   Mic,
+  MoreVertical,
   Paperclip,
   Plus,
   Save,
+  Search,
   Sparkles,
   Target,
   Trash2,
@@ -145,6 +147,9 @@ const GENERATION_STEPS = [
   "Finalizing roadmap...",
 ];
 
+const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
+const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
+
 function getTextOnColor(hex) {
   const normalized = String(hex || "var(--bm-primary)").replace("#", "").padEnd(6, "0").slice(0, 6);
   const value = Number.parseInt(normalized, 16);
@@ -198,6 +203,29 @@ function formatFileSize(size) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatPlanCreatedParts(value) {
+  const date = value ? new Date(value) : new Date();
+
+  if (Number.isNaN(date.getTime())) {
+    return {
+      date: "Created recently",
+      time: "",
+    };
+  }
+
+  return {
+    date: date.toLocaleDateString("en", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    }),
+    time: date.toLocaleTimeString("en", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
 }
 
 function PlannerComposer({
@@ -760,7 +788,103 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
   );
 }
 
-function Dashboard({ plans, isDark, appColor, accentText, onCreate, onOpen, onBack, onDelete }) {
+function PlanHomeCard({ plan, index, isDark, onOpen, onDelete }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const created = formatPlanCreatedParts(plan.createdAt || plan.updatedAt);
+
+  return (
+    <motion.article
+      key={plan.id}
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ ...motionTokens.transition, delay: index * 0.035 }}
+      onClick={() => onOpen(plan.id)}
+      className={cn(
+        "relative cursor-pointer rounded-[24px] border p-4 shadow-sm transition",
+        isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 pr-1">
+          <h2 className="truncate text-[15px] font-semibold">{plan.title}</h2>
+          <div className={cn("mt-3 text-sm leading-5", isDark ? "text-white/[0.58]" : "text-[var(--bm-text-secondary)]")}>
+            <p className="font-semibold">Created:</p>
+            <p>{created.date}</p>
+            {created.time ? <p>{created.time}</p> : null}
+          </div>
+        </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setMenuOpen((value) => !value);
+            }}
+            className="bm-mobile-glass-control"
+            aria-label="AI plan actions"
+          >
+            <MoreVertical className={iconClasses.button} />
+          </button>
+
+          {menuOpen && (
+            <>
+              <button
+                type="button"
+                aria-label="Close AI plan menu"
+                className="fixed inset-0 z-10 cursor-default"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setMenuOpen(false);
+                }}
+              />
+              <div
+                className={cn(
+                  "absolute right-0 top-10 z-20 w-36 overflow-hidden rounded-2xl border py-1 shadow-xl",
+                  isDark ? mobileNeutralGlassMenuClass : "border-black/[0.08] bg-white/85 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_16px_36px_rgba(15,23,42,0.10)] backdrop-blur-[22px]",
+                )}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpen(plan.id);
+                    setMenuOpen(false);
+                  }}
+                  className={cn("w-full px-4 py-3 text-left text-sm", isDark ? "text-white hover:bg-white/[0.08]" : "hover:bg-[#2F7DF6]/[0.08]")}
+                >
+                  Open
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDelete(plan.id);
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-500 hover:bg-red-500/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
+function Dashboard({ plans, isDark, onCreate, onOpen, onBack, onDelete }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const filteredPlans = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return plans;
+    return plans.filter((plan) => String(plan.title || "").toLowerCase().includes(query));
+  }, [plans, searchQuery]);
+
   return (
     <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <header className="mb-5 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-3">
@@ -773,25 +897,49 @@ function Dashboard({ plans, isDark, appColor, accentText, onCreate, onOpen, onBa
         </button>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {plans.map((plan, index) => {
-          return (
-            <motion.article
-              key={plan.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...motionTokens.transition, delay: index * 0.04 }}
-              className={cn("rounded-[22px] border px-4 py-4 shadow-sm", interactionClasses.card, isDark ? "border-white/[0.08] bg-white/[0.055]" : "border-[var(--bm-border)] bg-white")}
-            >
-              <h2 className="truncate text-base font-semibold tracking-tight">{plan.title}</h2>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => onOpen(plan.id)} className={cn("h-10 rounded-2xl px-3 text-sm font-semibold", interactionClasses.control)} style={{ backgroundColor: appColor, color: accentText }}>Open Plan</button>
-                <button type="button" onClick={() => onDelete(plan.id)} className={cn("h-10 rounded-2xl bg-red-500/10 px-3 text-sm font-semibold text-red-400", interactionClasses.menuItem)}>Delete</button>
-              </div>
-            </motion.article>
-          );
-        })}
+      <div className="relative mb-4">
+        <Search
+          className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white"
+        />
+        <input
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search AI plans"
+          className={cn(
+            inputClasses.search,
+            typeClasses.body,
+            "pl-14 pr-4 font-semibold backdrop-blur-[24px]",
+            isDark
+              ? `${mobileNeutralGlassSurfaceClass} placeholder:text-white/42`
+              : "border-black/[0.06] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_12px_28px_rgba(15,23,42,0.08)]",
+          )}
+          data-testid="mobile-ai-plans-search"
+        />
       </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <AnimatePresence initial={false}>
+          {filteredPlans.map((plan, index) => (
+            <PlanHomeCard
+              key={plan.id}
+              plan={plan}
+              index={index}
+              isDark={isDark}
+              onOpen={onOpen}
+              onDelete={onDelete}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {filteredPlans.length === 0 && (
+        <section className="py-14 text-center">
+          <h2 className="text-base font-semibold">No matching AI plans</h2>
+          <p className={cn("mx-auto mt-2 max-w-[260px] text-sm leading-6", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
+            Try a different plan name.
+          </p>
+        </section>
+      )}
     </motion.section>
   );
 }
@@ -1066,8 +1214,6 @@ export default function AIPlansPage() {
       <Dashboard
         plans={plans}
         isDark={isDark}
-        appColor={appColor}
-        accentText={accentText}
         onCreate={() => {
           setDraftContext(null);
           setMode("start");
