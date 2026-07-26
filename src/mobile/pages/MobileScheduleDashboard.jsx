@@ -17,6 +17,7 @@ import {
   PenLine,
   Plus,
   Repeat,
+  Search,
   Sparkles,
   StickyNote,
   Trash2,
@@ -31,15 +32,21 @@ import MessageResponse from "@/components/MessageResponse";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
 import { cn } from "@/lib/utils";
-import { iconClasses, typeClasses } from "@/lib/interactions";
+import { iconClasses, inputClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
 import { streamChatMessage } from "@/services/chatService";
 import { uploadChatImage } from "@/services/imageService";
 
 const STORAGE_KEY = "bluemind-mobile-schedule-dashboard-v1";
+const SCHEDULE_STORAGE_KEY = "bluemind-schedule-state-v2";
+const SCHEDULE_LIBRARY_STORAGE_KEY = "bluemind-schedule-library-v1";
+const ACTIVE_SCHEDULE_ID_STORAGE_KEY = "bluemind-active-schedule-id-v1";
+const LEGACY_MOBILE_SCHEDULE_ID = "mobile-calendar-events";
 
 const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileBlueGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
+const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
+const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
 
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_NAMES = [
@@ -90,6 +97,166 @@ function readEvents() {
 
 function persistEvents(events) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+}
+
+function readRawScheduleLibrary() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SCHEDULE_LIBRARY_STORAGE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeScheduleLibrary(records) {
+  try {
+    localStorage.setItem(SCHEDULE_LIBRARY_STORAGE_KEY, JSON.stringify(records));
+  } catch {
+    // Schedule library storage is local-only until the shared schedule backend is connected.
+  }
+}
+
+function setActiveScheduleId(scheduleId) {
+  try {
+    if (scheduleId) localStorage.setItem(ACTIVE_SCHEDULE_ID_STORAGE_KEY, scheduleId);
+    else localStorage.removeItem(ACTIVE_SCHEDULE_ID_STORAGE_KEY);
+  } catch {
+    // Active schedule tracking is best-effort local state.
+  }
+}
+
+function getActiveScheduleId() {
+  try {
+    return localStorage.getItem(ACTIVE_SCHEDULE_ID_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function convertMobileEventToBlock(event, index = 0) {
+  return {
+    id: event.id || `event-block-${index}`,
+    name: event.title || "Schedule event",
+    title: event.title || "Schedule event",
+    date: event.date || toDateKey(new Date()),
+    start: event.startTime || "08:00",
+    end: event.endTime || "09:00",
+    startTime: event.startTime || "08:00",
+    endTime: event.endTime || "09:00",
+    color: event.color || "blue",
+    icon: event.icon || "calendar",
+    notes: event.notes || "",
+    category: event.icon || "calendar",
+  };
+}
+
+function normalizeScheduleRecord(record = {}, index = 0) {
+  const now = new Date().toISOString();
+  const blocks = Array.isArray(record.blocks) ? record.blocks : [];
+
+  return {
+    id: record.id || `schedule-legacy-${index}`,
+    name: String(record.name || record.title || "Weekly Schedule").trim() || "Weekly Schedule",
+    blocks,
+    pinned: Boolean(record.pinned),
+    source: record.source || "manual",
+    createdAt: record.createdAt || record.updatedAt || now,
+    updatedAt: record.updatedAt || record.createdAt || now,
+  };
+}
+
+function createScheduleRecord({ name = "Weekly Schedule", blocks = [], source = "manual" } = {}) {
+  const now = new Date().toISOString();
+
+  return {
+    id: `schedule-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    name: String(name || "Weekly Schedule").trim() || "Weekly Schedule",
+    blocks,
+    pinned: false,
+    source,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function createLegacyMobileScheduleRecord(events = []) {
+  const firstCreatedAt = events
+    .map((event) => event.createdAt || event.updatedAt)
+    .filter(Boolean)
+    .sort()[0];
+  const lastUpdatedAt = events
+    .map((event) => event.updatedAt || event.createdAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  return normalizeScheduleRecord({
+    id: LEGACY_MOBILE_SCHEDULE_ID,
+    name: "Mobile Schedule",
+    blocks: events.map(convertMobileEventToBlock),
+    source: "mobile-calendar",
+    createdAt: firstCreatedAt,
+    updatedAt: lastUpdatedAt,
+  });
+}
+
+function readScheduleLibrary() {
+  const records = readRawScheduleLibrary().map(normalizeScheduleRecord);
+  if (records.length) return records;
+
+  const mobileEvents = readEvents();
+  if (mobileEvents.length) return [createLegacyMobileScheduleRecord(mobileEvents)];
+
+  return [];
+}
+
+function activateScheduleRecord(record) {
+  if (!record) return;
+
+  let nextRecord = normalizeScheduleRecord(record);
+  if (nextRecord.id === LEGACY_MOBILE_SCHEDULE_ID) {
+    nextRecord = createScheduleRecord({
+      name: nextRecord.name,
+      blocks: nextRecord.blocks,
+      source: "mobile-calendar",
+    });
+    writeScheduleLibrary([nextRecord]);
+  }
+
+  setActiveScheduleId(nextRecord.id);
+  try {
+    localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify({
+      blocks: nextRecord.blocks || [],
+      updatedAt: nextRecord.updatedAt || new Date().toISOString(),
+      scheduleId: nextRecord.id,
+      scheduleName: nextRecord.name,
+    }));
+  } catch {
+    // Local persistence is best-effort until Schedule backend storage is added.
+  }
+}
+
+function formatScheduleCreatedParts(value) {
+  const date = value ? new Date(value) : new Date();
+
+  if (Number.isNaN(date.getTime())) {
+    return {
+      date: "Created recently",
+      time: "",
+    };
+  }
+
+  return {
+    date: date.toLocaleDateString("en", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    }),
+    time: date.toLocaleTimeString("en", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
 }
 
 function startOfDay(date) {
@@ -755,13 +922,164 @@ function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
   );
 }
 
+function ScheduleHomeInfoPanel({ schedules, isDark, appColor, onCreate, onOpenLatest, onClearSearch }) {
+  return (
+    <section
+      className={cn("rounded-[24px] border p-4", mobileBlueGlassSurfaceClass)}
+      data-testid="mobile-schedule-info-panel"
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-white"
+          style={{ backgroundColor: appColor }}
+        >
+          <CalendarDays className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold">Schedule Ready</h2>
+          <p className={cn("mt-1 text-xs leading-5", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
+            Create, organize and continue your schedules.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={onCreate}
+          className={cn(
+            "h-10 rounded-2xl text-xs font-semibold",
+            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
+          )}
+        >
+          Create
+        </button>
+        <button
+          type="button"
+          onClick={onOpenLatest}
+          disabled={!schedules.length}
+          className={cn(
+            "h-10 rounded-2xl text-xs font-semibold disabled:opacity-45",
+            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
+          )}
+        >
+          Continue
+        </button>
+        <button
+          type="button"
+          onClick={onClearSearch}
+          className="h-10 rounded-2xl text-xs font-semibold text-white"
+          style={{ backgroundColor: appColor }}
+        >
+          View All
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function ScheduleHomeCard({ schedule, index, isDark, onOpen, onDelete }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const created = formatScheduleCreatedParts(schedule.createdAt || schedule.updatedAt);
+  const eventCount = Array.isArray(schedule.blocks) ? schedule.blocks.length : 0;
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1], delay: index * 0.035 }}
+      onClick={() => onOpen(schedule)}
+      className={cn(
+        "relative cursor-pointer rounded-[24px] border p-4 shadow-sm transition",
+        isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 pr-1">
+          <h2 className="truncate text-[15px] font-semibold">{schedule.name}</h2>
+          <p className={cn("mt-2 text-sm font-semibold leading-5", isDark ? "text-white/[0.70]" : "text-[var(--bm-text-secondary)]")}>
+            {eventCount} Event{eventCount === 1 ? "" : "s"}
+          </p>
+          <div className={cn("mt-3 text-sm leading-5", isDark ? "text-white/[0.58]" : "text-[var(--bm-text-secondary)]")}>
+            <p className="font-semibold">Created:</p>
+            <p>{created.date}</p>
+            {created.time ? <p>{created.time}</p> : null}
+          </div>
+        </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setMenuOpen((value) => !value);
+            }}
+            className="bm-mobile-glass-control"
+            aria-label={`Schedule actions for ${schedule.name}`}
+          >
+            <MoreVertical className={iconClasses.button} />
+          </button>
+
+          {menuOpen && (
+            <>
+              <button
+                type="button"
+                aria-label="Close schedule menu"
+                className="fixed inset-0 z-10 cursor-default"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setMenuOpen(false);
+                }}
+              />
+              <div
+                className={cn(
+                  "absolute right-0 top-10 z-20 w-36 overflow-hidden rounded-2xl border py-1 shadow-xl",
+                  isDark ? mobileNeutralGlassMenuClass : "border-black/[0.08] bg-white/85 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_16px_36px_rgba(15,23,42,0.10)] backdrop-blur-[22px]",
+                )}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpen(schedule);
+                    setMenuOpen(false);
+                  }}
+                  className={cn("w-full px-4 py-3 text-left text-sm", isDark ? "text-white hover:bg-white/[0.08]" : "hover:bg-[#2F7DF6]/[0.08]")}
+                >
+                  Open
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDelete(schedule.id);
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-500 hover:bg-red-500/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
 export default function MobileScheduleDashboard() {
   const navigate = useNavigate();
-  const { resolvedTheme } = useApp();
+  const { resolvedTheme, prefs } = useApp();
   const isDark = resolvedTheme === "dark";
+  const appColor = prefs?.appColor || prefs?.chatColor || "var(--bm-primary)";
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
   const [isExpanded, setIsExpanded] = useState(false);
   const [events, setEvents] = useState(readEvents);
+  const [schedules, setSchedules] = useState(readScheduleLibrary);
+  const [searchQuery, setSearchQuery] = useState("");
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualForm, setManualForm] = useState(() => createInitialManualEvent(new Date()));
@@ -776,6 +1094,12 @@ export default function MobileScheduleDashboard() {
   const sortedEvents = useMemo(() => sortEvents(events), [events]);
   const selectedEvents = useMemo(() => sortEvents(events.filter((event) => event.date === toDateKey(selectedDate))), [events, selectedDate]);
   const selectedMenuEvent = useMemo(() => events.find((event) => event.id === eventMenuId) || null, [eventMenuId, events]);
+  const filteredSchedules = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const ordered = [...schedules].sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")));
+    if (!query) return ordered;
+    return ordered.filter((schedule) => String(schedule.name || "").toLowerCase().includes(query));
+  }, [schedules, searchQuery]);
   const monthDates = useMemo(() => getMonthGrid(selectedDate), [selectedDate]);
   const selectedWeekRow = Math.max(0, Math.floor(monthDates.findIndex((date) => sameDate(date, selectedDate)) / 7));
   const calendarRowHeight = 50;
@@ -907,6 +1231,57 @@ export default function MobileScheduleDashboard() {
     setManualOpen(false);
   };
 
+  const refreshSchedules = () => {
+    setSchedules(readScheduleLibrary());
+  };
+
+  const openSchedule = (schedule) => {
+    activateScheduleRecord(schedule);
+    refreshSchedules();
+    navigate("/mobile/schedule/custom");
+  };
+
+  const createSchedule = () => {
+    const nextRecord = createScheduleRecord({ name: "Weekly Schedule", blocks: [] });
+    const records = [nextRecord, ...readRawScheduleLibrary().map(normalizeScheduleRecord)];
+    writeScheduleLibrary(records);
+    setSchedules(records);
+    activateScheduleRecord(nextRecord);
+    navigate("/mobile/schedule/custom");
+  };
+
+  const deleteSchedule = (scheduleId) => {
+    if (scheduleId === LEGACY_MOBILE_SCHEDULE_ID) {
+      persistEvents([]);
+      setEvents([]);
+      setSchedules([]);
+      toast.success("Schedule deleted.");
+      return;
+    }
+
+    const nextRecords = readRawScheduleLibrary()
+      .map(normalizeScheduleRecord)
+      .filter((record) => record.id !== scheduleId);
+    writeScheduleLibrary(nextRecords);
+    setSchedules(nextRecords);
+
+    if (getActiveScheduleId() === scheduleId) {
+      const fallback = nextRecords[0];
+      if (fallback) {
+        activateScheduleRecord(fallback);
+      } else {
+        setActiveScheduleId("");
+        try {
+          localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify({ blocks: [], updatedAt: new Date().toISOString() }));
+        } catch {
+          // Local persistence is best-effort until Schedule backend storage is added.
+        }
+      }
+    }
+
+    toast.success("Schedule deleted.");
+  };
+
   const renderCalendarDay = (date) => {
     const key = toDateKey(date);
     const selected = sameDate(date, selectedDate);
@@ -935,6 +1310,100 @@ export default function MobileScheduleDashboard() {
       </button>
     );
   };
+
+  return (
+    <div
+      className={cn(
+        "min-h-[100dvh] pb-[max(24px,env(safe-area-inset-bottom))]",
+        isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
+      )}
+      data-testid="mobile-schedule-home-page"
+    >
+      <header
+        className={cn(
+          "sticky top-0 z-20 border-b px-4 pb-3 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur-xl",
+          isDark ? "border-white/10 bg-[var(--bm-bg-app)]/92" : "border-black/[0.08] bg-[var(--bm-bg-app)]/92",
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex min-w-0 items-center gap-2">
+            <button type="button" onClick={() => navigate(-1)} className="bm-mobile-glass-control" aria-label="Back to chat">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <p className={cn("text-xs font-medium", isDark ? "text-white/[0.48]" : "text-[var(--bm-text-secondary)]")}>
+                BlueMind AI
+              </p>
+              <h1 className="truncate text-xl font-semibold">Schedule</h1>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={createSchedule}
+            className="bm-mobile-glass-control"
+            style={{ color: appColor }}
+            aria-label="Create schedule"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-4">
+        <ScheduleHomeInfoPanel
+          schedules={schedules}
+          isDark={isDark}
+          appColor={appColor}
+          onCreate={createSchedule}
+          onOpenLatest={() => {
+            const latest = filteredSchedules[0] || schedules[0];
+            if (latest) openSchedule(latest);
+          }}
+          onClearSearch={() => setSearchQuery("")}
+        />
+
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white" />
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search schedules"
+            className={cn(
+              inputClasses.search,
+              typeClasses.body,
+              "pl-14 pr-4 font-semibold backdrop-blur-[24px]",
+              isDark
+                ? `${mobileNeutralGlassSurfaceClass} placeholder:text-white/42`
+                : "border-black/[0.06] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_12px_28px_rgba(15,23,42,0.08)]",
+            )}
+            data-testid="mobile-schedule-search"
+          />
+        </div>
+
+        <section className="space-y-3">
+          <AnimatePresence initial={false}>
+            {filteredSchedules.map((schedule, index) => (
+              <ScheduleHomeCard
+                key={schedule.id}
+                schedule={schedule}
+                index={index}
+                isDark={isDark}
+                onOpen={openSchedule}
+                onDelete={deleteSchedule}
+              />
+            ))}
+          </AnimatePresence>
+
+          {filteredSchedules.length === 0 && (
+            <div className={cn("rounded-[24px] border p-5 text-sm", isDark ? "border-white/10 bg-white/[0.055] text-white/60" : "border-black/[0.08] bg-white text-[var(--bm-text-secondary)]")}>
+              {schedules.length ? "No matching schedules." : "No schedules yet."}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
 
   return (
     <main className={cn("min-h-screen overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.875rem,env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[#F7FAFF] text-[var(--bm-text-primary)]")}>
