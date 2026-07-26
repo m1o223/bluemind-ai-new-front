@@ -945,12 +945,131 @@ function Dashboard({ plans, isDark, onCreate, onOpen, onBack, onDelete }) {
   );
 }
 
-function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDelete }) {
+function MobileDeletePlanDialog({ isDark, planTitle, onCancel, onConfirm }) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-5 backdrop-blur-[18px]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 18, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        className={cn(
+          "w-full max-w-sm rounded-[30px] border p-5 text-center",
+          isDark ? mobileNeutralGlassMenuClass : "border-black/[0.08] bg-white/90 text-[var(--bm-text-primary)] shadow-[0_24px_60px_rgba(15,23,42,0.16)] backdrop-blur-[24px]",
+        )}
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Delete AI plan"
+      >
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-red-400/25 bg-red-500/12 text-red-300">
+          <Trash2 className="h-5 w-5" />
+        </div>
+        <h2 className="mt-4 text-lg font-semibold">Delete this plan?</h2>
+        <p className={cn("mt-2 text-sm leading-6", isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]")}>
+          {planTitle ? `"${planTitle}" will be removed from AI Plans.` : "This AI plan will be removed."}
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className={cn("h-12 rounded-full border text-sm font-semibold", isDark ? "border-white/[0.08] bg-white/[0.06] text-white" : "border-black/[0.08] bg-white")}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="h-12 rounded-full border border-red-400/25 bg-red-500/18 text-sm font-semibold text-red-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]"
+          >
+            Delete
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function MobileAIPlanSheet({ isDark, instruction, onInstructionChange, onClose, onApply }) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-end bg-black/45 backdrop-blur-[12px]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.form
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        onSubmit={onApply}
+        onClick={(event) => event.stopPropagation()}
+        className={cn(
+          "max-h-[82vh] w-full overflow-y-auto rounded-t-[34px] border-x border-t p-5 pb-[calc(env(safe-area-inset-bottom)+24px)]",
+          isDark ? mobileNeutralGlassMenuClass : "border-black/[0.08] bg-white/92 text-[var(--bm-text-primary)] shadow-[0_-20px_54px_rgba(15,23,42,0.14)] backdrop-blur-[28px]",
+        )}
+        aria-label="Improve AI plan"
+      >
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/28" />
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Improve with AI</h2>
+            <p className={cn("mt-1 text-sm leading-6", isDark ? "text-white/56" : "text-[var(--bm-text-secondary)]")}>
+              Ask BlueMind to simplify, add a phase, or split the plan into weeks.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="bm-mobile-glass-control" aria-label="Close AI plan chat">
+            <X className={iconClasses.button} />
+          </button>
+        </div>
+        <textarea
+          value={instruction}
+          onChange={(event) => onInstructionChange(event.target.value)}
+          rows={5}
+          className={cn(inputClasses.textarea, "mt-5 resize-none font-semibold", typeClasses.body)}
+          placeholder="Make this plan simpler..."
+        />
+        <button
+          type="submit"
+          disabled={!instruction.trim()}
+          className="mt-4 h-12 w-full rounded-full text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20)] disabled:opacity-45"
+          style={{ backgroundColor: "var(--bm-primary)" }}
+        >
+          Apply AI Update
+        </button>
+      </motion.form>
+    </motion.div>
+  );
+}
+
+function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDelete, mobile = false }) {
   const [fullScreen, setFullScreen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [instruction, setInstruction] = useState("");
+  const [activePhaseId, setActivePhaseId] = useState(() => plan.phases?.[0]?.id || "");
+  const [aiSheetOpen, setAiSheetOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const progress = getPlanProgress(plan);
   const status = getPlanStatus(plan);
+  const activePhase = useMemo(() => {
+    const phases = plan.phases || [];
+    return phases.find((phase) => phase.id === activePhaseId) || phases[0];
+  }, [activePhaseId, plan.phases]);
+
+  useEffect(() => {
+    if (!plan.phases?.length) return;
+    if (!plan.phases.some((phase) => phase.id === activePhaseId)) {
+      setActivePhaseId(plan.phases[0].id);
+    }
+  }, [activePhaseId, plan.phases]);
 
   const updateTask = (phaseId, taskId, patch) => {
     onUpdate({
@@ -981,8 +1100,179 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
     if (!instruction.trim()) return;
     onUpdate(applyAIPlanInstruction(plan, instruction));
     setInstruction("");
+    setAiSheetOpen(false);
     toast.success("Plan updated");
   };
+
+  if (mobile) {
+    const mobileStats = [
+      { label: "Progress", value: `${progress.percent}%` },
+      { label: "Phases", value: progress.phases },
+      { label: "Tasks", value: progress.total },
+      { label: "Status", value: status },
+    ];
+
+    return (
+      <PageShell isDark={isDark}>
+        <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-6">
+          <header className="mb-5 grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3">
+            <button type="button" onClick={onBack} className="bm-mobile-glass-control" aria-label="Back">
+              <ArrowLeft className={iconClasses.button} />
+            </button>
+            <h1 className="truncate text-center text-lg font-semibold tracking-tight">{plan.title}</h1>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setEditMode((value) => !value)}
+                className={cn("bm-mobile-glass-control", editMode && "text-[var(--bm-primary)]")}
+                aria-label="Edit plan"
+                aria-pressed={editMode}
+              >
+                <Edit3 className={iconClasses.button} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteDialogOpen(true)}
+                className="bm-mobile-glass-control text-red-200"
+                aria-label="Delete plan"
+              >
+                <Trash2 className={iconClasses.button} />
+              </button>
+            </div>
+          </header>
+
+          <div className="mb-4">
+            <p className={cn("text-sm font-semibold leading-6", isDark ? "text-white/56" : "text-[var(--bm-text-secondary)]")}>{plan.description}</p>
+          </div>
+
+          <div className="-mx-4 mb-5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max gap-2">
+              {mobileStats.map((item) => (
+                <div
+                  key={item.label}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-sm font-semibold",
+                    isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] backdrop-blur-[22px]",
+                  )}
+                >
+                  <span className={isDark ? "text-white/54" : "text-[var(--bm-text-secondary)]"}>{item.label}</span>
+                  <span className="ml-2">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setAiSheetOpen(true)}
+            className={cn(
+              "mb-5 inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold",
+              isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] backdrop-blur-[22px]",
+            )}
+          >
+            <Sparkles className="h-4 w-4" />
+            Improve with AI
+          </button>
+
+          <section className="mb-5">
+            <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-3">
+                {(plan.phases || []).map((phase, index) => {
+                  const selected = activePhase?.id === phase.id;
+                  const complete = phase.tasks?.length > 0 && phase.tasks.every((task) => task.done);
+                  return (
+                    <button
+                      key={phase.id}
+                      type="button"
+                      onClick={() => setActivePhaseId(phase.id)}
+                      className={cn(
+                        "min-w-[178px] rounded-[24px] border p-4 text-left transition",
+                        selected
+                          ? "border-white/18 bg-white/[0.11] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_14px_34px_rgba(0,0,0,0.18)]"
+                          : isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] backdrop-blur-[22px]",
+                      )}
+                    >
+                      <p className={cn("text-xs font-semibold uppercase tracking-[0.14em]", complete ? "text-emerald-300" : isDark ? "text-white/50" : "text-[var(--bm-text-secondary)]")}>
+                        Phase {index + 1}
+                      </p>
+                      <h2 className="mt-2 line-clamp-2 text-sm font-semibold">{phase.title}</h2>
+                      <p className={cn("mt-2 text-xs font-semibold", isDark ? "text-white/45" : "text-[var(--bm-text-secondary)]")}>
+                        {phase.tasks?.filter((task) => task.done).length || 0}/{phase.tasks?.length || 0} tasks
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {activePhase && (
+            <motion.article
+              key={activePhase.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn("rounded-[26px] border p-4", isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] backdrop-blur-[22px]")}
+            >
+              <div className="mb-4">
+                <h2 className="text-base font-semibold">{activePhase.title}</h2>
+                <p className={cn("mt-2 text-sm font-semibold leading-6", isDark ? "text-white/52" : "text-[var(--bm-text-secondary)]")}>{activePhase.description}</p>
+              </div>
+              <div className="space-y-2">
+                {(activePhase.tasks || []).map((task) => (
+                  <div key={task.id} className={cn("group flex items-center gap-3 rounded-2xl border px-3 py-3", task.done ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : isDark ? "border-white/[0.06] bg-white/[0.035]" : "border-[var(--bm-border)] bg-[var(--bm-bg-app)]")}>
+                    <button type="button" onClick={() => updateTask(activePhase.id, task.id, { done: !task.done })} className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full border", interactionClasses.iconButton, task.done ? "border-emerald-400 bg-emerald-500 text-white" : isDark ? "border-white/[0.12]" : "border-[var(--bm-border-strong)]")} aria-label={task.done ? "Mark task incomplete" : "Mark task complete"}>
+                      {task.done ? <Check className="h-5 w-5 stroke-[3]" /> : null}
+                    </button>
+                    <span className={cn("min-w-0 flex-1 text-sm font-semibold", task.done && "line-through decoration-emerald-300/70")}>{task.title}</span>
+                    {editMode && (
+                      <div className="flex shrink-0 gap-1">
+                        <MiniAction label="Edit" icon={Edit3} onClick={() => renameTask(activePhase.id, task)} />
+                        <MiniAction label="Delete" icon={Trash2} danger onClick={() => deleteTask(activePhase.id, task.id)} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.article>
+          )}
+
+          {plan.recommendations?.length > 0 && (
+            <section className={cn("mt-5 rounded-[26px] border p-4", isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] backdrop-blur-[22px]")}>
+              <h2 className="flex items-center gap-2 text-base font-semibold"><Sparkles className="h-4 w-4" />AI Recommendations</h2>
+              <div className="mt-3 space-y-2">
+                {plan.recommendations.map((item) => (
+                  <p key={item} className={cn("rounded-2xl px-3 py-3 text-sm font-semibold leading-6", isDark ? "bg-white/[0.045] text-white/58" : "bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]")}>{item}</p>
+                ))}
+              </div>
+            </section>
+          )}
+        </motion.section>
+
+        <AnimatePresence>
+          {aiSheetOpen && (
+            <MobileAIPlanSheet
+              isDark={isDark}
+              instruction={instruction}
+              onInstructionChange={setInstruction}
+              onClose={() => setAiSheetOpen(false)}
+              onApply={applyInstruction}
+            />
+          )}
+          {deleteDialogOpen && (
+            <MobileDeletePlanDialog
+              isDark={isDark}
+              planTitle={plan.title}
+              onCancel={() => setDeleteDialogOpen(false)}
+              onConfirm={() => {
+                setDeleteDialogOpen(false);
+                onDelete(plan.id, { skipConfirm: true });
+              }}
+            />
+          )}
+        </AnimatePresence>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell isDark={isDark} fullScreen={fullScreen}>
@@ -1157,8 +1447,8 @@ export default function AIPlansPage() {
     setPlans((current) => current.map((plan) => plan.id === updatedPlan.id ? updatedPlan : plan));
   };
 
-  const deletePlan = (planId) => {
-    if (!window.confirm("Delete this AI plan?")) return;
+  const deletePlan = (planId, options = {}) => {
+    if (!options.skipConfirm && !window.confirm("Delete this AI plan?")) return;
     setPlans((current) => current.filter((plan) => plan.id !== planId));
     if (activePlanId === planId) {
       setActivePlanId("");
@@ -1193,6 +1483,7 @@ export default function AIPlansPage() {
         onBack={() => setMode("dashboard")}
         onUpdate={updatePlan}
         onDelete={deletePlan}
+        mobile={isMobileRoute}
       />
     );
   }
