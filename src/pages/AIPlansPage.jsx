@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
+  BookOpen,
   BrainCircuit,
   BriefcaseBusiness,
   Check,
@@ -10,6 +11,7 @@ import {
   Expand,
   FileText,
   Globe2,
+  Dumbbell,
   Image,
   Languages,
   Mic,
@@ -60,7 +62,7 @@ const ROTATING_PLAN_SUGGESTIONS = [
 const QUICK_PLAN_CARDS = [
   {
     id: "study",
-    icon: Sparkles,
+    icon: BookOpen,
     title: "Study Plan",
     description: "Prepare for exams and lessons",
     prompt: "Study Plan",
@@ -96,7 +98,7 @@ const QUICK_PLAN_CARDS = [
   },
   {
     id: "fitness",
-    icon: Target,
+    icon: Dumbbell,
     title: "Fitness Plan",
     description: "Training and habits",
     prompt: "Fitness Plan",
@@ -242,11 +244,23 @@ function PlannerComposer({
   appColor,
   disabled = false,
   compact = false,
+  mobile = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [listening, setListening] = useState(false);
   const imageRef = useRef(null);
   const fileRef = useRef(null);
+  const isMobileComposer = mobile || compact;
+  const mobileGlassIconStyle = {
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 12px 28px rgba(0,0,0,0.23)",
+    backdropFilter: "blur(42px) saturate(1.18)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.18)",
+  };
+  const mobileComposerGlassStyle = {
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(255,255,255,0.016), inset 1px 0 0 rgba(255,255,255,0.032), inset -1px 0 0 rgba(255,255,255,0.026), 0 20px 58px rgba(0,0,0,0.28)",
+    backdropFilter: "blur(42px) saturate(1.16)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
+  };
 
   const addFiles = (files, type) => {
     const next = Array.from(files || []).map((file) => fileToAttachment(file, type));
@@ -289,7 +303,7 @@ function PlannerComposer({
 
   return (
     <form
-      className={cn("relative mx-auto w-full max-w-3xl")}
+      className={cn("relative mx-auto w-full", isMobileComposer ? "max-w-md" : "max-w-3xl")}
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit();
@@ -297,9 +311,13 @@ function PlannerComposer({
     >
       <div className={cn(
         "border shadow-[0_22px_70px_rgba(0,0,0,0.14)]",
-        compact ? "rounded-[30px] p-2.5" : "rounded-[32px] p-3",
-        isDark ? "border-white/[0.08] bg-white/[0.075] backdrop-blur-[28px]" : "border-[var(--bm-border)] bg-white"
-      )}>
+        isMobileComposer
+          ? "rounded-[28px] border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 py-2 text-white/90 backdrop-blur-[42px]"
+          : compact ? "rounded-[30px] p-2.5" : "rounded-[32px] p-3",
+        !isMobileComposer && (isDark ? "border-white/[0.08] bg-white/[0.075] backdrop-blur-[28px]" : "border-[var(--bm-border)] bg-white")
+      )}
+      style={isMobileComposer ? mobileComposerGlassStyle : undefined}
+      >
         {attachments.length > 0 && (
           <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {attachments.map((attachment) => (
@@ -332,27 +350,33 @@ function PlannerComposer({
           className={cn(
             inputClasses.composer,
             "w-full resize-none bg-transparent font-semibold outline-none",
-            compact ? "max-h-32 min-h-[48px] px-3 py-3 leading-6" : "max-h-48 min-h-[96px] px-2 py-2 leading-7",
+            isMobileComposer ? "max-h-32 min-h-[44px] px-1 py-1 text-[16px] leading-6" : compact ? "max-h-32 min-h-[48px] px-3 py-3 leading-6" : "max-h-48 min-h-[96px] px-2 py-2 leading-7",
             typeClasses.body,
-            isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]"
+            isMobileComposer ? "text-white/90 placeholder:text-[#8F8F8F]" : isDark ? "text-white placeholder:text-[var(--bm-text-muted)]" : "text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-secondary)]"
           )}
         />
 
-        <div className={cn("flex items-center gap-2", compact ? "mt-1" : "mt-2")}>
+        <div className={cn("flex items-center", isMobileComposer ? "mt-1.5 min-h-10 gap-2.5" : compact ? "mt-1 gap-2" : "mt-2 gap-2")}>
           <div className="relative">
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
-              className={cn("flex h-11 w-11 items-center justify-center rounded-full", interactionClasses.iconButton, isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}
+              className={cn(
+                "flex items-center justify-center rounded-full",
+                isMobileComposer ? "bm-mobile-glass-control" : "h-11 w-11",
+                !isMobileComposer && interactionClasses.iconButton,
+                !isMobileComposer && (isDark ? "bg-white/[0.07] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")
+              )}
+              style={isMobileComposer ? mobileGlassIconStyle : undefined}
               aria-label="Open plan input tools"
             >
-              <Plus className={iconClasses.button} />
+              <Plus className={isMobileComposer ? "" : iconClasses.button} />
             </button>
             {menuOpen && (
               <motion.div
                 initial={{ opacity: 0, y: 8, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className={cn("absolute bottom-[3.5rem] left-0 z-20 w-56 rounded-3xl border p-2 shadow-2xl", isDark ? "border-white/[0.08] bg-[var(--bm-bg-modal)]" : "border-[var(--bm-border)] bg-white")}
+                className={cn("absolute bottom-[3.5rem] left-0 z-20 w-56 rounded-3xl border p-2 shadow-2xl", isDark ? "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white backdrop-blur-[28px]" : "border-[var(--bm-border)] bg-white")}
               >
                 <ToolMenuButton icon={Image} label="Upload image" onClick={() => imageRef.current?.click()} />
                 <ToolMenuButton icon={Paperclip} label="Upload file" onClick={() => fileRef.current?.click()} />
@@ -372,16 +396,22 @@ function PlannerComposer({
           <button
             type="button"
             onClick={startVoice}
-            className={cn("flex h-11 w-11 items-center justify-center rounded-full", interactionClasses.iconButton, listening ? "text-white" : "text-[var(--bm-text-secondary)]")}
-            style={listening ? { backgroundColor: appColor } : undefined}
+            className={cn(
+              "flex items-center justify-center rounded-full",
+              isMobileComposer ? "bm-mobile-glass-control" : "h-11 w-11",
+              !isMobileComposer && interactionClasses.iconButton,
+              listening ? "text-white" : isMobileComposer ? "" : "text-[var(--bm-text-secondary)]"
+            )}
+            style={listening ? { backgroundColor: appColor } : isMobileComposer ? mobileGlassIconStyle : undefined}
             aria-label="Start voice input"
           >
-            <Mic className={iconClasses.button} />
+            <Mic className={isMobileComposer ? "" : iconClasses.button} />
           </button>
           <BlueMindSendButton
             canSend={Boolean(value.trim() || attachments.length) && !disabled}
             appColor={appColor}
             sendLabel="Send plan goal"
+            compact={isMobileComposer}
           />
         </div>
       </div>
@@ -494,7 +524,7 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = f
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+    <div className="flex min-h-[calc(100dvh-3rem)] flex-col pb-[132px]">
       <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center py-2">
         <button type="button" onClick={onBack} className="bm-mobile-glass-control" aria-label="Back">
           <ArrowLeft />
@@ -503,7 +533,7 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = f
         <div />
       </header>
 
-      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col items-center justify-center py-5 text-center">
+      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col items-center pt-2 text-center">
         <BrandLogo showName={false} small logoClassName="h-16 w-16" />
         <h1 className="mt-5 text-[28px] font-semibold leading-tight tracking-tight">Create AI Plan</h1>
         <p className="mt-2 text-sm font-medium text-[var(--bm-text-secondary)]">Tell BlueMind what you want to organize.</p>
@@ -516,19 +546,20 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = f
                 type="button"
                 onClick={() => submit(card.prompt, card)}
                 className={cn(
-                  "shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition active:scale-[0.97]",
+                  "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition active:scale-[0.97]",
                   isDark
-                    ? "border-white/[0.08] bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-[24px]"
+                    ? "border-white/[0.08] bg-[rgba(78,78,78,0.18)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-[24px]"
                     : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] shadow-sm"
                 )}
               >
+                <card.icon className="h-4 w-4" />
                 {card.title.replace(" Plan", "")}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="mt-4 w-full">
+        <div className="fixed inset-x-4 bottom-[max(10px,env(safe-area-inset-bottom))] z-30">
           <PlannerComposer
             value={goal}
             onChange={setGoal}
@@ -539,6 +570,7 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = f
             isDark={isDark}
             appColor={appColor}
             compact
+            mobile
           />
         </div>
       </motion.section>
@@ -607,7 +639,7 @@ async function getPlanningAssistantReply({ goal, answers, latestAnswer, analysis
   return text.trim();
 }
 
-function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText, onCancel, onCreate }) {
+function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText, onCancel, onCreate, mobile = false }) {
   const [messages, setMessages] = useState(() => ([
     { role: "user", content: goal },
     getInitialAIMessage(goal, draftContext),
@@ -704,11 +736,16 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+    <div className={cn("flex flex-col", mobile ? "min-h-[calc(100dvh-3rem)] pb-[132px]" : "min-h-[calc(100vh-4rem)]")}>
       <header className="flex items-center justify-between py-2">
-        <button type="button" onClick={onCancel} className={cn("inline-flex h-11 items-center rounded-full px-3 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.menuItem)}>
-          <ArrowLeft className={iconClasses.button} />
-          Back
+        <button
+          type="button"
+          onClick={onCancel}
+          className={cn(mobile ? "bm-mobile-glass-control" : "inline-flex h-11 items-center rounded-full px-3 font-bold", !mobile && iconClasses.iconText, !mobile && typeClasses.small, !mobile && interactionClasses.menuItem)}
+          aria-label="Back"
+        >
+          <ArrowLeft className={mobile ? "" : iconClasses.button} />
+          {!mobile && "Back"}
         </button>
         <div
           className={cn("inline-flex h-11 items-center rounded-2xl px-4 font-bold", iconClasses.iconText, typeClasses.small, interactionClasses.control, !enough && (isDark ? "bg-white/[0.07] text-[var(--bm-text-muted)]" : "bg-[var(--bm-border)] text-[var(--bm-text-secondary)]"))}
@@ -721,10 +758,10 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
 
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="mx-auto w-full max-w-4xl flex-1 space-y-4 overflow-y-auto px-1 py-6 sm:px-4">
-          <div className="mb-6 text-center">
+          <div className={cn("text-center", mobile ? "mb-4 pt-1" : "mb-6")}>
             <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>AI Plan Builder</p>
-            <h1 className={cn("mt-2 font-extrabold tracking-tight", typeClasses.pageTitle)}>BlueMind is building your plan</h1>
-            <p className={cn("mx-auto mt-2 max-w-2xl font-semibold", typeClasses.body, "text-[var(--bm-text-secondary)]")}>
+            <h1 className={cn("mt-2 font-extrabold tracking-tight", mobile ? "text-[24px] leading-tight" : typeClasses.pageTitle)}>BlueMind is building your plan</h1>
+            <p className={cn("mx-auto mt-2 max-w-2xl font-semibold", mobile ? "text-sm leading-6" : typeClasses.body, "text-[var(--bm-text-secondary)]")}>
               Answer a few quick questions. When there is enough context, BlueMind will turn it into a visual roadmap.
             </p>
           </div>
@@ -772,7 +809,7 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
           )}
         </div>
 
-        <div className="pb-4">
+        <div className={cn(mobile ? "fixed inset-x-4 bottom-[max(10px,env(safe-area-inset-bottom))] z-30" : "pb-4")}>
           <PlannerComposer
             value={input}
             onChange={setInput}
@@ -784,6 +821,8 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
             appColor={appColor}
             accentText={accentText}
             disabled={generating || isPlanningAiThinking}
+            compact={mobile}
+            mobile={mobile}
           />
         </div>
       </section>
@@ -1630,6 +1669,7 @@ export default function AIPlansPage() {
           accentText={accentText}
           onCancel={() => setMode(plans.length ? "dashboard" : "start")}
           onCreate={createPlan}
+          mobile={isMobileRoute}
         />
       </PageShell>
     );
