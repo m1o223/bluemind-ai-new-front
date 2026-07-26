@@ -4204,7 +4204,7 @@ Everything will be deleted when you leave.</p>
               <button
                 type="button"
                 onClick={startNewChat}
-                className="flex h-[50px] w-[58%] items-center justify-center gap-2.5 rounded-full bg-[#0B3F8A] px-4 text-[14px] font-extrabold text-white shadow-[0_16px_36px_rgba(11,63,138,0.32)] transition-transform active:scale-[0.98]"
+                className="flex h-[50px] w-[58%] items-center justify-center gap-2.5 rounded-full border border-[#7db7ff]/[0.20] bg-[rgba(25,91,164,0.72)] px-4 text-[14px] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(255,255,255,0.025),0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-[24px] transition-transform active:scale-[0.98]"
                 aria-label={t("newChat")}
               >
                 <PenLine className="h-5 w-5 stroke-[2.35]" />
