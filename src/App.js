@@ -21,6 +21,7 @@ import FeedbackPage from "@/pages/FeedbackPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LearningPage from "@/pages/LearningPage";
 import AIPlansPage from "@/pages/AIPlansPage";
+import SubscriptionPage from "@/pages/SubscriptionPage";
 import SchemanPage, { ScheduleCustomPage, ScheduleHomePage } from "@/pages/SchemanPage";
 import MobileLayout from "@/mobile/layouts/MobileLayout";
 import MobileChat from "@/mobile/pages/MobileChat";
@@ -160,6 +161,11 @@ function AppContent() {
           <Route path="/settings/:sectionId/:detailId" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
           <Route path="/ai-plans" element={<ProtectedRoute><AIPlansPage /></ProtectedRoute>} />
+          <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
+          <Route path="/subscription/payment-method" element={<ProtectedRoute><SubscriptionPage step="payment-method" /></ProtectedRoute>} />
+          <Route path="/subscription/add-card" element={<ProtectedRoute><SubscriptionPage step="add-card" /></ProtectedRoute>} />
+          <Route path="/subscription/processing" element={<ProtectedRoute><SubscriptionPage step="processing" /></ProtectedRoute>} />
+          <Route path="/subscription/success" element={<ProtectedRoute><SubscriptionPage step="success" /></ProtectedRoute>} />
           <Route path="/schedule" element={<ProtectedRoute><ScheduleHomePage /></ProtectedRoute>} />
           <Route path="/schedule/custom" element={<ProtectedRoute><ScheduleCustomPage /></ProtectedRoute>} />
           <Route path="/schedule/workspace" element={<ProtectedRoute><SchemanPage /></ProtectedRoute>} />
@@ -186,6 +192,11 @@ function AppContent() {
             <Route path="settings/:sectionId/:detailId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
             <Route path="ai-plans" element={<MobileAccessRoute><AIPlansPage /></MobileAccessRoute>} />
+            <Route path="subscription" element={<MobileAccessRoute><SubscriptionPage /></MobileAccessRoute>} />
+            <Route path="subscription/payment-method" element={<MobileAccessRoute><SubscriptionPage step="payment-method" /></MobileAccessRoute>} />
+            <Route path="subscription/add-card" element={<MobileAccessRoute><SubscriptionPage step="add-card" /></MobileAccessRoute>} />
+            <Route path="subscription/processing" element={<MobileAccessRoute><SubscriptionPage step="processing" /></MobileAccessRoute>} />
+            <Route path="subscription/success" element={<MobileAccessRoute><SubscriptionPage step="success" /></MobileAccessRoute>} />
             <Route path="schedule" element={<MobileAccessRoute><MobileScheduleDashboard /></MobileAccessRoute>} />
             <Route path="schedule/custom" element={<MobileAccessRoute><ScheduleCustomPage /></MobileAccessRoute>} />
             <Route path="schedule/workspace" element={<MobileAccessRoute><SchemanPage /></MobileAccessRoute>} />

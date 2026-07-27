@@ -628,7 +628,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
         <SettingsRow title="Email" description="The email connected to your BlueMind account." value={email || "Unavailable"} valueClassName="max-w-[340px]" />
         <SettingsRow title="Change Email" description="Update your account email with verification." onClick={() => setAccountPane("change-email")} />
         <SettingsRow title="Change Password" description="Change your account password securely." onClick={() => setAccountPane("change-password")} />
-        <SettingsRow title="Subscription" description="Current BlueMind plan." value={plan} />
+        <SettingsRow title="Subscription" description="Current BlueMind plan." value={plan} onClick={() => navigate("/subscription")} />
       </SettingsGroup>
     );
   };

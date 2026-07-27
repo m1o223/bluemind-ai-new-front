@@ -747,7 +747,7 @@ export default function SettingsSheet({
             <Row icon={Mail} title="Email" value={user?.email || "Unavailable"} />
             <Row icon={Mail} title="Change Email" onClick={() => openChild("change-email")} />
             <Row icon={KeyRound} title="Change Password" onClick={() => openChild("change-password")} />
-            <Row icon={CreditCard} title="Subscription" value={plan} onClick={() => openChild("subscription")} />
+            <Row icon={CreditCard} title="Subscription" value={plan} onClick={() => navigate(mobile ? "/mobile/subscription" : "/subscription")} />
           </Card>
         </section>
 
