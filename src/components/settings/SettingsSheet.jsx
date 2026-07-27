@@ -47,15 +47,26 @@ import { AVATAR_COLORS, COLOR_OPTIONS } from "@/theme/colors";
 
 const MESSAGE_COLORS = COLOR_OPTIONS;
 const SETTINGS_GLASS_CLASS = "border border-white/[0.055] bg-[rgba(78,78,78,0.18)]";
+const SETTINGS_LIGHT_GLASS_CLASS = "border border-black/[0.06] bg-white/[0.58]";
 const SETTINGS_GLASS_STYLE = {
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.014), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.022), 0 18px 48px rgba(0,0,0,0.24)",
   backdropFilter: "blur(42px) saturate(1.16)",
   WebkitBackdropFilter: "blur(42px) saturate(1.16)",
 };
+const SETTINGS_LIGHT_GLASS_STYLE = {
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.76), inset 0 -1px 0 rgba(17,17,17,0.024), 0 18px 48px rgba(15,23,42,0.09)",
+  backdropFilter: "blur(34px) saturate(1.14)",
+  WebkitBackdropFilter: "blur(34px) saturate(1.14)",
+};
 const SETTINGS_SHEET_GLASS_STYLE = {
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), inset 1px 0 0 rgba(255,255,255,0.018), inset -1px 0 0 rgba(255,255,255,0.016), 0 -28px 90px rgba(0,0,0,0.32)",
   backdropFilter: "blur(38px) saturate(1.12)",
   WebkitBackdropFilter: "blur(38px) saturate(1.12)",
+};
+const SETTINGS_LIGHT_SHEET_GLASS_STYLE = {
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78), inset 1px 0 0 rgba(255,255,255,0.42), inset -1px 0 0 rgba(17,17,17,0.018), 0 -28px 90px rgba(15,23,42,0.14)",
+  backdropFilter: "blur(38px) saturate(1.16)",
+  WebkitBackdropFilter: "blur(38px) saturate(1.16)",
 };
 const SETTINGS_BLUE_GLASS_STYLE = {
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(255,255,255,0.025), 0 16px 40px rgba(37,99,235,0.28)",
@@ -77,6 +88,11 @@ const LANGUAGE_OPTIONS = [
   { label: "العربية", value: "ar" },
   { label: "Svenska", value: "sv" },
 ];
+function languageDisplayName(language) {
+  if (language.value === "ar") return "العربية";
+  return language.label;
+}
+
 const NOTIFICATION_ROWS = [
   {
     id: "email",
@@ -238,16 +254,16 @@ function SettingRow({ icon: Icon, title, value, trailing, accent, danger, disabl
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex min-h-[68px] w-full items-center border-b px-4 text-left last:border-b-0",
+        "relative flex min-h-[64px] w-full items-center px-4 text-left after:absolute after:bottom-0 after:left-[52px] after:right-4 after:h-px last:after:hidden",
         iconClasses.iconText,
         onClick && interactionClasses.menuItem,
-        isDark ? "border-white/[0.045] active:bg-white/[0.055]" : "border-[var(--bm-border)]",
+        isDark ? "after:bg-white/[0.045] active:bg-white/[0.055]" : "after:bg-black/[0.055] active:bg-black/[0.035]",
         disabled && "opacity-55",
       )}
     >
       <Icon className={cn("shrink-0", iconClasses.sidebar, danger ? "text-red-500" : accent ? "text-[var(--bm-primary)]" : isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
       <span className="min-w-0 flex-1">
-        <span className={cn("block font-semibold", typeClasses.body, danger ? "text-red-500" : accent ? "text-[#2563EB]" : isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
+        <span className={cn("block text-[14px] font-semibold leading-5", danger ? "text-red-500" : accent ? "text-[#2563EB]" : isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
           {title}
         </span>
         {children}
@@ -259,25 +275,11 @@ function SettingRow({ icon: Icon, title, value, trailing, accent, danger, disabl
   );
 }
 
-function ToggleSwitch({ checked, isDark = true }) {
-  return (
-    <span
-      className={cn(
-        "relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors",
-        checked ? "bg-[var(--bluemind-app-color,var(--bm-primary))]" : isDark ? "bg-white/15" : "bg-[var(--bm-border-strong)]",
-      )}
-      aria-hidden="true"
-    >
-      <span className={cn("h-6 w-6 rounded-full bg-white shadow-sm transition-transform", checked && "translate-x-6")} />
-    </span>
-  );
-}
-
 function SettingsCard({ children, isDark = true }) {
   return (
     <div
-      className={cn("overflow-hidden rounded-[26px]", isDark ? SETTINGS_GLASS_CLASS : "bg-white shadow-sm ring-1 ring-black/[0.06]")}
-      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+      className={cn("overflow-hidden rounded-[26px]", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+      style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
     >
       {children}
     </div>
@@ -291,8 +293,8 @@ function SectionTitle({ children, isDark = true }) {
 function ComingSoonPanel({ title, isDark = true }) {
   return (
     <div
-      className={cn("rounded-[26px] p-5 text-center", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+      className={cn("rounded-[26px] p-5 text-center", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+      style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
     >
       <p className={cn("font-bold", typeClasses.cardTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{title}</p>
       <p className={cn("mt-2 font-medium", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>Coming Soon</p>
@@ -300,23 +302,37 @@ function ComingSoonPanel({ title, isDark = true }) {
   );
 }
 
-function SettingsInput({ label, readOnly, isDark = true, className, style, ...props }) {
+function resolveSettingsInputIcon(label, type) {
+  const text = `${label || ""} ${type || ""}`.toLowerCase();
+  if (text.includes("email")) return Mail;
+  if (text.includes("password")) return KeyRound;
+  if (text.includes("code")) return Shield;
+  if (text.includes("issue")) return Flag;
+  return Info;
+}
+
+function SettingsInput({ label, readOnly, isDark = true, className, style, icon, ...props }) {
+  const Icon = icon || resolveSettingsInputIcon(label, props.type);
+
   return (
     <label className="block">
       <span className={cn("mb-2 block font-bold uppercase tracking-[0.08em]", typeClasses.small, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{label}</span>
-      <input
-        {...props}
-        readOnly={readOnly}
-        className={cn(
-          inputClasses.field,
-          "font-semibold",
-          typeClasses.body,
-          isDark && "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white placeholder:text-white/42",
-          readOnly && "cursor-default text-[var(--bm-text-secondary)]",
-          className,
-        )}
-        style={isDark ? { ...SETTINGS_GLASS_STYLE, ...style } : style}
-      />
+      <span className="relative block">
+        <Icon className={cn("pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2", isDark ? "text-white/78" : "text-[#111111]")} />
+        <input
+          {...props}
+          readOnly={readOnly}
+          className={cn(
+            inputClasses.field,
+            "pl-12 font-semibold",
+            typeClasses.body,
+            isDark ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white placeholder:text-white/42" : "border-black/[0.06] bg-white/[0.58] text-[#111111] placeholder:text-[#777777]",
+            readOnly && "cursor-default text-[var(--bm-text-secondary)]",
+            className,
+          )}
+          style={isDark ? { ...SETTINGS_GLASS_STYLE, ...style } : { ...SETTINGS_LIGHT_GLASS_STYLE, ...style }}
+        />
+      </span>
     </label>
   );
 }
@@ -339,6 +355,73 @@ function PrimarySettingsButton({ children, loading, style, ...props }) {
   );
 }
 
+function SettingsSelectionPopup({ open, title, children, isDark = true, onClose }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/25 p-5 backdrop-blur-[10px]"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: 8 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              "max-h-[72dvh] w-full max-w-[420px] overflow-hidden rounded-[30px] p-4",
+              isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS,
+            )}
+            style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <h3 className={cn("text-[15px] font-bold", isDark ? "text-white" : "text-[#111111]")}>{title}</h3>
+              <button type="button" onClick={onClose} className="bm-mobile-glass-control" aria-label={`Close ${title}`}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="max-h-[58dvh] space-y-2 overflow-y-auto overscroll-contain pr-1">
+              {children}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function SettingsPopupRow({ children, selected, indicator, isDark = true, onClick, testId }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid={testId}
+      className={cn(
+        "flex min-h-[56px] w-full items-center gap-3 rounded-[20px] border px-4 text-left transition duration-200 ease-out active:scale-[0.985]",
+        selected
+          ? isDark
+            ? "border-white/[0.09] bg-white/[0.085]"
+            : "border-black/[0.08] bg-black/[0.045]"
+          : isDark
+            ? "border-white/[0.045] bg-white/[0.045]"
+            : "border-black/[0.045] bg-white/[0.44]",
+      )}
+      style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
+    >
+      {indicator}
+      <span className={cn("min-w-0 flex-1 text-[14px] font-semibold", isDark ? "text-white" : "text-[#111111]")}>{children}</span>
+      {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
+    </button>
+  );
+}
+
 export default function SettingsSheet({
   open = true,
   onClose,
@@ -357,6 +440,7 @@ export default function SettingsSheet({
   const [pane, setPane] = useState(initialPane === "settings" ? "main" : initialPane);
   const [user, setUser] = useState(() => readStoredUser());
   const [saving, setSaving] = useState("");
+  const [selectionPopup, setSelectionPopup] = useState(null);
   const [openHelpTopic, setOpenHelpTopic] = useState(HELP_TOPICS[0]?.question || "");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [issueReport, setIssueReport] = useState({
@@ -406,11 +490,13 @@ export default function SettingsSheet({
     return theme.charAt(0).toUpperCase() + theme.slice(1);
   }, [prefs.theme]);
   const currentLanguage = LANGUAGE_OPTIONS.find((language) => language.value === String(prefs.appLanguage || prefs.language || "en").toLowerCase()) || LANGUAGE_OPTIONS[0];
+  const currentLanguageLabel = languageDisplayName(currentLanguage);
   const activeMessageColor = MESSAGE_COLORS.find((color) => color.value.toLowerCase() === String(prefs.chatColor || "var(--bm-primary)").toLowerCase()) || MESSAGE_COLORS[0];
   const plan = user?.subscription?.plan || user?.plan || user?.accountPlan || (user?.authProvider === "guest" ? "Guest" : "Free");
 
   const close = () => {
     setLogoutConfirmOpen(false);
+    setSelectionPopup(null);
     onClose?.();
   };
 
@@ -598,8 +684,7 @@ export default function SettingsSheet({
     return prefs.notificationsEnabled !== false && row.keys.some((key) => section[key] === true);
   };
 
-  const toggleNotificationRow = (row) => {
-    const enabled = !isNotificationEnabled(row);
+  const setNotificationRowEnabled = (row, enabled) => {
     const nextSection = Object.fromEntries(row.keys.map((key) => [key, enabled]));
     const notificationPreferences = {
       ...(prefs.notificationPreferences || {}),
@@ -686,8 +771,8 @@ export default function SettingsSheet({
         <button
           type="button"
           onClick={() => setLogoutConfirmOpen(true)}
-          className={cn("flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] border text-[15px] font-bold active:bg-red-500/10", isDark ? "border-red-300/[0.16] bg-red-500/[0.12] text-red-300" : "border-red-500/15 bg-white text-red-500 ring-1 ring-black/[0.06]")}
-          style={isDark ? SETTINGS_RED_GLASS_STYLE : undefined}
+          className="flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] border border-red-500/15 bg-red-500/[0.10] text-[15px] font-bold text-red-500 active:bg-red-500/10"
+          style={SETTINGS_RED_GLASS_STYLE}
         >
           <LogOut className="h-5 w-5" />
           Log out
@@ -736,8 +821,8 @@ export default function SettingsSheet({
       {emailChange.pendingEmail && (
         <form
           onSubmit={handleConfirmEmailChange}
-          className={cn("space-y-4 rounded-[24px] p-4", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+          className={cn("space-y-4 rounded-[24px] p-4", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+          style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
         >
           <p className={cn("text-sm font-semibold leading-6", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>
             Enter the 6-digit code sent to {emailChange.pendingEmail}.
@@ -776,8 +861,8 @@ export default function SettingsSheet({
 
   const renderEmailRecovery = () => (
     <div
-      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+      style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
     >
       <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Email recovery</p>
       <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
@@ -871,8 +956,8 @@ export default function SettingsSheet({
       </form>
       {passwordRecovery.sent && (
         <div
-          className={cn("rounded-[24px] p-4 text-sm font-semibold leading-6", isDark ? `${SETTINGS_GLASS_CLASS} text-[var(--bm-text-secondary)]` : "bg-white text-[var(--bm-text-secondary)] ring-1 ring-black/[0.06]")}
-          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+          className={cn("rounded-[24px] p-4 text-sm font-semibold leading-6", isDark ? `${SETTINGS_GLASS_CLASS} text-[var(--bm-text-secondary)]` : `${SETTINGS_LIGHT_GLASS_CLASS} text-[var(--bm-text-secondary)]`)}
+          style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
         >
           If this email belongs to a BlueMind account, a recovery email has been sent.
         </div>
@@ -882,8 +967,8 @@ export default function SettingsSheet({
 
   const renderSubscription = () => (
     <div
-      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+      style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
     >
       <p className={cn("text-sm font-bold uppercase tracking-[0.08em]", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>Current Plan</p>
       <p className={cn("mt-2 text-2xl font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{plan}</p>
@@ -893,51 +978,15 @@ export default function SettingsSheet({
     </div>
   );
 
-  const renderAppearance = () => (
-    <div className="space-y-3">
-      {APPEARANCE_OPTIONS.map(({ label, value, icon: Icon }) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => savePreference({ theme: value })}
-          className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left", isDark ? `${SETTINGS_GLASS_CLASS} text-white` : "bg-white text-[var(--bm-text-primary)] ring-1 ring-black/[0.06]")}
-          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
-        >
-          <Icon className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
-          <span className="flex-1 text-[15px] font-semibold">{label}</span>
-          {prefs.theme === value && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
-        </button>
-      ))}
-    </div>
-  );
-
-  const renderLanguage = () => (
-    <div className="space-y-3">
-      {LANGUAGE_OPTIONS.map((language) => (
-        <button
-          key={language.value}
-          type="button"
-          onClick={() => savePreference({ appLanguage: language.value, language: language.value })}
-          className={cn("flex min-h-[60px] w-full items-center gap-3 rounded-[22px] px-4 text-left", isDark ? `${SETTINGS_GLASS_CLASS} text-white` : "bg-white text-[var(--bm-text-primary)] ring-1 ring-black/[0.06]")}
-          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
-        >
-          <Globe2 className={cn("h-5 w-5", isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")} />
-          <span className="flex-1 text-[15px] font-semibold">{language.label}</span>
-          {currentLanguage.value === language.value && <Check className="h-5 w-5 stroke-[3] text-[var(--bm-check)]" />}
-        </button>
-      ))}
-    </div>
-  );
-
   const renderGeneral = () => (
     <Card>
-      <Row icon={Globe2} title="Language" value={currentLanguage.label} onClick={() => openChild("language")}>
+      <Row icon={Globe2} title="Language" value={currentLanguageLabel} onClick={() => setSelectionPopup({ type: "language" })}>
         <span className={descriptionClass}>Choose your application language.</span>
       </Row>
-      <Row icon={(APPEARANCE_OPTIONS.find((option) => option.value === (prefs.theme || "system")) || APPEARANCE_OPTIONS[0]).icon} title="Appearance" value={appearanceText} onClick={() => openChild("appearance")}>
+      <Row icon={(APPEARANCE_OPTIONS.find((option) => option.value === (prefs.theme || "system")) || APPEARANCE_OPTIONS[0]).icon} title="Appearance" value={appearanceText} onClick={() => setSelectionPopup({ type: "appearance" })}>
         <span className={descriptionClass}>Choose application theme.</span>
       </Row>
-      <Row icon={Palette} title="Message Color" value={activeMessageColor.label} onClick={() => openChild("message-color")}>
+      <Row icon={Palette} title="Message Color" value={activeMessageColor.label} onClick={() => setSelectionPopup({ type: "message-color" })}>
         <span className={descriptionClass}>Choose the color of your messages.</span>
       </Row>
     </Card>
@@ -953,8 +1002,11 @@ export default function SettingsSheet({
             key={row.id}
             icon={Bell}
             title={row.title}
-            onClick={() => toggleNotificationRow(row)}
-            trailing={<ToggleSwitch checked={enabled} isDark={isDark} />}
+            onClick={() => setSelectionPopup({ type: "notification", row })}
+            trailing={<span className={cn("inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-bold", enabled ? "bg-emerald-500/12 text-emerald-500" : "bg-red-500/12 text-red-500")}>
+              <span className={cn("h-2 w-2 rounded-full", enabled ? "bg-emerald-500" : "bg-red-500")} />
+              {enabled ? "ON" : "OFF"}
+            </span>}
           >
             <span className={descriptionClass}>{row.description}</span>
           </Row>
@@ -986,16 +1038,16 @@ export default function SettingsSheet({
             inputClasses.textarea,
             "resize-none font-semibold",
             typeClasses.body,
-            isDark && "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white placeholder:text-white/42",
+            isDark ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white placeholder:text-white/42" : "border-black/[0.06] bg-white/[0.58] text-[#111111] placeholder:text-[#777777]",
           )}
-          style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+          style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
           data-testid="issue-description"
         />
       </label>
 
       <section
-        className={cn("rounded-[26px] p-4", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-        style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+        className={cn("rounded-[26px] p-4", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+        style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
       >
         <p className={cn("text-sm font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Attach Screenshot</p>
         <p className={cn("mt-1 text-xs font-medium leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
@@ -1005,8 +1057,8 @@ export default function SettingsSheet({
           <button
             type="button"
             onClick={() => issueCameraInputRef.current?.click()}
-            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}
-            style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-white/[0.44] text-[var(--bm-text-primary)]")}
+            style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
           >
             <Camera className="h-5 w-5" />
             Camera
@@ -1014,8 +1066,8 @@ export default function SettingsSheet({
           <button
             type="button"
             onClick={() => issuePhotosInputRef.current?.click()}
-            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}
-            style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-white/[0.44] text-[var(--bm-text-primary)]")}
+            style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
           >
             <FileUp className="h-5 w-5" />
             Photos
@@ -1023,8 +1075,8 @@ export default function SettingsSheet({
           <button
             type="button"
             onClick={() => issueFilesInputRef.current?.click()}
-            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")}
-            style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+            className={cn("flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border text-xs font-bold", isDark ? "border-white/[0.055] bg-white/[0.075] text-white" : "border-black/[0.06] bg-white/[0.44] text-[var(--bm-text-primary)]")}
+            style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
           >
             <FileUp className="h-5 w-5" />
             Files
@@ -1036,8 +1088,8 @@ export default function SettingsSheet({
             {issueReport.attachments.map((attachment, index) => (
               <div
                 key={`${attachment.name}-${index}`}
-                className={cn("relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl", isDark ? SETTINGS_GLASS_CLASS : "bg-[var(--bm-bg-elevated)] ring-1 ring-black/[0.06]")}
-                style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+                className={cn("relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+                style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
               >
                 {attachment.type.startsWith("image/") ? (
                   <img src={attachment.dataUrl} alt="" className="h-full w-full object-cover" />
@@ -1114,8 +1166,8 @@ export default function SettingsSheet({
 
   const renderPrivacyPolicy = () => (
     <div
-      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+      style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
     >
       <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Privacy Policy</p>
       <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
@@ -1129,8 +1181,8 @@ export default function SettingsSheet({
 
   const renderTermsOfService = () => (
     <div
-      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-      style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+      className={cn("rounded-[26px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+      style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
     >
       <p className={cn("text-base font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Terms of Service</p>
       <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
@@ -1145,8 +1197,8 @@ export default function SettingsSheet({
   const renderAbout = () => (
     <div className="space-y-5">
       <div
-        className={cn("rounded-[26px] p-5 text-center", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-        style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+        className={cn("rounded-[26px] p-5 text-center", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+        style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
       >
         <p className={cn("text-xl font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</p>
         <p className={cn("mt-3 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
@@ -1166,25 +1218,102 @@ export default function SettingsSheet({
     </div>
   );
 
-  const renderMessageColor = () => {
-    return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {MESSAGE_COLORS.map((color) => (
-          <button
-            key={color.value}
-            type="button"
-            onClick={() => savePreference({ chatColor: color.value })}
-            className={cn("flex min-h-[74px] items-center gap-3 rounded-[24px] px-4 text-left", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.06]")}
-            style={isDark ? SETTINGS_GLASS_STYLE : undefined}
-            data-testid={`message-color-${color.label.toLowerCase()}`}
+  const closeSelectionPopup = () => setSelectionPopup(null);
+
+  const selectPreference = (patch) => {
+    closeSelectionPopup();
+    savePreference(patch);
+  };
+
+  const renderSelectionPopup = () => {
+    const notificationRow = selectionPopup?.row;
+    const notificationEnabled = notificationRow ? isNotificationEnabled(notificationRow) : false;
+
+    if (selectionPopup?.type === "language") {
+      return (
+        <SettingsSelectionPopup open title="Language" isDark={isDark} onClose={closeSelectionPopup}>
+          {LANGUAGE_OPTIONS.map((language) => (
+            <SettingsPopupRow
+              key={language.value}
+              selected={currentLanguage.value === language.value}
+              indicator={<Globe2 className={cn("h-5 w-5 shrink-0", isDark ? "text-white/76" : "text-[#111111]")} />}
+              isDark={isDark}
+              onClick={() => selectPreference({ appLanguage: language.value, language: language.value })}
+            >
+              {languageDisplayName(language)}
+            </SettingsPopupRow>
+          ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "appearance") {
+      return (
+        <SettingsSelectionPopup open title="Appearance" isDark={isDark} onClose={closeSelectionPopup}>
+          {APPEARANCE_OPTIONS.map(({ label, value, icon: Icon }) => (
+            <SettingsPopupRow
+              key={value}
+              selected={(prefs.theme || "system") === value}
+              indicator={<Icon className={cn("h-5 w-5 shrink-0", isDark ? "text-white/76" : "text-[#111111]")} />}
+              isDark={isDark}
+              onClick={() => selectPreference({ theme: value })}
+            >
+              {label}
+            </SettingsPopupRow>
+          ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "message-color") {
+      return (
+        <SettingsSelectionPopup open title="Message Color" isDark={isDark} onClose={closeSelectionPopup}>
+          {MESSAGE_COLORS.map((color) => (
+            <SettingsPopupRow
+              key={color.value}
+              selected={activeMessageColor.value.toLowerCase() === color.value.toLowerCase()}
+              indicator={<span className="h-6 w-6 shrink-0 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />}
+              isDark={isDark}
+              onClick={() => selectPreference({ chatColor: color.value })}
+              testId={`message-color-popup-${color.label.toLowerCase()}`}
+            >
+              {color.label}
+            </SettingsPopupRow>
+          ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "notification" && notificationRow) {
+      return (
+        <SettingsSelectionPopup open title={notificationRow.title} isDark={isDark} onClose={closeSelectionPopup}>
+          <SettingsPopupRow
+            selected={notificationEnabled}
+            indicator={<span className="h-3 w-3 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />}
+            isDark={isDark}
+            onClick={() => {
+              closeSelectionPopup();
+              setNotificationRowEnabled(notificationRow, true);
+            }}
           >
-            <span className="h-7 w-7 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />
-            <span className={cn("min-w-0 flex-1 truncate text-sm font-bold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{color.label}</span>
-            {activeMessageColor.value.toLowerCase() === color.value.toLowerCase() && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
-          </button>
-        ))}
-      </div>
-    );
+            ON
+          </SettingsPopupRow>
+          <SettingsPopupRow
+            selected={!notificationEnabled}
+            indicator={<span className="h-3 w-3 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.12)]" />}
+            isDark={isDark}
+            onClick={() => {
+              closeSelectionPopup();
+              setNotificationRowEnabled(notificationRow, false);
+            }}
+          >
+            OFF
+          </SettingsPopupRow>
+        </SettingsSelectionPopup>
+      );
+    }
+
+    return null;
   };
 
   const childTitles = {
@@ -1214,9 +1343,7 @@ export default function SettingsSheet({
     if (pane === "forgot-password") return renderForgotPassword();
     if (pane === "subscription") return renderSubscription();
     if (pane === "general") return renderGeneral();
-    if (pane === "language") return renderLanguage();
-    if (pane === "appearance") return renderAppearance();
-    if (pane === "message-color") return renderMessageColor();
+    if (pane === "language" || pane === "appearance" || pane === "message-color") return renderGeneral();
     if (pane === "notifications") return renderNotifications();
     if (pane === "report-issue") return renderReportIssue();
     if (pane === "help-center") return renderHelpCenter();
@@ -1245,10 +1372,10 @@ export default function SettingsSheet({
       }}
       className={cn(
         "relative flex w-full flex-col overflow-hidden",
-        isDark ? "border border-white/[0.045] bg-[rgba(8,8,8,0.88)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)] shadow-[0_-28px_90px_rgba(0,0,0,0.18)]",
+        isDark ? "border border-white/[0.045] bg-[rgba(8,8,8,0.88)] text-white" : "border border-black/[0.06] bg-white/[0.68] text-[var(--bm-text-primary)]",
         mobile ? "h-[88dvh] rounded-t-[34px]" : "mx-auto h-[86dvh] max-w-[560px] rounded-[34px]",
       )}
-      style={isDark ? SETTINGS_SHEET_GLASS_STYLE : undefined}
+      style={isDark ? SETTINGS_SHEET_GLASS_STYLE : SETTINGS_LIGHT_SHEET_GLASS_STYLE}
       role="dialog"
       aria-modal="true"
       aria-label="Settings"
@@ -1261,7 +1388,7 @@ export default function SettingsSheet({
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
-        <h2 className="text-base font-extrabold">{pane === "main" ? "Settings" : childTitles[pane] || "Settings"}</h2>
+        <h2 className="text-[15px] font-bold">{pane === "main" ? "Settings" : childTitles[pane] || "Settings"}</h2>
         <button type="button" onClick={close} className="bm-mobile-glass-control" aria-label="Close settings">
           <X className="h-5 w-5" />
         </button>
@@ -1270,6 +1397,8 @@ export default function SettingsSheet({
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-2">
         {pane === "main" ? renderMain() : renderChild()}
       </div>
+
+      {renderSelectionPopup()}
 
       <input
         ref={fileInputRef}
@@ -1315,8 +1444,8 @@ export default function SettingsSheet({
               initial={{ y: 18, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 18, opacity: 0 }}
-              className={cn("w-full rounded-[28px] p-5", isDark ? SETTINGS_GLASS_CLASS : "bg-white ring-1 ring-black/[0.08]")}
-              style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+              className={cn("w-full rounded-[28px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+              style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
             >
               <p className={cn("text-lg font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Log out?</p>
               <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>You will need to sign in again to use BlueMind AI.</p>
@@ -1324,8 +1453,8 @@ export default function SettingsSheet({
                 <button
                   type="button"
                   onClick={() => setLogoutConfirmOpen(false)}
-                  className={cn("min-h-12 rounded-2xl border text-sm font-bold", isDark ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white" : "border-transparent bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}
-                  style={isDark ? SETTINGS_GLASS_STYLE : undefined}
+                  className={cn("min-h-12 rounded-2xl border text-sm font-bold", isDark ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white" : "border-black/[0.06] bg-white/[0.44] text-[var(--bm-text-primary)]")}
+                  style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
                 >
                   Cancel
                 </button>
