@@ -143,12 +143,24 @@ html[data-theme="light"] body {
   --bm-active-bg: rgba(17, 17, 17, 0.065);
   --bm-disabled-bg: rgba(17, 17, 17, 0.10);
   --bm-input-placeholder: #777777;
+  --bm-light-glass-surface: rgba(255, 255, 255, 0.58);
+  --bm-light-glass-surface-strong: rgba(255, 255, 255, 0.68);
+  --bm-light-glass-surface-soft: rgba(255, 255, 255, 0.44);
+  --bm-light-glass-border: rgba(17, 17, 17, 0.075);
+  --bm-light-glass-border-strong: rgba(17, 17, 17, 0.12);
+  --bm-light-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76), inset 0 -1px 0 rgba(17, 17, 17, 0.024), 0 16px 42px rgba(15, 23, 42, 0.09);
+  --bm-light-glass-shadow-soft: inset 0 1px 0 rgba(255, 255, 255, 0.70), 0 10px 26px rgba(15, 23, 42, 0.065);
   --bg-main: var(--bm-bg-app);
   --bg-secondary: var(--bm-bg-sidebar);
   --bg-card: var(--bm-bg-card);
   --border-color: var(--bm-border);
   --text-main: var(--bm-text-primary);
   --text-secondary: var(--bm-text-secondary);
+  --bm-text-page-title: 30px;
+  --bm-text-section-title: 20px;
+  --bm-text-card-title: 17px;
+  --bm-text-body: 15px;
+  --bm-text-small: 13px;
   background-color: var(--bm-bg-app);
   color: var(--bm-text-primary);
 }
@@ -508,13 +520,10 @@ select {
 
 html[data-theme="light"] .bm-glass-panel,
 html[data-theme="light"] :where([role="menu"]) {
-  border-color: rgba(17, 17, 17, 0.075) !important;
-  background: rgba(255, 255, 255, 0.62) !important;
+  border-color: var(--bm-light-glass-border) !important;
+  background: var(--bm-light-glass-surface-strong) !important;
   color: #111111 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    inset 0 -1px 0 rgba(17, 17, 17, 0.024),
-    0 24px 70px rgba(15, 23, 42, 0.10) !important;
+  box-shadow: var(--bm-light-glass-shadow), 0 24px 70px rgba(15, 23, 42, 0.08) !important;
   backdrop-filter: blur(28px) saturate(150%) !important;
   -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
 }
@@ -579,15 +588,10 @@ html[data-theme="dark"] :where([role="menu"]) {
 }
 
 html[data-theme="light"] .bm-icon-interactive {
-  border-color: rgba(17, 17, 17, 0.075);
-  background: rgba(255, 255, 255, 0.52);
+  border-color: var(--bm-light-glass-border);
+  background: rgba(255, 255, 255, 0.50);
   color: #111111;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    inset 0 -1px 0 rgba(17, 17, 17, 0.025),
-    inset 1px 0 0 rgba(255, 255, 255, 0.45),
-    inset -1px 0 0 rgba(17, 17, 17, 0.018),
-    0 12px 30px rgba(15, 23, 42, 0.10);
+  box-shadow: var(--bm-light-glass-shadow-soft);
   backdrop-filter: blur(38px) saturate(1.18);
   -webkit-backdrop-filter: blur(38px) saturate(1.18);
 }
@@ -656,15 +660,10 @@ html[data-theme="light"] .bm-icon-interactive .bm-icon-button {
 }
 
 html[data-theme="light"] .bm-mobile-glass-control {
-  border-color: rgba(17, 17, 17, 0.075);
-  background: rgba(255, 255, 255, 0.52);
+  border-color: var(--bm-light-glass-border);
+  background: rgba(255, 255, 255, 0.50);
   color: #111111;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    inset 0 -1px 0 rgba(17, 17, 17, 0.025),
-    inset 1px 0 0 rgba(255, 255, 255, 0.45),
-    inset -1px 0 0 rgba(17, 17, 17, 0.018),
-    0 12px 30px rgba(15, 23, 42, 0.10);
+  box-shadow: var(--bm-light-glass-shadow-soft);
   backdrop-filter: blur(38px) saturate(1.18);
   -webkit-backdrop-filter: blur(38px) saturate(1.18);
 }
@@ -815,12 +814,10 @@ html[data-theme="light"] .bm-mobile-glass-control .bm-icon-button {
 }
 
 html[data-theme="light"] .bm-field {
-  border-color: rgba(17, 17, 17, 0.075);
-  background-color: rgba(255, 255, 255, 0.58);
+  border-color: var(--bm-light-glass-border);
+  background-color: var(--bm-light-glass-surface);
   color: #111111;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 12px 28px rgba(15, 23, 42, 0.075);
+  box-shadow: var(--bm-light-glass-shadow-soft);
   backdrop-filter: blur(24px) saturate(1.12);
   -webkit-backdrop-filter: blur(24px) saturate(1.12);
 }
@@ -1080,12 +1077,10 @@ textarea::placeholder {
 }
 
 html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), textarea, select):not(.bm-composer-input):not(.bm-input-reset):not(.bm-field) {
-  border-color: rgba(17, 17, 17, 0.075);
-  background-color: rgba(255, 255, 255, 0.58);
+  border-color: var(--bm-light-glass-border);
+  background-color: var(--bm-light-glass-surface);
   color: #111111;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 12px 28px rgba(15, 23, 42, 0.075);
+  box-shadow: var(--bm-light-glass-shadow-soft);
   backdrop-filter: blur(24px) saturate(1.12);
   -webkit-backdrop-filter: blur(24px) saturate(1.12);
 }
@@ -1096,12 +1091,10 @@ html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"])
 }
 
 html[data-theme="light"] .bm-search-shell {
-  border-color: rgba(17, 17, 17, 0.075) !important;
-  background: rgba(255, 255, 255, 0.58) !important;
+  border-color: var(--bm-light-glass-border) !important;
+  background: var(--bm-light-glass-surface) !important;
   color: #111111 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 12px 28px rgba(15, 23, 42, 0.075) !important;
+  box-shadow: var(--bm-light-glass-shadow-soft) !important;
   backdrop-filter: blur(24px) saturate(1.12) !important;
   -webkit-backdrop-filter: blur(24px) saturate(1.12) !important;
 }
@@ -1112,13 +1105,10 @@ html[data-theme="light"] .bm-search-input {
 }
 
 html[data-theme="light"] [data-testid="unified-composer-box"] {
-  border-color: rgba(17, 17, 17, 0.07) !important;
-  background: rgba(255, 255, 255, 0.58) !important;
+  border-color: var(--bm-light-glass-border) !important;
+  background: var(--bm-light-glass-surface) !important;
   color: #111111 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.76),
-    inset 0 -1px 0 rgba(17, 17, 17, 0.025),
-    0 16px 42px rgba(15, 23, 42, 0.11) !important;
+  box-shadow: var(--bm-light-glass-shadow) !important;
   backdrop-filter: blur(42px) saturate(1.16) !important;
   -webkit-backdrop-filter: blur(42px) saturate(1.16) !important;
 }
@@ -1135,7 +1125,93 @@ html[data-theme="light"] [data-testid="unified-composer-box"] textarea::placehol
 }
 
 html[data-theme="light"] .bg-white {
-  background-color: rgba(255, 255, 255, 0.62) !important;
+  background-color: var(--bm-light-glass-surface-strong) !important;
+}
+
+html[data-theme="light"] .bg-white\/70,
+html[data-theme="light"] .bg-white\/75,
+html[data-theme="light"] .bg-white\/80,
+html[data-theme="light"] .bg-white\/82,
+html[data-theme="light"] .bg-white\/85,
+html[data-theme="light"] .bg-white\/88,
+html[data-theme="light"] .bg-white\/90,
+html[data-theme="light"] .bg-white\/92,
+html[data-theme="light"] .bg-white\/95,
+html[data-theme="light"] .bg-\[var\(--bm-bg-card\)\],
+html[data-theme="light"] .bg-\[var\(--bm-bg-elevated\)\],
+html[data-theme="light"] .bg-\[var\(--bm-bg-input\)\],
+html[data-theme="light"] .bg-\[var\(--bm-bg-modal\)\] {
+  background-color: var(--bm-light-glass-surface) !important;
+  backdrop-filter: blur(24px) saturate(1.12);
+  -webkit-backdrop-filter: blur(24px) saturate(1.12);
+}
+
+html[data-theme="light"] :where(.bm-card-interactive, .bm-interactive, .bm-menu-interactive),
+html[data-theme="light"] :where([role="dialog"], [data-radix-popper-content-wrapper] > *) {
+  border-color: var(--bm-light-glass-border);
+  box-shadow: var(--bm-light-glass-shadow-soft);
+  backdrop-filter: blur(24px) saturate(1.12);
+  -webkit-backdrop-filter: blur(24px) saturate(1.12);
+}
+
+html[data-theme="light"] :where(button, a, [role="button"], [role="menuitem"]) {
+  color: inherit;
+}
+
+html[data-theme="light"] :where(button, a, [role="button"], [role="menuitem"]) > svg {
+  color: currentColor;
+  stroke: currentColor;
+}
+
+html[data-theme="light"] :where(button:not(.bm-mobile-glass-control):not(.bm-icon-interactive):not(.bm-input-reset), a[role="button"], [role="button"]:not(.bm-mobile-glass-control):not(.bm-icon-interactive)) {
+  border-color: color-mix(in srgb, var(--bm-light-glass-border) 84%, transparent);
+  backdrop-filter: blur(20px) saturate(1.08);
+  -webkit-backdrop-filter: blur(20px) saturate(1.08);
+}
+
+html[data-theme="light"] :where(button:not(.bm-mobile-glass-control):not(.bm-icon-interactive):not(.bm-input-reset):not([class*="bg-red"]):not([class*="bg-emerald"]):not([class*="bg-green"]):not([class*="bg-blue"]):not([style*="background"]), a[role="button"], [role="button"]:not(.bm-mobile-glass-control):not(.bm-icon-interactive):not([style*="background"])) {
+  background-color: color-mix(in srgb, var(--bm-light-glass-surface) 84%, transparent);
+  box-shadow: var(--bm-light-glass-shadow-soft);
+}
+
+html[data-theme="light"] :where([class*="shadow-sm"], [class*="shadow-lg"], [class*="shadow-xl"], [class*="shadow-2xl"]) {
+  box-shadow: var(--bm-light-glass-shadow-soft) !important;
+}
+
+html[data-theme="light"] :where(.border-b) {
+  position: relative;
+  border-bottom-color: transparent !important;
+}
+
+html[data-theme="light"] :where(.border-b)::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: rgba(17, 17, 17, 0.07);
+}
+
+html[data-theme="light"] :where(.border-t) {
+  position: relative;
+  border-top-color: transparent !important;
+}
+
+html[data-theme="light"] :where(.border-t)::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 0;
+  height: 1px;
+  pointer-events: none;
+  background: rgba(17, 17, 17, 0.07);
+}
+
+html[data-theme="light"] :where(.divide-y > :not([hidden]) ~ :not([hidden])) {
+  border-color: rgba(17, 17, 17, 0.07) !important;
 }
 
 input:focus,
