@@ -8,6 +8,7 @@ import {
   CreditCard,
   Loader2,
   Lock,
+  RotateCw,
   ShieldCheck,
   Smartphone,
   Sparkles,
@@ -301,75 +302,144 @@ function PaymentMethodPage() {
   );
 }
 
-function CardPreview({ form, methodId }) {
-  const brand = detectCardBrand(methodId, form.number);
-  const method = methodById(brand.toLowerCase() === "mastercard" ? "mastercard" : "visa");
-  const visibleNumber = form.number || "**** **** **** ****";
-  const holder = form.name || "CARD HOLDER";
-  const expiry = form.expiry || "MM/YY";
+const cardFaceStyle = {
+  backfaceVisibility: "hidden",
+  WebkitBackfaceVisibility: "hidden",
+};
 
+function CardChip() {
   return (
-    <motion.div
-      layout
-      className={cn("relative mx-auto aspect-[1.62/1] w-full max-w-[390px] overflow-hidden rounded-[30px] bg-gradient-to-br p-6 shadow-[0_24px_70px_rgba(15,23,42,0.18)]", method.tone, "text-white")}
-    >
-      <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/15 blur-2xl" />
-      <div className="absolute -bottom-16 left-8 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-      <div className="relative flex items-start justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/70">BlueMind Card</p>
-          <p className="mt-2 text-lg font-black">{brand}</p>
-        </div>
-        <PaymentBrandMark method={method} />
-      </div>
-      <p className="relative mt-12 font-mono text-[clamp(20px,6vw,28px)] font-semibold tracking-[0.12em]">{visibleNumber}</p>
-      <div className="relative mt-8 flex items-end justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/60">Card Holder</p>
-          <p className="mt-1 truncate text-sm font-bold uppercase">{holder}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/60">Expires</p>
-          <p className="mt-1 text-sm font-bold">{expiry}</p>
-        </div>
-      </div>
-    </motion.div>
+    <div className="h-9 w-12 rounded-[10px] border border-white/25 bg-gradient-to-br from-[#F8E7A1] via-[#D6A844] to-[#8B6A2B] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+      <div className="mt-3 h-px w-full bg-black/20" />
+      <div className="mx-auto mt-2 h-px w-8 bg-black/20" />
+    </div>
   );
 }
 
-function PaymentHeroCard({ method }) {
+function CardRotateButton({ onClick, darkText = false }) {
   return (
-    <motion.div
-      initial={{ y: 12, opacity: 0, scale: 0.985 }}
-      animate={{ y: 0, opacity: 1, scale: 1 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Rotate payment card"
       className={cn(
-        "relative mx-auto aspect-[1.62/1] w-full max-w-[390px] overflow-hidden rounded-[30px] bg-gradient-to-br p-6 shadow-[0_24px_70px_rgba(15,23,42,0.18)]",
-        method.tone,
-        method.darkText ? "text-[#111111]" : "text-white",
+        "absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-[24px] transition active:scale-95",
+        darkText
+          ? "border-black/10 bg-white/40 text-[#111111] shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_10px_24px_rgba(0,0,0,0.12)]"
+          : "border-white/15 bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.24),0_10px_24px_rgba(0,0,0,0.20)]",
       )}
     >
-      <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/20 blur-2xl" />
-      <div className="absolute -bottom-16 left-8 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-      <div className="relative flex items-start justify-between">
-        <div>
-          <p className={cn("text-xs font-bold uppercase tracking-[0.18em]", method.darkText ? "text-black/55" : "text-white/70")}>BlueMind Checkout</p>
-          <p className="mt-2 text-lg font-black">{method.label}</p>
+      <RotateCw className="h-4 w-4" />
+    </button>
+  );
+}
+
+function CardLighting({ darkText = false }) {
+  return (
+    <>
+      <div className={cn("absolute inset-x-0 top-0 h-px", darkText ? "bg-black/10" : "bg-white/25")} />
+      <div className="absolute -right-14 -top-16 h-40 w-40 rounded-full bg-white/20 blur-3xl" />
+      <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+      <div className={cn("absolute inset-0 bg-[linear-gradient(130deg,rgba(255,255,255,0.22),transparent_32%,transparent_62%,rgba(255,255,255,0.09))]", darkText && "opacity-60")} />
+    </>
+  );
+}
+
+function PremiumPaymentCard({ method, form, flipped, onToggle, methodId }) {
+  const hasForm = Boolean(form);
+  const brand = form ? detectCardBrand(methodId, form.number) : method.label;
+  const visualMethod = form ? methodById(brand.toLowerCase() === "mastercard" ? "mastercard" : "visa") : method;
+  const visibleNumber = form?.number || "**** **** **** ****";
+  const holder = form?.name || "CARD HOLDER";
+  const expiry = form?.expiry || "MM/YY";
+  const cvv = form?.cvv || "CVV";
+  const darkText = Boolean(visualMethod.darkText);
+
+  return (
+    <div className="mx-auto w-full max-w-[390px]" style={{ perspective: "1200px" }}>
+      <motion.div
+        initial={{ y: 12, opacity: 0, scale: 0.985 }}
+        animate={{ y: 0, opacity: 1, scale: 1, rotateY: flipped ? 180 : 0 }}
+        transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
+        className="relative aspect-[1.586/1] w-full"
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        <div
+          className={cn(
+            "absolute inset-0 overflow-hidden rounded-[22px] bg-gradient-to-br p-6 shadow-[0_28px_75px_rgba(15,23,42,0.22)] ring-1",
+            visualMethod.tone,
+            darkText ? "text-[#111111] ring-black/10" : "text-white ring-white/10",
+          )}
+          style={cardFaceStyle}
+        >
+          <CardLighting darkText={darkText} />
+          <CardRotateButton onClick={onToggle} darkText={darkText} />
+          <div className="relative flex h-full flex-col justify-between">
+            <div className="flex items-start justify-between gap-4 pr-12">
+              <CardChip />
+              <PaymentBrandMark method={visualMethod} />
+            </div>
+            <div className="flex items-end justify-between gap-4">
+              <div className={cn("h-8 w-16 rounded-full border", darkText ? "border-black/10 bg-black/5" : "border-white/10 bg-white/10")} />
+              <div className={cn("h-8 w-8 rounded-full border", darkText ? "border-black/10 bg-black/5" : "border-white/10 bg-white/10")} />
+            </div>
+          </div>
         </div>
-        <PaymentBrandMark method={method} />
-      </div>
-      <div className="relative mt-14">
-        <p className={cn("text-sm font-bold leading-6", method.darkText ? "text-black/60" : "text-white/70")}>{method.description}</p>
-        <p className="mt-5 text-xl font-black tracking-tight">Ready to continue</p>
-      </div>
-    </motion.div>
+
+        <div
+          className={cn(
+            "absolute inset-0 overflow-hidden rounded-[22px] bg-gradient-to-br p-5 shadow-[0_28px_75px_rgba(15,23,42,0.22)] ring-1",
+            visualMethod.tone,
+            darkText ? "text-[#111111] ring-black/10" : "text-white ring-white/10",
+          )}
+          style={{ ...cardFaceStyle, transform: "rotateY(180deg)" }}
+        >
+          <CardLighting darkText={darkText} />
+          <CardRotateButton onClick={onToggle} darkText={darkText} />
+          <div className="relative mt-11 h-10 rounded-sm bg-[#070707] shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]" />
+          {hasForm ? (
+            <>
+              <div className={cn("relative mt-5 rounded-xl px-4 py-3 font-mono text-base font-semibold tracking-[0.08em]", darkText ? "bg-white/38 text-black" : "bg-white/14 text-white")}>
+                {visibleNumber}
+              </div>
+              <div className="relative mt-5 grid grid-cols-[1fr_auto_auto] gap-3">
+                <div className="min-w-0">
+                  <p className={cn("text-[9px] font-black uppercase tracking-[0.18em]", darkText ? "text-black/50" : "text-white/55")}>Card Holder</p>
+                  <p className="mt-1 truncate text-xs font-black uppercase tracking-[0.08em]">{holder}</p>
+                </div>
+                <div>
+                  <p className={cn("text-[9px] font-black uppercase tracking-[0.18em]", darkText ? "text-black/50" : "text-white/55")}>Exp</p>
+                  <p className="mt-1 text-xs font-black">{expiry}</p>
+                </div>
+                <div>
+                  <p className={cn("text-[9px] font-black uppercase tracking-[0.18em]", darkText ? "text-black/50" : "text-white/55")}>CVV</p>
+                  <p className="mt-1 text-xs font-black">{cvv}</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="relative mt-6">
+              <p className={cn("text-[10px] font-black uppercase tracking-[0.18em]", darkText ? "text-black/50" : "text-white/55")}>Selected Method</p>
+              <p className="mt-2 text-2xl font-black tracking-tight">{visualMethod.label}</p>
+              <p className={cn("mt-3 max-w-[260px] text-sm font-bold leading-6", darkText ? "text-black/60" : "text-white/65")}>{visualMethod.description}</p>
+            </div>
+          )}
+          <div className="relative mt-5 flex items-center justify-between">
+            <PaymentBrandMark method={visualMethod} />
+            <p className={cn("text-[10px] font-black uppercase tracking-[0.16em]", darkText ? "text-black/45" : "text-white/50")}>Secure preview</p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
 function WalletPaymentDetails({ method, onPay }) {
+  const [flipped, setFlipped] = useState(false);
+
   return (
     <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-      <PaymentHeroCard method={method} />
+      <PremiumPaymentCard method={method} flipped={flipped} onToggle={() => setFlipped((current) => !current)} />
       <GlassCard className="p-5 sm:p-6">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)]">
@@ -399,9 +469,16 @@ function PaymentDetailsPage() {
   const methodId = params.methodId || location.state?.methodId || "visa";
   const method = methodById(methodId);
   const [form, setForm] = useState({ name: "", number: "", expiry: "", cvv: "" });
+  const [flipped, setFlipped] = useState(false);
+  const [autoFlipped, setAutoFlipped] = useState(false);
   const ready = form.name.trim().length > 2 && form.number.replace(/\D/g, "").length >= 12 && form.expiry.length === 5 && form.cvv.length >= 3;
 
   const update = (key, value) => {
+    if (!autoFlipped && String(value || "").length > 0) {
+      setFlipped(true);
+      setAutoFlipped(true);
+    }
+
     setForm((current) => ({
       ...current,
       [key]: key === "number" ? formatCardNumber(value) : key === "expiry" ? formatExpiry(value) : key === "cvv" ? value.replace(/\D/g, "").slice(0, 4) : value,
@@ -452,7 +529,7 @@ function PaymentDetailsPage() {
   return (
     <SubscriptionShell title={method.label} subtitle="Enter payment details. The card preview updates live while typing." compact>
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-        <CardPreview form={form} methodId={methodId} />
+        <PremiumPaymentCard form={form} method={method} methodId={methodId} flipped={flipped} onToggle={() => setFlipped((current) => !current)} />
         <GlassCard className="p-5 sm:p-6">
           <form onSubmit={submit} className="space-y-4">
             <label className="block">
