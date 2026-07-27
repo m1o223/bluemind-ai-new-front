@@ -718,11 +718,11 @@ export default function MobileChat() {
   const featureCarouselCount = 5;
 
   const activeConversationId = searchParams.get("conversation");
-  const surfaceColor = "#000000";
-  const panelColor = "#000000";
+  const surfaceColor = "var(--bm-bg-app)";
+  const panelColor = "var(--bm-bg-app)";
   const borderColor = "border-white/[0.055]";
   const mutedText = "text-[#B7B7B7]";
-  const textColor = "text-white/90";
+  const textColor = isDark ? "text-white/90" : "text-[var(--bm-text-primary)]";
   const mobileGlassControlClass =
     "bm-mobile-glass-control";
   const mobileGlassSelectorClass =
