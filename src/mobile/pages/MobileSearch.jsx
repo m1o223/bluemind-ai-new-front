@@ -34,7 +34,7 @@ export default function MobileSearch() {
   const mutedText = isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]";
   const glassSurface = isDark
     ? mobileSearchGlassSurfaceClass
-    : "border-white/80 bg-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]";
+    : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] shadow-[var(--bm-light-glass-shadow-soft)] backdrop-blur-[24px]";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -115,7 +115,7 @@ export default function MobileSearch() {
                 className={
                   isDark
                     ? `snap-start whitespace-nowrap rounded-full border border-white/[0.07] bg-white/[0.05] px-4 py-2 text-sm font-semibold text-[var(--bm-text-secondary)] backdrop-blur-[22px] ${interactionClasses.menuItem}`
-                    : `snap-start whitespace-nowrap rounded-full border border-black/[0.05] bg-white/75 px-4 py-2 text-sm font-semibold text-[var(--bm-text-secondary)] shadow-sm ${interactionClasses.menuItem}`
+                    : `snap-start whitespace-nowrap rounded-full border border-[var(--bm-border)] bg-[var(--bm-bg-card)] px-4 py-2 text-sm font-semibold text-[var(--bm-text-secondary)] shadow-[var(--bm-light-glass-shadow-soft)] backdrop-blur-[22px] ${interactionClasses.menuItem}`
                 }
               >
                 {item}

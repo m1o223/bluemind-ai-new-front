@@ -108,13 +108,21 @@ export default function UnifiedComposer({
   const textareaMinHeight = isMobile ? 44 : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
   const useSubtleAddButton = isMobile || isIdleState;
-  const mobileGlassIconStyle = {
+  const mobileGlassIconStyle = isDark ? {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 12px 28px rgba(0,0,0,0.23)",
     backdropFilter: "blur(42px) saturate(1.18)",
     WebkitBackdropFilter: "blur(42px) saturate(1.18)",
+  } : {
+    boxShadow: "var(--bm-light-glass-shadow-soft)",
+    backdropFilter: "blur(42px) saturate(1.18)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.18)",
   };
-  const mobileComposerGlassStyle = {
+  const mobileComposerGlassStyle = isDark ? {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(255,255,255,0.016), inset 1px 0 0 rgba(255,255,255,0.032), inset -1px 0 0 rgba(255,255,255,0.026), 0 20px 58px rgba(0,0,0,0.28)",
+    backdropFilter: "blur(42px) saturate(1.16)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
+  } : {
+    boxShadow: "var(--bm-light-glass-shadow)",
     backdropFilter: "blur(42px) saturate(1.16)",
     WebkitBackdropFilter: "blur(42px) saturate(1.16)",
   };
@@ -239,7 +247,9 @@ export default function UnifiedComposer({
   if (isMobile) {
     const mobileBoxClasses = cn(
       "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
-      "rounded-[28px] border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 py-2 text-white/90 backdrop-blur-[42px] focus-within:border-white/[0.075] focus-within:bg-[rgba(96,96,96,0.2)]",
+      isDark
+        ? "rounded-[28px] border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 py-2 text-white/90 backdrop-blur-[42px] focus-within:border-white/[0.075] focus-within:bg-[rgba(96,96,96,0.2)]"
+        : "rounded-[28px] border-[var(--bm-border)] bg-[var(--bm-bg-input)] px-3 py-2 text-[var(--bm-text-primary)] backdrop-blur-[42px] focus-within:border-[var(--bm-hover-border)] focus-within:bg-[var(--bm-bg-card)]",
       hasAttachments ? "min-h-[140px]" : "min-h-[84px]",
     );
 

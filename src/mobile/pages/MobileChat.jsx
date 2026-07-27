@@ -43,6 +43,7 @@ import UnifiedComposer from "@/components/UnifiedComposer";
 import SettingsSheet from "@/components/settings/SettingsSheet";
 import { useApp } from "@/context/AppContext";
 import { iconClasses, typeClasses } from "@/lib/interactions";
+import { cn } from "@/lib/utils";
 import {
   buildWriteEditMessage,
   createWriteEditTask,
@@ -720,25 +721,51 @@ export default function MobileChat() {
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = "var(--bm-bg-app)";
   const panelColor = "var(--bm-bg-app)";
-  const borderColor = "border-white/[0.055]";
-  const mutedText = "text-[#B7B7B7]";
+  const borderColor = isDark ? "border-white/[0.055]" : "border-[var(--bm-border)]";
+  const mutedText = isDark ? "text-[#B7B7B7]" : "text-[var(--bm-text-secondary)]";
   const textColor = isDark ? "text-white/90" : "text-[var(--bm-text-primary)]";
   const mobileGlassControlClass =
     "bm-mobile-glass-control";
-  const mobileGlassSelectorClass =
-    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border border-white/[0.052] bg-[rgba(78,78,78,0.16)] px-4 text-sm font-bold capitalize text-white/90 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.97] active:bg-[rgba(96,96,96,0.18)]";
-  const mobileGlassControlStyle = {
+  const mobileGlassSelectorClass = cn(
+    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border px-4 text-sm font-bold capitalize backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.97]",
+    isDark
+      ? "border-white/[0.052] bg-[rgba(78,78,78,0.16)] text-white/90 active:bg-[rgba(96,96,96,0.18)]"
+      : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]",
+  );
+  const mobileGlassControlStyle = isDark ? {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.014), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.022), 0 12px 28px rgba(0,0,0,0.22)",
     backdropFilter: "blur(42px) saturate(1.18)",
     WebkitBackdropFilter: "blur(42px) saturate(1.18)",
+  } : {
+    boxShadow: "var(--bm-light-glass-shadow-soft)",
+    backdropFilter: "blur(42px) saturate(1.18)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.18)",
   };
-  const mobileGlassPanelStyle = {
+  const mobileGlassPanelStyle = isDark ? {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(255,255,255,0.016), inset 1px 0 0 rgba(255,255,255,0.032), inset -1px 0 0 rgba(255,255,255,0.026), 0 24px 68px rgba(0,0,0,0.3)",
     backdropFilter: "blur(42px) saturate(1.16)",
     WebkitBackdropFilter: "blur(42px) saturate(1.16)",
+  } : {
+    boxShadow: "var(--bm-light-glass-shadow)",
+    backdropFilter: "blur(42px) saturate(1.16)",
+    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
   };
-  const mobileGlassMenuSelectedClass = "bg-[rgba(106,106,106,0.16)] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]";
-  const mobileGlassMenuIdleClass = "text-white/85 hover:bg-[rgba(106,106,106,0.1)] active:bg-[rgba(106,106,106,0.15)]";
+  const mobileGlassMenuSelectedClass = isDark
+    ? "bg-[rgba(106,106,106,0.16)] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+    : "bg-[var(--bm-active-bg)] text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.64)]";
+  const mobileGlassMenuIdleClass = isDark
+    ? "text-white/85 hover:bg-[rgba(106,106,106,0.1)] active:bg-[rgba(106,106,106,0.15)]"
+    : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] active:bg-[var(--bm-active-bg)]";
+  const mobileSectionTitleClass = isDark ? "text-white/72" : "text-[var(--bm-text-muted)]";
+  const mobileSubtleTextClass = isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]";
+  const mobileMenuItemClass = (active = false) => cn(
+    "flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold",
+    typeClasses.body,
+    iconClasses.iconText,
+    active
+      ? isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-text-primary)]"
+      : isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
+  );
 
   const mobileFeatureCards = useMemo(() => [
     {
@@ -2863,11 +2890,16 @@ export default function MobileChat() {
                     onClick={action.onClick}
                     whileTap={{ scale: 0.96 }}
                     transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3.5 text-[13px] font-bold text-white/84 backdrop-blur-[42px] transition-colors hover:bg-[rgba(96,96,96,0.2)] active:bg-[rgba(106,106,106,0.22)]"
+                    className={cn(
+                      "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-3.5 text-[13px] font-bold backdrop-blur-[42px] transition-colors",
+                      isDark
+                        ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 hover:bg-[rgba(96,96,96,0.2)] active:bg-[rgba(106,106,106,0.22)]"
+                        : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)] active:bg-[var(--bm-active-bg)]",
+                    )}
                     style={mobileGlassControlStyle}
                     aria-label={action.label}
                   >
-                    <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.3] text-white/74" />
+                    <ActionIcon className={cn("h-4 w-4 shrink-0 stroke-[2.3]", isDark ? "text-white/74" : "text-[var(--bm-icon-primary)]")} />
                     <span className="whitespace-nowrap">{action.label}</span>
                   </motion.button>
                 );
@@ -2953,10 +2985,15 @@ export default function MobileChat() {
               key={action.label}
               type="button"
               onClick={action.onClick}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 text-[13px] font-bold text-white/84 backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.98] active:bg-[rgba(106,106,106,0.22)]"
+              className={cn(
+                "inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-[13px] font-bold backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.98]",
+                isDark
+                  ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 active:bg-[rgba(106,106,106,0.22)]"
+                  : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]",
+              )}
               style={mobileGlassControlStyle}
             >
-              <ActionIcon className="h-4 w-4 shrink-0 stroke-[2.2] text-white/74" />
+              <ActionIcon className={cn("h-4 w-4 shrink-0 stroke-[2.2]", isDark ? "text-white/74" : "text-[var(--bm-icon-primary)]")} />
               <span className="whitespace-nowrap">{action.label}</span>
             </button>
           );
@@ -3088,7 +3125,12 @@ export default function MobileChat() {
                 <article
                   key={`${card.title}-${index}`}
                   data-feature-card="true"
-                  className="relative flex h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-4 py-3 text-white/90 backdrop-blur-[42px]"
+                  className={cn(
+                    "relative flex h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border px-4 py-3 backdrop-blur-[42px]",
+                    isDark
+                      ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/90"
+                      : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+                  )}
                   style={mobileGlassPanelStyle}
                 >
                   <div
@@ -3097,27 +3139,35 @@ export default function MobileChat() {
                     aria-hidden="true"
                   />
                   <div
-                    className="mr-3 flex h-full w-[34%] min-w-[92px] shrink-0 items-center justify-center rounded-[24px] border border-white/[0.045] bg-[rgba(255,255,255,0.028)]"
+                    className={cn(
+                      "mr-3 flex h-full w-[34%] min-w-[92px] shrink-0 items-center justify-center rounded-[24px] border",
+                      isDark ? "border-white/[0.045] bg-[rgba(255,255,255,0.028)]" : "border-[var(--bm-border)] bg-[var(--bm-hover-bg)]",
+                    )}
                     style={{
                       boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.02)",
                     }}
                   >
                     <div className="relative flex h-[72px] w-[72px] items-center justify-center">
-                      <span className="absolute inset-0 rounded-full border border-white/[0.045]" />
+                      <span className={cn("absolute inset-0 rounded-full border", isDark ? "border-white/[0.045]" : "border-[var(--bm-border)]")} />
                       <span className="absolute h-12 w-12 rounded-full" style={{ backgroundColor: card.glow }} />
                       <FeatureIcon className="relative h-9 w-9 stroke-[2.2]" style={{ color: card.accent }} />
                     </div>
                   </div>
 
                   <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center">
-                    <h3 className="truncate text-base font-black tracking-tight text-white/90">{card.title}</h3>
-                    <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-4 text-[#B7B7B7]">
+                    <h3 className={cn("truncate text-base font-black tracking-tight", isDark ? "text-white/90" : "text-[var(--bm-text-primary)]")}>{card.title}</h3>
+                    <p className={cn("mt-1 line-clamp-2 text-[12px] font-semibold leading-4", isDark ? "text-[#B7B7B7]" : "text-[var(--bm-text-secondary)]")}>
                       {card.description}
                     </p>
                     <button
                       type="button"
                       onClick={() => goTo(card.path)}
-                      className="mt-2 inline-flex h-8 w-fit items-center gap-1 rounded-full border border-white/[0.055] bg-[rgba(96,96,96,0.16)] px-3 text-[12px] font-black text-white/88 transition-all active:scale-95 active:bg-[rgba(106,106,106,0.2)]"
+                      className={cn(
+                        "mt-2 inline-flex h-8 w-fit items-center gap-1 rounded-full border px-3 text-[12px] font-black transition-all active:scale-95",
+                        isDark
+                          ? "border-white/[0.055] bg-[rgba(96,96,96,0.16)] text-white/88 active:bg-[rgba(106,106,106,0.2)]"
+                          : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]",
+                      )}
                       style={mobileGlassControlStyle}
                     >
                       {card.cta}
@@ -3160,7 +3210,13 @@ export default function MobileChat() {
             />
 
             <motion.section
-              className="relative z-10 w-full max-w-[356px] rounded-[32px] border border-white/[0.055] bg-[rgba(78,78,78,0.18)] p-4 text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.016),inset_1px_0_0_rgba(255,255,255,0.032),inset_-1px_0_0_rgba(255,255,255,0.026),0_24px_68px_rgba(0,0,0,0.34)] backdrop-blur-[42px]"
+              className={cn(
+                "relative z-10 w-full max-w-[356px] rounded-[32px] border p-4 backdrop-blur-[42px]",
+                isDark
+                  ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.016),inset_1px_0_0_rgba(255,255,255,0.032),inset_-1px_0_0_rgba(255,255,255,0.026),0_24px_68px_rgba(0,0,0,0.34)]"
+                  : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+              )}
+              style={isDark ? undefined : mobileGlassPanelStyle}
               initial={{ opacity: 0, y: 18, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.95 }}
@@ -3177,9 +3233,15 @@ export default function MobileChat() {
                       onClick={action.onClick}
                       whileTap={{ scale: 0.96 }}
                       transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                      className="flex h-[88px] min-w-0 flex-col items-center justify-center rounded-[24px] border border-white/[0.05] bg-[rgba(255,255,255,0.032)] px-2 text-center font-extrabold text-white/86 shadow-[inset_0_1px_0_rgba(255,255,255,0.09)] transition-colors active:bg-[rgba(255,255,255,0.065)]"
+                      className={cn(
+                        "flex h-[88px] min-w-0 flex-col items-center justify-center rounded-[24px] border px-2 text-center font-extrabold transition-colors",
+                        isDark
+                          ? "border-white/[0.05] bg-[rgba(255,255,255,0.032)] text-white/86 shadow-[inset_0_1px_0_rgba(255,255,255,0.09)] active:bg-[rgba(255,255,255,0.065)]"
+                          : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]",
+                      )}
+                      style={isDark ? undefined : mobileGlassControlStyle}
                     >
-                      <ActionIcon className="mb-2 h-7 w-7 stroke-[2.25] text-white/78" />
+                      <ActionIcon className={cn("mb-2 h-7 w-7 stroke-[2.25]", isDark ? "text-white/78" : "text-[var(--bm-icon-primary)]")} />
                       <span className="text-[13px] leading-tight tracking-tight">{action.label}</span>
                     </motion.button>
                   );
@@ -3263,7 +3325,12 @@ export default function MobileChat() {
                   animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
                   exit={{ opacity: 0, x: "-50%", y: -8, scale: 0.98 }}
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88 backdrop-blur-[42px]"
+                  className={cn(
+                    "pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border backdrop-blur-[42px]",
+                    isDark
+                      ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88"
+                      : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+                  )}
                   style={{
                     left: responseModeMenuPosition.left,
                     top: responseModeMenuPosition.top,
@@ -3276,7 +3343,7 @@ export default function MobileChat() {
                 >
                   <div className="max-h-[inherit] overflow-y-auto p-4">
                     <section>
-                      <div className="mb-2 border-b border-white/[0.045] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/48">
+                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.045] text-white/48" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]")}>
                         BlueMind Models
                       </div>
                       <div className="space-y-1">
@@ -3294,14 +3361,12 @@ export default function MobileChat() {
                               <span className="flex min-w-0 items-center gap-2.5">
                                 <span className="truncate">{model.label}</span>
                                 {model.badge && (
-                                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
-                                    "bg-white/[0.065] text-white/90"
-                                  }`}>
-                                    🆕 {model.badge}
+                                  <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black", isDark ? "bg-white/[0.065] text-white/90" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
+                                    {model.badge}
                                   </span>
                                 )}
                               </span>
-                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-white/88" />}
+                              {selected && <Check className={cn("h-5 w-5 shrink-0 stroke-[3]", isDark ? "text-white/88" : "text-[var(--bm-primary)]")} />}
                             </button>
                           );
                         })}
@@ -3309,7 +3374,7 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className="mb-2 border-b border-white/[0.045] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/48">
+                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.045] text-white/48" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]")}>
                         AI Modes
                       </div>
                       <div className="space-y-1">
@@ -3330,7 +3395,7 @@ export default function MobileChat() {
                                 <ModeIcon className="h-[18px] w-[18px] shrink-0 stroke-[2.3]" />
                                 <span className="truncate">{getAiSpecializationLabel(mode)}</span>
                               </span>
-                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-white/88" />}
+                              {selected && <Check className={cn("h-5 w-5 shrink-0 stroke-[3]", isDark ? "text-white/88" : "text-[var(--bm-primary)]")} />}
                             </button>
                           );
                         })}
@@ -3338,7 +3403,7 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className="mb-2 border-b border-white/[0.045] pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/48">
+                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.045] text-white/48" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]")}>
                         Thinking
                       </div>
                       <button
@@ -3349,7 +3414,12 @@ export default function MobileChat() {
                         aria-checked={headerThinkingEnabled}
                       >
                         <span>Enable Thinking</span>
-                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${headerThinkingEnabled ? "border-white/45 bg-white/82 text-[#000000]" : "border-white/14"}`}>
+                        <span className={cn(
+                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+                          headerThinkingEnabled
+                            ? isDark ? "border-white/45 bg-white/82 text-[#000000]" : "border-[var(--bm-primary)] bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
+                            : isDark ? "border-white/14" : "border-[var(--bm-border)]",
+                        )}>
                           {headerThinkingEnabled && <Check className="h-4 w-4 stroke-[3]" />}
                         </span>
                       </button>
@@ -3524,20 +3594,34 @@ export default function MobileChat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.97 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="fixed inset-x-4 z-40 mx-auto max-w-[398px] rounded-[28px] border border-white/[0.06] bg-[rgba(28,28,28,0.72)] p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_22px_54px_rgba(0,0,0,0.34)] backdrop-blur-[34px]"
-                style={{ bottom: "calc(env(safe-area-inset-bottom) + 112px)" }}
+                className={cn(
+                  "fixed inset-x-4 z-40 mx-auto max-w-[398px] rounded-[28px] border p-4 backdrop-blur-[34px]",
+                  isDark
+                    ? "border-white/[0.06] bg-[rgba(28,28,28,0.72)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_22px_54px_rgba(0,0,0,0.34)]"
+                    : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+                )}
+                style={{
+                  bottom: "calc(env(safe-area-inset-bottom) + 112px)",
+                  ...(isDark ? {} : mobileGlassPanelStyle),
+                }}
                 role="dialog"
                 aria-label="Use selected image style"
               >
                 <p className="text-center text-[15px] font-extrabold">Use this image?</p>
-                <p className="mt-1 truncate text-center text-xs font-semibold text-white/58">
+                <p className={cn("mt-1 truncate text-center text-xs font-semibold", isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]")}>
                   {imageTemplateConfirm.title}
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={cancelImageTemplateUse}
-                    className="min-h-11 rounded-full border border-white/[0.055] bg-white/[0.08] text-sm font-bold text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.11)] backdrop-blur-[24px] active:scale-[0.98]"
+                    className={cn(
+                      "min-h-11 rounded-full border text-sm font-bold backdrop-blur-[24px] active:scale-[0.98]",
+                      isDark
+                        ? "border-white/[0.055] bg-white/[0.08] text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.11)]"
+                        : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+                    )}
+                    style={isDark ? undefined : mobileGlassControlStyle}
                   >
                     Cancel
                   </button>
@@ -4185,7 +4269,10 @@ Everything will be deleted when you leave.</p>
               aria-label="Close menu"
             />
             <motion.section
-              className="absolute inset-y-0 left-0 z-10 flex w-[84vw] flex-col overflow-hidden bg-black text-white shadow-[18px_0_48px_rgba(0,0,0,0.26)]"
+              className={cn(
+                "absolute inset-y-0 left-0 z-10 flex w-[84vw] flex-col overflow-hidden shadow-[18px_0_48px_rgba(0,0,0,0.26)]",
+                isDark ? "bg-black text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
+              )}
               style={{
                 paddingTop: "env(safe-area-inset-top)",
                 paddingBottom: "env(safe-area-inset-bottom)",
@@ -4210,7 +4297,9 @@ Everything will be deleted when you leave.</p>
             <div
               className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[calc(env(safe-area-inset-top)+74px)] backdrop-blur-[6px]"
               style={{
-                background: "linear-gradient(to bottom, rgba(0,0,0,0.96), rgba(0,0,0,0.76), rgba(0,0,0,0))",
+                background: isDark
+                  ? "linear-gradient(to bottom, rgba(0,0,0,0.96), rgba(0,0,0,0.76), rgba(0,0,0,0))"
+                  : "linear-gradient(to bottom, rgba(244,245,247,0.96), rgba(244,245,247,0.76), rgba(244,245,247,0))",
               }}
               aria-hidden="true"
             />
@@ -4225,7 +4314,7 @@ Everything will be deleted when you leave.</p>
             </button>
 
             <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-[88px] pt-[calc(env(safe-area-inset-top)+22px)] text-center">
-              <h2 className="truncate text-[20px] font-semibold leading-none tracking-tight text-white">BlueMind AI</h2>
+              <h2 className={cn("truncate text-[20px] font-semibold leading-none tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</h2>
             </div>
 
             <button
@@ -4239,11 +4328,11 @@ Everything will be deleted when you leave.</p>
 
             <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-[calc(env(safe-area-inset-top)+76px)]">
               <section className="space-y-1">
-                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} text-white/72`}>CHAT MODES</p>
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mobileSectionTitleClass}`}>CHAT MODES</p>
                 <button
                   type="button"
                   onClick={selectNormalChat}
-                  className={`flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "normal" ? "bg-white/[0.08]" : ""}`}
+                  className={mobileMenuItemClass(chatSessionMode === "normal")}
                 >
                   <MessageSquare className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Normal Chat</span>
@@ -4251,7 +4340,7 @@ Everything will be deleted when you leave.</p>
                 <button
                   type="button"
                   onClick={openPrivateChatModal}
-                  className={`flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "private" ? "bg-white/[0.08]" : ""}`}
+                  className={mobileMenuItemClass(chatSessionMode === "private")}
                 >
                   <Lock className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Private Chat</span>
@@ -4259,7 +4348,7 @@ Everything will be deleted when you leave.</p>
                 <button
                   type="button"
                   onClick={selectWritingMode}
-                  className={`flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "writing" ? "bg-white/[0.08]" : ""}`}
+                  className={mobileMenuItemClass(chatSessionMode === "writing")}
                 >
                   <PenLine className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Writing Mode</span>
@@ -4270,7 +4359,7 @@ Everything will be deleted when you leave.</p>
                     closeMenu();
                     setHiddenChatModalOpen(true);
                   }}
-                  className={`flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText} ${chatSessionMode === "hidden" ? "bg-white/[0.08]" : ""}`}
+                  className={mobileMenuItemClass(chatSessionMode === "hidden")}
                 >
                   <Glasses className={`shrink-0 ${iconClasses.sidebar}`} />
                   <span>Hidden Chat</span>
@@ -4278,13 +4367,13 @@ Everything will be deleted when you leave.</p>
               </section>
 
               <section className="mt-4 space-y-1">
-                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} text-white/72`}>BLUEMIND</p>
+                <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mobileSectionTitleClass}`}>BLUEMIND</p>
                 {bluemindMenuItems.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => runMenuAction(item)}
-                    className={`flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold text-white active:bg-white/[0.08] ${typeClasses.body} ${iconClasses.iconText}`}
+                    className={mobileMenuItemClass(false)}
                   >
                     <item.icon className={`shrink-0 ${iconClasses.sidebar}`} />
                     <span>{item.label}</span>
@@ -4300,11 +4389,11 @@ Everything will be deleted when you leave.</p>
                   aria-expanded={chatHistoryExpanded}
                   aria-controls="mobile-history-chat-list"
                 >
-                  <span className={`font-bold tracking-wide ${typeClasses.small} text-white/72`}>Recent Chats</span>
+                  <span className={`font-bold tracking-wide ${typeClasses.small} ${mobileSectionTitleClass}`}>Recent Chats</span>
                   <motion.span
                     animate={{ rotate: chatHistoryExpanded ? 0 : -90 }}
                     transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                    className="flex h-7 w-7 items-center justify-center text-white/68"
+                    className={cn("flex h-7 w-7 items-center justify-center", isDark ? "text-white/68" : "text-[var(--bm-text-muted)]")}
                     aria-hidden="true"
                   >
                     <ChevronDown className="h-4 w-4 stroke-[2.4]" />
@@ -4328,7 +4417,7 @@ Everything will be deleted when you leave.</p>
                       }}
                     >
                       {isLoadingConversations && (
-                        <div className={`py-3 font-medium ${typeClasses.small} text-white/58`}>{t("loadingConversation")}</div>
+                        <div className={`py-3 font-medium ${typeClasses.small} ${mobileSubtleTextClass}`}>{t("loadingConversation")}</div>
                       )}
 
                       {!isLoadingConversations && historyError && (
@@ -4336,7 +4425,7 @@ Everything will be deleted when you leave.</p>
                       )}
 
                       {!isLoadingConversations && !historyError && conversations.length === 0 && (
-                        <div className={`py-3 font-medium ${typeClasses.small} text-white/58`}>{t("noChatsFound")}</div>
+                        <div className={`py-3 font-medium ${typeClasses.small} ${mobileSubtleTextClass}`}>{t("noChatsFound")}</div>
                       )}
 
                       {conversations.slice(0, 18).map((item) => renderMobileConversationRow(item, "menu"))}
@@ -4362,11 +4451,16 @@ Everything will be deleted when you leave.</p>
                 onClick={() => {
                   setSettingsSheetOpen(true);
                 }}
-                className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full border border-white/[0.055] bg-[rgba(78,78,78,0.18)] p-[5px] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-[42px] transition-transform active:scale-95"
+                className={cn(
+                  "flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full border p-[5px] backdrop-blur-[42px] transition-transform active:scale-95",
+                  isDark
+                    ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88"
+                    : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+                )}
                 aria-label={menuUserName}
                 style={mobileGlassControlStyle}
               >
-                <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[rgba(255,255,255,0.08)] text-base font-black text-white/88">
+                <span className={cn("flex h-full w-full items-center justify-center overflow-hidden rounded-full text-base font-black", isDark ? "bg-[rgba(255,255,255,0.08)] text-white/88" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
                   {menuUserAvatar ? (
                     <img src={menuUserAvatar} alt="" className="h-full w-full object-cover" draggable="false" />
                   ) : (
@@ -4424,7 +4518,11 @@ Everything will be deleted when you leave.</p>
             </div>
 
             <div className="shrink-0 px-5 pb-4">
-              <label className={`bm-search-shell flex h-14 items-center rounded-[24px] border px-4 shadow-sm ${iconClasses.iconText} ${isDark ? "border-white/[0.08] bg-white/[0.07]" : "border-[var(--bm-border)] bg-white"}`}>
+              <label className={cn(
+                "bm-search-shell flex h-14 items-center rounded-[24px] border px-4 backdrop-blur-[24px]",
+                iconClasses.iconText,
+                isDark ? "border-white/[0.08] bg-white/[0.07]" : "border-[var(--bm-border)] bg-[var(--bm-bg-input)]",
+              )}>
                 <Search className={isDark ? `shrink-0 text-white ${iconClasses.sidebar}` : `shrink-0 text-[var(--bm-primary)] ${iconClasses.sidebar}`} />
                 <input
                   ref={searchInputRef}
