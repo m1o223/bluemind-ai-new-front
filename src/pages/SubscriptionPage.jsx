@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -211,19 +211,19 @@ function SubscriptionHome() {
   );
 }
 
-function PaymentBrandMark({ method }) {
-  if (method.id === "visa") return <span className="text-2xl font-black italic tracking-[-0.08em]">VISA</span>;
+function PaymentBrandMark({ method, compact = false }) {
+  if (method.id === "visa") return <span className={cn(compact ? "text-sm" : "text-2xl", "font-black italic tracking-[-0.08em]")}>VISA</span>;
   if (method.id === "mastercard") {
     return (
-      <span className="relative flex h-9 w-14 items-center">
-        <span className="absolute left-1 h-8 w-8 rounded-full bg-[#EB001B]" />
-        <span className="absolute right-1 h-8 w-8 rounded-full bg-[#F79E1B] mix-blend-screen" />
+      <span className={cn("relative flex items-center", compact ? "h-7 w-10" : "h-9 w-14")}>
+        <span className={cn("absolute rounded-full bg-[#EB001B]", compact ? "left-1 h-6 w-6" : "left-1 h-8 w-8")} />
+        <span className={cn("absolute rounded-full bg-[#F79E1B] mix-blend-screen", compact ? "right-1 h-6 w-6" : "right-1 h-8 w-8")} />
       </span>
     );
   }
-  if (method.id === "apple-pay") return <span className="text-xl font-black tracking-tight">Apple Pay</span>;
-  if (method.id === "google-pay") return <span className="text-xl font-black tracking-tight"><span className="text-[#4285F4]">G</span> Pay</span>;
-  return <span className="text-xl font-black tracking-tight">Klarna.</span>;
+  if (method.id === "apple-pay") return <span className={cn(compact ? "text-[10px]" : "text-xl", "font-black tracking-tight")}>Apple Pay</span>;
+  if (method.id === "google-pay") return <span className={cn(compact ? "text-xs" : "text-xl", "font-black tracking-tight")}><span className="text-[#4285F4]">G</span> Pay</span>;
+  return <span className={cn(compact ? "text-xs" : "text-xl", "font-black tracking-tight")}>Klarna.</span>;
 }
 
 function SavedMethodCard({ method }) {
@@ -240,6 +240,19 @@ function SavedMethodCard({ method }) {
   );
 }
 
+function PaymentMethodIcon({ method }) {
+  return (
+    <span className={cn(
+      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[var(--bm-border)] shadow-sm",
+      method.id === "google-pay" || method.id === "klarna"
+        ? "bg-white/80 text-[#111111]"
+        : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
+    )}>
+      <PaymentBrandMark method={method} compact />
+    </span>
+  );
+}
+
 function PaymentMethodPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -251,16 +264,13 @@ function PaymentMethodPage() {
   }, [location.key]);
 
   const chooseMethod = (method) => {
-    const state = { planId: location.state?.planId, planName: location.state?.planName, methodId: method.id };
-    if (method.kind === "card") {
-      navigate(`${base}/add-card`, { state });
-      return;
-    }
-    navigate(`${base}/processing`, { state: { ...state, mockPaymentMethod: { id: method.id, methodId: method.id, label: method.label } } });
+    navigate(`${base}/payment-method/${method.id}`, {
+      state: { planId: location.state?.planId, planName: location.state?.planName, methodId: method.id },
+    });
   };
 
   return (
-    <SubscriptionShell title="Payment Method" subtitle="Choose how you want to continue. This is a frontend-only payment preview.">
+    <SubscriptionShell title="Choose Payment Method" subtitle="Select a payment method to continue. Payment processing will be connected later.">
       {savedMethods.length > 0 && (
         <section className="mb-6">
           <p className="mb-3 text-sm font-bold text-[var(--bm-text-secondary)]">Saved Payment Methods</p>
@@ -270,16 +280,20 @@ function PaymentMethodPage() {
         </section>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="mx-auto grid w-full max-w-2xl gap-3">
         {PAYMENT_METHODS.map((method) => (
-          <GlassCard key={method.id} onClick={() => chooseMethod(method)} className="overflow-hidden p-0" testId={`payment-method-${method.id}`}>
-            <div className={cn("min-h-[150px] bg-gradient-to-br p-5", method.tone, method.darkText ? "text-[#111111]" : "text-white")}>
-              <div className="flex items-center justify-between">
-                <PaymentBrandMark method={method} />
-                {method.kind === "card" ? <CreditCard className="h-6 w-6 opacity-80" /> : <Smartphone className="h-6 w-6 opacity-80" />}
-              </div>
-              <p className="mt-8 text-sm font-bold opacity-80">{method.description}</p>
+          <GlassCard
+            key={method.id}
+            onClick={() => chooseMethod(method)}
+            className="flex min-h-[76px] items-center gap-4 px-4 py-3"
+            testId={`payment-method-${method.id}`}
+          >
+            <PaymentMethodIcon method={method} />
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-bold tracking-tight text-[var(--bm-text-primary)]">{method.label}</p>
+              <p className="mt-1 text-sm font-semibold leading-5 text-[var(--bm-text-secondary)]">{method.description}</p>
             </div>
+            {method.kind === "card" ? <CreditCard className="h-5 w-5 shrink-0 text-[var(--bm-text-secondary)]" /> : <Smartphone className="h-5 w-5 shrink-0 text-[var(--bm-text-secondary)]" />}
           </GlassCard>
         ))}
       </div>
@@ -295,7 +309,10 @@ function CardPreview({ form, methodId }) {
   const expiry = form.expiry || "MM/YY";
 
   return (
-    <div className={cn("relative mx-auto aspect-[1.62/1] w-full max-w-[390px] overflow-hidden rounded-[30px] bg-gradient-to-br p-6 shadow-[0_24px_70px_rgba(15,23,42,0.18)]", method.tone, "text-white")}>
+    <motion.div
+      layout
+      className={cn("relative mx-auto aspect-[1.62/1] w-full max-w-[390px] overflow-hidden rounded-[30px] bg-gradient-to-br p-6 shadow-[0_24px_70px_rgba(15,23,42,0.18)]", method.tone, "text-white")}
+    >
       <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/15 blur-2xl" />
       <div className="absolute -bottom-16 left-8 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
       <div className="relative flex items-start justify-between">
@@ -316,15 +333,71 @@ function CardPreview({ form, methodId }) {
           <p className="mt-1 text-sm font-bold">{expiry}</p>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+function PaymentHeroCard({ method }) {
+  return (
+    <motion.div
+      initial={{ y: 12, opacity: 0, scale: 0.985 }}
+      animate={{ y: 0, opacity: 1, scale: 1 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      className={cn(
+        "relative mx-auto aspect-[1.62/1] w-full max-w-[390px] overflow-hidden rounded-[30px] bg-gradient-to-br p-6 shadow-[0_24px_70px_rgba(15,23,42,0.18)]",
+        method.tone,
+        method.darkText ? "text-[#111111]" : "text-white",
+      )}
+    >
+      <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/20 blur-2xl" />
+      <div className="absolute -bottom-16 left-8 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+      <div className="relative flex items-start justify-between">
+        <div>
+          <p className={cn("text-xs font-bold uppercase tracking-[0.18em]", method.darkText ? "text-black/55" : "text-white/70")}>BlueMind Checkout</p>
+          <p className="mt-2 text-lg font-black">{method.label}</p>
+        </div>
+        <PaymentBrandMark method={method} />
+      </div>
+      <div className="relative mt-14">
+        <p className={cn("text-sm font-bold leading-6", method.darkText ? "text-black/60" : "text-white/70")}>{method.description}</p>
+        <p className="mt-5 text-xl font-black tracking-tight">Ready to continue</p>
+      </div>
+    </motion.div>
+  );
+}
+
+function WalletPaymentDetails({ method, onPay }) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <PaymentHeroCard method={method} />
+      <GlassCard className="p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-hover-bg)]">
+            <ShieldCheck className="h-5 w-5 text-[var(--bm-primary)]" />
+          </span>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">{method.label}</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[var(--bm-text-secondary)]">
+              This is a frontend-only checkout preview. No payment provider is contacted yet.
+            </p>
+          </div>
+        </div>
+        <div className="mt-6 rounded-3xl border border-[var(--bm-border)] bg-[var(--bm-hover-bg)] px-4 py-4 text-sm font-semibold text-[var(--bm-text-secondary)]">
+          Review your selected method, then continue to the mock processing step.
+        </div>
+        <PrimaryAction className="mt-6" onClick={onPay}>Pay</PrimaryAction>
+      </GlassCard>
     </div>
   );
 }
 
-function AddCardPage() {
+function PaymentDetailsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
   const base = getBasePath(location.pathname);
-  const methodId = location.state?.methodId || "visa";
+  const methodId = params.methodId || location.state?.methodId || "visa";
+  const method = methodById(methodId);
   const [form, setForm] = useState({ name: "", number: "", expiry: "", cvv: "" });
   const ready = form.name.trim().length > 2 && form.number.replace(/\D/g, "").length >= 12 && form.expiry.length === 5 && form.cvv.length >= 3;
 
@@ -333,6 +406,20 @@ function AddCardPage() {
       ...current,
       [key]: key === "number" ? formatCardNumber(value) : key === "expiry" ? formatExpiry(value) : key === "cvv" ? value.replace(/\D/g, "").slice(0, 4) : value,
     }));
+  };
+
+  const payWithWallet = () => {
+    navigate(`${base}/processing`, {
+      state: {
+        ...location.state,
+        methodId: method.id,
+        mockPaymentMethod: {
+          id: `${method.id}-${Date.now()}`,
+          methodId: method.id,
+          label: method.label,
+        },
+      },
+    });
   };
 
   const submit = (event) => {
@@ -354,8 +441,16 @@ function AddCardPage() {
     });
   };
 
+  if (method.kind !== "card") {
+    return (
+      <SubscriptionShell title={method.label} subtitle="Review your selected payment method before continuing." compact>
+        <WalletPaymentDetails method={method} onPay={payWithWallet} />
+      </SubscriptionShell>
+    );
+  }
+
   return (
-    <SubscriptionShell title="Add Card" subtitle="Preview your card live while typing. CVV is never shown on the front." compact>
+    <SubscriptionShell title={method.label} subtitle="Enter payment details. The card preview updates live while typing." compact>
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <CardPreview form={form} methodId={methodId} />
         <GlassCard className="p-5 sm:p-6">
@@ -388,6 +483,10 @@ function AddCardPage() {
       </div>
     </SubscriptionShell>
   );
+}
+
+function AddCardPage() {
+  return <PaymentDetailsPage />;
 }
 
 function ProcessingPage() {
@@ -446,6 +545,7 @@ function SuccessPage() {
 
 export default function SubscriptionPage({ step = "plans" }) {
   if (step === "payment-method") return <PaymentMethodPage />;
+  if (step === "payment-details") return <PaymentDetailsPage />;
   if (step === "add-card") return <AddCardPage />;
   if (step === "processing") return <ProcessingPage />;
   if (step === "success") return <SuccessPage />;

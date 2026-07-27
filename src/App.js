@@ -163,6 +163,7 @@ function AppContent() {
           <Route path="/ai-plans" element={<ProtectedRoute><AIPlansPage /></ProtectedRoute>} />
           <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route path="/subscription/payment-method" element={<ProtectedRoute><SubscriptionPage step="payment-method" /></ProtectedRoute>} />
+          <Route path="/subscription/payment-method/:methodId" element={<ProtectedRoute><SubscriptionPage step="payment-details" /></ProtectedRoute>} />
           <Route path="/subscription/add-card" element={<ProtectedRoute><SubscriptionPage step="add-card" /></ProtectedRoute>} />
           <Route path="/subscription/processing" element={<ProtectedRoute><SubscriptionPage step="processing" /></ProtectedRoute>} />
           <Route path="/subscription/success" element={<ProtectedRoute><SubscriptionPage step="success" /></ProtectedRoute>} />
@@ -194,6 +195,7 @@ function AppContent() {
             <Route path="ai-plans" element={<MobileAccessRoute><AIPlansPage /></MobileAccessRoute>} />
             <Route path="subscription" element={<MobileAccessRoute><SubscriptionPage /></MobileAccessRoute>} />
             <Route path="subscription/payment-method" element={<MobileAccessRoute><SubscriptionPage step="payment-method" /></MobileAccessRoute>} />
+            <Route path="subscription/payment-method/:methodId" element={<MobileAccessRoute><SubscriptionPage step="payment-details" /></MobileAccessRoute>} />
             <Route path="subscription/add-card" element={<MobileAccessRoute><SubscriptionPage step="add-card" /></MobileAccessRoute>} />
             <Route path="subscription/processing" element={<MobileAccessRoute><SubscriptionPage step="processing" /></MobileAccessRoute>} />
             <Route path="subscription/success" element={<MobileAccessRoute><SubscriptionPage step="success" /></MobileAccessRoute>} />
