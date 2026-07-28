@@ -3356,14 +3356,7 @@ export default function MobileChat() {
                               role="menuitemradio"
                               aria-checked={selected}
                             >
-                              <span className="flex min-w-0 items-center gap-2.5">
-                                <span className="truncate">{model.label}</span>
-                                {model.badge && (
-                                  <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black", isDark ? "bg-white/[0.065] text-white/90" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")}>
-                                    {model.badge}
-                                  </span>
-                                )}
-                              </span>
+                              <span className="truncate">{model.label}</span>
                               {selected && <Check className="h-5 w-5 shrink-0 stroke-[3]" />}
                             </button>
                           );
@@ -3389,10 +3382,8 @@ export default function MobileChat() {
                               role="menuitemradio"
                               aria-checked={selected}
                             >
-                              <span className="flex min-w-0 items-center gap-2.5">
-                                <ModeIcon className="h-[18px] w-[18px] shrink-0 stroke-[2.3]" />
-                                <span className="truncate">{getAiSpecializationLabel(mode)}</span>
-                              </span>
+                              <ModeIcon className="h-[18px] w-[18px] shrink-0 stroke-[2.3]" />
+                              <span className="min-w-0 flex-1 truncate">{getAiSpecializationLabel(mode)}</span>
                               {selected && <Check className="h-5 w-5 shrink-0 stroke-[3]" />}
                             </button>
                           );
