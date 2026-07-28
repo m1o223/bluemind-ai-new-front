@@ -120,7 +120,7 @@ body {
 }
 
 html[data-theme="light"] body {
-  --bm-bg-app: #F4F5F7;
+  --bm-bg-app: #F7F3EC;
   --bm-bg-sidebar: rgba(250, 251, 253, 0.74);
   --bm-bg-card: rgba(255, 255, 255, 0.52);
   --bm-bg-elevated: rgba(255, 255, 255, 0.42);

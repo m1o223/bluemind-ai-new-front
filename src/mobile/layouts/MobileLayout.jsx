@@ -6,7 +6,7 @@ export default function MobileLayout() {
   const isDark = resolvedTheme === "dark";
 
   return (
-    <main className={isDark ? "min-h-screen bg-[var(--bm-bg-app)] text-white" : "min-h-screen bg-white text-[var(--bm-text-primary)]"}>
+    <main className={isDark ? "min-h-screen bg-[var(--bm-bg-app)] text-white" : "min-h-screen bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]"}>
       <Outlet />
     </main>
   );

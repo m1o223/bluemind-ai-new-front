@@ -1451,7 +1451,7 @@ export default function MobileScheduleDashboard() {
   );
 
   return (
-    <main className={cn("min-h-screen overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.875rem,env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[#F7FAFF] text-[var(--bm-text-primary)]")}>
+    <main className={cn("min-h-screen overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.875rem,env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")}>
       <header className="flex items-center justify-between">
         <button type="button" onClick={() => navigate(-1)} className="bm-mobile-glass-control" aria-label="Back">
           <ArrowLeft className={iconClasses.button} />

@@ -1019,7 +1019,7 @@ export default function DesktopSettingsPanel({ initialSection = "account", open 
   }
 
   return (
-    <main className={cn("flex min-h-screen items-center justify-center p-6", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
+    <main className={cn("flex min-h-screen items-center justify-center p-6", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")}>
       {panel}
     </main>
   );

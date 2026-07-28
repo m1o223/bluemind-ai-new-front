@@ -25,7 +25,7 @@ export default function VerifyEmailPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const { t, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
-  const pageClass = isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-white text-[var(--bm-text-primary)]";
+  const pageClass = isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]";
   const primaryText = isDark ? "text-white" : "text-[var(--bm-text-primary)]";
   const mutedText = isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]";
   const inputClass = "font-semibold";

@@ -304,7 +304,7 @@ function BottomCTA() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden" data-testid="landing-page">
+    <div className="min-h-screen bg-[var(--bm-bg-app)] overflow-x-hidden" data-testid="landing-page">
       <Navbar />
       <HeroSection />
       <FeaturesSection />

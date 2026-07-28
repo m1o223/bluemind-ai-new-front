@@ -49,7 +49,7 @@ function AppLoadingScreen() {
   const isDark = resolvedTheme === "dark";
 
   return (
-    <div className={isDark ? "min-h-screen bg-[var(--bm-bg-app)] flex items-center justify-center" : "min-h-screen bg-white flex items-center justify-center"}>
+    <div className="min-h-screen bg-[var(--bm-bg-app)] flex items-center justify-center">
       <BrandLogo
         logoClassName="w-12 h-12"
         textClassName={isDark ? "text-lg text-white" : "text-lg text-[var(--bm-text-primary)]"}

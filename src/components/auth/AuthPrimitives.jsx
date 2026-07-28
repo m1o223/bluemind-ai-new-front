@@ -23,7 +23,7 @@ export function AppleIcon() {
 export function AuthPage({ children, testId, mobile = false }) {
   return (
     <main
-      className={`bg-black text-white ${mobile ? "fixed inset-0 overflow-y-auto" : "min-h-screen overflow-hidden"}`}
+      className={`bg-[var(--bm-bg-app)] text-white ${mobile ? "fixed inset-0 overflow-y-auto" : "min-h-screen overflow-hidden"}`}
       data-testid={testId}
     >
       <div className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col items-center justify-center px-6 py-10">

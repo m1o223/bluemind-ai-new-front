@@ -27,7 +27,7 @@ export default function GoogleCallbackPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-white flex items-center justify-center"
+      className="min-h-screen bg-[var(--bm-bg-app)] flex items-center justify-center"
       data-testid="google-callback-page"
     >
       <div className="text-center">
