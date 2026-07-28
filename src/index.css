@@ -1133,7 +1133,7 @@ textarea::placeholder {
 html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), textarea, select):not(.bm-composer-input):not(.bm-input-reset):not(.bm-field) {
   border-color: var(--bm-light-glass-border);
   background-color: var(--bm-light-glass-surface);
-  color: #111111;
+  color: var(--bm-text-primary);
   box-shadow: var(--bm-light-glass-shadow-soft);
   backdrop-filter: blur(24px) saturate(1.12);
   -webkit-backdrop-filter: blur(24px) saturate(1.12);
@@ -1147,7 +1147,7 @@ html[data-theme="light"] :where(input:not([type="checkbox"]):not([type="radio"])
 html[data-theme="light"] .bm-search-shell {
   border-color: var(--bm-light-glass-border) !important;
   background: var(--bm-light-glass-surface) !important;
-  color: #111111 !important;
+  color: var(--bm-text-primary) !important;
   box-shadow: var(--bm-light-glass-shadow-soft) !important;
   backdrop-filter: blur(24px) saturate(1.12) !important;
   -webkit-backdrop-filter: blur(24px) saturate(1.12) !important;
@@ -1161,7 +1161,7 @@ html[data-theme="light"] .bm-search-input {
 html[data-theme="light"] [data-testid="unified-composer-box"] {
   border-color: var(--bm-light-glass-border) !important;
   background: var(--bm-light-glass-surface) !important;
-  color: #111111 !important;
+  color: var(--bm-text-primary) !important;
   box-shadow: var(--bm-light-glass-shadow) !important;
   backdrop-filter: blur(42px) saturate(1.16) !important;
   -webkit-backdrop-filter: blur(42px) saturate(1.16) !important;
@@ -1178,11 +1178,11 @@ html[data-theme="light"] [data-testid="unified-composer-box"] textarea::placehol
   color: var(--bm-input-placeholder) !important;
 }
 
-html[data-theme="light"] :where(.text-white, .text-white\/75, .text-white\/76, .text-white\/78, .text-white\/80, .text-white\/82, .text-white\/84, .text-white\/86, .text-white\/88, .text-white\/90, .text-white\/95, .text-\[\#111111\], .text-\[\#000000\], .text-\[\#2563EB\], .text-\[var\(--bm-primary\)\], .text-\[var\(--bm-icon-primary\)\], .text-\[var\(--bm-icon-secondary\)\], .text-\[var\(--bm-icon-accent\)\]) {
+html[data-theme="light"] :where(.text-white, .text-white\/75, .text-white\/76, .text-white\/78, .text-white\/80, .text-white\/82, .text-white\/84, .text-white\/86, .text-white\/88, .text-white\/90, .text-white\/95, .text-black, .text-\[\#000000\], .text-\[\#0B0B0B\], .text-\[\#0b0b0b\], .text-\[\#102E5A\], .text-\[\#102e5a\], .text-\[\#111111\], .text-\[\#2563EB\], .text-\[\#2563eb\], .text-\[\#4285F4\], .text-\[\#4285f4\], .text-\[\#D97706\], .text-\[\#d97706\], .text-\[var\(--bm-primary\)\], .text-\[var\(--bm-icon-primary\)\], .text-\[var\(--bm-icon-secondary\)\], .text-\[var\(--bm-icon-accent\)\], [class*="text-blue-"], [class*="text-sky-"], [class*="text-cyan-"], [class*="text-indigo-"], [class*="text-violet-"], [class*="text-purple-"], [class*="text-fuchsia-"], [class*="text-pink-"], [class*="text-rose-"], [class*="text-amber-"], [class*="text-orange-"], [class*="text-gray-900"], [class*="text-gray-950"], [class*="text-slate-900"], [class*="text-slate-950"], [class*="text-zinc-900"], [class*="text-zinc-950"], [class*="text-neutral-900"], [class*="text-neutral-950"], [class*="text-stone-900"], [class*="text-stone-950"]) {
   color: var(--bm-text-primary) !important;
 }
 
-html[data-theme="light"] :where(.text-white\/30, .text-white\/34, .text-white\/38, .text-white\/40, .text-white\/42, .text-white\/45, .text-white\/48, .text-white\/50, .text-white\/54, .text-white\/55, .text-white\/58, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/72, .text-\[var\(--bm-text-secondary\)\]) {
+html[data-theme="light"] :where(.text-white\/30, .text-white\/34, .text-white\/38, .text-white\/40, .text-white\/42, .text-white\/45, .text-white\/48, .text-white\/50, .text-white\/54, .text-white\/55, .text-white\/58, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/72, .text-\[\#4F4F4F\], .text-\[\#4f4f4f\], .text-\[\#555555\], .text-\[\#666666\], .text-\[\#777777\], .text-\[\#8F8F8F\], .text-\[\#8f8f8f\], .text-\[var\(--bm-text-secondary\)\], [class*="text-gray-400"], [class*="text-gray-500"], [class*="text-gray-600"], [class*="text-gray-700"], [class*="text-gray-800"], [class*="text-slate-400"], [class*="text-slate-500"], [class*="text-slate-600"], [class*="text-slate-700"], [class*="text-slate-800"], [class*="text-zinc-400"], [class*="text-zinc-500"], [class*="text-zinc-600"], [class*="text-zinc-700"], [class*="text-zinc-800"], [class*="text-neutral-400"], [class*="text-neutral-500"], [class*="text-neutral-600"], [class*="text-neutral-700"], [class*="text-neutral-800"], [class*="text-stone-400"], [class*="text-stone-500"], [class*="text-stone-600"], [class*="text-stone-700"], [class*="text-stone-800"]) {
   color: var(--bm-text-secondary) !important;
 }
 
@@ -1190,9 +1190,17 @@ html[data-theme="light"] :where(.text-\[var\(--bm-text-muted\)\]) {
   color: var(--bm-text-muted) !important;
 }
 
-html[data-theme="light"] :where(.lucide, button > svg, a > svg, label > svg, [role="button"] > svg, [role="menuitem"] > svg) {
+html[data-theme="light"] :where(.lucide, svg[class*="lucide"], button svg, a svg, label svg, [role="button"] svg, [role="menuitem"] svg, input ~ svg, textarea ~ svg) {
   color: var(--bm-icon-primary) !important;
   stroke: currentColor !important;
+}
+
+html[data-theme="light"] :where(.lucide *, svg[class*="lucide"] *) {
+  stroke: currentColor !important;
+}
+
+html[data-theme="light"] :where(.fill-\[var\(--bm-primary\)\], svg[class*="lucide"] [class*="fill-"]) {
+  fill: var(--bm-icon-primary) !important;
 }
 
 html[data-theme="light"] :where(input, textarea)::placeholder {
