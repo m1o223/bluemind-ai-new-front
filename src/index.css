@@ -1207,6 +1207,76 @@ html[data-theme="light"] :where(input, textarea)::placeholder {
   color: var(--bm-input-placeholder) !important;
 }
 
+.bm-mobile-ai-menu-backdrop {
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px) saturate(0.92);
+  -webkit-backdrop-filter: blur(18px) saturate(0.92);
+}
+
+html[data-theme="light"] .bm-mobile-ai-menu-backdrop {
+  background: rgba(17, 17, 17, 0.16);
+}
+
+.bm-mobile-ai-menu {
+  border-color: rgba(255, 255, 255, 0.13) !important;
+  background: rgba(24, 24, 24, 0.94) !important;
+  color: #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.02),
+    0 28px 76px rgba(0, 0, 0, 0.42) !important;
+  backdrop-filter: blur(34px) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(34px) saturate(1.12) !important;
+}
+
+html[data-theme="light"] .bm-mobile-ai-menu {
+  border-color: rgba(17, 17, 17, 0.09) !important;
+  background: rgba(247, 243, 236, 0.96) !important;
+  color: var(--bm-text-primary) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    inset 0 -1px 0 rgba(17, 17, 17, 0.025),
+    0 28px 76px rgba(15, 23, 42, 0.16) !important;
+}
+
+.bm-mobile-ai-menu-row {
+  border: 0 !important;
+  background: #242424 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition:
+    color 180ms var(--bm-motion-ease),
+    background-color 180ms var(--bm-motion-ease),
+    transform 180ms var(--bm-motion-ease);
+}
+
+.bm-mobile-ai-menu-row:hover {
+  background: #2a2a2a !important;
+}
+
+.bm-mobile-ai-menu-row:active {
+  background: #303030 !important;
+  transform: scale(0.985);
+}
+
+.bm-mobile-ai-menu-row.is-selected {
+  background: #303030 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .bm-mobile-ai-menu-row {
+  background: #eee8de !important;
+  color: var(--bm-text-primary) !important;
+}
+
+html[data-theme="light"] .bm-mobile-ai-menu-row:hover,
+html[data-theme="light"] .bm-mobile-ai-menu-row:active,
+html[data-theme="light"] .bm-mobile-ai-menu-row.is-selected {
+  background: #e5ded2 !important;
+}
+
 html[data-theme="light"] .bg-white {
   background-color: var(--bm-light-glass-surface-strong) !important;
 }

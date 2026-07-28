@@ -3316,7 +3316,7 @@ export default function MobileChat() {
               <>
                 <button
                   type="button"
-                  className="pointer-events-auto fixed inset-0 z-[45] cursor-default"
+                  className="bm-mobile-ai-menu-backdrop pointer-events-auto fixed inset-0 z-[45] cursor-default"
                   onClick={closeResponseModeMenu}
                   aria-label="Close AI mode menu"
                 />
@@ -3326,10 +3326,8 @@ export default function MobileChat() {
                   exit={{ opacity: 0, x: "-50%", y: -8, scale: 0.98 }}
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                   className={cn(
-                    "pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border backdrop-blur-[42px]",
-                    isDark
-                      ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88"
-                      : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+                    "bm-mobile-ai-menu pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border",
+                    isDark ? "text-white" : "text-[var(--bm-text-primary)]",
                   )}
                   style={{
                     left: responseModeMenuPosition.left,
@@ -3343,7 +3341,7 @@ export default function MobileChat() {
                 >
                   <div className="max-h-[inherit] overflow-y-auto p-4">
                     <section>
-                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.045] text-white/48" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]")}>
+                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.075] text-[#D7D7D7]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
                         BlueMind Models
                       </div>
                       <div className="space-y-1">
@@ -3354,7 +3352,7 @@ export default function MobileChat() {
                               key={model.id}
                               type="button"
                               onClick={() => setHeaderModelId(model.id)}
-                              className={`flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${selected ? mobileGlassMenuSelectedClass : mobileGlassMenuIdleClass}`}
+                              className={cn("bm-mobile-ai-menu-row flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold", selected && "is-selected")}
                               role="menuitemradio"
                               aria-checked={selected}
                             >
@@ -3366,7 +3364,7 @@ export default function MobileChat() {
                                   </span>
                                 )}
                               </span>
-                              {selected && <Check className={cn("h-5 w-5 shrink-0 stroke-[3]", isDark ? "text-white/88" : "text-[var(--bm-primary)]")} />}
+                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3]" />}
                             </button>
                           );
                         })}
@@ -3374,7 +3372,7 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.045] text-white/48" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]")}>
+                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.075] text-[#D7D7D7]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
                         AI Modes
                       </div>
                       <div className="space-y-1">
@@ -3386,7 +3384,7 @@ export default function MobileChat() {
                               key={mode.id}
                               type="button"
                               onClick={() => selectResponseMode(mode.id)}
-                              className={`flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${selected ? mobileGlassMenuSelectedClass : mobileGlassMenuIdleClass}`}
+                              className={cn("bm-mobile-ai-menu-row flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold", selected && "is-selected")}
                               title={mode.description}
                               role="menuitemradio"
                               aria-checked={selected}
@@ -3395,7 +3393,7 @@ export default function MobileChat() {
                                 <ModeIcon className="h-[18px] w-[18px] shrink-0 stroke-[2.3]" />
                                 <span className="truncate">{getAiSpecializationLabel(mode)}</span>
                               </span>
-                              {selected && <Check className={cn("h-5 w-5 shrink-0 stroke-[3]", isDark ? "text-white/88" : "text-[var(--bm-primary)]")} />}
+                              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3]" />}
                             </button>
                           );
                         })}
@@ -3403,13 +3401,13 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.045] text-white/48" : "border-[var(--bm-border)] text-[var(--bm-text-muted)]")}>
+                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.075] text-[#D7D7D7]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
                         Thinking
                       </div>
                       <button
                         type="button"
                         onClick={() => setHeaderThinkingEnabled((enabled) => !enabled)}
-                        className={`flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold transition-colors ${headerThinkingEnabled ? mobileGlassMenuSelectedClass : mobileGlassMenuIdleClass}`}
+                        className={cn("bm-mobile-ai-menu-row flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold", headerThinkingEnabled && "is-selected")}
                         role="menuitemcheckbox"
                         aria-checked={headerThinkingEnabled}
                       >
