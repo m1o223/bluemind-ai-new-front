@@ -128,21 +128,21 @@ html[data-theme="light"] body {
   --bm-bg-modal: rgba(255, 255, 255, 0.62);
   --bm-border: rgba(17, 17, 17, 0.06);
   --bm-border-strong: rgba(17, 17, 17, 0.10);
-  --bm-text-primary: #111111;
-  --bm-text-secondary: #555555;
-  --bm-text-muted: #777777;
-  --bm-icon-primary: #111111;
-  --bm-icon-secondary: #555555;
-  --bm-icon-accent: var(--bm-primary);
-  --bm-check: var(--bm-primary);
+  --bm-text-primary: #0B0B0B;
+  --bm-text-secondary: #4F4F4F;
+  --bm-text-muted: #666666;
+  --bm-icon-primary: #0B0B0B;
+  --bm-icon-secondary: #0B0B0B;
+  --bm-icon-accent: #0B0B0B;
+  --bm-check: #0B0B0B;
   --bm-selected-bg: rgba(17, 17, 17, 0.055);
-  --bm-selected-text: #111111;
+  --bm-selected-text: #0B0B0B;
   --bm-hover-bg: rgba(17, 17, 17, 0.045);
   --bm-hover-border: rgba(17, 17, 17, 0.12);
   --bm-hover-shadow: 0 16px 40px rgba(15, 23, 42, 0.10);
   --bm-active-bg: rgba(17, 17, 17, 0.065);
   --bm-disabled-bg: rgba(17, 17, 17, 0.10);
-  --bm-input-placeholder: #777777;
+  --bm-input-placeholder: #666666;
   --bm-light-glass-surface: rgba(255, 255, 255, 0.48);
   --bm-light-glass-surface-strong: rgba(255, 255, 255, 0.56);
   --bm-light-glass-surface-soft: rgba(255, 255, 255, 0.36);
@@ -1155,7 +1155,7 @@ html[data-theme="light"] .bm-search-shell {
 
 html[data-theme="light"] .bm-search-shell svg,
 html[data-theme="light"] .bm-search-input {
-  color: #111111 !important;
+  color: var(--bm-text-primary) !important;
 }
 
 html[data-theme="light"] [data-testid="unified-composer-box"] {
@@ -1169,13 +1169,34 @@ html[data-theme="light"] [data-testid="unified-composer-box"] {
 
 html[data-theme="light"] [data-testid="unified-composer-box"] .bm-composer-input,
 html[data-theme="light"] [data-testid="unified-composer-box"] textarea {
-  color: #111111 !important;
-  caret-color: #111111 !important;
+  color: var(--bm-text-primary) !important;
+  caret-color: var(--bm-text-primary) !important;
 }
 
 html[data-theme="light"] [data-testid="unified-composer-box"] .bm-composer-input::placeholder,
 html[data-theme="light"] [data-testid="unified-composer-box"] textarea::placeholder {
-  color: #777777 !important;
+  color: var(--bm-input-placeholder) !important;
+}
+
+html[data-theme="light"] :where(.text-white, .text-white\/75, .text-white\/76, .text-white\/78, .text-white\/80, .text-white\/82, .text-white\/84, .text-white\/86, .text-white\/88, .text-white\/90, .text-white\/95, .text-\[\#111111\], .text-\[\#000000\], .text-\[\#2563EB\], .text-\[var\(--bm-primary\)\], .text-\[var\(--bm-icon-primary\)\], .text-\[var\(--bm-icon-secondary\)\], .text-\[var\(--bm-icon-accent\)\]) {
+  color: var(--bm-text-primary) !important;
+}
+
+html[data-theme="light"] :where(.text-white\/30, .text-white\/34, .text-white\/38, .text-white\/40, .text-white\/42, .text-white\/45, .text-white\/48, .text-white\/50, .text-white\/54, .text-white\/55, .text-white\/58, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/72, .text-\[var\(--bm-text-secondary\)\]) {
+  color: var(--bm-text-secondary) !important;
+}
+
+html[data-theme="light"] :where(.text-\[var\(--bm-text-muted\)\]) {
+  color: var(--bm-text-muted) !important;
+}
+
+html[data-theme="light"] :where(.lucide, button > svg, a > svg, label > svg, [role="button"] > svg, [role="menuitem"] > svg) {
+  color: var(--bm-icon-primary) !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="light"] :where(input, textarea)::placeholder {
+  color: var(--bm-input-placeholder) !important;
 }
 
 html[data-theme="light"] .bg-white {
