@@ -3339,24 +3339,30 @@ export default function MobileChat() {
                   }}
                   role="menu"
                 >
-                  <div className="max-h-[inherit] overflow-y-auto p-4">
+                  <div className="max-h-[inherit] overflow-y-auto px-5 py-4">
                     <section>
-                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.075] text-[#D7D7D7]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
+                      <div className={cn("pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "text-[#D7D7D7]" : "text-[var(--bm-text-secondary)]")}>
                         BlueMind Models
                       </div>
-                      <div className="space-y-1">
+                      <div className={cn("divide-y", isDark ? "divide-white/[0.075]" : "divide-[var(--bm-border)]")}>
                         {MOBILE_HEADER_MODELS.map((model) => {
                           const selected = headerModelId === model.id;
                           return (
                             <button
                               key={model.id}
                               type="button"
-                              onClick={() => setHeaderModelId(model.id)}
-                              className={cn("bm-mobile-ai-menu-row flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold", selected && "is-selected")}
+                              onClick={() => {
+                                setHeaderModelId(model.id);
+                                closeResponseModeMenu();
+                              }}
+                              className={cn("bm-mobile-ai-menu-row flex min-h-[50px] w-full items-center justify-between gap-3 py-3 text-left text-[15px] font-extrabold", selected && "is-selected")}
                               role="menuitemradio"
                               aria-checked={selected}
                             >
-                              <span className="truncate">{model.label}</span>
+                              <span className="flex min-w-0 flex-1 items-center gap-2">
+                                <span className="truncate">{model.label}</span>
+                                {model.badge && <span className={cn("shrink-0 text-[10px] font-black uppercase tracking-[0.14em]", isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]")}>{model.badge}</span>}
+                              </span>
                               {selected && <Check className="h-5 w-5 shrink-0 stroke-[3]" />}
                             </button>
                           );
@@ -3365,10 +3371,10 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.075] text-[#D7D7D7]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
+                      <div className={cn("pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "text-[#D7D7D7]" : "text-[var(--bm-text-secondary)]")}>
                         AI Modes
                       </div>
-                      <div className="space-y-1">
+                      <div className={cn("divide-y", isDark ? "divide-white/[0.075]" : "divide-[var(--bm-border)]")}>
                         {AI_MODES.map((mode) => {
                           const ModeIcon = mode.icon;
                           const selected = responseMode === mode.id;
@@ -3377,7 +3383,7 @@ export default function MobileChat() {
                               key={mode.id}
                               type="button"
                               onClick={() => selectResponseMode(mode.id)}
-                              className={cn("bm-mobile-ai-menu-row flex min-h-[50px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold", selected && "is-selected")}
+                              className={cn("bm-mobile-ai-menu-row flex min-h-[50px] w-full items-center justify-between gap-3 py-3 text-left text-[15px] font-extrabold", selected && "is-selected")}
                               title={mode.description}
                               role="menuitemradio"
                               aria-checked={selected}
@@ -3392,25 +3398,18 @@ export default function MobileChat() {
                     </section>
 
                     <section className="mt-4">
-                      <div className={cn("mb-2 border-b pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "border-white/[0.075] text-[#D7D7D7]" : "border-[var(--bm-border)] text-[var(--bm-text-secondary)]")}>
+                      <div className={cn("pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "text-[#D7D7D7]" : "text-[var(--bm-text-secondary)]")}>
                         Thinking
                       </div>
                       <button
                         type="button"
                         onClick={() => setHeaderThinkingEnabled((enabled) => !enabled)}
-                        className={cn("bm-mobile-ai-menu-row flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[18px] px-4 py-2.5 text-left text-[15px] font-extrabold", headerThinkingEnabled && "is-selected")}
+                        className={cn("bm-mobile-ai-menu-row flex min-h-[52px] w-full items-center justify-between gap-3 py-3 text-left text-[15px] font-extrabold", headerThinkingEnabled && "is-selected")}
                         role="menuitemcheckbox"
                         aria-checked={headerThinkingEnabled}
                       >
                         <span>Enable Thinking</span>
-                        <span className={cn(
-                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
-                          headerThinkingEnabled
-                            ? isDark ? "border-white/45 bg-white/82 text-[#000000]" : "border-[var(--bm-primary)] bg-[var(--bm-active-bg)] text-[var(--bm-primary)]"
-                            : isDark ? "border-white/14" : "border-[var(--bm-border)]",
-                        )}>
-                          {headerThinkingEnabled && <Check className="h-4 w-4 stroke-[3]" />}
-                        </span>
+                        {headerThinkingEnabled && <Check className="h-5 w-5 shrink-0 stroke-[3]" />}
                       </button>
                     </section>
                   </div>
