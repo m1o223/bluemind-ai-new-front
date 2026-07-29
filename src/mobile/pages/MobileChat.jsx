@@ -4,6 +4,7 @@ import { AnimatePresence, animate, motion, useMotionValue, useScroll, useTransfo
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  ArrowRight,
   ArrowDown,
   ArrowUp,
   Bell,
@@ -614,6 +615,20 @@ export default function MobileChat() {
   const { prefs, resolvedTheme, t, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
   const [menuOpen, setMenuOpen] = useState(false);
+  const isRtl = (prefs?.language || uiLanguage || "").toLowerCase().startsWith("ar");
+  const getDrawerWidth = useCallback(() => {
+    if (typeof window === "undefined") return 360;
+    return Math.round(window.innerWidth * 0.84);
+  }, []);
+  const [drawerWidth, setDrawerWidth] = useState(() => getDrawerWidth());
+  const drawerX = useMotionValue(isRtl ? drawerWidth : -drawerWidth);
+  const drawerProgress = useTransform(drawerX, (value) => {
+    const width = drawerWidth || getDrawerWidth();
+    if (!width) return 0;
+    const progress = isRtl ? (width - value) / width : (value + width) / width;
+    return Math.max(0, Math.min(1, progress));
+  });
+  const drawerScrimOpacity = useTransform(drawerProgress, [0, 1], [0, 1]);
   const menuUser = readStoredUser() || {};
   const menuUserName = menuUser.name || menuUser.fullName || menuUser.displayName || menuUser.email || "Profile";
   const menuUserInitial = String(menuUserName).trim().charAt(0).toUpperCase() || "B";
@@ -698,6 +713,12 @@ export default function MobileChat() {
   const attachedImagesRef = useRef([]);
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
+  const touchStartTimeRef = useRef(0);
+  const drawerGestureActiveRef = useRef(false);
+  const drawerAnimationRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const menuDrawerRef = useRef(null);
+  const previousFocusRef = useRef(null);
   const sheetTouchStartYRef = useRef(null);
   const searchInputRef = useRef(null);
   const aiSelectorButtonRef = useRef(null);
@@ -1177,11 +1198,31 @@ export default function MobileChat() {
     isToolFocusMode,
   ]);
 
+  const getDrawerClosedX = useCallback((width = drawerWidth) => (isRtl ? width : -width), [drawerWidth, isRtl]);
+
+  const animateDrawerTo = useCallback((targetX, options = {}) => {
+    drawerAnimationRef.current?.stop?.();
+    drawerAnimationRef.current = animate(drawerX, targetX, {
+      duration: options.duration ?? 0.28,
+      ease: [0.22, 1, 0.36, 1],
+      onComplete: options.onComplete,
+    });
+  }, [drawerX]);
+
+  const closeMenu = useCallback(() => {
+    setMenuSearchOpen(false);
+    setMenuSearchQuery("");
+    drawerGestureActiveRef.current = false;
+    animateDrawerTo(getDrawerClosedX(), {
+      onComplete: () => setMenuOpen(false),
+    });
+  }, [animateDrawerTo, getDrawerClosedX]);
+
   const redirectToMobileLogin = useCallback(() => {
     closeMenu();
     closeResponseModeMenu();
     navigate("/mobile", { replace: true });
-  }, [closeResponseModeMenu, navigate]);
+  }, [closeMenu, closeResponseModeMenu, navigate]);
 
   const ensureMobileChatAuth = useCallback(async () => {
     try {
@@ -1373,16 +1414,73 @@ export default function MobileChat() {
     };
   }, [menuOpen]);
 
-  const closeMenu = () => {
-    setMenuOpen(false);
-    setMenuSearchOpen(false);
-    setMenuSearchQuery("");
-  };
+  useLayoutEffect(() => {
+    const syncDrawerWidth = () => {
+      const nextWidth = getDrawerWidth();
+      setDrawerWidth(nextWidth);
+      if (!menuOpen && !drawerGestureActiveRef.current) {
+        drawerX.set(isRtl ? nextWidth : -nextWidth);
+      }
+    };
+    syncDrawerWidth();
+    window.addEventListener("resize", syncDrawerWidth);
+    return () => window.removeEventListener("resize", syncDrawerWidth);
+  }, [drawerX, getDrawerWidth, isRtl, menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      previousFocusRef.current?.focus?.({ preventScroll: true });
+      previousFocusRef.current = null;
+      return undefined;
+    }
+
+    const focusTimer = window.setTimeout(() => {
+      const focusable = menuDrawerRef.current?.querySelector(
+        "button:not(:disabled), a[href], input:not(:disabled), [tabindex]:not([tabindex='-1'])",
+      );
+      focusable?.focus?.({ preventScroll: true });
+    }, 40);
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMenu();
+        return;
+      }
+
+      if (event.key !== "Tab" || !menuDrawerRef.current) return;
+      const focusable = Array.from(menuDrawerRef.current.querySelectorAll(
+        "button:not(:disabled), a[href], input:not(:disabled), [tabindex]:not([tabindex='-1'])",
+      ));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeMenu, menuOpen]);
 
   const openMenu = () => {
     closeResponseModeMenu();
+    previousFocusRef.current = menuButtonRef.current || document.activeElement;
+    const width = getDrawerWidth();
+    setDrawerWidth(width);
+    drawerGestureActiveRef.current = false;
+    drawerX.set(getDrawerClosedX(width));
     setMenuOpen(true);
     setMenuSearchOpen(false);
+    requestAnimationFrame(() => animateDrawerTo(0));
   };
 
   const openMenuSearch = () => {
@@ -1602,7 +1700,7 @@ export default function MobileChat() {
     loadMobilePrivateSpaces().then((items) => {
       setPrivateSpaceStep(items.length ? "list" : "create");
     }).catch(() => {});
-  }, [loadMobilePrivateSpaces]);
+  }, [closeMenu, loadMobilePrivateSpaces]);
 
   const handleCreatePrivateSpace = async (event) => {
     event.preventDefault();
@@ -1801,41 +1899,43 @@ export default function MobileChat() {
     setSearchParams(conversation ? { conversation } : {});
   };
 
-  const handleTouchStart = (event) => {
-    touchStartXRef.current = event.touches?.[0]?.clientX ?? null;
-    touchStartYRef.current = event.touches?.[0]?.clientY ?? null;
-  };
-
-  const handleTouchEnd = (event) => {
-    const startX = touchStartXRef.current;
-    const endX = event.changedTouches?.[0]?.clientX;
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-    if (typeof startX === "number" && typeof endX === "number" && startX - endX > 70) {
-      closeMenu();
-    }
-  };
-
   const handlePageTouchStart = (event) => {
     touchStartXRef.current = event.touches?.[0]?.clientX ?? null;
     touchStartYRef.current = event.touches?.[0]?.clientY ?? null;
+    touchStartTimeRef.current = Date.now();
+    drawerGestureActiveRef.current = false;
   };
 
   const handlePageTouchMove = (event) => {
     const startX = touchStartXRef.current;
     const startY = touchStartYRef.current;
     const currentTouch = event.touches?.[0];
+    const width = drawerWidth || getDrawerWidth();
+    const edgeSize = 28;
+    const viewportWidth = typeof window === "undefined" ? width : window.innerWidth;
+    const startedFromEdge = isRtl ? startX >= viewportWidth - edgeSize : startX <= edgeSize;
+    const deltaX = currentTouch && typeof startX === "number" ? currentTouch.clientX - startX : 0;
+    const openingDistance = isRtl ? -deltaX : deltaX;
     if (
       !menuOpen &&
       !menuSearchOpen &&
       typeof startX === "number" &&
       typeof startY === "number" &&
       currentTouch &&
-      startX <= 26 &&
-      currentTouch.clientX - startX > 12 &&
+      startedFromEdge &&
+      openingDistance > 8 &&
       Math.abs(currentTouch.clientY - startY) < 42
     ) {
       event.preventDefault();
+      drawerAnimationRef.current?.stop?.();
+      previousFocusRef.current = menuButtonRef.current || document.activeElement;
+      drawerGestureActiveRef.current = true;
+      setMenuOpen(true);
+      setMenuSearchOpen(false);
+      const nextX = isRtl
+        ? Math.max(0, Math.min(width, width + deltaX))
+        : Math.min(0, Math.max(-width, -width + deltaX));
+      drawerX.set(nextX);
     }
   };
 
@@ -1844,21 +1944,41 @@ export default function MobileChat() {
     const startY = touchStartYRef.current;
     const endX = event.changedTouches?.[0]?.clientX;
     const endY = event.changedTouches?.[0]?.clientY;
+    const elapsed = Math.max(Date.now() - touchStartTimeRef.current, 1);
     touchStartXRef.current = null;
     touchStartYRef.current = null;
+    touchStartTimeRef.current = 0;
 
     if (
-      !menuOpen &&
       !menuSearchOpen &&
       typeof startX === "number" &&
       typeof startY === "number" &&
       typeof endX === "number" &&
-      typeof endY === "number" &&
-      startX <= 26 &&
-      endX - startX > 76 &&
-      Math.abs(endY - startY) < 54
+      typeof endY === "number"
     ) {
-      openMenu();
+      const width = drawerWidth || getDrawerWidth();
+      const deltaX = endX - startX;
+      const openingDistance = isRtl ? -deltaX : deltaX;
+      const velocity = openingDistance / elapsed;
+      const progress = isRtl ? (width - drawerX.get()) / width : (drawerX.get() + width) / width;
+      const shouldOpen = drawerGestureActiveRef.current && Math.abs(endY - startY) < 54 && (progress >= 0.44 || velocity > 0.55);
+      const wasDrawerGesture = drawerGestureActiveRef.current;
+      drawerGestureActiveRef.current = false;
+
+      if (shouldOpen) {
+        setMenuOpen(true);
+        animateDrawerTo(0);
+      } else if (wasDrawerGesture) {
+        animateDrawerTo(getDrawerClosedX(width), {
+          onComplete: () => setMenuOpen(false),
+        });
+      } else if (menuOpen) {
+        animateDrawerTo(0);
+      } else if (drawerX.get() !== getDrawerClosedX(width)) {
+        animateDrawerTo(getDrawerClosedX(width), {
+          onComplete: () => setMenuOpen(false),
+        });
+      }
     }
   };
 
@@ -3284,6 +3404,7 @@ export default function MobileChat() {
       <header className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-40 flex h-16 items-center justify-between bg-transparent px-4 shadow-none backdrop-blur-0">
         <div className="flex w-12 items-center justify-start">
           <button
+            ref={menuButtonRef}
             type="button"
             onClick={openMenu}
             className={`pointer-events-auto ${mobileGlassControlClass}`}
@@ -4248,46 +4369,58 @@ Everything will be deleted when you leave.</p>
           <div className="fixed inset-0 z-[70] overflow-hidden">
             <motion.button
               type="button"
-              className="absolute inset-y-0 right-0 z-0 w-[16vw] bg-black/45 backdrop-blur-[7px]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className={cn("absolute inset-y-0 z-0 bg-black/14 backdrop-blur-[3px]", isRtl ? "left-0" : "right-0")}
+              style={{
+                width: `calc(100vw - ${drawerWidth}px)`,
+                opacity: drawerScrimOpacity,
+              }}
               onClick={closeMenu}
               aria-label="Close menu"
             />
             <motion.section
+              ref={menuDrawerRef}
               className={cn(
-                "absolute inset-y-0 left-0 z-10 flex w-[84vw] flex-col overflow-hidden shadow-[18px_0_48px_rgba(0,0,0,0.26)]",
-                isDark ? "bg-black text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
+                "absolute inset-y-0 z-10 flex flex-col overflow-hidden outline-none",
+                isRtl ? "right-0" : "left-0",
+                isDark ? "bg-black text-white" : "bg-[#FFFFFF] text-[var(--bm-text-primary)]",
               )}
               style={{
+                x: drawerX,
+                width: drawerWidth,
                 paddingTop: "env(safe-area-inset-top)",
                 paddingBottom: "env(safe-area-inset-bottom)",
                 touchAction: "pan-y",
+                boxShadow: isRtl ? "-10px 0 26px rgba(0,0,0,0.14)" : "10px 0 26px rgba(0,0,0,0.14)",
               }}
-              initial={{ x: "-100%", opacity: 0.96 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "-100%", opacity: 0.96 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              tabIndex={-1}
               drag="x"
-              dragConstraints={{ left: typeof window === "undefined" ? -420 : -window.innerWidth * 0.88, right: 0 }}
-              dragElastic={0.06}
+              dragConstraints={isRtl ? { left: 0, right: drawerWidth } : { left: -drawerWidth, right: 0 }}
+              dragElastic={0.02}
+              onDragStart={() => {
+                drawerAnimationRef.current?.stop?.();
+                drawerGestureActiveRef.current = true;
+              }}
               onDragEnd={(_, info) => {
-                if (info.offset.x < -70 || info.velocity.x < -520) {
+                drawerGestureActiveRef.current = false;
+                const progress = isRtl ? (drawerWidth - drawerX.get()) / drawerWidth : (drawerX.get() + drawerWidth) / drawerWidth;
+                const closingFast = isRtl ? info.velocity.x > 520 : info.velocity.x < -520;
+                if (progress < 0.56 || closingFast) {
                   closeMenu();
+                } else {
+                  animateDrawerTo(0);
                 }
               }}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
               data-testid="mobile-side-menu"
+              role="navigation"
+              aria-label="BlueMind menu"
+              dir={isRtl ? "rtl" : "ltr"}
             >
             <div
               className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[calc(env(safe-area-inset-top)+74px)] backdrop-blur-[6px]"
               style={{
                 background: isDark
                   ? "linear-gradient(to bottom, rgba(0,0,0,0.96), rgba(0,0,0,0.76), rgba(0,0,0,0))"
-                  : "linear-gradient(to bottom, rgba(244,245,247,0.96), rgba(244,245,247,0.76), rgba(244,245,247,0))",
+                  : "linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(255,255,255,0.76), rgba(255,255,255,0))",
               }}
               aria-hidden="true"
             />
@@ -4295,10 +4428,10 @@ Everything will be deleted when you leave.</p>
             <button
               type="button"
               onClick={closeMenu}
-              className="bm-mobile-glass-control absolute left-5 top-[calc(env(safe-area-inset-top)+14px)] z-30"
+              className={cn("bm-mobile-glass-control absolute top-[calc(env(safe-area-inset-top)+14px)] z-30", isRtl ? "right-5" : "left-5")}
               aria-label="Close menu"
             >
-              <ArrowLeft className={iconClasses.button} />
+              {isRtl ? <ArrowRight className={iconClasses.button} /> : <ArrowLeft className={iconClasses.button} />}
             </button>
 
             <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-[88px] pt-[calc(env(safe-area-inset-top)+22px)] text-center">
@@ -4308,7 +4441,7 @@ Everything will be deleted when you leave.</p>
             <button
               type="button"
               onClick={openMenuSearch}
-              className="bm-mobile-glass-control absolute right-5 top-[calc(env(safe-area-inset-top)+14px)] z-30"
+              className={cn("bm-mobile-glass-control absolute top-[calc(env(safe-area-inset-top)+14px)] z-30", isRtl ? "left-5" : "right-5")}
               aria-label="Search"
             >
               <Search className="h-5 w-5 stroke-[2.35]" />
