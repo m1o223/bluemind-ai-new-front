@@ -8,7 +8,7 @@ export const BLUE_MIND_COLORS = {
   darkBackground: "#000000",
   lightBackground: "#FFFFFF",
   darkSidebar: "#000000",
-  lightSidebar: "rgba(250,251,253,0.74)",
+  lightSidebar: "rgba(255,255,255,0.74)",
   darkCard: "#000000",
   lightCard: "rgba(255,255,255,0.66)",
   darkCardElevated: "#000000",

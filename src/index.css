@@ -122,9 +122,9 @@ body {
 html[data-theme="light"] body {
   --bm-bg-app: #FFFFFF;
   --bm-bg-sidebar: #FFFFFF;
-  --bm-bg-card: #F7F3EC;
-  --bm-bg-elevated: #F7F3EC;
-  --bm-bg-input: #F7F3EC;
+  --bm-bg-card: #FFFFFF;
+  --bm-bg-elevated: #FFFFFF;
+  --bm-bg-input: #FFFFFF;
   --bm-bg-modal: #FFFFFF;
   --bm-border: rgba(17, 17, 17, 0.08);
   --bm-border-strong: rgba(17, 17, 17, 0.14);
@@ -666,7 +666,7 @@ html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Sel
 html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-quick-action-chips"] button,
 html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-home-quick-actions"] button {
   border-color: rgba(17, 17, 17, 0.046) !important;
-  background: rgba(247, 243, 236, 0.97) !important;
+  background: rgba(255, 255, 255, 0.97) !important;
   box-shadow:
     inset 0 1px 0 rgba(17, 17, 17, 0.082),
     inset 0 -1px 0 rgba(17, 17, 17, 0.01),
@@ -679,7 +679,7 @@ html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-h
 
 html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"] {
   border-color: rgba(17, 17, 17, 0.04) !important;
-  background: rgba(247, 243, 236, 0.975) !important;
+  background: rgba(255, 255, 255, 0.975) !important;
   box-shadow:
     inset 0 1px 0 rgba(17, 17, 17, 0.08),
     inset 0 -1px 0 rgba(17, 17, 17, 0.01),
@@ -694,11 +694,11 @@ html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-contr
 html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"]:not(:disabled):not([aria-disabled="true"]):active,
 html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-quick-action-chips"] button:not(:disabled):not([aria-disabled="true"]):active,
 html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-home-quick-actions"] button:not(:disabled):not([aria-disabled="true"]):active {
-  background: rgba(247, 243, 236, 0.985) !important;
+  background: rgba(255, 255, 255, 0.985) !important;
 }
 
 html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"]:not(:disabled):not([aria-disabled="true"]):active {
-  background: rgba(247, 243, 236, 0.99) !important;
+  background: rgba(255, 255, 255, 0.99) !important;
 }
 
 .bm-action-feedback {
