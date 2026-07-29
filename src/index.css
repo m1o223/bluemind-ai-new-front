@@ -120,12 +120,12 @@ body {
 }
 
 html[data-theme="light"] body {
-  --bm-bg-app: #F7F3EC;
-  --bm-bg-sidebar: #F7F3EC;
+  --bm-bg-app: #FFFFFF;
+  --bm-bg-sidebar: #FFFFFF;
   --bm-bg-card: #F7F3EC;
   --bm-bg-elevated: #F7F3EC;
   --bm-bg-input: #F7F3EC;
-  --bm-bg-modal: #F7F3EC;
+  --bm-bg-modal: #FFFFFF;
   --bm-border: rgba(17, 17, 17, 0.08);
   --bm-border-strong: rgba(17, 17, 17, 0.14);
   --bm-text-primary: #0B0B0B;
