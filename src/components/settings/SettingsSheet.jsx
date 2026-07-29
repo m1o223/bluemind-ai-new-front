@@ -48,6 +48,7 @@ import { AVATAR_COLORS, COLOR_OPTIONS } from "@/theme/colors";
 const MESSAGE_COLORS = COLOR_OPTIONS;
 const SETTINGS_GLASS_CLASS = "border border-white/[0.055] bg-[rgba(78,78,78,0.18)]";
 const SETTINGS_LIGHT_GLASS_CLASS = "border border-black/[0.06] bg-white/[0.58]";
+const SETTINGS_LIGHT_POPUP_GLASS_CLASS = "border border-black/[0.06] bg-white/[0.74]";
 const SETTINGS_GLASS_STYLE = {
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.014), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.022), 0 18px 48px rgba(0,0,0,0.24)",
   backdropFilter: "blur(42px) saturate(1.16)",
@@ -72,11 +73,6 @@ const SETTINGS_BLUE_GLASS_STYLE = {
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(255,255,255,0.025), 0 16px 40px rgba(37,99,235,0.28)",
   backdropFilter: "blur(32px) saturate(1.16)",
   WebkitBackdropFilter: "blur(32px) saturate(1.16)",
-};
-const SETTINGS_RED_GLASS_STYLE = {
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.018), 0 16px 40px rgba(239,68,68,0.16)",
-  backdropFilter: "blur(34px) saturate(1.12)",
-  WebkitBackdropFilter: "blur(34px) saturate(1.12)",
 };
 const APPEARANCE_OPTIONS = [
   { label: "System", value: "system", icon: MonitorSmartphone },
@@ -373,7 +369,7 @@ function SettingsSelectionPopup({ open, title, children, isDark = true, onClose 
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
               "max-h-[72dvh] w-full max-w-[420px] overflow-hidden rounded-[30px] p-4",
-              isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS,
+              isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_POPUP_GLASS_CLASS,
             )}
             style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
             onClick={(event) => event.stopPropagation()}
@@ -771,8 +767,11 @@ export default function SettingsSheet({
         <button
           type="button"
           onClick={() => setLogoutConfirmOpen(true)}
-          className="flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] border border-red-500/15 bg-red-500/[0.10] text-[15px] font-bold text-red-500 active:bg-red-500/10"
-          style={SETTINGS_RED_GLASS_STYLE}
+          className={cn(
+            "flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] border text-[15px] font-bold text-red-500 active:scale-[0.985]",
+            isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS,
+          )}
+          style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
         >
           <LogOut className="h-5 w-5" />
           Log out
@@ -1372,7 +1371,7 @@ export default function SettingsSheet({
       }}
       className={cn(
         "relative flex w-full flex-col overflow-hidden",
-        isDark ? "border border-white/[0.045] bg-[rgba(8,8,8,0.88)] text-white" : "border border-black/[0.06] bg-white/[0.68] text-[var(--bm-text-primary)]",
+        isDark ? "border border-white/[0.045] bg-[rgba(8,8,8,0.88)] text-white" : "border border-black/[0.06] bg-white/[0.82] text-[var(--bm-text-primary)]",
         mobile ? "h-[88dvh] rounded-t-[34px]" : "mx-auto h-[86dvh] max-w-[560px] rounded-[34px]",
       )}
       style={isDark ? SETTINGS_SHEET_GLASS_STYLE : SETTINGS_LIGHT_SHEET_GLASS_STYLE}
@@ -1444,7 +1443,7 @@ export default function SettingsSheet({
               initial={{ y: 18, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 18, opacity: 0 }}
-              className={cn("w-full rounded-[28px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS)}
+              className={cn("w-full rounded-[28px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_POPUP_GLASS_CLASS)}
               style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
             >
               <p className={cn("text-lg font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Log out?</p>
@@ -1461,8 +1460,11 @@ export default function SettingsSheet({
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="min-h-12 rounded-2xl border border-red-300/[0.18] bg-red-500/[0.72] text-sm font-bold text-white"
-                  style={SETTINGS_RED_GLASS_STYLE}
+                  className={cn(
+                    "min-h-12 rounded-2xl border text-sm font-bold text-red-500 active:scale-[0.985]",
+                    isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS,
+                  )}
+                  style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
                 >
                   Log out
                 </button>
