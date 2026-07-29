@@ -158,6 +158,34 @@ function convertMobileEventToBlock(event, index = 0) {
   };
 }
 
+function normalizeScheduleBlockDate(value) {
+  if (!value) return toDateKey(new Date());
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return String(value);
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) return toDateKey(parsed);
+
+  return toDateKey(new Date());
+}
+
+function convertScheduleBlockToMobileEvent(block = {}, index = 0) {
+  return {
+    id: block.id || `schedule-event-${index}`,
+    title: block.title || block.name || "Schedule event",
+    date: normalizeScheduleBlockDate(block.date || block.dateKey || block.sourceCell),
+    startTime: block.startTime || block.start || "08:00",
+    endTime: block.endTime || block.end || "09:00",
+    duration: block.duration || "",
+    color: block.color || "blue",
+    icon: block.icon || "calendar",
+    reminder: block.reminder || "None",
+    repeat: block.repeat || "Never",
+    notes: block.notes || block.description || "",
+    createdAt: block.createdAt,
+    updatedAt: block.updatedAt,
+  };
+}
+
 function normalizeScheduleRecord(record = {}, index = 0) {
   const now = new Date().toISOString();
   const blocks = Array.isArray(record.blocks) ? record.blocks : [];
@@ -1045,6 +1073,7 @@ export default function MobileScheduleDashboard() {
   const isDark = resolvedTheme === "dark";
   const appColor = prefs?.appColor || prefs?.chatColor || "var(--bm-primary)";
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
+  const [viewMode, setViewMode] = useState("home");
   const [isExpanded, setIsExpanded] = useState(false);
   const [events, setEvents] = useState(readEvents);
   const [schedules, setSchedules] = useState(readScheduleLibrary);
@@ -1186,6 +1215,25 @@ export default function MobileScheduleDashboard() {
     setEventMenuRect(null);
   };
 
+  const syncActiveScheduleRecordFromEvents = (nextEvents) => {
+    const activeId = getActiveScheduleId();
+    if (!activeId) return;
+
+    const now = new Date().toISOString();
+    const nextBlocks = nextEvents.map(convertMobileEventToBlock);
+    const records = readRawScheduleLibrary().map(normalizeScheduleRecord);
+    const nextRecords = records.map((record) => (
+      record.id === activeId
+        ? { ...record, blocks: nextBlocks, updatedAt: now }
+        : record
+    ));
+    const activeRecord = nextRecords.find((record) => record.id === activeId);
+
+    writeScheduleLibrary(nextRecords);
+    setSchedules(nextRecords);
+    if (activeRecord) activateScheduleRecord(activeRecord);
+  };
+
   const openEventMenu = (eventId, clickEvent) => {
     clickEvent.stopPropagation();
     const anchor = clickEvent.currentTarget;
@@ -1215,6 +1263,7 @@ export default function MobileScheduleDashboard() {
       ));
       setEvents(nextEvents);
       persistEvents(nextEvents);
+      syncActiveScheduleRecordFromEvents(nextEvents);
       setSelectedDate(fromDateKey(eventData.date));
       setEditingEventId("");
       toast.success("Schedule event updated.");
@@ -1230,6 +1279,7 @@ export default function MobileScheduleDashboard() {
     const nextEvents = [...events, nextEvent];
     setEvents(nextEvents);
     persistEvents(nextEvents);
+    syncActiveScheduleRecordFromEvents(nextEvents);
     setSelectedDate(fromDateKey(nextEvent.date));
     toast.success("Schedule event created.");
   };
@@ -1264,6 +1314,7 @@ export default function MobileScheduleDashboard() {
     const nextEvents = events.filter((event) => event.id !== eventId);
     setEvents(nextEvents);
     persistEvents(nextEvents);
+    syncActiveScheduleRecordFromEvents(nextEvents);
     closeEventMenu();
     toast.success("Schedule event deleted.");
   };
@@ -1282,10 +1333,21 @@ export default function MobileScheduleDashboard() {
     setSchedules(readScheduleLibrary());
   };
 
-  const openSchedule = (schedule) => {
-    activateScheduleRecord(schedule);
+  const showCalendarForSchedule = (schedule) => {
+    const record = normalizeScheduleRecord(schedule);
+    const nextEvents = (record.blocks || []).map(convertScheduleBlockToMobileEvent);
+
+    activateScheduleRecord(record);
+    setEvents(nextEvents);
+    persistEvents(nextEvents);
+    setSelectedDate(nextEvents[0]?.date ? fromDateKey(nextEvents[0].date) : startOfDay(new Date()));
     refreshSchedules();
-    navigate("/mobile/schedule/custom");
+    setScheduleListOpen(false);
+    setViewMode("calendar");
+  };
+
+  const openSchedule = (schedule) => {
+    showCalendarForSchedule(schedule);
   };
 
   const createSchedule = () => {
@@ -1293,8 +1355,7 @@ export default function MobileScheduleDashboard() {
     const records = [nextRecord, ...readRawScheduleLibrary().map(normalizeScheduleRecord)];
     writeScheduleLibrary(records);
     setSchedules(records);
-    activateScheduleRecord(nextRecord);
-    navigate("/mobile/schedule/custom");
+    showCalendarForSchedule(nextRecord);
   };
 
   const deleteSchedule = (scheduleId) => {
@@ -1358,7 +1419,8 @@ export default function MobileScheduleDashboard() {
     );
   };
 
-  return (
+  if (viewMode === "home") {
+    return (
     <div
       className={cn(
         "min-h-[100dvh] pb-[max(24px,env(safe-area-inset-bottom))]",
@@ -1448,12 +1510,13 @@ export default function MobileScheduleDashboard() {
         </section>
       </main>
     </div>
-  );
+    );
+  }
 
   return (
     <main className={cn("min-h-screen overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.875rem,env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")}>
       <header className="flex items-center justify-between">
-        <button type="button" onClick={() => navigate(-1)} className="bm-mobile-glass-control" aria-label="Back">
+        <button type="button" onClick={() => setViewMode("home")} className="bm-mobile-glass-control" aria-label="Back to schedules">
           <ArrowLeft className={iconClasses.button} />
         </button>
         <div className="flex items-center gap-2">
