@@ -666,38 +666,84 @@ html[data-theme="light"] .bm-mobile-glass-control .bm-icon-button {
   color: var(--bm-icon-primary) !important;
 }
 
+html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control,
+html[data-theme="dark"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"],
+html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="mobile-quick-action-chips"] button,
+html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="mobile-home-quick-actions"] button {
+  border-color: rgba(255, 255, 255, 0.046) !important;
+  background: rgba(0, 0, 0, 0.97) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.082),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.01),
+    inset 1px 0 0 rgba(255, 255, 255, 0.018),
+    inset -1px 0 0 rgba(255, 255, 255, 0.016),
+    0 10px 24px rgba(0, 0, 0, 0.24) !important;
+  backdrop-filter: blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025) !important;
+  -webkit-backdrop-filter: blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025) !important;
+}
+
+html[data-theme="dark"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"] {
+  border-color: rgba(255, 255, 255, 0.04) !important;
+  background: rgba(0, 0, 0, 0.975) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.01),
+    inset 1px 0 0 rgba(255, 255, 255, 0.018),
+    inset -1px 0 0 rgba(255, 255, 255, 0.016),
+    0 10px 24px rgba(0, 0, 0, 0.24) !important;
+  backdrop-filter: blur(1160px) saturate(1.02) brightness(0.72) contrast(0.025) !important;
+  -webkit-backdrop-filter: blur(1160px) saturate(1.02) brightness(0.72) contrast(0.025) !important;
+}
+
+html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control:not(:disabled):not([aria-disabled="true"]):active,
+html[data-theme="dark"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"]:not(:disabled):not([aria-disabled="true"]):active,
+html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="mobile-quick-action-chips"] button:not(:disabled):not([aria-disabled="true"]):active,
+html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="mobile-home-quick-actions"] button:not(:disabled):not([aria-disabled="true"]):active {
+  background: rgba(0, 0, 0, 0.985) !important;
+}
+
+html[data-theme="dark"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"]:not(:disabled):not([aria-disabled="true"]):active {
+  background: rgba(0, 0, 0, 0.99) !important;
+}
+
 html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control,
 html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"],
 html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-quick-action-chips"] button,
 html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-home-quick-actions"] button {
-  border-color: rgba(0, 0, 0, 0.062) !important;
-  background: rgba(255, 255, 255, 0.095) !important;
+  border-color: rgba(17, 17, 17, 0.046) !important;
+  background: rgba(255, 255, 255, 0.97) !important;
   box-shadow:
-    inset 0 1px 0 rgba(0, 0, 0, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.014),
-    inset 1px 0 0 rgba(0, 0, 0, 0.026),
-    inset -1px 0 0 rgba(0, 0, 0, 0.022),
-    0 12px 28px rgba(0, 0, 0, 0.22) !important;
-  backdrop-filter: blur(38px) saturate(1.14) !important;
-  -webkit-backdrop-filter: blur(38px) saturate(1.14) !important;
+    inset 0 1px 0 rgba(17, 17, 17, 0.082),
+    inset 0 -1px 0 rgba(17, 17, 17, 0.01),
+    inset 1px 0 0 rgba(17, 17, 17, 0.018),
+    inset -1px 0 0 rgba(17, 17, 17, 0.016),
+    0 10px 24px rgba(15, 23, 42, 0.085) !important;
+  backdrop-filter: blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025) !important;
+  -webkit-backdrop-filter: blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025) !important;
 }
 
 html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"] {
-  border-color: rgba(0, 0, 0, 0.052) !important;
-  background: rgba(255, 255, 255, 0.16) !important;
-  backdrop-filter: blur(42px) saturate(1.18) !important;
-  -webkit-backdrop-filter: blur(42px) saturate(1.18) !important;
+  border-color: rgba(17, 17, 17, 0.04) !important;
+  background: rgba(255, 255, 255, 0.975) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(17, 17, 17, 0.08),
+    inset 0 -1px 0 rgba(17, 17, 17, 0.01),
+    inset 1px 0 0 rgba(17, 17, 17, 0.018),
+    inset -1px 0 0 rgba(17, 17, 17, 0.016),
+    0 10px 24px rgba(15, 23, 42, 0.08) !important;
+  backdrop-filter: blur(1160px) saturate(1.02) brightness(1.12) contrast(0.025) !important;
+  -webkit-backdrop-filter: blur(1160px) saturate(1.02) brightness(1.12) contrast(0.025) !important;
 }
 
 html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control:not(:disabled):not([aria-disabled="true"]):active,
 html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"]:not(:disabled):not([aria-disabled="true"]):active,
 html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-quick-action-chips"] button:not(:disabled):not([aria-disabled="true"]):active,
 html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-home-quick-actions"] button:not(:disabled):not([aria-disabled="true"]):active {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.985) !important;
 }
 
 html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"]:not(:disabled):not([aria-disabled="true"]):active {
-  background: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.99) !important;
 }
 
 .bm-action-feedback {

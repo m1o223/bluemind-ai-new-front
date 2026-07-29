@@ -754,22 +754,22 @@ export default function MobileChat() {
       : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]",
   );
   const mobileGlassControlStyle = isDark ? {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.014), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.022), 0 12px 28px rgba(0,0,0,0.22)",
-    backdropFilter: "blur(42px) saturate(1.18)",
-    WebkitBackdropFilter: "blur(42px) saturate(1.18)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.082), inset 0 -1px 0 rgba(255,255,255,0.01), inset 1px 0 0 rgba(255,255,255,0.018), inset -1px 0 0 rgba(255,255,255,0.016), 0 10px 24px rgba(0,0,0,0.24)",
+    backdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
+    WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
   } : {
-    boxShadow: "inset 0 1px 0 rgba(0,0,0,0.12), inset 0 -1px 0 rgba(0,0,0,0.014), inset 1px 0 0 rgba(0,0,0,0.026), inset -1px 0 0 rgba(0,0,0,0.022), 0 12px 28px rgba(0,0,0,0.22)",
-    backdropFilter: "blur(42px) saturate(1.18)",
-    WebkitBackdropFilter: "blur(42px) saturate(1.18)",
+    boxShadow: "inset 0 1px 0 rgba(17,17,17,0.082), inset 0 -1px 0 rgba(17,17,17,0.01), inset 1px 0 0 rgba(17,17,17,0.018), inset -1px 0 0 rgba(17,17,17,0.016), 0 10px 24px rgba(15,23,42,0.085)",
+    backdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
+    WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
   };
   const mobileGlassPanelStyle = isDark ? {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(255,255,255,0.016), inset 1px 0 0 rgba(255,255,255,0.032), inset -1px 0 0 rgba(255,255,255,0.026), 0 24px 68px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(42px) saturate(1.16)",
-    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.012), inset 1px 0 0 rgba(255,255,255,0.02), inset -1px 0 0 rgba(255,255,255,0.018), 0 18px 44px rgba(0,0,0,0.28)",
+    backdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
+    WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
   } : {
-    boxShadow: "inset 0 1px 0 rgba(0,0,0,0.14), inset 0 -1px 0 rgba(0,0,0,0.016), inset 1px 0 0 rgba(0,0,0,0.032), inset -1px 0 0 rgba(0,0,0,0.026), 0 24px 68px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(42px) saturate(1.16)",
-    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
+    boxShadow: "inset 0 1px 0 rgba(17,17,17,0.08), inset 0 -1px 0 rgba(17,17,17,0.01), inset 1px 0 0 rgba(17,17,17,0.018), inset -1px 0 0 rgba(17,17,17,0.016), 0 12px 30px rgba(15,23,42,0.08)",
+    backdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
+    WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
   };
   const mobileGlassMenuSelectedClass = isDark
     ? "bg-[rgba(106,106,106,0.16)] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
