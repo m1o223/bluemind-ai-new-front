@@ -661,6 +661,18 @@ html[data-theme="light"] .bm-mobile-glass-control .bm-icon-button {
   color: var(--bm-icon-primary) !important;
 }
 
+html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control,
+html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"] {
+  background: rgba(247, 243, 236, 0.82) !important;
+  backdrop-filter: blur(68px) saturate(1.22) contrast(0.96) !important;
+  -webkit-backdrop-filter: blur(68px) saturate(1.22) contrast(0.96) !important;
+}
+
+html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control:not(:disabled):not([aria-disabled="true"]):active,
+html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"]:not(:disabled):not([aria-disabled="true"]):active {
+  background: rgba(247, 243, 236, 0.90) !important;
+}
+
 .bm-action-feedback {
   color: currentColor;
   transform-origin: center;
