@@ -673,8 +673,8 @@ html[data-theme="light"] [data-testid="mobile-chat-page"] [data-testid="mobile-h
     inset 1px 0 0 rgba(17, 17, 17, 0.018),
     inset -1px 0 0 rgba(17, 17, 17, 0.016),
     0 10px 24px rgba(15, 23, 42, 0.085) !important;
-  backdrop-filter: blur(820px) saturate(1.02) brightness(1.12) contrast(0.04) !important;
-  -webkit-backdrop-filter: blur(820px) saturate(1.02) brightness(1.12) contrast(0.04) !important;
+  backdrop-filter: blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025) !important;
+  -webkit-backdrop-filter: blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025) !important;
 }
 
 html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Select AI mode"] {
@@ -686,8 +686,8 @@ html[data-theme="light"] [data-testid="mobile-chat-page"] button[aria-label="Sel
     inset 1px 0 0 rgba(17, 17, 17, 0.018),
     inset -1px 0 0 rgba(17, 17, 17, 0.016),
     0 10px 24px rgba(15, 23, 42, 0.08) !important;
-  backdrop-filter: blur(860px) saturate(1.02) brightness(1.12) contrast(0.04) !important;
-  -webkit-backdrop-filter: blur(860px) saturate(1.02) brightness(1.12) contrast(0.04) !important;
+  backdrop-filter: blur(1160px) saturate(1.02) brightness(1.12) contrast(0.025) !important;
+  -webkit-backdrop-filter: blur(1160px) saturate(1.02) brightness(1.12) contrast(0.025) !important;
 }
 
 html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control:not(:disabled):not([aria-disabled="true"]):active,
