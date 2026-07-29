@@ -759,7 +759,7 @@ export default function MobileChat() {
   const mobileSectionTitleClass = isDark ? "text-white/72" : "text-[var(--bm-text-muted)]";
   const mobileSubtleTextClass = isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]";
   const mobileMenuItemClass = (active = false) => cn(
-    "flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold",
+    "bm-mobile-menu-item flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold",
     typeClasses.body,
     iconClasses.iconText,
     active
