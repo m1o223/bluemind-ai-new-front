@@ -737,7 +737,7 @@ export default function MobileChat() {
     backdropFilter: "blur(42px) saturate(1.18)",
     WebkitBackdropFilter: "blur(42px) saturate(1.18)",
   } : {
-    boxShadow: "var(--bm-light-glass-shadow-soft)",
+    boxShadow: "inset 0 1px 0 rgba(0,0,0,0.12), inset 0 -1px 0 rgba(0,0,0,0.014), inset 1px 0 0 rgba(0,0,0,0.026), inset -1px 0 0 rgba(0,0,0,0.022), 0 12px 28px rgba(0,0,0,0.22)",
     backdropFilter: "blur(42px) saturate(1.18)",
     WebkitBackdropFilter: "blur(42px) saturate(1.18)",
   };
@@ -746,7 +746,7 @@ export default function MobileChat() {
     backdropFilter: "blur(42px) saturate(1.16)",
     WebkitBackdropFilter: "blur(42px) saturate(1.16)",
   } : {
-    boxShadow: "var(--bm-light-glass-shadow)",
+    boxShadow: "inset 0 1px 0 rgba(0,0,0,0.14), inset 0 -1px 0 rgba(0,0,0,0.016), inset 1px 0 0 rgba(0,0,0,0.032), inset -1px 0 0 rgba(0,0,0,0.026), 0 24px 68px rgba(0,0,0,0.3)",
     backdropFilter: "blur(42px) saturate(1.16)",
     WebkitBackdropFilter: "blur(42px) saturate(1.16)",
   };
