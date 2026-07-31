@@ -3279,20 +3279,26 @@ export default function MobileChat() {
           </motion.div>
         </div>
 
-        <div className="mt-3 flex items-center justify-center gap-1.5" aria-label="Feature carousel pages">
-          {mobileFeatureCards.map((card, index) => (
-            <motion.span
-              key={card.title}
-              className={cn(
-                "h-1.5 rounded-full",
-                activeFeatureIndex === index
-                  ? isDark ? "bg-white/80" : "bg-black/80"
-                  : isDark ? "bg-white/22" : "bg-black/18",
-              )}
-              animate={{ width: activeFeatureIndex === index ? 18 : 6, opacity: activeFeatureIndex === index ? 1 : 0.72 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            />
-          ))}
+        <div className="mt-3 flex items-center justify-center" aria-label="Feature carousel pages">
+          <div className="bm-mobile-glass-control bm-mobile-carousel-indicator" role="presentation">
+            {mobileFeatureCards.map((card, index) => {
+              const active = activeFeatureIndex === index;
+              return (
+                <motion.span
+                  key={card.title}
+                  className={cn("block rounded-full", isDark ? "bg-white" : "bg-black")}
+                  animate={{
+                    height: active ? 7 : 5,
+                    width: active ? 7 : 5,
+                    opacity: active ? 0.86 : 0.28,
+                    scale: active ? 1.08 : 1,
+                  }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  aria-hidden="true"
+                />
+              );
+            })}
+          </div>
         </div>
       </motion.section>
     );
