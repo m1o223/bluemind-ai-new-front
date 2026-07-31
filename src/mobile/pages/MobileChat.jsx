@@ -750,10 +750,8 @@ export default function MobileChat() {
   const mobileGlassControlClass =
     "bm-mobile-glass-control";
   const mobileGlassSelectorClass = cn(
-    "pointer-events-auto inline-flex h-10 max-w-[215px] items-center gap-2 rounded-full border px-4 text-sm font-bold capitalize backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.97]",
-    isDark
-      ? "border-white/[0.052] bg-[rgba(78,78,78,0.16)] text-white/90 active:bg-[rgba(96,96,96,0.18)]"
-      : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]",
+    "bm-mobile-glass-control bm-mobile-glass-selector pointer-events-auto text-sm font-bold capitalize",
+    isDark ? "text-white/90" : "text-[var(--bm-text-primary)]",
   );
   const mobileGlassControlStyle = isDark ? {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.082), inset 0 -1px 0 rgba(255,255,255,0.01), inset 1px 0 0 rgba(255,255,255,0.018), inset -1px 0 0 rgba(255,255,255,0.016), 0 10px 24px rgba(0,0,0,0.24)",
@@ -2996,12 +2994,9 @@ export default function MobileChat() {
                     whileTap={{ scale: 0.96 }}
                     transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
                     className={cn(
-                      "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border px-3.5 text-[13px] font-bold backdrop-blur-[42px] transition-colors",
-                      isDark
-                        ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 hover:bg-[rgba(96,96,96,0.2)] active:bg-[rgba(106,106,106,0.22)]"
-                        : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)] active:bg-[var(--bm-active-bg)]",
+                      "bm-mobile-glass-control bm-mobile-glass-chip shrink-0 text-[13px] font-bold",
+                      isDark ? "text-white/84" : "text-[var(--bm-text-primary)]",
                     )}
-                    style={mobileGlassControlStyle}
                     aria-label={action.label}
                   >
                     <ActionIcon className={cn("h-4 w-4 shrink-0 stroke-[2.3]", isDark ? "text-white/74" : "text-[var(--bm-icon-primary)]")} />
@@ -3091,12 +3086,9 @@ export default function MobileChat() {
               type="button"
               onClick={action.onClick}
               className={cn(
-                "inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-[13px] font-bold backdrop-blur-[42px] transition-all duration-200 ease-out active:scale-[0.98]",
-                isDark
-                  ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/84 active:bg-[rgba(106,106,106,0.22)]"
-                  : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]",
+                "bm-mobile-glass-control bm-mobile-glass-chip text-[13px] font-bold",
+                isDark ? "text-white/84" : "text-[var(--bm-text-primary)]",
               )}
-              style={mobileGlassControlStyle}
             >
               <ActionIcon className={cn("h-4 w-4 shrink-0 stroke-[2.2]", isDark ? "text-white/74" : "text-[var(--bm-icon-primary)]")} />
               <span className="whitespace-nowrap">{action.label}</span>
@@ -3403,14 +3395,6 @@ export default function MobileChat() {
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
-      <svg aria-hidden="true" className="pointer-events-none absolute h-0 w-0 overflow-hidden">
-        <filter id="bm-optical-glass-refraction" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.018 0.085" numOctaves="2" seed="11" result="noise" />
-          <feGaussianBlur in="noise" stdDeviation="0.42" result="softNoise" />
-          <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="6" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </svg>
-
       <header className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-40 flex h-16 items-center justify-between bg-transparent px-4 shadow-none backdrop-blur-0">
         <div className="flex w-12 items-center justify-start">
           <button
@@ -3430,7 +3414,6 @@ export default function MobileChat() {
             type="button"
             onClick={toggleResponseModeMenu}
             className={`pointer-events-auto ${mobileGlassSelectorClass}`}
-            style={mobileGlassControlStyle}
             aria-label="Select AI mode"
             aria-expanded={responseModeMenuOpen}
           >
@@ -3554,7 +3537,7 @@ export default function MobileChat() {
           <button
             type="button"
             onClick={startNewChat}
-            className={`pointer-events-auto ${mobileGlassControlClass} bm-optical-glass-test`}
+            className={`pointer-events-auto ${mobileGlassControlClass}`}
             aria-label="New chat"
           >
             <PenLine className="h-5 w-5" />
@@ -4039,12 +4022,6 @@ export default function MobileChat() {
                   type="button"
                   onClick={() => scrollToBottom("smooth")}
                   className="bm-mobile-glass-control pointer-events-auto"
-                  style={{
-                    width: 38,
-                    height: 38,
-                    minWidth: 38,
-                    minHeight: 38,
-                  }}
                   aria-label="Scroll to bottom"
                 >
                   <ArrowDown className="h-5 w-5 stroke-[2.35]" />
