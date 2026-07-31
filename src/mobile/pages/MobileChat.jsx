@@ -278,36 +278,7 @@ const IMAGE_TEMPLATES = [
   },
 ];
 
-function createIdeaThumbnail(seed, primary, secondary, accent) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
-      <defs>
-        <linearGradient id="bg-${seed}" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="${primary}"/>
-          <stop offset="58%" stop-color="${secondary}"/>
-          <stop offset="100%" stop-color="${accent}"/>
-        </linearGradient>
-        <radialGradient id="glow-${seed}" cx="35%" cy="25%" r="60%">
-          <stop offset="0%" stop-color="rgba(255,255,255,0.8)"/>
-          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-        </radialGradient>
-        <filter id="blur-${seed}" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="18"/>
-        </filter>
-      </defs>
-      <rect width="640" height="420" rx="44" fill="url(#bg-${seed})"/>
-      <circle cx="178" cy="92" r="160" fill="url(#glow-${seed})"/>
-      <circle cx="512" cy="92" r="92" fill="rgba(255,255,255,0.24)" filter="url(#blur-${seed})"/>
-      <rect x="64" y="238" width="236" height="118" rx="34" fill="rgba(255,255,255,0.24)"/>
-      <rect x="340" y="186" width="202" height="170" rx="42" fill="rgba(255,255,255,0.18)"/>
-      <path d="M84 310 C168 216 226 368 310 260 C390 160 456 314 560 214 L560 356 L84 356 Z" fill="rgba(15,23,42,0.22)"/>
-      <path d="M92 306 C170 232 228 348 306 272 C386 192 450 304 548 230" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="9" stroke-linecap="round"/>
-      <circle cx="450" cy="126" r="38" fill="rgba(255,255,255,0.78)"/>
-    </svg>
-  `;
-
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
+const createImageCategoryAsset = (slug) => `/assets/create-images/${slug}.webp`;
 
 const DESKTOP_IMAGE_IDEAS = [
   {
@@ -316,7 +287,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Stylized Art",
     description: "Create anime-style artwork from your idea.",
     prompt: "Create a polished anime-style portrait with cinematic lighting, expressive eyes, and a clean BlueMind-inspired blue atmosphere.",
-    thumbnail: createIdeaThumbnail("anime", "#7C3AED", "#2563EB", "#F472B6"),
+    thumbnail: createImageCategoryAsset("anime"),
   },
   {
     id: "portrait",
@@ -324,7 +295,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "People",
     description: "Generate a refined studio portrait.",
     prompt: "Create a refined professional portrait with soft studio lighting, realistic skin texture, sharp details, and a minimal background.",
-    thumbnail: createIdeaThumbnail("portrait", "var(--bm-text-primary)", "var(--bm-text-secondary)", "#D8B4FE"),
+    thumbnail: createImageCategoryAsset("portrait"),
   },
   {
     id: "mini-me",
@@ -332,7 +303,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Personalized",
     description: "Turn yourself into a playful mini scene.",
     prompt: "Create a realistic mini version of me sitting on my desk, highly detailed, playful scale, premium studio lighting, clean modern background.",
-    thumbnail: createIdeaThumbnail("mini-me", "#155E75", "#0E7490", "#FBBF24"),
+    thumbnail: createImageCategoryAsset("mini-me"),
   },
   {
     id: "research",
@@ -340,7 +311,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Knowledge",
     description: "Visualize notes, data, and discoveries.",
     prompt: "Create a futuristic research board visual with notes, diagrams, data cards, and a calm blue glassmorphism interface.",
-    thumbnail: createIdeaThumbnail("research", "var(--bm-primary)", "#2563EB", "#22D3EE"),
+    thumbnail: createImageCategoryAsset("research"),
   },
   {
     id: "recipe",
@@ -348,7 +319,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Food",
     description: "Design an editorial recipe visual.",
     prompt: "Create a premium recipe card image with fresh ingredients, elegant plating, soft natural light, and clean editorial composition.",
-    thumbnail: createIdeaThumbnail("recipe", "#166534", "#65A30D", "#FDBA74"),
+    thumbnail: createImageCategoryAsset("recipe"),
   },
   {
     id: "cyberpunk",
@@ -356,7 +327,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Sci-Fi",
     description: "Build a neon cinematic future scene.",
     prompt: "Create a futuristic cyberpunk city scene with neon blue accents, rain reflections, cinematic depth, and clean high-end detail.",
-    thumbnail: createIdeaThumbnail("cyberpunk", "#020617", "#7C2D12", "#06B6D4"),
+    thumbnail: createImageCategoryAsset("cyberpunk"),
   },
   {
     id: "fantasy",
@@ -364,7 +335,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Worldbuilding",
     description: "Create magical landscapes and worlds.",
     prompt: "Create a fantasy landscape with glowing blue crystals, misty mountains, cinematic light, and an elegant magical atmosphere.",
-    thumbnail: createIdeaThumbnail("fantasy", "#312E81", "#7E22CE", "#A7F3D0"),
+    thumbnail: createImageCategoryAsset("fantasy"),
   },
   {
     id: "realistic-photo",
@@ -372,7 +343,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Photography",
     description: "Make a natural, camera-real image.",
     prompt: "Create a realistic photo with natural light, believable details, true-to-life textures, shallow depth of field, and professional composition.",
-    thumbnail: createIdeaThumbnail("realistic-photo", "var(--bm-text-secondary)", "var(--bm-text-secondary)", "var(--bm-bg-elevated)"),
+    thumbnail: createImageCategoryAsset("realistic-photo"),
   },
   {
     id: "cartoon",
@@ -380,7 +351,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Illustration",
     description: "Make a friendly polished cartoon.",
     prompt: "Create a friendly cartoon character with expressive features, modern colors, clean outlines, and a polished app-style finish.",
-    thumbnail: createIdeaThumbnail("cartoon", "var(--bm-warning)", "var(--bm-warning)", "#38BDF8"),
+    thumbnail: createImageCategoryAsset("cartoon"),
   },
   {
     id: "logo",
@@ -388,7 +359,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Branding",
     description: "Explore a clean brand mark concept.",
     prompt: "Create a clean modern logo concept with a premium AI brand feeling, simple geometry, blue accent color, and strong scalability.",
-    thumbnail: createIdeaThumbnail("logo", "var(--bm-text-primary)", "var(--bm-primary)", "#E0F2FE"),
+    thumbnail: createImageCategoryAsset("logo"),
   },
   {
     id: "architecture",
@@ -396,7 +367,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Spaces",
     description: "Imagine a premium building or interior.",
     prompt: "Create a modern architectural concept with elegant structure, warm interior lighting, clean materials, dramatic scale, and magazine-quality composition.",
-    thumbnail: createIdeaThumbnail("architecture", "var(--bm-border-strong)03C", "#78716C", "#FDE68A"),
+    thumbnail: createImageCategoryAsset("architecture"),
   },
   {
     id: "product-mockup",
@@ -404,7 +375,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Commerce",
     description: "Stage a product like a launch image.",
     prompt: "Create a premium product mockup on a clean studio set, refined lighting, realistic shadows, high-end materials, and a polished commercial look.",
-    thumbnail: createIdeaThumbnail("product-mockup", "#0F766E", "#14B8A6", "#CCFBF1"),
+    thumbnail: createImageCategoryAsset("product-mockup"),
   },
   {
     id: "nature",
@@ -412,7 +383,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Landscape",
     description: "Generate cinematic natural scenery.",
     prompt: "Create a cinematic nature scene with rich atmosphere, detailed plants, natural light, depth, and a peaceful high-resolution landscape feel.",
-    thumbnail: createIdeaThumbnail("nature", "#14532D", "var(--bm-success)", "#BAE6FD"),
+    thumbnail: createImageCategoryAsset("nature"),
   },
   {
     id: "character-design",
@@ -420,7 +391,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Characters",
     description: "Design a memorable original character.",
     prompt: "Create an original character design sheet with expressive personality, detailed outfit, strong silhouette, polished lighting, and concept-art quality.",
-    thumbnail: createIdeaThumbnail("character-design", "#581C87", "#C026D3", "#FDE68A"),
+    thumbnail: createImageCategoryAsset("character-design"),
   },
   {
     id: "concept-art",
@@ -428,7 +399,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Creative Direction",
     description: "Explore a cinematic visual direction.",
     prompt: "Create cinematic concept art with dramatic composition, rich atmosphere, layered depth, premium lighting, and a clear visual story.",
-    thumbnail: createIdeaThumbnail("concept-art", "#1E1B4B", "#4338CA", "#FB7185"),
+    thumbnail: createImageCategoryAsset("concept-art"),
   },
   {
     id: "action-figure",
@@ -436,7 +407,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Collectibles",
     description: "Turn an idea into a collectible toy render.",
     prompt: "Create a premium action figure product render with detailed packaging, dramatic studio lighting, polished plastic materials, and a collectible display feel.",
-    thumbnail: createIdeaThumbnail("action-figure", "#172554", "#2563EB", "#F97316"),
+    thumbnail: createImageCategoryAsset("action-figure"),
   },
   {
     id: "pixel-art",
@@ -444,7 +415,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Game Art",
     description: "Create crisp retro-inspired game visuals.",
     prompt: "Create polished pixel art with a clear silhouette, charming details, limited palette, clean lighting, and a premium retro game aesthetic.",
-    thumbnail: createIdeaThumbnail("pixel-art", "#111827", "#1D4ED8", "#FACC15"),
+    thumbnail: createImageCategoryAsset("pixel-art"),
   },
   {
     id: "fashion",
@@ -452,7 +423,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Style",
     description: "Explore editorial outfits and looks.",
     prompt: "Create a high-end fashion editorial image with refined styling, elegant fabrics, confident pose, premium lighting, and a modern BlueMind-inspired mood.",
-    thumbnail: createIdeaThumbnail("fashion", "#0F172A", "#475569", "#93C5FD"),
+    thumbnail: createImageCategoryAsset("fashion"),
   },
   {
     id: "interior-design",
@@ -460,7 +431,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Home",
     description: "Design calm premium living spaces.",
     prompt: "Create a premium interior design concept with calm materials, soft natural light, clean furniture, thoughtful spacing, and elegant blue-gray accents.",
-    thumbnail: createIdeaThumbnail("interior-design", "#1E3A5F", "#64748B", "#BFDBFE"),
+    thumbnail: createImageCategoryAsset("interior-design"),
   },
   {
     id: "icons",
@@ -468,7 +439,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "UI Assets",
     description: "Create a consistent icon set.",
     prompt: "Create a professional app icon set with consistent stroke, rounded geometry, clean spacing, subtle blue accents, and a premium UI product feel.",
-    thumbnail: createIdeaThumbnail("icons", "#0B1220", "#2563EB", "#E0F2FE"),
+    thumbnail: createImageCategoryAsset("icons"),
   },
   {
     id: "sticker-style",
@@ -476,7 +447,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Social",
     description: "Make expressive sticker artwork.",
     prompt: "Create a playful premium sticker-style illustration with clean outlines, expressive shape language, soft shading, and a transparent-background-ready composition.",
-    thumbnail: createIdeaThumbnail("sticker-style", "#075985", "#38BDF8", "#FDE68A"),
+    thumbnail: createImageCategoryAsset("sticker-style"),
   },
   {
     id: "food-photography",
@@ -484,7 +455,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Photography",
     description: "Create appetizing food visuals.",
     prompt: "Create premium food photography with natural texture, appetizing composition, soft restaurant lighting, realistic ingredients, and editorial polish.",
-    thumbnail: createIdeaThumbnail("food-photography", "#7C2D12", "#EA580C", "#FED7AA"),
+    thumbnail: createImageCategoryAsset("food-photography"),
   },
   {
     id: "landscape",
@@ -492,7 +463,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Scenery",
     description: "Build cinematic outdoor worlds.",
     prompt: "Create a cinematic landscape with atmospheric depth, elegant light, realistic terrain, balanced composition, and a premium calm visual tone.",
-    thumbnail: createIdeaThumbnail("landscape", "#0F3A4A", "#2563EB", "#BAE6FD"),
+    thumbnail: createImageCategoryAsset("landscape"),
   },
   {
     id: "poster-design",
@@ -500,7 +471,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Graphic Design",
     description: "Compose bold visual posters.",
     prompt: "Create a premium poster design with strong hierarchy, clean typography zones, cinematic focal image, refined spacing, and BlueMind blue accents.",
-    thumbnail: createIdeaThumbnail("poster-design", "#111827", "#1E40AF", "#F8FAFC"),
+    thumbnail: createImageCategoryAsset("poster-design"),
   },
   {
     id: "album-cover",
@@ -508,7 +479,7 @@ const DESKTOP_IMAGE_IDEAS = [
     category: "Music",
     description: "Create atmospheric cover art.",
     prompt: "Create premium album cover artwork with strong mood, clean composition, memorable visual symbol, refined lighting, and elegant modern typography space.",
-    thumbnail: createIdeaThumbnail("album-cover", "#020617", "#334155", "#60A5FA"),
+    thumbnail: createImageCategoryAsset("album-cover"),
   },
 ];
 
@@ -553,6 +524,8 @@ function MobileImageGalleryTile({ item, index, selected, onSelect, loopHidden = 
           className="absolute inset-x-0 -top-4 h-[calc(100%+32px)] w-full object-cover transition-transform duration-500 group-active:scale-[1.03]"
           style={{ y: imageY }}
           draggable="false"
+          loading={index < 6 ? "eager" : "lazy"}
+          decoding="async"
         />
 
         <AnimatePresence>
