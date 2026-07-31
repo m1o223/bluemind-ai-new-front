@@ -1262,13 +1262,19 @@ html[data-theme="light"] :where(input, textarea)::placeholder {
 }
 
 .bm-mobile-ai-menu-backdrop {
-  background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(18px) saturate(0.92);
-  -webkit-backdrop-filter: blur(18px) saturate(0.92);
+  background: transparent !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
 }
 
 html[data-theme="light"] .bm-mobile-ai-menu-backdrop {
-  background: rgba(0, 0, 0, 0.28);
+  background: transparent !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
 }
 
 .bm-mobile-ai-menu {
