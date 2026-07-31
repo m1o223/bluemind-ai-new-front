@@ -795,6 +795,7 @@ export default function MobileChat() {
       cta: "Open",
       path: "/mobile/write-edit",
       icon: PenLine,
+      image: "/assets/home-carousel/writing-mode.png",
       accent: "rgba(147,197,253,0.72)",
       glow: "rgba(96,165,250,0.2)",
     },
@@ -804,6 +805,7 @@ export default function MobileChat() {
       cta: "Open",
       path: "/mobile/reminders",
       icon: Bell,
+      image: "/assets/home-carousel/reminders.png",
       accent: "rgba(191,219,254,0.76)",
       glow: "rgba(59,130,246,0.18)",
     },
@@ -813,6 +815,7 @@ export default function MobileChat() {
       cta: "Explore",
       path: "/mobile/schedule",
       icon: Clipboard,
+      image: "/assets/home-carousel/schedule.png",
       accent: "rgba(56,189,248,0.72)",
       glow: "rgba(56,189,248,0.18)",
     },
@@ -822,6 +825,7 @@ export default function MobileChat() {
       cta: "Try Now",
       path: "/mobile/ai-plans",
       icon: Sparkles,
+      image: "/assets/home-carousel/ai-plans.png",
       accent: "rgba(125,211,252,0.72)",
       glow: "rgba(14,165,233,0.2)",
     },
@@ -3211,7 +3215,6 @@ export default function MobileChat() {
             onDragEnd={handleFeatureCarouselDragEnd}
           >
             {carouselCards.map((card, index) => {
-              const FeatureIcon = card.icon;
               return (
                 <article
                   key={`${card.title}-${index}`}
@@ -3231,18 +3234,21 @@ export default function MobileChat() {
                   />
                   <div
                     className={cn(
-                      "mr-3 flex h-full w-[34%] min-w-[92px] shrink-0 items-center justify-center rounded-[24px] border",
+                      "mr-3 flex h-full w-[34%] min-w-[92px] shrink-0 items-center justify-center overflow-hidden rounded-[24px] border p-1.5",
                       isDark ? "border-white/[0.045] bg-[rgba(255,255,255,0.028)]" : "border-[var(--bm-border)] bg-[var(--bm-hover-bg)]",
                     )}
                     style={{
                       boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.02)",
                     }}
                   >
-                    <div className="relative flex h-[72px] w-[72px] items-center justify-center">
-                      <span className={cn("absolute inset-0 rounded-full border", isDark ? "border-white/[0.045]" : "border-[var(--bm-border)]")} />
-                      <span className="absolute h-12 w-12 rounded-full" style={{ backgroundColor: card.glow }} />
-                      <FeatureIcon className="relative h-9 w-9 stroke-[2.2]" style={{ color: card.accent }} />
-                    </div>
+                    <img
+                      src={card.image}
+                      alt=""
+                      aria-hidden="true"
+                      loading="eager"
+                      draggable="false"
+                      className="h-full w-full object-contain"
+                    />
                   </div>
 
                   <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center">
