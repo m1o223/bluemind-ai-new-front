@@ -739,7 +739,7 @@ export default function MobileChat() {
   const sendLockRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
   const loadedConversationRef = useRef(null);
-  const featureCarouselCount = 5;
+  const featureCarouselCount = 4;
 
   const activeConversationId = searchParams.get("conversation");
   const surfaceColor = "var(--bm-bg-app)";
@@ -790,29 +790,11 @@ export default function MobileChat() {
 
   const mobileFeatureCards = useMemo(() => [
     {
-      title: "Smart Hub",
-      description: "Organize BlueMind tools in one intelligent workspace.",
-      cta: "Explore",
-      path: "/mobile/smart-hub",
-      icon: Brain,
-      accent: "rgba(96,165,250,0.72)",
-      glow: "rgba(59,130,246,0.22)",
-    },
-    {
-      title: "AI Plans",
-      description: "Turn goals into clear steps and smarter routines.",
-      cta: "Try Now",
-      path: "/mobile/ai-plans",
-      icon: Sparkles,
-      accent: "rgba(125,211,252,0.72)",
-      glow: "rgba(14,165,233,0.2)",
-    },
-    {
-      title: "Learning",
-      description: "Study faster with guided lessons and focused help.",
+      title: "Writing Mode",
+      description: "Write, rewrite and refine text with focused AI help.",
       cta: "Open",
-      path: "/mobile/learning",
-      icon: BookOpen,
+      path: "/mobile/write-edit",
+      icon: PenLine,
       accent: "rgba(147,197,253,0.72)",
       glow: "rgba(96,165,250,0.2)",
     },
@@ -833,6 +815,15 @@ export default function MobileChat() {
       icon: Clipboard,
       accent: "rgba(56,189,248,0.72)",
       glow: "rgba(56,189,248,0.18)",
+    },
+    {
+      title: "AI Plans",
+      description: "Turn goals into clear steps and smarter routines.",
+      cta: "Try Now",
+      path: "/mobile/ai-plans",
+      icon: Sparkles,
+      accent: "rgba(125,211,252,0.72)",
+      glow: "rgba(14,165,233,0.2)",
     },
   ], []);
 
