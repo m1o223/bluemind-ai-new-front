@@ -3403,6 +3403,14 @@ export default function MobileChat() {
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
+      <svg aria-hidden="true" className="pointer-events-none absolute h-0 w-0 overflow-hidden">
+        <filter id="bm-optical-glass-refraction" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.018 0.085" numOctaves="2" seed="11" result="noise" />
+          <feGaussianBlur in="noise" stdDeviation="0.42" result="softNoise" />
+          <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </svg>
+
       <header className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-40 flex h-16 items-center justify-between bg-transparent px-4 shadow-none backdrop-blur-0">
         <div className="flex w-12 items-center justify-start">
           <button
@@ -3546,7 +3554,7 @@ export default function MobileChat() {
           <button
             type="button"
             onClick={startNewChat}
-            className={`pointer-events-auto ${mobileGlassControlClass}`}
+            className={`pointer-events-auto ${mobileGlassControlClass} bm-optical-glass-test`}
             aria-label="New chat"
           >
             <PenLine className="h-5 w-5" />
