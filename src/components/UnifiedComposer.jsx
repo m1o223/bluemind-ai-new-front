@@ -96,6 +96,7 @@ export default function UnifiedComposer({
   actionMenu,
   pendingPanel,
   testId = "chat-input",
+  glassTone = "default",
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const internalInputRef = useRef(null);
@@ -117,15 +118,27 @@ export default function UnifiedComposer({
     backdropFilter: "blur(42px) saturate(1.18)",
     WebkitBackdropFilter: "blur(42px) saturate(1.18)",
   };
-  const mobileComposerGlassStyle = isDark ? {
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(255,255,255,0.016), inset 1px 0 0 rgba(255,255,255,0.032), inset -1px 0 0 rgba(255,255,255,0.026), 0 20px 58px rgba(0,0,0,0.28)",
-    backdropFilter: "blur(42px) saturate(1.16)",
-    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
-  } : {
-    boxShadow: "var(--bm-light-glass-shadow)",
-    backdropFilter: "blur(42px) saturate(1.16)",
-    WebkitBackdropFilter: "blur(42px) saturate(1.16)",
-  };
+  const mobileComposerGlassStyle = glassTone === "chat-light"
+    ? isDark ? {
+      background: "rgba(0,0,0,0.86)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.012), inset 1px 0 0 rgba(255,255,255,0.02), inset -1px 0 0 rgba(255,255,255,0.018), 0 8px 18px rgba(0,0,0,0.08)",
+      backdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
+      WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
+    } : {
+      background: "rgba(255,255,255,0.86)",
+      boxShadow: "inset 0 1px 0 rgba(17,17,17,0.08), inset 0 -1px 0 rgba(17,17,17,0.01), inset 1px 0 0 rgba(17,17,17,0.018), inset -1px 0 0 rgba(17,17,17,0.016), 0 8px 18px rgba(15,23,42,0.032)",
+      backdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
+      WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
+    }
+    : isDark ? {
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(255,255,255,0.016), inset 1px 0 0 rgba(255,255,255,0.032), inset -1px 0 0 rgba(255,255,255,0.026), 0 20px 58px rgba(0,0,0,0.28)",
+      backdropFilter: "blur(42px) saturate(1.16)",
+      WebkitBackdropFilter: "blur(42px) saturate(1.16)",
+    } : {
+      boxShadow: "var(--bm-light-glass-shadow)",
+      backdropFilter: "blur(42px) saturate(1.16)",
+      WebkitBackdropFilter: "blur(42px) saturate(1.16)",
+    };
 
   const normalizedAttachments = useMemo(
     () => attachments.filter(Boolean),
@@ -247,9 +260,13 @@ export default function UnifiedComposer({
   if (isMobile) {
     const mobileBoxClasses = cn(
       "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
-      isDark
-        ? "rounded-[28px] border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 py-2 text-white/90 backdrop-blur-[42px] focus-within:border-white/[0.075] focus-within:bg-[rgba(96,96,96,0.2)]"
-        : "rounded-[28px] border-[var(--bm-border)] bg-[var(--bm-bg-input)] px-3 py-2 text-[var(--bm-text-primary)] backdrop-blur-[42px] focus-within:border-[var(--bm-hover-border)] focus-within:bg-[var(--bm-bg-card)]",
+      glassTone === "chat-light"
+        ? isDark
+          ? "rounded-[28px] border-white/[0.055] px-3 py-2 text-white/90 focus-within:border-white/[0.075]"
+          : "rounded-[28px] border-[var(--bm-border)] px-3 py-2 text-[var(--bm-text-primary)] focus-within:border-[var(--bm-hover-border)]"
+        : isDark
+          ? "rounded-[28px] border-white/[0.055] bg-[rgba(78,78,78,0.18)] px-3 py-2 text-white/90 backdrop-blur-[42px] focus-within:border-white/[0.075] focus-within:bg-[rgba(96,96,96,0.2)]"
+          : "rounded-[28px] border-[var(--bm-border)] bg-[var(--bm-bg-input)] px-3 py-2 text-[var(--bm-text-primary)] backdrop-blur-[42px] focus-within:border-[var(--bm-hover-border)] focus-within:bg-[var(--bm-bg-card)]",
       hasAttachments ? "min-h-[140px]" : "min-h-[84px]",
     );
 

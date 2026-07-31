@@ -3043,6 +3043,7 @@ export default function MobileChat() {
         onSendAction={isChatSending ? stopChatGeneration : isListening ? stopVoiceInput : undefined}
         isDark={isDark}
         variant="mobile"
+        glassTone="chat-light"
         minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
         maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
         testId="mobile-chat-input"
