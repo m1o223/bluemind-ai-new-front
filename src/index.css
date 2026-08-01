@@ -736,6 +736,55 @@ html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-contro
     0 6px 14px rgba(0, 0, 0, 0.06) !important;
 }
 
+html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="unified-composer-box"] {
+  border-color: rgba(255, 255, 255, 0.046) !important;
+  background: rgba(38, 38, 38, 0.97) !important;
+}
+
+html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-plain-control,
+html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-plain-control:not(:disabled):not([aria-disabled="true"]):active {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-plain-control svg {
+  width: 21px !important;
+  height: 21px !important;
+  color: #ffffff !important;
+  stroke-width: 2.55;
+}
+
+html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-send-control {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(25, 59, 104, 0.78) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.10),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(255, 255, 255, 0.03),
+    0 8px 18px rgba(0, 0, 0, 0.18) !important;
+}
+
+html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-send-control:not(:disabled):not([aria-disabled="true"]):active {
+  background: rgba(25, 59, 104, 0.88) !important;
+}
+
+html[data-theme="dark"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-send-control svg {
+  width: 20px !important;
+  height: 21px !important;
+  color: #ffffff !important;
+  stroke-width: 3;
+  transform: translateY(-1px) scaleY(1.12);
+}
+
 html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-control {
   border-color: rgba(17, 17, 17, 0.046) !important;
   background: rgba(255, 255, 255, 0.97) !important;

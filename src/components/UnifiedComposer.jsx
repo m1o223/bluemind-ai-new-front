@@ -120,7 +120,7 @@ export default function UnifiedComposer({
   };
   const mobileComposerGlassStyle = glassTone === "chat-light"
     ? isDark ? {
-      background: "rgba(0,0,0,0.86)",
+      background: "rgba(38,38,38,0.97)",
       boxShadow: "inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.012), inset 1px 0 0 rgba(255,255,255,0.02), inset -1px 0 0 rgba(255,255,255,0.018), 0 8px 18px rgba(0,0,0,0.08)",
       backdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
       WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
@@ -200,7 +200,7 @@ export default function UnifiedComposer({
       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
-        isMobile ? "bm-mobile-glass-control" : "h-11 w-11",
+        isMobile ? "bm-mobile-glass-control bm-chat-composer-plain-control bm-chat-composer-add-control" : "h-11 w-11",
         isMobile
           ? ""
           : useSubtleAddButton
@@ -223,7 +223,7 @@ export default function UnifiedComposer({
       onClick={onVoice}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
-        isMobile ? "bm-mobile-glass-control" : "h-[38px] w-[38px]",
+        isMobile ? "bm-mobile-glass-control bm-chat-composer-plain-control bm-chat-composer-voice-control" : "h-[38px] w-[38px]",
         isMobile
           ? ""
           : isListening
@@ -253,7 +253,7 @@ export default function UnifiedComposer({
       sendLabel={sendLabel}
       stopLabel={stopLabel}
       compact={isMobile}
-      className={cn(isMobile ? "ml-0.5" : "ml-1.5 h-[42px] w-[42px]")}
+      className={cn(isMobile ? "bm-chat-composer-send-control ml-0.5" : "ml-1.5 h-[42px] w-[42px]")}
     />
   );
 
