@@ -769,8 +769,6 @@ export default function MobileChat() {
       path: "/mobile/write-edit",
       icon: PenLine,
       image: "/assets/home-carousel/writing-mode.png",
-      accent: "rgba(147,197,253,0.72)",
-      glow: "rgba(96,165,250,0.2)",
     },
     {
       title: "Reminders",
@@ -779,8 +777,6 @@ export default function MobileChat() {
       path: "/mobile/reminders",
       icon: Bell,
       image: "/assets/home-carousel/reminders.png",
-      accent: "rgba(191,219,254,0.76)",
-      glow: "rgba(59,130,246,0.18)",
     },
     {
       title: "Schedule",
@@ -789,8 +785,6 @@ export default function MobileChat() {
       path: "/mobile/schedule",
       icon: Clipboard,
       image: "/assets/home-carousel/schedule.png",
-      accent: "rgba(56,189,248,0.72)",
-      glow: "rgba(56,189,248,0.18)",
     },
     {
       title: "AI Plans",
@@ -799,8 +793,6 @@ export default function MobileChat() {
       path: "/mobile/ai-plans",
       icon: Sparkles,
       image: "/assets/home-carousel/ai-plans.png",
-      accent: "rgba(125,211,252,0.72)",
-      glow: "rgba(14,165,233,0.2)",
     },
   ], []);
 
@@ -3193,52 +3185,39 @@ export default function MobileChat() {
                   key={`${card.title}-${index}`}
                   data-feature-card="true"
                   className={cn(
-                    "relative flex h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border px-4 py-3 backdrop-blur-[42px]",
+                    "relative h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border",
                     isDark
-                      ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/90"
-                      : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+                      ? "border-white/[0.055] text-white/90"
+                      : "border-[var(--bm-border)] text-[var(--bm-text-primary)]",
                   )}
-                  style={mobileGlassPanelStyle}
                 >
-                  <div
-                    className="absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl"
-                    style={{ backgroundColor: card.glow }}
+                  <img
+                    src={card.image}
+                    alt=""
                     aria-hidden="true"
+                    loading="eager"
+                    draggable="false"
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <div
-                    className={cn(
-                      "mr-3 flex h-full w-[34%] min-w-[92px] shrink-0 items-center justify-center overflow-hidden rounded-[24px] border p-1.5",
-                      isDark ? "border-white/[0.045] bg-[rgba(255,255,255,0.028)]" : "border-[var(--bm-border)] bg-[var(--bm-hover-bg)]",
-                    )}
-                    style={{
-                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1), inset 1px 0 0 rgba(255,255,255,0.026), inset -1px 0 0 rgba(255,255,255,0.02)",
-                    }}
-                  >
-                    <img
-                      src={card.image}
-                      alt=""
-                      aria-hidden="true"
-                      loading="eager"
-                      draggable="false"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
+                  <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.58)_0%,rgba(0,0,0,0.34)_42%,rgba(0,0,0,0.08)_72%,rgba(0,0,0,0.02)_100%)]" aria-hidden="true" />
 
-                  <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center">
-                    <h3 className={cn("truncate text-base font-black tracking-tight", isDark ? "text-white/90" : "text-[var(--bm-text-primary)]")}>{card.title}</h3>
-                    <p className={cn("mt-1 line-clamp-2 text-[12px] font-semibold leading-4", isDark ? "text-[#B7B7B7]" : "text-[var(--bm-text-secondary)]")}>
+                  <div className="relative z-10 flex h-full max-w-[58%] flex-col px-4 py-3">
+                    <h3 className="truncate text-base font-black tracking-tight text-white">{card.title}</h3>
+                    <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-4 text-white/78">
                       {card.description}
                     </p>
+                  </div>
+
+                  <div className="absolute bottom-3 right-3 z-10">
                     <button
                       type="button"
                       onClick={() => goTo(card.path)}
                       className={cn(
-                        "mt-2 inline-flex h-8 w-fit items-center gap-1 rounded-full border px-3 text-[12px] font-black transition-all active:scale-95",
+                        "bm-mobile-glass-control bm-mobile-glass-chip inline-flex h-8 min-h-8 w-fit min-w-0 items-center gap-1 px-3 text-[12px] font-black transition-all active:scale-95",
                         isDark
-                          ? "border-white/[0.055] bg-[rgba(96,96,96,0.16)] text-white/88 active:bg-[rgba(106,106,106,0.2)]"
-                          : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-primary)] active:bg-[var(--bm-active-bg)]",
+                          ? "text-white/90"
+                          : "text-[var(--bm-text-primary)]",
                       )}
-                      style={mobileGlassControlStyle}
                     >
                       {card.cta}
                       <ChevronRight className="h-3.5 w-3.5" />
