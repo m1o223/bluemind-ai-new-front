@@ -55,6 +55,8 @@ const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,
 const mobileBlueGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
+const mobilePrimaryButtonGlassClass = "border-[#7DB7FF]/[0.28] bg-[rgba(47,125,246,0.74)] !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-1px_0_rgba(0,0,0,0.08),0_12px_28px_rgba(47,125,246,0.14)] backdrop-blur-[24px]";
+const mobileNeutralButtonGlassClass = "border-black/[0.06] bg-white/[0.72] text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-[24px]";
 
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_NAMES = [
@@ -305,6 +307,15 @@ function addDays(date, amount) {
   return next;
 }
 
+function addMonthsClamped(date, amount) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + amount;
+  const day = date.getDate();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  return startOfDay(new Date(year, month, Math.min(day, lastDay)));
+}
+
 function toDateKey(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -403,7 +414,7 @@ function ScheduleActionSheet({ open, isDark, onClose, onManual, onAi }) {
                 <PenLine className={iconClasses.card} />
                 <span>Create manually</span>
               </button>
-              <button type="button" onClick={onAi} className="flex min-h-[58px] w-full items-center gap-3 rounded-3xl bg-[var(--bm-primary)] px-4 text-left font-bold text-white active:opacity-90">
+              <button type="button" onClick={onAi} className="flex min-h-[58px] w-full items-center gap-3 rounded-3xl bg-[var(--bm-primary)] px-4 text-left font-bold !text-white active:opacity-90">
                 <Sparkles className={iconClasses.card} />
                 <span>Let BlueMind create it</span>
               </button>
@@ -566,7 +577,7 @@ function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button type="button" onClick={onClose} className={cn("h-12 rounded-2xl font-bold", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>Cancel</button>
-              <button type="submit" className="h-12 rounded-2xl bg-[var(--bm-primary)] font-bold text-white">Create</button>
+              <button type="submit" className="h-12 rounded-2xl bg-[var(--bm-primary)] font-bold !text-white">Create</button>
             </div>
       </form>
     </MobileModalShell>
@@ -1075,6 +1086,7 @@ export default function MobileScheduleDashboard() {
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
   const [viewMode, setViewMode] = useState("home");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [calendarSwipeDirection, setCalendarSwipeDirection] = useState(0);
   const [events, setEvents] = useState(readEvents);
   const [schedules, setSchedules] = useState(readScheduleLibrary);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1324,6 +1336,27 @@ export default function MobileScheduleDashboard() {
     setAiOpen(true);
   };
 
+  const moveCalendarMonth = (direction) => {
+    setCalendarSwipeDirection(direction);
+    setSelectedDate((current) => addMonthsClamped(current, direction));
+  };
+
+  const handleCalendarDragEnd = (_event, info) => {
+    const swipeDistance = info.offset.x;
+    const swipeVelocity = info.velocity.x;
+    const distanceThreshold = 56;
+    const velocityThreshold = 420;
+
+    if (swipeDistance <= -distanceThreshold || swipeVelocity <= -velocityThreshold) {
+      moveCalendarMonth(1);
+      return;
+    }
+
+    if (swipeDistance >= distanceThreshold || swipeVelocity >= velocityThreshold) {
+      moveCalendarMonth(-1);
+    }
+  };
+
   const createManualEvent = () => {
     saveEvent(manualForm);
     setManualOpen(false);
@@ -1404,7 +1437,7 @@ export default function MobileScheduleDashboard() {
         className={cn(
           "relative flex min-h-[50px] flex-col items-center justify-center rounded-[18px] transition-colors duration-150 ease-out",
           selected
-            ? "border border-[#2F7DF6]/[0.26] bg-[rgba(47,125,246,0.92)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_10px_22px_rgba(47,125,246,0.24)]"
+            ? "rounded-[22px] border border-[var(--bm-primary)] bg-[var(--bm-primary)] !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
             : isDark
               ? "text-white active:bg-white/[0.08]"
               : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
@@ -1554,16 +1587,25 @@ export default function MobileScheduleDashboard() {
           transition={{ duration: 0.34, ease: [0.25, 1, 0.5, 1] }}
           className="mt-1.5 overflow-hidden"
           style={{ willChange: "height" }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.16}
+          onDragEnd={handleCalendarDragEnd}
         >
-          <motion.div
-            initial={false}
-            animate={{ y: calendarOffset }}
-            transition={{ duration: 0.34, ease: [0.25, 1, 0.5, 1] }}
-            className="grid grid-cols-7 gap-1.5"
-            style={{ willChange: "transform" }}
-          >
-            {monthDates.map(renderCalendarDay)}
-          </motion.div>
+          <AnimatePresence initial={false} custom={calendarSwipeDirection} mode="popLayout">
+            <motion.div
+              key={`${selectedDate.getFullYear()}-${selectedDate.getMonth()}`}
+              custom={calendarSwipeDirection}
+              initial={(direction) => ({ x: direction > 0 ? 72 : direction < 0 ? -72 : 0, y: calendarOffset, opacity: direction ? 0.82 : 1 })}
+              animate={{ x: 0, y: calendarOffset, opacity: 1 }}
+              exit={(direction) => ({ x: direction > 0 ? -72 : direction < 0 ? 72 : 0, opacity: direction ? 0.82 : 1 })}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="grid grid-cols-7 gap-1.5"
+              style={{ willChange: "transform" }}
+            >
+              {monthDates.map(renderCalendarDay)}
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       </section>
 
@@ -1613,23 +1655,21 @@ export default function MobileScheduleDashboard() {
           </>
         ) : (
           <div className={cn("rounded-[30px] border p-4 text-center", isDark ? "border-white/10 bg-white/[0.05]" : "border-white bg-white shadow-sm")}>
-            <div className="mx-auto flex h-[168px] max-w-[238px] items-end justify-center overflow-hidden">
-              <img
-                src="/bluemind-schedule-empty-character.jpg"
-                alt="BlueMind relaxing on a beach chair"
-                className="h-full w-full object-contain mix-blend-multiply"
-                draggable={false}
-              />
-            </div>
+            <img
+              src="/bluemind-schedule-empty-character.jpg"
+              alt="BlueMind relaxing on a beach chair"
+              className="mx-auto h-[168px] max-w-[238px] object-contain mix-blend-multiply"
+              draggable={false}
+            />
             <h2 className="mt-3 text-lg font-black">No events today!</h2>
             <p className={cn("mx-auto mt-2 max-w-[260px] font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-muted)]")}>
               Looks like a good day to relax and recharge.
             </p>
             <div className="mt-4 grid gap-2.5">
-              <button type="button" onClick={openManualCreate} className="h-11 rounded-2xl bg-[var(--bm-primary)] font-bold text-white transition-transform duration-150 ease-out active:scale-[0.99]">
+              <button type="button" onClick={openManualCreate} className={cn("h-11 rounded-2xl border font-bold transition-transform duration-150 ease-out active:scale-[0.99]", mobilePrimaryButtonGlassClass)}>
                 {events.length ? "Add Schedule" : "Create Schedule"}
               </button>
-              <button type="button" onClick={openAiCreate} className={cn("h-11 rounded-2xl font-bold transition-transform duration-150 ease-out active:scale-[0.99]", isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-primary)]")}>
+              <button type="button" onClick={openAiCreate} className={cn("h-11 rounded-2xl border font-bold transition-transform duration-150 ease-out active:scale-[0.99]", isDark ? mobileNeutralGlassSurfaceClass : mobileNeutralButtonGlassClass)}>
                 {events.length ? "Improve with BlueMind" : "Let BlueMind create it"}
               </button>
             </div>

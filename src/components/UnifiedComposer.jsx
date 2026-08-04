@@ -79,8 +79,13 @@ export default function UnifiedComposer({
   onVoice,
   isListening = false,
   voiceAudioLevels = [],
+  voiceStatus = "idle",
+  voiceTranscript = "",
   onCancelVoice,
   onFinishVoice,
+  onStopVoice,
+  onSendVoice,
+  canSendVoice = false,
   isBusy = false,
   canSend = false,
   onSendAction,
@@ -109,6 +114,9 @@ export default function UnifiedComposer({
   const textareaMinHeight = isMobile ? 44 : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
   const useSubtleAddButton = isMobile || isIdleState;
+  const isVoiceActive = isListening || ["requesting", "transcribing"].includes(voiceStatus);
+  const handleStopVoice = onStopVoice || onFinishVoice;
+  const handleSendVoice = onSendVoice || onFinishVoice;
   const mobileGlassIconStyle = isDark ? {
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.018), inset 1px 0 0 rgba(255,255,255,0.035), inset -1px 0 0 rgba(255,255,255,0.03), 0 12px 28px rgba(0,0,0,0.23)",
     backdropFilter: "blur(42px) saturate(1.18)",
@@ -126,7 +134,7 @@ export default function UnifiedComposer({
       WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
     } : {
       background: "rgba(255,255,255,0.86)",
-      boxShadow: "inset 0 1px 0 rgba(17,17,17,0.08), inset 0 -1px 0 rgba(17,17,17,0.01), inset 1px 0 0 rgba(17,17,17,0.018), inset -1px 0 0 rgba(17,17,17,0.016), 0 8px 18px rgba(15,23,42,0.032)",
+      boxShadow: "inset 0 1px 0 rgba(17,17,17,0.06), inset 0 -1px 0 rgba(17,17,17,0.008), inset 1px 0 0 rgba(17,17,17,0.014), inset -1px 0 0 rgba(17,17,17,0.012), 0 6px 14px rgba(15,23,42,0.022)",
       backdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
       WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
     }
@@ -205,7 +213,7 @@ export default function UnifiedComposer({
           ? ""
           : useSubtleAddButton
           ? isDark ? "bg-transparent text-white/90 hover:text-white" : "bg-transparent text-[var(--bm-icon-primary)] hover:text-[var(--bm-text-primary)]"
-          : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.12)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
+          : isDark ? "bg-[var(--bm-bg-card)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.09] hover:bg-[var(--bm-bg-elevated)]" : "bg-white text-[var(--bm-icon-primary)] shadow-[0_8px_18px_rgba(15,23,42,0.035)] ring-1 ring-[var(--bm-border)] hover:bg-[var(--bm-hover-bg)]",
       )}
       style={isMobile ? undefined : {
         backdropFilter: "blur(18px)",
@@ -289,14 +297,19 @@ export default function UnifiedComposer({
             data-composer-mode={composerState}
             data-testid="unified-composer-box"
           >
-            {isListening ? (
+            {isVoiceActive ? (
               <VoiceRecordingPanel
                 audioLevels={voiceAudioLevels}
                 onCancel={onCancelVoice}
-                onFinish={onFinishVoice}
+                onStop={handleStopVoice}
+                onSend={handleSendVoice}
+                transcript={voiceTranscript}
+                status={voiceStatus}
+                canSend={canSendVoice}
                 isDark={isDark}
                 appColor={appColor}
                 compact
+                showSendControl
               />
             ) : (
               <>
@@ -420,11 +433,11 @@ export default function UnifiedComposer({
           className={cn(
             "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
             isMobile
-              ? isAttachmentState ? "rounded-[28px] px-3.5 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.14)]" : isTypingState ? "rounded-[27px] px-3.5 py-2.5 shadow-[0_16px_42px_rgba(15,23,42,0.12)]" : "rounded-[26px] px-2.5 py-2 shadow-[0_14px_38px_rgba(15,23,42,0.10)]"
+              ? isAttachmentState ? "rounded-[28px] px-3.5 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.045)]" : isTypingState ? "rounded-[27px] px-3.5 py-2.5 shadow-[0_9px_22px_rgba(15,23,42,0.038)]" : "rounded-[26px] px-2.5 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.032)]"
               : isAttachmentState ? "rounded-[32px] px-4 py-3 sm:px-5" : "rounded-[31px] px-4 py-2.5 sm:px-5",
             isDark
               ? "border-white/[0.09] bg-[var(--bm-bg-card)]/[0.96] focus-within:bg-[var(--bm-bg-elevated)]"
-              : "border-[var(--bm-border)] bg-white/95 focus-within:border-[var(--bm-border)] focus-within:shadow-[0_10px_28px_rgba(15,23,42,0.06)]",
+              : "border-[var(--bm-border)] bg-white/95 focus-within:border-[var(--bm-border)] focus-within:shadow-[0_8px_20px_rgba(15,23,42,0.032)]",
           )}
           style={{
             backdropFilter: "blur(18px)",
@@ -433,14 +446,19 @@ export default function UnifiedComposer({
           data-composer-mode={composerState}
           data-testid="unified-composer-box"
         >
-          {isListening ? (
+          {isVoiceActive ? (
             <VoiceRecordingPanel
               audioLevels={voiceAudioLevels}
               onCancel={onCancelVoice}
-              onFinish={onFinishVoice}
+              onStop={handleStopVoice}
+              onSend={handleSendVoice}
+              transcript={voiceTranscript}
+              status={voiceStatus}
+              canSend={canSendVoice}
               isDark={isDark}
               appColor={appColor}
               compact={isMobile}
+              showSendControl={isMobile}
             />
           ) : (
             <>

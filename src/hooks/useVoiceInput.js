@@ -42,15 +42,106 @@ function getMicrophoneErrorMessage(error) {
 
 export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
   const [isListening, setIsListening] = useState(false);
+  const [status, setStatus] = useState("idle");
   const [audioLevels, setAudioLevels] = useState(createInitialLevels);
+  const [liveTranscript, setLiveTranscript] = useState("");
   const streamRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationFrameRef = useRef(0);
   const recorderRef = useRef(null);
+  const recognitionRef = useRef(null);
   const chunksRef = useRef([]);
   const stopPromiseRef = useRef(null);
   const cancelledRef = useRef(false);
+  const stoppingRef = useRef(false);
+  const listeningRef = useRef(false);
+  const finalTranscriptRef = useRef("");
+  const interimTranscriptRef = useRef("");
+
+  const getLiveTranscript = useCallback(() => {
+    return [finalTranscriptRef.current, interimTranscriptRef.current].filter(Boolean).join(" ").trim();
+  }, []);
+
+  const updateLiveTranscript = useCallback(() => {
+    setLiveTranscript(getLiveTranscript());
+  }, [getLiveTranscript]);
+
+  const stopSpeechRecognition = useCallback(() => {
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    if (!recognition) return;
+
+    try {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognition.stop?.();
+    } catch {
+      try {
+        recognition.abort?.();
+      } catch {
+        // Browser speech recognition may already be stopped.
+      }
+    }
+  }, []);
+
+  const startSpeechRecognition = useCallback((language) => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return false;
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = language || navigator.language || "en-US";
+
+      recognition.onresult = (event) => {
+        let finalText = finalTranscriptRef.current;
+        let interimText = "";
+
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const result = event.results[index];
+          const transcript = String(result?.[0]?.transcript || "").trim();
+          if (!transcript) continue;
+
+          if (result.isFinal) {
+            finalText = [finalText, transcript].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+          } else {
+            interimText = [interimText, transcript].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+          }
+        }
+
+        finalTranscriptRef.current = finalText;
+        interimTranscriptRef.current = interimText;
+        updateLiveTranscript();
+      };
+
+      recognition.onerror = (event) => {
+        if (["no-speech", "aborted"].includes(event?.error)) return;
+        if (event?.error === "not-allowed") {
+          onError?.("Microphone permission is required for voice input.");
+        }
+      };
+
+      recognition.onend = () => {
+        if (listeningRef.current && !stoppingRef.current && !cancelledRef.current) {
+          try {
+            recognition.start();
+          } catch {
+            // Some browsers throttle restarts; recording continues through MediaRecorder.
+          }
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      return true;
+    } catch {
+      recognitionRef.current = null;
+      return false;
+    }
+  }, [onError, updateLiveTranscript]);
 
   const stopAnalyzer = useCallback(() => {
     if (animationFrameRef.current) {
@@ -105,15 +196,22 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
   }, []);
 
   const cleanup = useCallback(() => {
+    stopSpeechRecognition();
     recorderRef.current = null;
     chunksRef.current = [];
     stopPromiseRef.current = null;
+    stoppingRef.current = false;
+    listeningRef.current = false;
     setIsListening(false);
+    setStatus("idle");
+    setLiveTranscript("");
     stopAnalyzer();
-  }, [stopAnalyzer]);
+  }, [stopAnalyzer, stopSpeechRecognition]);
 
   const stop = useCallback(() => {
     const recorder = recorderRef.current;
+    stoppingRef.current = true;
+    stopSpeechRecognition();
 
     if (!recorder || recorder.state === "inactive") {
       cleanup();
@@ -146,34 +244,42 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
       if (blob) onRecordingComplete?.(blob);
       return blob;
     });
-  }, [cleanup, onError, onRecordingComplete]);
+  }, [cleanup, onError, onRecordingComplete, stopSpeechRecognition]);
 
   const cancel = useCallback(() => {
     cancelledRef.current = true;
     return stop();
   }, [stop]);
 
-  const start = useCallback(async () => {
-    if (isListening) return;
+  const start = useCallback(async ({ language } = {}) => {
+    if (isListening) return false;
 
     if (!window.isSecureContext && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
       onError?.("Microphone access requires a secure HTTPS connection.");
-      return;
+      setStatus("error");
+      return false;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
       onError?.("No microphone detected.");
-      return;
+      setStatus("error");
+      return false;
     }
 
     if (!window.MediaRecorder) {
       onError?.("Audio recording is not supported in this browser.");
-      return;
+      setStatus("error");
+      return false;
     }
 
     try {
+      setStatus("requesting");
       cancelledRef.current = false;
+      stoppingRef.current = false;
       chunksRef.current = [];
+      finalTranscriptRef.current = "";
+      interimTranscriptRef.current = "";
+      setLiveTranscript("");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -181,6 +287,11 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
           autoGainControl: true,
         },
       });
+      if (cancelledRef.current) {
+        stream.getTracks?.().forEach((track) => track.stop());
+        cleanup();
+        return false;
+      }
       const mimeType = getSupportedMimeType();
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
 
@@ -197,12 +308,18 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
       recorderRef.current = recorder;
       await startWaveform(stream);
       recorder.start(250);
+      listeningRef.current = true;
       setIsListening(true);
+      setStatus("listening");
+      startSpeechRecognition(language);
+      return true;
     } catch (error) {
       cleanup();
+      setStatus("error");
       onError?.(getMicrophoneErrorMessage(error));
+      return false;
     }
-  }, [cleanup, isListening, onError, startWaveform]);
+  }, [cleanup, isListening, onError, startSpeechRecognition, startWaveform]);
 
   useEffect(() => () => {
     cancelledRef.current = true;
@@ -214,11 +331,14 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
       }
     }
     stopAnalyzer();
-  }, [stopAnalyzer]);
+    stopSpeechRecognition();
+  }, [stopAnalyzer, stopSpeechRecognition]);
 
   return {
     isListening,
+    status,
     audioLevels,
+    liveTranscript,
     start,
     stop,
     cancel,

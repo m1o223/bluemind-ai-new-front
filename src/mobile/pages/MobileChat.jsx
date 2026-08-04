@@ -60,7 +60,7 @@ import {
 import { AI_MODES, getAiMode, getAiSpecializationLabel, normalizeAiModeId } from "@/data/aiModes";
 import { getApiErrorMessage } from "@/services/api";
 import { restoreExistingSession } from "@/services/authService";
-import { getConversation, listConversations, searchConversations, streamChatMessage, streamHiddenChatMessage } from "@/services/chatService";
+import { getConversation, listConversations, searchConversations, streamChatMessage, streamHiddenChatMessage, transcribeVoiceAudio } from "@/services/chatService";
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 import {
@@ -582,6 +582,29 @@ function mapMobileConversationMessages(conversation) {
   }));
 }
 
+function getVoiceLanguageTag(...candidates) {
+  const raw = candidates.map((candidate) => String(candidate || "").trim()).find(Boolean) || "en-US";
+  const normalized = raw.replace("_", "-").toLowerCase();
+
+  if (normalized.startsWith("ar")) return "ar-SA";
+  if (normalized.startsWith("sv")) return "sv-SE";
+  if (normalized.startsWith("en-gb")) return "en-GB";
+  if (normalized.startsWith("en")) return "en-US";
+
+  return raw;
+}
+
+function appendVoiceText(baseText, transcript) {
+  const base = String(baseText || "").trim();
+  const next = String(transcript || "").trim();
+
+  if (!base) return next;
+  if (!next) return base;
+  if (base.endsWith(next)) return base;
+
+  return `${base} ${next}`.replace(/\s+/g, " ").trim();
+}
+
 export default function MobileChat() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -634,6 +657,11 @@ export default function MobileChat() {
   const [renameTitle, setRenameTitle] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [message, setMessage] = useState("");
+  const [voiceStatus, setVoiceStatus] = useState("idle");
+  const [voicePreview, setVoicePreview] = useState("");
+  const voiceBaseTextRef = useRef("");
+  const voicePreviewRef = useRef("");
+  const voiceSendLockRef = useRef(false);
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
   const [chatSessionMode, setChatSessionMode] = useState("normal");
@@ -731,7 +759,7 @@ export default function MobileChat() {
     backdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
     WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
   } : {
-    boxShadow: "inset 0 1px 0 rgba(17,17,17,0.082), inset 0 -1px 0 rgba(17,17,17,0.01), inset 1px 0 0 rgba(17,17,17,0.018), inset -1px 0 0 rgba(17,17,17,0.016), 0 10px 24px rgba(15,23,42,0.085)",
+    boxShadow: "inset 0 1px 0 rgba(17,17,17,0.06), inset 0 -1px 0 rgba(17,17,17,0.008), inset 1px 0 0 rgba(17,17,17,0.014), inset -1px 0 0 rgba(17,17,17,0.012), 0 7px 16px rgba(15,23,42,0.028)",
     backdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
     WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
   };
@@ -740,7 +768,7 @@ export default function MobileChat() {
     backdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
     WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
   } : {
-    boxShadow: "inset 0 1px 0 rgba(17,17,17,0.08), inset 0 -1px 0 rgba(17,17,17,0.01), inset 1px 0 0 rgba(17,17,17,0.018), inset -1px 0 0 rgba(17,17,17,0.016), 0 12px 30px rgba(15,23,42,0.08)",
+    boxShadow: "inset 0 1px 0 rgba(17,17,17,0.06), inset 0 -1px 0 rgba(17,17,17,0.008), inset 1px 0 0 rgba(17,17,17,0.014), inset -1px 0 0 rgba(17,17,17,0.012), 0 10px 24px rgba(15,23,42,0.036)",
     backdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
     WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
   };
@@ -1093,17 +1121,38 @@ export default function MobileChat() {
 
   const {
     isListening,
+    status: voiceCaptureStatus,
     audioLevels: voiceAudioLevels,
+    liveTranscript: voiceLiveTranscript,
     start: startVoiceCapture,
     stop: stopVoiceInput,
     cancel: cancelVoiceInput,
   } = useVoiceInput({
-    onTranscript: (nextText) => {
-      setMessage(nextText);
-      window.requestAnimationFrame(() => resizeChatComposer(composerInputRef.current));
+    onError: (messageText) => {
+      setVoiceStatus("error");
+      toast.error(messageText);
     },
-    onError: (messageText) => toast.error(messageText),
   });
+
+  useEffect(() => {
+    if (voiceCaptureStatus === "requesting" || voiceCaptureStatus === "listening") {
+      setVoiceStatus(voiceCaptureStatus);
+    }
+  }, [voiceCaptureStatus]);
+
+  useEffect(() => {
+    if (voiceCaptureStatus === "listening") {
+      voicePreviewRef.current = voiceLiveTranscript;
+      setVoicePreview(voiceLiveTranscript);
+    }
+  }, [voiceCaptureStatus, voiceLiveTranscript]);
+
+  const voiceLanguage = useMemo(() => getVoiceLanguageTag(
+    prefs?.voiceLanguage,
+    prefs?.language,
+    uiLanguage,
+    typeof navigator !== "undefined" ? navigator.language : "en-US",
+  ), [prefs?.language, prefs?.voiceLanguage, uiLanguage]);
 
   const shouldShowChatHome =
     isEmptyChat &&
@@ -2307,17 +2356,6 @@ export default function MobileChat() {
     ].filter(Boolean).join("\n\n");
   };
 
-  const startVoiceInput = useCallback(() => {
-    if (isListening) {
-      stopVoiceInput();
-      return;
-    }
-    startVoiceCapture({
-      baseText: message,
-      language: prefs?.language || uiLanguage || navigator.language || "en-US",
-    });
-  }, [isListening, message, prefs?.language, startVoiceCapture, stopVoiceInput, uiLanguage]);
-
   const appendAiDelta = useCallback((messageId, token) => {
     setMessages((current) =>
       current.map((item) =>
@@ -2799,6 +2837,112 @@ export default function MobileChat() {
     }
   };
 
+  const finalizeVoiceInput = useCallback(async ({ send = false, previewOverride = "" } = {}) => {
+    if (voiceSendLockRef.current) return;
+    voiceSendLockRef.current = true;
+    setVoiceStatus("transcribing");
+
+    const liveFallback = String(previewOverride || voicePreviewRef.current || voicePreview || voiceLiveTranscript || "").trim();
+
+    try {
+      const audioBlob = await stopVoiceInput();
+      let transcript = "";
+
+      if (audioBlob?.size >= 512) {
+        try {
+          const result = await transcribeVoiceAudio(audioBlob);
+          transcript = String(result?.text || "").trim();
+        } catch (error) {
+          if (!liveFallback) throw error;
+          transcript = liveFallback;
+          toast.info("Using the live transcript because final transcription was unavailable.");
+        }
+      } else {
+        transcript = liveFallback;
+      }
+
+      if (!transcript) {
+        throw new Error("No speech detected. Please try again.");
+      }
+
+      const finalText = appendVoiceText(voiceBaseTextRef.current, transcript);
+      setMessage(finalText);
+      voicePreviewRef.current = "";
+      setVoicePreview("");
+      window.requestAnimationFrame(() => resizeChatComposer(composerInputRef.current));
+
+      if (send) {
+        if (isImageMode) {
+          setVoiceStatus("ready");
+          toast.info("Voice text is ready. Review it, then send to generate the image.");
+          return;
+        }
+
+        setVoiceStatus("sending");
+        await sendChatPrompt({
+          prompt: finalText || "Please analyze these images.",
+          imageIds: attachedImages.map((image) => image.id).filter(Boolean),
+          displayAttachments: attachedImages,
+          metadata: isSearchMode ? { chatMode: "web_search", source: "voice" } : { source: "voice" },
+          allowWhileBusy: true,
+        });
+      }
+
+      setVoiceStatus("idle");
+    } catch (error) {
+      setVoiceStatus("error");
+      toast.error(error?.message || "Transcription failed. Please try again.");
+    } finally {
+      voiceSendLockRef.current = false;
+    }
+  }, [attachedImages, isImageMode, isSearchMode, resizeChatComposer, sendChatPrompt, stopVoiceInput, voiceLiveTranscript, voicePreview]);
+
+  const startVoiceInput = useCallback(async () => {
+    if (isListening || ["requesting", "listening", "transcribing"].includes(voiceStatus)) {
+      await finalizeVoiceInput({ send: false });
+      return;
+    }
+
+    voiceBaseTextRef.current = message;
+    voicePreviewRef.current = "";
+    setVoicePreview("");
+    setVoiceStatus("requesting");
+    const started = await startVoiceCapture({ language: voiceLanguage });
+
+    if (!started) {
+      setVoiceStatus("error");
+    }
+  }, [finalizeVoiceInput, isListening, message, startVoiceCapture, voiceLanguage, voiceStatus]);
+
+  const handleCancelVoiceInput = useCallback(async () => {
+    await cancelVoiceInput();
+    setMessage(voiceBaseTextRef.current);
+    voicePreviewRef.current = "";
+    setVoicePreview("");
+    setVoiceStatus("idle");
+    voiceSendLockRef.current = false;
+    window.requestAnimationFrame(() => resizeChatComposer(composerInputRef.current));
+  }, [cancelVoiceInput, resizeChatComposer]);
+
+  const handleStopVoiceInput = useCallback((previewOverride = "") => {
+    void finalizeVoiceInput({ send: false, previewOverride });
+  }, [finalizeVoiceInput]);
+
+  const handleSendVoiceInput = useCallback((previewOverride = "") => {
+    void finalizeVoiceInput({ send: true, previewOverride });
+  }, [finalizeVoiceInput]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && (isListening || voiceStatus === "requesting" || voiceStatus === "transcribing")) {
+        void handleCancelVoiceInput();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [handleCancelVoiceInput, isListening, voiceStatus]);
+
   const renderComposerArea = (centered = false, separatePlus = centered) => {
     const composerModePill = isImageMode
       ? { label: selectedImageTemplate?.title ? `Create Image • ${selectedImageTemplate.title}` : "Create Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
@@ -3005,11 +3149,15 @@ export default function MobileChat() {
         onVoice={startVoiceInput}
         isListening={isListening}
         voiceAudioLevels={voiceAudioLevels}
-        onCancelVoice={cancelVoiceInput}
-        onFinishVoice={stopVoiceInput}
-        isBusy={isGeneratingImage || isChatSending || isListening}
+        voiceStatus={voiceStatus}
+        voiceTranscript={voicePreview}
+        onCancelVoice={handleCancelVoiceInput}
+        onStopVoice={handleStopVoiceInput}
+        onSendVoice={handleSendVoiceInput}
+        canSendVoice={Boolean(voicePreview.trim()) || isListening}
+        isBusy={isGeneratingImage || isChatSending || voiceStatus === "transcribing" || voiceStatus === "sending"}
         canSend={hasComposerContent}
-        onSendAction={isChatSending ? stopChatGeneration : isListening ? stopVoiceInput : undefined}
+        onSendAction={isChatSending ? stopChatGeneration : undefined}
         isDark={isDark}
         variant="mobile"
         glassTone="chat-light"
@@ -3188,7 +3336,7 @@ export default function MobileChat() {
                     "relative h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border",
                     isDark
                       ? "border-white/[0.055] text-white/90"
-                      : "border-[var(--bm-border)] text-[var(--bm-text-primary)]",
+                      : "border-transparent text-[var(--bm-text-primary)]",
                   )}
                 >
                   <img
@@ -3199,11 +3347,16 @@ export default function MobileChat() {
                     draggable="false"
                     className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.58)_0%,rgba(0,0,0,0.34)_42%,rgba(0,0,0,0.08)_72%,rgba(0,0,0,0.02)_100%)]" aria-hidden="true" />
+                  {isDark && (
+                    <div
+                      className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.58)_0%,rgba(0,0,0,0.34)_42%,rgba(0,0,0,0.08)_72%,rgba(0,0,0,0.02)_100%)]"
+                      aria-hidden="true"
+                    />
+                  )}
 
                   <div className="relative z-10 flex h-full max-w-[58%] flex-col px-4 py-3">
-                    <h3 className="truncate text-base font-black tracking-tight text-white">{card.title}</h3>
-                    <p className="mt-1 line-clamp-2 text-[12px] font-semibold leading-4 text-white/78">
+                    <h3 className={cn("truncate text-base font-black tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{card.title}</h3>
+                    <p className={cn("mt-1 line-clamp-2 text-[12px] font-semibold leading-4", isDark ? "text-white/78" : "text-[var(--bm-text-secondary)]")}>
                       {card.description}
                     </p>
                   </div>
