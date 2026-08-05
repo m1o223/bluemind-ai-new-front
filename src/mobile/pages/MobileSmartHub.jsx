@@ -3,10 +3,8 @@ import {
   Bell,
   CalendarDays,
   MessageSquare,
-  Megaphone,
   PenLine,
   Sparkles,
-  Tags,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -123,14 +121,24 @@ export default function MobileSmartHub() {
   ];
 
   const learningHighlights = [
-    "Interactive lessons",
     "AI teacher",
+    "Interactive lessons",
+    "Video courses",
+    "Smart exams",
     "Ask AI during lessons",
-    "Multiple school subjects",
-    "Language learning",
+    "Learn languages",
+    "Personalized study plans",
     "Progress tracking",
-    "Practice quizzes",
     "Flashcards",
+    "Digital library",
+  ];
+  const futureImprovements = [
+    "Faster AI",
+    "Better voice experience",
+    "Smarter search",
+    "New AI tools",
+    "Better planning",
+    "More personalization",
   ];
 
   return (
@@ -174,38 +182,38 @@ export default function MobileSmartHub() {
         aria-hidden="true"
       />
 
-      <DashboardSection title="What's New" eyebrow="Updates" isDark={isDark}>
+      <DashboardSection title="What's New" eyebrow="BlueMind 5.0" isDark={isDark}>
         <motion.article
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...motionTokens.transition, delay: 0.16 }}
           className={cn(
-            "overflow-hidden rounded-[28px] border p-4 shadow-sm",
+            "overflow-hidden rounded-[30px] border p-5 shadow-sm",
             isDark
               ? "border-white/[0.075] bg-[rgba(38,38,38,0.34)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[28px]"
               : "border-black/[0.08] bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
           )}
         >
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]">
               <Sparkles className={iconClasses.button} />
             </div>
             <div className="min-w-0">
-              <p className={cn("text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "text-white/46" : "text-[var(--bm-text-muted)]")}>Release Preview</p>
-              <h3 className={cn("mt-1 text-[19px] font-black leading-tight tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind 5.0 — Coming Soon</h3>
+              <p className={cn("text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "text-white/46" : "text-[var(--bm-text-muted)]")}>Coming Soon</p>
+              <h3 className={cn("mt-1 text-[22px] font-black leading-tight tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind 5.0 - Coming Soon</h3>
               <p className={cn("mt-2 text-sm font-semibold leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
-                Learning is being prepared as a guided study experience with lessons, practice, and AI support built into every step.
+                Learning will turn BlueMind into your personal AI teacher, with lessons, exams, languages, flashcards, and study plans built around you.
               </p>
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="mt-5 flex flex-wrap gap-2">
             {learningHighlights.map((item) => (
               <div
                 key={item}
                 className={cn(
-                  "rounded-2xl border px-3 py-2 text-[12px] font-bold leading-5",
-                  isDark ? "border-white/[0.07] bg-white/[0.045] text-white/82" : "border-black/[0.06] bg-black/[0.025] text-[var(--bm-text-primary)]",
+                  "rounded-full border px-3.5 py-2 text-[12px] font-black leading-5",
+                  isDark ? "border-white/[0.08] bg-white/[0.055] text-white/84" : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]",
                 )}
               >
                 {item}
@@ -215,56 +223,36 @@ export default function MobileSmartHub() {
         </motion.article>
       </DashboardSection>
 
-      <DashboardSection title="Announcements" eyebrow="BlueMind News" isDark={isDark}>
-        <div className="grid gap-3">
-          <motion.article
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...motionTokens.transition, delay: 0.2 }}
-            className={cn(
-              "rounded-[24px] border p-4",
-              isDark
-                ? "border-white/[0.07] bg-white/[0.045] text-white"
-                : "border-black/[0.07] bg-white/80 text-[var(--bm-text-primary)]",
-            )}
-          >
-            <div className="flex items-start gap-3">
-              <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-black/[0.04] text-[var(--bm-text-primary)]")}>
-                <Megaphone className={iconClasses.button} />
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-[15px] font-black">Product updates will appear here</h3>
-                <p className={cn("mt-1 text-sm font-semibold leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
-                  Future releases, maintenance notes, and company announcements will be organized in this space.
-                </p>
+      <DashboardSection title="More Features Are Coming" eyebrow="Next" isDark={isDark}>
+        <motion.article
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...motionTokens.transition, delay: 0.22 }}
+          className={cn(
+            "rounded-[28px] border p-5",
+            isDark
+              ? "border-white/[0.07] bg-white/[0.045] text-white"
+              : "border-black/[0.07] bg-white/80 text-[var(--bm-text-primary)]",
+          )}
+        >
+          <h3 className="text-[18px] font-black tracking-tight">BlueMind keeps getting smarter.</h3>
+          <p className={cn("mt-2 text-sm font-semibold leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
+            After 5.0, the home dashboard will continue introducing new AI experiences, cleaner planning, and more personal tools.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {futureImprovements.map((item) => (
+              <div
+                key={item}
+                className={cn(
+                  "rounded-2xl border px-3 py-2 text-[12px] font-black",
+                  isDark ? "border-white/[0.07] bg-black/10 text-white/82" : "border-black/[0.06] bg-black/[0.025] text-[var(--bm-text-primary)]",
+                )}
+              >
+                {item}
               </div>
-            </div>
-          </motion.article>
-
-          <motion.article
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...motionTokens.transition, delay: 0.24 }}
-            className={cn(
-              "rounded-[24px] border p-4",
-              isDark
-                ? "border-white/[0.07] bg-white/[0.045] text-white"
-                : "border-black/[0.07] bg-white/80 text-[var(--bm-text-primary)]",
-            )}
-          >
-            <div className="flex items-start gap-3">
-              <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-black/[0.04] text-[var(--bm-text-primary)]")}>
-                <Tags className={iconClasses.button} />
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-[15px] font-black">Partner offers space</h3>
-                <p className={cn("mt-1 text-sm font-semibold leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
-                  Book stores, education companies, learning platforms, student discounts, and partner promotions can live here later.
-                </p>
-              </div>
-            </div>
-          </motion.article>
-        </div>
+            ))}
+          </div>
+        </motion.article>
       </DashboardSection>
     </main>
   );

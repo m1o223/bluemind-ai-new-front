@@ -4,10 +4,8 @@ import {
   Bell,
   CalendarDays,
   MessageSquare,
-  Megaphone,
   PenLine,
   Sparkles,
-  Tags,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -142,14 +140,24 @@ export default function DashboardPage() {
     },
   ];
   const learningHighlights = [
-    "Interactive lessons",
     "AI teacher",
+    "Interactive lessons",
+    "Video courses",
+    "Smart exams",
     "Ask AI during lessons",
-    "Multiple school subjects",
-    "Language learning",
+    "Learn languages",
+    "Personalized study plans",
     "Progress tracking",
-    "Practice quizzes",
     "Flashcards",
+    "Digital library",
+  ];
+  const futureImprovements = [
+    "Faster AI",
+    "Better voice experience",
+    "Smarter search",
+    "New AI tools",
+    "Better planning",
+    "More personalization",
   ];
   const welcomeTitle = isRTL ? "BlueMind" : "BlueMind Home";
   const welcomeSubtitle = isRTL ? "BlueMind home dashboard." : "Your dashboard for tools, updates, announcements, and future offers.";
@@ -201,38 +209,38 @@ export default function DashboardPage() {
           aria-hidden="true"
         />
 
-        <DashboardSection title="What's New" eyebrow="Updates" isDark={isDark}>
+        <DashboardSection title="What's New" eyebrow="BlueMind 5.0" isDark={isDark}>
           <motion.article
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...motionTokens.transition, delay: 0.16 }}
             className={cn(
-              "rounded-[28px] border p-6 shadow-sm",
+              "rounded-[32px] border p-7 shadow-sm",
               isDark
                 ? "border-white/[0.075] bg-[rgba(38,38,38,0.34)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[28px]"
                 : "border-black/[0.08] bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
             )}
           >
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white">
+            <div className="flex items-start gap-5">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]">
                 <Sparkles className={iconClasses.card} />
               </div>
               <div className="min-w-0">
-                <p className={cn("text-xs font-black uppercase tracking-[0.16em]", isDark ? "text-white/46" : "text-[var(--bm-text-muted)]")}>Release Preview</p>
-                <h3 className={cn("mt-1 text-2xl font-black leading-tight tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind 5.0 — Coming Soon</h3>
+                <p className={cn("text-xs font-black uppercase tracking-[0.16em]", isDark ? "text-white/46" : "text-[var(--bm-text-muted)]")}>Coming Soon</p>
+                <h3 className={cn("mt-1 text-3xl font-black leading-tight tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind 5.0 - Coming Soon</h3>
                 <p className={cn("mt-3 max-w-3xl text-base font-semibold leading-7", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
-                  Learning is being prepared as a guided study experience with lessons, practice, and AI support built into every step.
+                  Learning will turn BlueMind into your personal AI teacher, with lessons, exams, languages, flashcards, and study plans built around you.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-4">
+            <div className="mt-6 flex flex-wrap gap-3">
               {learningHighlights.map((item) => (
                 <div
                   key={item}
                   className={cn(
-                    "rounded-2xl border px-4 py-3 text-sm font-bold",
-                    isDark ? "border-white/[0.07] bg-white/[0.045] text-white/82" : "border-black/[0.06] bg-black/[0.025] text-[var(--bm-text-primary)]",
+                    "rounded-full border px-4 py-3 text-sm font-black",
+                    isDark ? "border-white/[0.08] bg-white/[0.055] text-white/84" : "border-black/[0.06] bg-white text-[var(--bm-text-primary)]",
                   )}
                 >
                   {item}
@@ -242,47 +250,36 @@ export default function DashboardPage() {
           </motion.article>
         </DashboardSection>
 
-        <DashboardSection title="Announcements" eyebrow="BlueMind News" isDark={isDark}>
-          <div className="grid gap-4 md:grid-cols-2">
-            {[
-              {
-                icon: Megaphone,
-                title: "Product updates will appear here",
-                description: "Future releases, maintenance notes, and company announcements will be organized in this space.",
-              },
-              {
-                icon: Tags,
-                title: "Partner offers space",
-                description: "Book stores, education companies, learning platforms, student discounts, and partner promotions can live here later.",
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <motion.article
-                  key={item.title}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...motionTokens.transition, delay: 0.2 }}
+        <DashboardSection title="More Features Are Coming" eyebrow="Next" isDark={isDark}>
+          <motion.article
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...motionTokens.transition, delay: 0.22 }}
+            className={cn(
+              "rounded-[28px] border p-6",
+              isDark
+                ? "border-white/[0.07] bg-white/[0.045] text-white"
+                : "border-black/[0.07] bg-white/80 text-[var(--bm-text-primary)]",
+            )}
+          >
+            <h3 className="text-xl font-black tracking-tight">BlueMind keeps getting smarter.</h3>
+            <p className={cn("mt-2 max-w-3xl text-base font-semibold leading-7", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
+              After 5.0, the home dashboard will continue introducing new AI experiences, cleaner planning, and more personal tools.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {futureImprovements.map((item) => (
+                <div
+                  key={item}
                   className={cn(
-                    "rounded-[24px] border p-5",
-                    isDark
-                      ? "border-white/[0.07] bg-white/[0.045] text-white"
-                      : "border-black/[0.07] bg-white/80 text-[var(--bm-text-primary)]",
+                    "rounded-2xl border px-4 py-3 text-sm font-black",
+                    isDark ? "border-white/[0.07] bg-black/10 text-white/82" : "border-black/[0.06] bg-black/[0.025] text-[var(--bm-text-primary)]",
                   )}
                 >
-                  <div className="flex items-start gap-4">
-                    <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-black/[0.04] text-[var(--bm-text-primary)]")}>
-                      <Icon className={iconClasses.button} />
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="text-base font-black">{item.title}</h3>
-                      <p className={cn("mt-2 text-sm font-semibold leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{item.description}</p>
-                    </div>
-                  </div>
-                </motion.article>
-              );
-            })}
-          </div>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </motion.article>
         </DashboardSection>
       </main>
     </div>
