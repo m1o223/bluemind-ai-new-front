@@ -663,6 +663,7 @@ export default function MobileChat() {
   const voiceSendLockRef = useRef(false);
   const [messages, setMessages] = useState([]);
   const [isChatSending, setIsChatSending] = useState(false);
+  const [isChatSubmitting, setIsChatSubmitting] = useState(false);
   const [chatSessionMode, setChatSessionMode] = useState("normal");
   const [privateSpaceModalOpen, setPrivateSpaceModalOpen] = useState(false);
   const [privateSpaceStep, setPrivateSpaceStep] = useState("list");
@@ -2477,6 +2478,7 @@ export default function MobileChat() {
     streamAbortRef.current = null;
     activeAiMessageRef.current = null;
     sendLockRef.current = false;
+    setIsChatSubmitting(false);
     setIsChatSending(false);
     setMessages((current) =>
       current.map((item) =>
@@ -2525,16 +2527,11 @@ export default function MobileChat() {
     if (!prelocked) {
       sendLockRef.current = true;
     }
+    setIsChatSubmitting(true);
     setIsChatSending(true);
     if (isListening) stopVoiceInput();
 
     const selectedMode = normalizeAiModeId(mode || responseMode);
-    const authenticated = await ensureMobileChatAuth();
-    if (!authenticated) {
-      sendLockRef.current = false;
-      setIsChatSending(false);
-      return;
-    }
     const userMessageId = crypto.randomUUID();
     const aiMessageId = crypto.randomUUID();
     const userMetadata = {
@@ -2566,7 +2563,10 @@ export default function MobileChat() {
       ...userDisplayMessages,
       { id: aiMessageId, role: "ai", content: "", isStreaming: true, metadata: { ...userMetadata, requestContent: visibleMessage } },
     ]);
-    window.requestAnimationFrame(() => scrollToBottom("smooth"));
+    window.requestAnimationFrame(() => {
+      scrollToBottom("auto");
+      window.requestAnimationFrame(() => scrollToBottom("auto"));
+    });
 
     if (!keepComposer) {
       setMessage("");
@@ -2591,6 +2591,22 @@ export default function MobileChat() {
     setImageModeError("");
     stopRequestedRef.current = false;
     activeAiMessageRef.current = aiMessageId;
+    const authenticated = await ensureMobileChatAuth();
+    if (!authenticated) {
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === aiMessageId
+            ? { ...item, content: "Please sign in to continue.", isStreaming: false }
+            : item,
+        ),
+      );
+      activeAiMessageRef.current = null;
+      sendLockRef.current = false;
+      setIsChatSubmitting(false);
+      setIsChatSending(false);
+      window.requestAnimationFrame(() => scrollToBottom("auto"));
+      return;
+    }
     const controller = new AbortController();
     streamAbortRef.current = controller;
 
@@ -2615,15 +2631,21 @@ export default function MobileChat() {
           hiddenChat: chatSessionMode === "hidden" || undefined,
         },
         signal: controller.signal,
+        onAiStart: () => {
+          setIsChatSubmitting(false);
+        },
         onReady: (payload) => {
+          setIsChatSubmitting(false);
           if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
             setSearchParams({ conversation: payload.conversation.conversationId });
           }
         },
         onDelta: (payload) => {
+          setIsChatSubmitting(false);
           queueAiDelta(aiMessageId, payload?.token);
         },
         onComplete: (payload) => {
+          setIsChatSubmitting(false);
           flushAiDelta(aiMessageId);
           if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
             setSearchParams({ conversation: payload.conversation.conversationId });
@@ -2640,6 +2662,7 @@ export default function MobileChat() {
     } catch (error) {
       flushAiDelta(aiMessageId);
       if (stopRequestedRef.current || error?.name === "AbortError" || controller.signal.aborted) {
+        setIsChatSubmitting(false);
         setMessages((current) =>
           current.map((item) =>
             item.id === aiMessageId
@@ -2665,6 +2688,7 @@ export default function MobileChat() {
         activeAiMessageRef.current = null;
       }
       stopRequestedRef.current = false;
+      setIsChatSubmitting(false);
       setIsChatSending(false);
       sendLockRef.current = false;
     }
@@ -3233,6 +3257,7 @@ export default function MobileChat() {
         onSendVoice={handleSendVoiceInput}
         canSendVoice={Boolean(voicePreview.trim()) || isListening}
         isBusy={isGeneratingImage || isChatSending || voiceStatus === "transcribing" || voiceStatus === "sending"}
+        isSubmitting={isChatSubmitting && !isGeneratingImage}
         canSend={hasComposerContent}
         onSendAction={isChatSending ? stopChatGeneration : undefined}
         isDark={isDark}

@@ -87,6 +87,7 @@ export default function UnifiedComposer({
   onSendVoice,
   canSendVoice = false,
   isBusy = false,
+  isSubmitting = false,
   canSend = false,
   onSendAction,
   addLabel = "Attach",
@@ -256,6 +257,7 @@ export default function UnifiedComposer({
   const sendButton = (
     <BlueMindSendButton
       isBusy={isBusy}
+      isSubmitting={isSubmitting}
       canSend={canSend}
       onClick={onSendAction}
       appColor={appColor}

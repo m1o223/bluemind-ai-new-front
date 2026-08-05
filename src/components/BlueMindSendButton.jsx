@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, LoaderCircle, Square } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 export default function BlueMindSendButton({
   isBusy = false,
+  isSubmitting = false,
   canSend = false,
   onClick,
   appColor = "var(--bm-primary)",
@@ -13,13 +14,13 @@ export default function BlueMindSendButton({
   compact = false,
   className,
 }) {
-  const isActive = isBusy || canSend;
+  const isActive = isBusy || isSubmitting || canSend;
   return (
     <motion.button
       type={isBusy ? "button" : "submit"}
       onClick={onClick}
-      disabled={!isBusy && !canSend}
-      whileTap={!isBusy && canSend ? { scale: compact ? 0.92 : 0.93 } : undefined}
+      disabled={!isBusy && !isSubmitting && !canSend}
+      whileTap={!isBusy && !isSubmitting && canSend ? { scale: compact ? 0.92 : 0.93 } : undefined}
       transition={{ duration: compact ? 0.18 : 0.16, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full transition-all disabled:cursor-not-allowed",
@@ -30,12 +31,15 @@ export default function BlueMindSendButton({
         className,
       )}
       style={compact ? undefined : { backgroundColor: isActive ? appColor : "var(--bm-text-muted)" }}
-      aria-label={isBusy ? stopLabel : sendLabel}
+      data-send-state={isSubmitting ? "submitting" : isBusy ? "stopping" : canSend ? "ready" : "disabled"}
+      aria-label={isSubmitting ? "Sending" : isBusy ? stopLabel : sendLabel}
     >
-      {isBusy ? (
-        <Square className={compact ? "fill-current" : "h-4 w-4 fill-current"} />
+      {isSubmitting ? (
+        <LoaderCircle className={compact ? "bm-send-spinner" : "h-4 w-4 animate-spin"} />
+      ) : isBusy ? (
+        <Square className={compact ? "bm-send-stop-icon fill-current" : "h-3 w-3 fill-current"} />
       ) : (
-        <ArrowUp className={compact ? "-translate-y-[1px] scale-y-[1.06]" : "h-5 w-5 -translate-y-[1px] stroke-[2.7]"} />
+        <ArrowUp className={compact ? "bm-send-arrow-icon -translate-y-[1px] scale-y-[1.06]" : "h-5 w-5 -translate-y-[1px] stroke-[2.7]"} />
       )}
     </motion.button>
   );

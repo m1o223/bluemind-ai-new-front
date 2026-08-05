@@ -1591,6 +1591,35 @@ html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="unified-c
   color: #ffffff !important;
 }
 
+@keyframes bm-send-spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-send-control .bm-send-arrow-icon {
+  width: 19px !important;
+  height: 20px !important;
+  stroke-width: 2.85;
+  transform: translateY(-1px) scaleY(1.08);
+}
+
+[data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-send-control .bm-send-stop-icon {
+  width: 9px !important;
+  height: 9px !important;
+  stroke-width: 0;
+  transform: none !important;
+}
+
+[data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-send-control .bm-send-spinner {
+  width: 17px !important;
+  height: 17px !important;
+  stroke-width: 2.65;
+  transform-origin: 50% 50%;
+  animation: bm-send-spinner-spin 0.72s linear infinite;
+  will-change: transform;
+}
+
 .bm-blue-surface,
 :where(
   .bg-primary,

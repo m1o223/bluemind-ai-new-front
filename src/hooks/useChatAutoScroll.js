@@ -26,14 +26,14 @@ export default function useChatAutoScroll({ watch = [], isStreaming = false } = 
     shouldAutoFollowRef.current = true;
     setShowScrollToBottom(false);
 
-    if (endRef.current) {
-      endRef.current.scrollIntoView({ behavior, block: "end" });
-      return;
-    }
-
     const node = scrollRef.current;
     if (node) {
       node.scrollTo({ top: node.scrollHeight, behavior });
+      return;
+    }
+
+    if (endRef.current) {
+      endRef.current.scrollIntoView({ behavior, block: "end" });
     }
   }, []);
 
