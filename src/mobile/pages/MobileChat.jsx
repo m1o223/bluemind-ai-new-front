@@ -4,11 +4,9 @@ import { AnimatePresence, animate, motion, useMotionValue, useScroll, useTransfo
 import { toast } from "sonner";
 import {
   ArrowLeft,
-  ArrowRight,
   ArrowDown,
   ArrowUp,
   Bell,
-  BookOpen,
   Brain,
   Camera,
   ChevronDown,
@@ -782,7 +780,7 @@ export default function MobileChat() {
   const mobileSectionTitleClass = isDark ? "text-white/72" : "text-[var(--bm-text-muted)]";
   const mobileSubtleTextClass = isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]";
   const mobileMenuItemClass = (active = false) => cn(
-    "bm-mobile-menu-item flex min-h-[48px] w-full items-center rounded-2xl text-left font-semibold",
+    "bm-mobile-menu-item flex min-h-[48px] w-full items-center rounded-2xl px-3 text-left font-semibold",
     typeClasses.body,
     iconClasses.iconText,
     active
@@ -828,7 +826,6 @@ export default function MobileChat() {
   const bluemindMenuItems = [
     { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
     { label: "Reminders", path: "/mobile/reminders", icon: Bell },
-    { label: "Learning", path: "/mobile/learning", icon: BookOpen },
     { label: "AI Plans", path: "/mobile/ai-plans", icon: Sparkles },
     { label: "Schedule", path: "/mobile/schedule", icon: Clipboard },
   ];
@@ -4522,15 +4519,6 @@ Everything will be deleted when you leave.</p>
               }}
               aria-hidden="true"
             />
-
-            <button
-              type="button"
-              onClick={closeMenu}
-              className={cn("bm-mobile-glass-control absolute top-[calc(env(safe-area-inset-top)+14px)] z-30", isRtl ? "right-5" : "left-5")}
-              aria-label="Close menu"
-            >
-              {isRtl ? <ArrowRight className={iconClasses.button} /> : <ArrowLeft className={iconClasses.button} />}
-            </button>
 
             <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-[88px] pt-[calc(env(safe-area-inset-top)+22px)] text-center">
               <h2 className={cn("truncate text-[20px] font-semibold leading-none tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</h2>

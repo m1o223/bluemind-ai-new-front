@@ -1444,18 +1444,34 @@ html[data-theme="light"] .bm-mobile-menu-item {
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-}
-
-html[data-theme="light"] .bm-mobile-menu-item:not([class*="bg-"]) {
   background: transparent !important;
+  transform: none !important;
 }
 
-html[data-theme="light"] .bm-mobile-menu-item.bg-\[var\(--bm-active-bg\)\] {
-  background: var(--bm-active-bg) !important;
+.bm-mobile-menu-item:not(:disabled):not([aria-disabled="true"]):hover {
+  background: rgba(255, 255, 255, 0.075) !important;
+  transform: none !important;
+}
+
+.bm-mobile-menu-item:not(:disabled):not([aria-disabled="true"]):active {
+  background: rgba(255, 255, 255, 0.105) !important;
+  transform: none !important;
+}
+
+html[data-theme="light"] .bm-mobile-menu-item:not(:disabled):not([aria-disabled="true"]):hover {
+  background: rgba(0, 0, 0, 0.045) !important;
+}
+
+html[data-theme="light"] .bm-mobile-menu-item:not(:disabled):not([aria-disabled="true"]):active {
+  background: rgba(0, 0, 0, 0.065) !important;
 }
 
 html[data-theme="dark"] .bm-mobile-menu-item.bg-white\/\[0\.08\] {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.075) !important;
+}
+
+html[data-theme="light"] .bm-mobile-menu-item.bg-\[var\(--bm-active-bg\)\] {
+  background: rgba(0, 0, 0, 0.055) !important;
 }
 
 html[data-theme="light"] :where(button, a, [role="button"], [role="menuitem"]) {
