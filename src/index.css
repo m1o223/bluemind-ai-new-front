@@ -75,7 +75,7 @@
     --card-foreground: 0 0% 100%;
     --popover: 0 0% 0%;
     --popover-foreground: 0 0% 100%;
-    --primary: 160 83% 35%;
+    --primary: 212 61% 25%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 0%;
     --secondary-foreground: 0 0% 100%;
@@ -1573,6 +1573,169 @@ html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="unified-c
 
 [data-testid="mobile-chat-page"] [data-testid="unified-composer-box"] .bm-mobile-glass-control.bm-chat-composer-send-control svg {
   color: #ffffff !important;
+}
+
+.bm-blue-surface,
+:where(
+  .bg-primary,
+  [class~="bg-[var(--bm-primary)]"],
+  [class~="bg-[var(--bm-primary)]/90"],
+  [class~="bg-[var(--bm-primary)]/95"],
+  [class~="bg-[rgba(25,59,104,0.94)]"],
+  [class~="bg-[rgba(25,59,104,0.98)]"],
+  [class~="bg-[rgba(12,45,102,0.42)]"],
+  [class~="bg-[rgba(10,42,96,0.72)]"],
+  [class~="bg-[#2F7DF6]"],
+  [class~="bg-[#2f7df6]"],
+  [style*="background-color: var(--bm-primary)"],
+  [style*="background-color:var(--bm-primary)"],
+  [style*="background-color: var(--bluemind-chat-color"],
+  [style*="background-color:var(--bluemind-chat-color"],
+  [style*="background-color: rgb(25, 59, 104)"],
+  [style*="background: rgb(25, 59, 104)"],
+  [style*="background-color: rgb(47, 125, 246)"],
+  [style*="background-color:rgb(47,125,246)"],
+  [style*="background-color: #2F7DF6"],
+  [style*="background-color:#2F7DF6"],
+  [style*="background-color: #2f7df6"],
+  [style*="background-color:#2f7df6"]
+) {
+  color: #ffffff !important;
+  --bm-blue-surface-content: #ffffff;
+}
+
+.bm-blue-surface :where(
+  svg,
+  path,
+  circle,
+  rect,
+  line,
+  polyline,
+  polygon,
+  span,
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  label,
+  strong,
+  em,
+  small,
+  .bm-action-feedback,
+  .bm-action-check,
+  .bm-action-dot,
+  .bm-voice-spinner
+),
+:where(
+  .bg-primary,
+  [class~="bg-[var(--bm-primary)]"],
+  [class~="bg-[var(--bm-primary)]/90"],
+  [class~="bg-[var(--bm-primary)]/95"],
+  [class~="bg-[rgba(25,59,104,0.94)]"],
+  [class~="bg-[rgba(25,59,104,0.98)]"],
+  [class~="bg-[rgba(12,45,102,0.42)]"],
+  [class~="bg-[rgba(10,42,96,0.72)]"],
+  [class~="bg-[#2F7DF6]"],
+  [class~="bg-[#2f7df6]"],
+  [style*="background-color: var(--bm-primary)"],
+  [style*="background-color:var(--bm-primary)"],
+  [style*="background-color: var(--bluemind-chat-color"],
+  [style*="background-color:var(--bluemind-chat-color"],
+  [style*="background-color: rgb(25, 59, 104)"],
+  [style*="background: rgb(25, 59, 104)"],
+  [style*="background-color: rgb(47, 125, 246)"],
+  [style*="background-color:rgb(47,125,246)"],
+  [style*="background-color: #2F7DF6"],
+  [style*="background-color:#2F7DF6"],
+  [style*="background-color: #2f7df6"],
+  [style*="background-color:#2f7df6"]
+) :where(
+  svg,
+  path,
+  circle,
+  rect,
+  line,
+  polyline,
+  polygon,
+  span,
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  label,
+  strong,
+  em,
+  small,
+  .bm-action-feedback,
+  .bm-action-check,
+  .bm-action-dot,
+  .bm-voice-spinner
+) {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+.bm-blue-surface :where(.bm-action-dot),
+:where(
+  .bg-primary,
+  [class~="bg-[var(--bm-primary)]"],
+  [class~="bg-[var(--bm-primary)]/90"],
+  [class~="bg-[var(--bm-primary)]/95"],
+  [class~="bg-[rgba(25,59,104,0.94)]"],
+  [class~="bg-[rgba(25,59,104,0.98)]"],
+  [class~="bg-[rgba(12,45,102,0.42)]"],
+  [class~="bg-[rgba(10,42,96,0.72)]"],
+  [class~="bg-[#2F7DF6]"],
+  [class~="bg-[#2f7df6]"],
+  [style*="background-color: var(--bm-primary)"],
+  [style*="background-color:var(--bm-primary)"],
+  [style*="background-color: var(--bluemind-chat-color"],
+  [style*="background-color:var(--bluemind-chat-color"],
+  [style*="background-color: rgb(25, 59, 104)"],
+  [style*="background: rgb(25, 59, 104)"],
+  [style*="background-color: rgb(47, 125, 246)"],
+  [style*="background-color:rgb(47,125,246)"],
+  [style*="background-color: #2F7DF6"],
+  [style*="background-color:#2F7DF6"],
+  [style*="background-color: #2f7df6"],
+  [style*="background-color:#2f7df6"]
+) :where(.bm-action-dot) {
+  background: #ffffff !important;
+}
+
+html[data-theme="light"] :where(
+  .bm-blue-surface,
+  .bg-primary,
+  [class~="bg-[var(--bm-primary)]"],
+  [class~="bg-[var(--bm-primary)]/90"],
+  [class~="bg-[var(--bm-primary)]/95"],
+  [class~="bg-[rgba(25,59,104,0.94)]"],
+  [class~="bg-[rgba(25,59,104,0.98)]"],
+  [class~="bg-[rgba(12,45,102,0.42)]"],
+  [class~="bg-[rgba(10,42,96,0.72)]"],
+  [class~="bg-[#2F7DF6]"],
+  [class~="bg-[#2f7df6]"],
+  [style*="background-color: var(--bm-primary)"],
+  [style*="background-color:var(--bm-primary)"],
+  [style*="background-color: var(--bluemind-chat-color"],
+  [style*="background-color:var(--bluemind-chat-color"],
+  [style*="background-color: rgb(25, 59, 104)"],
+  [style*="background: rgb(25, 59, 104)"],
+  [style*="background-color: rgb(47, 125, 246)"],
+  [style*="background-color:rgb(47,125,246)"],
+  [style*="background-color: #2F7DF6"],
+  [style*="background-color:#2F7DF6"],
+  [style*="background-color: #2f7df6"],
+  [style*="background-color:#2f7df6"]
+) :where(svg, .lucide, svg[class*="lucide"]) {
+  color: #ffffff !important;
+  stroke: currentColor !important;
 }
 
 @layer base {
