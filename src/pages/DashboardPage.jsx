@@ -2,9 +2,12 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Bell,
-  BookOpen,
   CalendarDays,
   MessageSquare,
+  Megaphone,
+  PenLine,
+  Sparkles,
+  Tags,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -86,6 +89,20 @@ function ShortcutCard({ isDark, appColor, accentText, icon: Icon, title, descrip
   );
 }
 
+function DashboardSection({ title, eyebrow, children, isDark }) {
+  return (
+    <section className="mt-10">
+      <div className="mb-4">
+        {eyebrow && (
+          <p className={cn("text-xs font-black uppercase tracking-[0.18em]", isDark ? "text-white/44" : "text-[var(--bm-text-muted)]")}>{eyebrow}</p>
+        )}
+        <h2 className={cn("mt-1 text-2xl font-black tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { prefs, resolvedTheme, uiLanguage } = useApp();
@@ -110,22 +127,32 @@ export default function DashboardPage() {
       path: "/reminders",
     },
     {
-      key: "learning",
-      icon: BookOpen,
-      title: "Learning",
-      description: "Continue your learning journey",
-      path: "/learning",
-    },
-    {
-      key: "scheman",
+      key: "schedule",
       icon: CalendarDays,
       title: "Schedule",
       description: "Build your weekly schedule",
       path: "/schedule",
     },
+    {
+      key: "write-edit",
+      icon: PenLine,
+      title: "Write / Edit",
+      description: "Draft, rewrite and polish text",
+      path: "/chat?mode=write-edit",
+    },
   ];
-  const welcomeTitle = isRTL ? "مرحباً" : "Welcome back";
-  const welcomeSubtitle = isRTL ? "اختر القسم الذي تريد الوصول إليه بسرعة." : "Choose where you want to go.";
+  const learningHighlights = [
+    "Interactive lessons",
+    "AI teacher",
+    "Ask AI during lessons",
+    "Multiple school subjects",
+    "Language learning",
+    "Progress tracking",
+    "Practice quizzes",
+    "Flashcards",
+  ];
+  const welcomeTitle = isRTL ? "BlueMind" : "BlueMind Home";
+  const welcomeSubtitle = isRTL ? "BlueMind home dashboard." : "Your dashboard for tools, updates, announcements, and future offers.";
 
   return (
     <div className={cn("min-h-screen", isDark ? "bg-[var(--bm-bg-app)]" : "bg-[var(--bm-bg-app)]")} dir={isRTL ? "rtl" : "ltr"} data-testid="dashboard-page">
@@ -135,6 +162,13 @@ export default function DashboardPage() {
           <h2 className={cn("font-extrabold tracking-tight", typeClasses.pageTitle, isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{welcomeTitle}</h2>
           <p className={cn("mt-3 font-semibold", typeClasses.body, isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{welcomeSubtitle}</p>
         </motion.div>
+
+        <section>
+          <div className="mb-4">
+            <p className={cn("text-xs font-black uppercase tracking-[0.18em]", isDark ? "text-white/44" : "text-[var(--bm-text-muted)]")}>Quick Access</p>
+            <h2 className={cn("mt-1 text-2xl font-black tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Start here</h2>
+          </div>
+        </section>
 
         <div className={cn("grid grid-cols-2", spacingClasses.cardGap)}>
           {shortcuts.map((shortcut, index) => (
@@ -156,7 +190,102 @@ export default function DashboardPage() {
             </motion.div>
           ))}
         </div>
+
+        <div
+          className="my-10 h-px w-full"
+          style={{
+            background: isDark
+              ? "linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent)"
+              : "linear-gradient(90deg, transparent, rgba(0,0,0,0.14), transparent)",
+          }}
+          aria-hidden="true"
+        />
+
+        <DashboardSection title="What's New" eyebrow="Updates" isDark={isDark}>
+          <motion.article
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...motionTokens.transition, delay: 0.16 }}
+            className={cn(
+              "rounded-[28px] border p-6 shadow-sm",
+              isDark
+                ? "border-white/[0.075] bg-[rgba(38,38,38,0.34)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-[28px]"
+                : "border-black/[0.08] bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
+            )}
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white">
+                <Sparkles className={iconClasses.card} />
+              </div>
+              <div className="min-w-0">
+                <p className={cn("text-xs font-black uppercase tracking-[0.16em]", isDark ? "text-white/46" : "text-[var(--bm-text-muted)]")}>Release Preview</p>
+                <h3 className={cn("mt-1 text-2xl font-black leading-tight tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind 5.0 — Coming Soon</h3>
+                <p className={cn("mt-3 max-w-3xl text-base font-semibold leading-7", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
+                  Learning is being prepared as a guided study experience with lessons, practice, and AI support built into every step.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-4">
+              {learningHighlights.map((item) => (
+                <div
+                  key={item}
+                  className={cn(
+                    "rounded-2xl border px-4 py-3 text-sm font-bold",
+                    isDark ? "border-white/[0.07] bg-white/[0.045] text-white/82" : "border-black/[0.06] bg-black/[0.025] text-[var(--bm-text-primary)]",
+                  )}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </motion.article>
+        </DashboardSection>
+
+        <DashboardSection title="Announcements" eyebrow="BlueMind News" isDark={isDark}>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              {
+                icon: Megaphone,
+                title: "Product updates will appear here",
+                description: "Future releases, maintenance notes, and company announcements will be organized in this space.",
+              },
+              {
+                icon: Tags,
+                title: "Partner offers space",
+                description: "Book stores, education companies, learning platforms, student discounts, and partner promotions can live here later.",
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <motion.article
+                  key={item.title}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...motionTokens.transition, delay: 0.2 }}
+                  className={cn(
+                    "rounded-[24px] border p-5",
+                    isDark
+                      ? "border-white/[0.07] bg-white/[0.045] text-white"
+                      : "border-black/[0.07] bg-white/80 text-[var(--bm-text-primary)]",
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", isDark ? "bg-white/[0.07] text-white" : "bg-black/[0.04] text-[var(--bm-text-primary)]")}>
+                      <Icon className={iconClasses.button} />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-black">{item.title}</h3>
+                      <p className={cn("mt-2 text-sm font-semibold leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{item.description}</p>
+                    </div>
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+        </DashboardSection>
       </main>
     </div>
   );
 }
+
