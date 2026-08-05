@@ -1231,7 +1231,7 @@ export default function MobileChat() {
   const shouldPinComposer = !shouldShowWritingModeHome;
   const shouldShowWriteEditTemplates = isWriteEditMode && !shouldShowWritingModeHome && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
   const shouldShowChatHome =
-    chatSessionMode !== "writing" &&
+    chatSessionMode === "normal" &&
     isEmptyChat &&
     !chatHomeDismissed &&
     !hasComposerContent &&
@@ -4291,7 +4291,7 @@ export default function MobileChat() {
             style={{ bottom: `${composerKeyboardOffset}px` }}
           >
             <div className="mx-auto w-full max-w-[430px] pt-3">
-              {renderComposerArea(false, isEmptyChat)}
+              {renderComposerArea(false, shouldShowChatHome)}
             </div>
           </div>
         )}
