@@ -949,6 +949,34 @@ html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-contr
   }
 }
 
+@keyframes bm-voice-spinner-rotate {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.bm-voice-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 50% 50%;
+  rotate: 0deg;
+  animation: bm-voice-spinner-rotate 0.82s linear infinite;
+  will-change: transform;
+}
+
+.bm-voice-spinner svg {
+  transform: none !important;
+}
+
+.bm-voice-stop-square {
+  width: 9px;
+  height: 9px;
+  border-radius: 2.5px;
+  background: currentColor;
+  display: inline-block;
+}
+
 .bm-input-interactive {
   transition-property: color, background-color, border-color, box-shadow, opacity, transform;
   transition-duration: var(--bm-motion-duration);

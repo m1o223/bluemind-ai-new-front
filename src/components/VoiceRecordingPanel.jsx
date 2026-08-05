@@ -1,8 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUp, LoaderCircle, Square, X } from "lucide-react";
+import { ArrowUp, LoaderCircle, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+
+function VoiceSpinner() {
+  return (
+    <motion.span
+      className="bm-voice-spinner inline-flex h-4 w-4 items-center justify-center"
+      animate={{ rotate: 360 }}
+      transition={{ duration: 0.82, ease: "linear", repeat: Infinity }}
+      aria-hidden="true"
+    >
+      <LoaderCircle className="h-4 w-4" />
+    </motion.span>
+  );
+}
 
 export default function VoiceRecordingPanel({
   audioLevels = [],
@@ -19,7 +32,10 @@ export default function VoiceRecordingPanel({
   minimal = false,
 }) {
   const [pendingAction, setPendingAction] = useState(null);
-  const levels = audioLevels.length ? audioLevels : Array.from({ length: minimal ? 32 : 28 }, () => 0.08);
+  const fallbackLevels = useMemo(() => Array.from({ length: minimal ? 32 : 28 }, () => 0.08), [minimal]);
+  const rawLevels = audioLevels.length ? audioLevels : fallbackLevels;
+  const [displayLevels, setDisplayLevels] = useState(rawLevels);
+  const levels = displayLevels.length ? displayLevels : rawLevels;
   const isRequesting = status === "requesting";
   const isTranscribing = status === "transcribing";
   const isSending = status === "sending";
@@ -37,6 +53,19 @@ export default function VoiceRecordingPanel({
       setPendingAction(null);
     }
   }, [status]);
+
+  useEffect(() => {
+    setDisplayLevels((current) => {
+      if (current.length !== rawLevels.length) return rawLevels;
+
+      return rawLevels.map((level, index) => {
+        const previous = current[index] ?? level;
+        const delta = level - previous;
+        const factor = delta > 0 ? 0.42 : 0.24;
+        return previous + delta * factor;
+      });
+    });
+  }, [rawLevels]);
 
   const handleStop = () => {
     setPendingAction("stop");
@@ -124,9 +153,9 @@ export default function VoiceRecordingPanel({
             aria-label="Stop voice input"
           >
             {showStopSpinner ? (
-              <LoaderCircle className="h-4 w-4 animate-spin" />
+              <VoiceSpinner />
             ) : (
-              <Square className="h-3.5 w-3.5 fill-current" />
+              <span className="bm-voice-stop-square" aria-hidden="true" />
             )}
           </button>
 
@@ -139,7 +168,7 @@ export default function VoiceRecordingPanel({
             aria-label="Send voice input"
           >
             {showSendSpinner ? (
-              <LoaderCircle className="h-4 w-4 animate-spin" />
+              <VoiceSpinner />
             ) : (
               <ArrowUp className="-translate-y-[1px] scale-y-[1.1]" />
             )}
@@ -158,7 +187,7 @@ export default function VoiceRecordingPanel({
           aria-label="Finish voice input"
         >
           {showStopSpinner ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <VoiceSpinner />
           ) : (
             <ArrowUp className="-translate-y-[1px] scale-y-[1.1]" />
           )}
