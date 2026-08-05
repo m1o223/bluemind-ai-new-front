@@ -703,6 +703,7 @@ export default function MobileChat() {
   const [pendingImageTemplate, setPendingImageTemplate] = useState(null);
   const [attachedImages, setAttachedImages] = useState([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isWriteEditCategoryBrowserOpen, setIsWriteEditCategoryBrowserOpen] = useState(false);
   const [activeWriteTask, setActiveWriteTask] = useState(null);
   const [pendingWriteTemplate, setPendingWriteTemplate] = useState(null);
   const [writeAttachments, setWriteAttachments] = useState([]);
@@ -928,9 +929,9 @@ export default function MobileChat() {
   const hasConversationMessages = messages.length > 0;
   const hasGeneratedOutput = generatedImages.length > 0;
   const hasComposerContent = hasTypedMessage || attachedImages.length > 0 || writeAttachments.length > 0;
-  const isToolFocusMode = isImageMode || isWriteEditMode || isSearchMode || Boolean(activeWriteTask);
+  const isToolFocusMode = isImageMode || isWriteEditMode || isWriteEditCategoryBrowserOpen || isSearchMode || Boolean(activeWriteTask);
   const isSmartFocusMode = isToolFocusMode || hasTypedMessage;
-  const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && !hasConversationMessages && !hasGeneratedOutput;
+  const isEmptyChat = !isImageMode && !isWriteEditMode && !isWriteEditCategoryBrowserOpen && !isSearchMode && !hasConversationMessages && !hasGeneratedOutput;
   const shouldShowImageTemplates = isImageMode && (!message.trim() || Boolean(selectedImageTemplate)) && attachedImages.length === 0 && !isGeneratingImage;
   const shouldShowSearchCards = isSearchMode && messages.length === 0 && generatedImages.length === 0;
   const {
@@ -1229,8 +1230,8 @@ export default function MobileChat() {
     !isUploadingImages &&
     !isListening &&
     !isOpeningConversation;
-  const shouldPinComposer = !shouldShowWritingModeHome;
-  const shouldShowWriteEditTemplates = isWriteEditMode && !shouldShowWritingModeHome && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
+  const shouldPinComposer = !shouldShowWritingModeHome && !isWriteEditCategoryBrowserOpen;
+  const shouldShowWriteEditTemplates = isWriteEditCategoryBrowserOpen && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
   const shouldShowChatHome =
     chatSessionMode === "normal" &&
     isEmptyChat &&
@@ -1670,6 +1671,7 @@ export default function MobileChat() {
     setMessage("");
     setIsImageMode(false);
     setIsWriteEditMode(false);
+    setIsWriteEditCategoryBrowserOpen(false);
     setIsSearchMode(false);
     setSelectedSearchCategory(null);
     setOpenSearchMenuItemId(null);
@@ -2063,6 +2065,7 @@ export default function MobileChat() {
   const enterImageMode = () => {
     setIsImageMode(true);
     setIsWriteEditMode(false);
+    setIsWriteEditCategoryBrowserOpen(false);
     setIsSearchMode(false);
     setImageModeError("");
     setAttachmentSheetOpen(false);
@@ -2077,8 +2080,29 @@ export default function MobileChat() {
     setImageModeStatus("");
   };
 
+  const openWriteEditCategories = () => {
+    clearMobileFlowParams();
+    setIsWriteEditCategoryBrowserOpen(true);
+    setIsWriteEditMode(false);
+    setIsImageMode(false);
+    setIsSearchMode(false);
+    setActiveWriteTask(null);
+    setPendingWriteTemplate(null);
+    setWriteAttachmentChoiceOpen(false);
+    setWriteAttachments([]);
+    setMessage("");
+    setAttachmentSheetOpen(false);
+    setImageModeError("");
+    setImageModeStatus("");
+  };
+
+  const closeWriteEditCategories = () => {
+    setIsWriteEditCategoryBrowserOpen(false);
+  };
+
   const enterWriteEditMode = () => {
     setIsWriteEditMode(true);
+    setIsWriteEditCategoryBrowserOpen(false);
     setIsImageMode(false);
     setIsSearchMode(false);
     setAttachmentSheetOpen(false);
@@ -2089,12 +2113,14 @@ export default function MobileChat() {
   const exitWriteEditMode = () => {
     clearWriteTask();
     setIsWriteEditMode(false);
+    setIsWriteEditCategoryBrowserOpen(false);
   };
 
   const enterSearchMode = () => {
     setIsSearchMode(true);
     setIsImageMode(false);
     setIsWriteEditMode(false);
+    setIsWriteEditCategoryBrowserOpen(false);
     setSelectedSearchCategory(null);
     setOpenSearchMenuItemId(null);
     setExpandedSearchItemId(null);
@@ -2141,6 +2167,7 @@ export default function MobileChat() {
     if (!template) return;
     clearMobileFlowParams();
     setIsWriteEditMode(true);
+    setIsWriteEditCategoryBrowserOpen(false);
     setActiveWriteTask(createWriteEditTask(template));
     setWriteAttachments(files);
     setMessage(template.prompt);
@@ -2175,6 +2202,7 @@ export default function MobileChat() {
     if (!template) return;
     clearMobileFlowParams();
     setIsWriteEditMode(true);
+    setIsWriteEditCategoryBrowserOpen(false);
     setActiveWriteTask(createWriteEditTask(template));
     setPendingWriteTemplate(null);
     setWriteAttachmentChoiceOpen(false);
@@ -3108,7 +3136,7 @@ export default function MobileChat() {
     };
 
     const quickActionChips = [
-      { label: "Write / Edit", icon: PenLine, onClick: enterWriteEditMode },
+      { label: "Write / Edit", icon: PenLine, onClick: openWriteEditCategories },
       { label: "Create Images", icon: Image, onClick: enterImageMode },
       { label: "Search", icon: Search, onClick: enterSearchMode },
       { label: "Open Camera", icon: Camera, onClick: () => openFileInput(cameraInputRef, "camera") },
@@ -3276,7 +3304,7 @@ export default function MobileChat() {
   const renderHomeQuickActions = () => {
     const quickActions = [
       { label: "Create Image", icon: Image, onClick: enterImageMode },
-      { label: "Write / Edit", icon: PenLine, onClick: enterWriteEditMode },
+      { label: "Write / Edit", icon: PenLine, onClick: openWriteEditCategories },
       { label: "Search", icon: Search, onClick: enterSearchMode },
     ];
 
@@ -3610,7 +3638,7 @@ export default function MobileChat() {
       { label: "Camera", icon: Camera, onClick: () => openFileInput(cameraInputRef, "camera") },
       { label: "Photos", icon: Image, onClick: () => openFileInput(imageInputRef, "photos") },
       { label: "Files", icon: FileText, onClick: () => openFileInput(fileInputRef, "files") },
-      { label: "Write / Edit", icon: PenLine, onClick: enterWriteEditMode },
+      { label: "Write / Edit", icon: PenLine, onClick: openWriteEditCategories },
       { label: "Create Images", icon: Sparkles, onClick: enterImageMode },
       { label: "Search", icon: Search, onClick: enterSearchMode },
     ];
@@ -4051,6 +4079,27 @@ export default function MobileChat() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {isWriteEditCategoryBrowserOpen && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>Write / Edit</h2>
+                  <p className={`mt-1 max-w-[330px] text-xs font-semibold leading-5 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+                    Choose a writing tool, then BlueMind will open Writing Mode with the right template ready.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeWriteEditCategories}
+                  className="bm-mobile-glass-control"
+                  aria-label="Close write edit categories"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {shouldShowWriteEditTemplates && (
             <div className="pt-2">
