@@ -691,6 +691,7 @@ export default function MobileChat() {
   const [headerThinkingEnabled, setHeaderThinkingEnabled] = useState(() => localStorage.getItem(MOBILE_HEADER_THINKING_STORAGE_KEY) === "true");
   const [isImageMode, setIsImageMode] = useState(false);
   const [isWriteEditMode, setIsWriteEditMode] = useState(false);
+  const [selectedWritingCategoryId, setSelectedWritingCategoryId] = useState("email");
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [selectedSearchCategory, setSelectedSearchCategory] = useState(null);
   const [openSearchMenuItemId, setOpenSearchMenuItemId] = useState(null);
@@ -871,6 +872,51 @@ export default function MobileChat() {
     )),
     [],
   );
+  const writingCategories = useMemo(() => [
+    {
+      id: "email",
+      label: "Email",
+      icon: MessageSquare,
+      placeholder: "Write an email about...",
+    },
+    {
+      id: "reports",
+      label: "Reports",
+      icon: Clipboard,
+      placeholder: "Write a clear report about...",
+    },
+    {
+      id: "essay",
+      label: "Essay",
+      icon: FileText,
+      placeholder: "Write an essay about...",
+    },
+    {
+      id: "story",
+      label: "Story",
+      icon: PenLine,
+      placeholder: "Write a story about...",
+    },
+    {
+      id: "social",
+      label: "Social Media",
+      icon: Share2,
+      placeholder: "Write a social media post about...",
+    },
+    {
+      id: "templates",
+      label: "Templates",
+      icon: Sparkles,
+      placeholder: "Create a reusable writing template for...",
+    },
+    {
+      id: "cv",
+      label: "CV",
+      icon: FileText,
+      placeholder: "Write or improve a CV section for...",
+    },
+  ], []);
+  const selectedWritingCategory = writingCategories.find((category) => category.id === selectedWritingCategoryId) || writingCategories[0];
 
   const searchResultsForCategory = useMemo(
     () => getSearchResultsForCategory(selectedSearchCategory),
@@ -884,9 +930,7 @@ export default function MobileChat() {
   const isToolFocusMode = isImageMode || isWriteEditMode || isSearchMode || Boolean(activeWriteTask);
   const isSmartFocusMode = isToolFocusMode || hasTypedMessage;
   const isEmptyChat = !isImageMode && !isWriteEditMode && !isSearchMode && !hasConversationMessages && !hasGeneratedOutput;
-  const shouldPinComposer = true;
   const shouldShowImageTemplates = isImageMode && (!message.trim() || Boolean(selectedImageTemplate)) && attachedImages.length === 0 && !isGeneratingImage;
-  const shouldShowWriteEditTemplates = isWriteEditMode && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
   const shouldShowSearchCards = isSearchMode && messages.length === 0 && generatedImages.length === 0;
   const {
     scrollRef: messagesScrollRef,
@@ -1173,7 +1217,21 @@ export default function MobileChat() {
     typeof navigator !== "undefined" ? navigator.language : "en-US",
   ), [prefs?.language, prefs?.voiceLanguage, uiLanguage]);
 
+  const shouldShowWritingModeHome =
+    (chatSessionMode === "writing" || isWriteEditMode) &&
+    !isImageMode &&
+    !isSearchMode &&
+    !activeWriteTask &&
+    !hasConversationMessages &&
+    !hasGeneratedOutput &&
+    !isChatSending &&
+    !isUploadingImages &&
+    !isListening &&
+    !isOpeningConversation;
+  const shouldPinComposer = !shouldShowWritingModeHome;
+  const shouldShowWriteEditTemplates = isWriteEditMode && !shouldShowWritingModeHome && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
   const shouldShowChatHome =
+    chatSessionMode !== "writing" &&
     isEmptyChat &&
     !chatHomeDismissed &&
     !hasComposerContent &&
@@ -2966,7 +3024,7 @@ export default function MobileChat() {
     const composerModePill = isImageMode
       ? { label: selectedImageTemplate?.title ? `Create Image • ${selectedImageTemplate.title}` : "Create Image", onClear: exitImageMode, clearLabel: "Exit image mode" }
       : (isWriteEditMode || activeWriteTask)
-        ? { label: "Write/Edit", onClear: exitWriteEditMode, clearLabel: "Exit write edit mode" }
+        ? { label: "Writing Mode", onClear: exitWriteEditMode, clearLabel: "Exit writing mode" }
         : isSearchMode
           ? { label: "Search", onClear: exitSearchMode, clearLabel: "Exit search mode" }
           : null;
@@ -3151,8 +3209,8 @@ export default function MobileChat() {
         placeholder={
           isImageMode
             ? "Describe an image..."
-            : (isWriteEditMode || activeWriteTask)
-              ? "Write, paste, or choose a productivity tool..."
+            : (chatSessionMode === "writing" || isWriteEditMode || activeWriteTask)
+              ? selectedWritingCategory?.placeholder || "Write, paste, or choose a writing type..."
             : isSearchMode
                 ? "Ask AI to search..."
                 : attachedImages.length
@@ -3181,8 +3239,8 @@ export default function MobileChat() {
         variant="mobile"
         glassTone="chat-light"
         minimalVoiceUi
-        minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
-        maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
+        minRows={isImageMode || chatSessionMode === "writing" || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
+        maxTextHeight={isImageMode || chatSessionMode === "writing" || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
         testId="mobile-chat-input"
       />
 
@@ -3227,6 +3285,101 @@ export default function MobileChat() {
       </motion.div>
     );
   };
+
+  const focusWritingStyleRequest = () => {
+    setMessage("Help me create or edit my personal writing style. Ask me for writing samples and guide me step by step.");
+    setChatHomeDismissed(true);
+    window.requestAnimationFrame(() => {
+      composerInputRef.current?.focus?.();
+      resizeChatComposer(composerInputRef.current);
+    });
+  };
+
+  const renderWritingModeHome = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      className="space-y-5 pb-8"
+      data-testid="mobile-writing-mode-home"
+    >
+      <section className="pt-1">
+        <p className={cn("text-[12px] font-black uppercase tracking-[0.18em]", isDark ? "text-white/48" : "text-[var(--bm-text-muted)]")}>Writing Mode</p>
+        <h1 className={cn("mt-2 flex items-center gap-2 text-[28px] font-black leading-tight tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
+          <PenLine className="h-7 w-7 stroke-[2.45]" />
+          <span>Writing Mode</span>
+        </h1>
+        <p className={cn("mt-2 max-w-[360px] text-[14px] font-semibold leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
+          Write emails, reports, essays, stories and professional content with AI that adapts to your writing style.
+        </p>
+      </section>
+
+      <div className="-mx-4 px-0">
+        {renderComposerArea(false, false)}
+      </div>
+
+      <section>
+        <p className={cn("mb-2 px-1 text-[12px] font-black uppercase tracking-[0.16em]", isDark ? "text-white/48" : "text-[var(--bm-text-muted)]")}>Writing Categories</p>
+        <div className="-mx-4 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max min-w-full items-center gap-2.5">
+            {writingCategories.map((category) => {
+              const CategoryIcon = category.icon;
+              const selected = selectedWritingCategoryId === category.id;
+
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => setSelectedWritingCategoryId(category.id)}
+                  className={cn(
+                    "bm-mobile-glass-control bm-mobile-glass-chip shrink-0 text-[13px] font-black transition-transform active:scale-[0.97]",
+                    selected
+                      ? isDark ? "text-white" : "text-[var(--bm-text-primary)]"
+                      : isDark ? "text-white/84" : "text-[var(--bm-text-primary)]",
+                  )}
+                  aria-pressed={selected}
+                >
+                  <CategoryIcon className={cn("h-4 w-4 shrink-0 stroke-[2.3]", selected ? isDark ? "text-white" : "text-[var(--bm-primary)]" : isDark ? "text-white/74" : "text-[var(--bm-icon-primary)]")} />
+                  <span className="whitespace-nowrap">{category.label}</span>
+                  {selected && <Check className={cn("h-3.5 w-3.5 shrink-0 stroke-[2.6]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section
+        className={cn(
+          "rounded-[28px] border p-4 shadow-sm",
+          isDark
+            ? "border-white/[0.08] bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_18px_42px_rgba(0,0,0,0.22)]"
+            : "border-black/[0.07] bg-white/[0.88] shadow-[inset_0_1px_0_rgba(255,255,255,0.80),0_16px_36px_rgba(15,23,42,0.08)]",
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+            <PenLine className="h-5 w-5 stroke-[2.35]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className={cn("text-[16px] font-black tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Personal Writing Style</h2>
+            <p className={cn("mt-1 text-[13px] font-semibold leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
+              Create or edit your style so BlueMind can write closer to the way you naturally sound.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={focusWritingStyleRequest}
+          className="mt-4 h-11 w-full rounded-[22px] border border-white/[0.20] bg-[var(--bm-primary)] px-4 text-sm font-black !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_12px_28px_rgba(0,0,0,0.12)] transition-transform active:scale-[0.985]"
+          style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+        >
+          Create / Edit Writing Style
+        </button>
+      </section>
+    </motion.div>
+  );
 
   const renderMobileConversationRow = (item, context = "menu") => {
     const menuId = `${context}:${item.conversationId}`;
@@ -3694,13 +3847,19 @@ export default function MobileChat() {
         <div
           ref={messagesScrollRef}
           className={
-            isSmartFocusMode
+            shouldShowWritingModeHome
+              ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
+              : isSmartFocusMode
               ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
               : shouldShowChatHome
                 ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5"
                 : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"
           }
         >
+
+          <AnimatePresence initial={false}>
+            {shouldShowWritingModeHome && renderWritingModeHome()}
+          </AnimatePresence>
 
           {generatedImages.length > 0 && (
             <div className="mb-5 space-y-3">
@@ -3742,9 +3901,9 @@ export default function MobileChat() {
             </div>
           )}
 
-          {isWriteEditMode && (
+          {isWriteEditMode && !shouldShowWritingModeHome && (
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>Write/Edit</h2>
+              <h2 className={`text-lg font-bold tracking-tight ${textColor}`}>Writing Mode</h2>
               <button
                 type="button"
                 onClick={exitWriteEditMode}
