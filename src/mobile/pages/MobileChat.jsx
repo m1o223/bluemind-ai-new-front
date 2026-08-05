@@ -4620,20 +4620,50 @@ export default function MobileChat() {
         )}
 
         {hiddenChatModalOpen && (
-          <motion.div className="fixed inset-0 z-[90] flex items-end bg-black/45 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setHiddenChatModalOpen(false)}>
-            <motion.div className={`w-full rounded-t-[30px] border p-5 shadow-2xl ${isDark ? "border-white/10 bg-[var(--bm-bg-card)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]"}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} onClick={(event) => event.stopPropagation()}>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold">Hidden Chat</h2>
+          <motion.div
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/42 px-5 backdrop-blur-[10px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setHiddenChatModalOpen(false)}
+          >
+            <motion.div
+              className={cn(
+                "w-full max-w-[350px] rounded-[30px] border p-5 shadow-2xl",
+                isDark
+                  ? "border-white/[0.08] bg-[rgba(38,38,38,0.88)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_24px_70px_rgba(0,0,0,0.42)] backdrop-blur-[44px]"
+                  : "border-black/[0.07] bg-white/[0.94] text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.82),0_22px_60px_rgba(15,23,42,0.16)] backdrop-blur-[36px]",
+              )}
+              initial={{ opacity: 0, scale: 0.94, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 8 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+                    <Glasses className="h-5 w-5 stroke-[2.35]" />
+                  </span>
+                  <h2 className="text-[20px] font-black leading-tight tracking-tight">Hidden Chat</h2>
+                </div>
                 <button type="button" className="bm-mobile-glass-control" onClick={() => setHiddenChatModalOpen(false)}>
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <p className={`mb-5 whitespace-pre-line text-sm leading-6 ${mutedText}`}>This chat is temporary.
+              <p className={`mb-5 whitespace-pre-line text-sm font-semibold leading-6 ${mutedText}`}>This chat is temporary.
 Messages are not saved.
 It does not appear in History.
 It does not appear in Search.
 Everything will be deleted when you leave.</p>
-              <button type="button" className="w-full rounded-2xl bg-[var(--bm-primary)] px-4 py-3 text-sm font-bold text-white" onClick={startHiddenChat}>Start Hidden Chat</button>
+              <button
+                type="button"
+                className="w-full rounded-[22px] border border-white/[0.20] bg-[var(--bm-primary)] px-4 py-3.5 text-sm font-black !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_12px_28px_rgba(0,0,0,0.14)] transition-transform active:scale-[0.985]"
+                style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+                onClick={startHiddenChat}
+              >
+                Start Hidden Chat
+              </button>
             </motion.div>
           </motion.div>
         )}
