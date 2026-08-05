@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -7,11 +7,14 @@ import {
   Bell,
   BookOpen,
   Briefcase,
+  Camera,
   CalendarDays,
   ChevronDown,
   Clock3,
   Dumbbell,
+  FileText,
   GraduationCap,
+  Image,
   MoreVertical,
   Moon,
   PenLine,
@@ -35,8 +38,9 @@ import MobileNotificationControlCard from "@/mobile/components/MobileNotificatio
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
-import { streamChatMessage } from "@/services/chatService";
+import { streamChatMessage, transcribeVoiceAudio } from "@/services/chatService";
 import { uploadChatImage } from "@/services/imageService";
+import useVoiceInput from "@/hooks/useVoiceInput";
 import {
   getNotificationDebugSnapshot,
   getNotificationStatus,
@@ -55,7 +59,7 @@ const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,
 const mobileBlueGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
-const mobilePrimaryButtonGlassClass = "border-[#7DB7FF]/[0.28] bg-[rgba(47,125,246,0.74)] !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-1px_0_rgba(0,0,0,0.08),0_12px_28px_rgba(47,125,246,0.14)] backdrop-blur-[24px]";
+const mobilePrimaryButtonGlassClass = "border-[#7DB7FF]/[0.18] bg-[rgba(25,59,104,0.94)] !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),inset_0_-1px_0_rgba(0,0,0,0.08),0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-[24px]";
 const mobileNeutralButtonGlassClass = "border-black/[0.06] bg-white/[0.72] text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-[24px]";
 
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -353,6 +357,29 @@ function formatDateLabel(date) {
   return `${date.getDate()} ${MONTH_NAMES[date.getMonth()].slice(0, 3)}`;
 }
 
+function getVoiceLanguageTag(...candidates) {
+  const raw = candidates.map((candidate) => String(candidate || "").trim()).find(Boolean) || "en-US";
+  const normalized = raw.replace("_", "-").toLowerCase();
+
+  if (normalized.startsWith("ar")) return "ar-SA";
+  if (normalized.startsWith("sv")) return "sv-SE";
+  if (normalized.startsWith("en-gb")) return "en-GB";
+  if (normalized.startsWith("en")) return "en-US";
+
+  return raw;
+}
+
+function appendVoiceText(baseText, transcript) {
+  const base = String(baseText || "").trim();
+  const next = String(transcript || "").trim();
+
+  if (!base) return next;
+  if (!next) return base;
+  if (base.endsWith(next)) return base;
+
+  return `${base} ${next}`.replace(/\s+/g, " ").trim();
+}
+
 function sortEvents(events) {
   return [...events].sort((a, b) => {
     const dateCompare = String(a.date || "").localeCompare(String(b.date || ""));
@@ -585,18 +612,49 @@ function ManualEventSheet({ open, isDark, form, setForm, onClose, onCreate }) {
 }
 
 function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
+  const { prefs, uiLanguage } = useApp();
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("idle");
+  const [voicePreview, setVoicePreview] = useState("");
+  const [composerFocused, setComposerFocused] = useState(false);
   const scrollRef = useRef(null);
   const photosInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const filesInputRef = useRef(null);
+  const attachmentMenuRef = useRef(null);
   const conversationIdRef = useRef("");
   const objectUrlsRef = useRef([]);
+  const voiceBaseTextRef = useRef("");
+  const voicePreviewRef = useRef("");
+  const voiceSendLockRef = useRef(false);
+  const composerBlurTimerRef = useRef(0);
+
+  const voiceLanguage = useMemo(() => getVoiceLanguageTag(
+    prefs?.voiceLanguage,
+    prefs?.language,
+    uiLanguage,
+    typeof navigator !== "undefined" ? navigator.language : "en-US",
+  ), [prefs?.language, prefs?.voiceLanguage, uiLanguage]);
+
+  const {
+    isListening,
+    status: voiceCaptureStatus,
+    audioLevels: voiceAudioLevels,
+    liveTranscript: voiceLiveTranscript,
+    start: startVoiceCapture,
+    stop: stopVoiceInput,
+    cancel: cancelVoiceInput,
+  } = useVoiceInput({
+    onError: (messageText) => {
+      setVoiceStatus("error");
+      toast.error(messageText);
+    },
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -605,10 +663,72 @@ function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
     });
   }, [messages, open]);
 
+  useEffect(() => {
+    if (voiceCaptureStatus === "requesting" || voiceCaptureStatus === "listening") {
+      setVoiceStatus(voiceCaptureStatus);
+    }
+  }, [voiceCaptureStatus]);
+
+  useEffect(() => {
+    if (voiceCaptureStatus === "listening") {
+      voicePreviewRef.current = voiceLiveTranscript;
+      setVoicePreview(voiceLiveTranscript);
+    }
+  }, [voiceCaptureStatus, voiceLiveTranscript]);
+
   useEffect(() => () => {
+    if (composerBlurTimerRef.current) {
+      window.clearTimeout(composerBlurTimerRef.current);
+    }
     objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     objectUrlsRef.current = [];
   }, []);
+
+  useEffect(() => {
+    if (open) return undefined;
+
+    if (isListening || ["requesting", "listening", "transcribing"].includes(voiceStatus)) {
+      void cancelVoiceInput();
+    }
+
+    setComposerFocused(false);
+    setAttachmentMenuOpen(false);
+    setVoiceStatus("idle");
+    setVoicePreview("");
+    voicePreviewRef.current = "";
+    voiceSendLockRef.current = false;
+
+    return undefined;
+  }, [cancelVoiceInput, isListening, open, voiceStatus]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && (isListening || ["requesting", "listening", "transcribing"].includes(voiceStatus))) {
+        void cancelVoiceInput();
+        setMessage(voiceBaseTextRef.current);
+        setVoiceStatus("idle");
+        setVoicePreview("");
+        voicePreviewRef.current = "";
+        voiceSendLockRef.current = false;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [cancelVoiceInput, isListening, voiceStatus]);
+
+  useEffect(() => {
+    if (!attachmentMenuOpen) return undefined;
+
+    const handleOutsidePointer = (event) => {
+      const menu = attachmentMenuRef.current;
+      if (menu && menu.contains(event.target)) return;
+      setAttachmentMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointer, true);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointer, true);
+  }, [attachmentMenuOpen]);
 
   const removeAttachment = (attachmentId) => {
     setAttachments((current) => {
@@ -680,9 +800,9 @@ function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
     }
   };
 
-  const sendScheduleChatMessage = async (event) => {
+  const sendScheduleChatMessage = useCallback(async (event, textOverride = undefined) => {
     event?.preventDefault?.();
-    const text = message.trim();
+    const text = String(textOverride ?? message).trim();
     if ((!text && !attachments.length) || isSending || isUploading) return;
 
     const currentAttachments = attachments;
@@ -708,6 +828,7 @@ function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
       { id: aiMessageId, role: "ai", content: "", isStreaming: true },
     ]);
     setMessage("");
+    setComposerFocused(false);
     setAttachments([]);
     setIsSending(true);
 
@@ -756,45 +877,221 @@ function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
     } finally {
       setIsSending(false);
     }
+  }, [attachments, events, isSending, isUploading, message, selectedDate]);
+
+  const finalizeVoiceInput = useCallback(async ({ send = false, previewOverride = "" } = {}) => {
+    if (voiceSendLockRef.current) return;
+    voiceSendLockRef.current = true;
+    setVoiceStatus("transcribing");
+
+    const liveFallback = String(previewOverride || voicePreviewRef.current || voicePreview || voiceLiveTranscript || "").trim();
+
+    try {
+      if (liveFallback) {
+        void stopVoiceInput().catch(() => {
+          // The live transcript is already captured; stopping is best-effort cleanup.
+        });
+
+        const finalText = appendVoiceText(voiceBaseTextRef.current, liveFallback);
+        setMessage(finalText);
+        voicePreviewRef.current = "";
+        setVoicePreview("");
+
+        if (send) {
+          setVoiceStatus("sending");
+          await sendScheduleChatMessage(null, finalText);
+        }
+
+        setVoiceStatus("idle");
+        return;
+      }
+
+      const audioBlob = await stopVoiceInput();
+      let transcript = "";
+
+      if (audioBlob?.size >= 512) {
+        try {
+          const result = await transcribeVoiceAudio(audioBlob);
+          transcript = String(result?.text || "").trim();
+        } catch (error) {
+          if (!liveFallback) throw error;
+          transcript = liveFallback;
+          toast.info("Using the live transcript because final transcription was unavailable.");
+        }
+      } else {
+        transcript = liveFallback;
+      }
+
+      if (!transcript) {
+        throw new Error("No speech detected. Please try again.");
+      }
+
+      const finalText = appendVoiceText(voiceBaseTextRef.current, transcript);
+      setMessage(finalText);
+      voicePreviewRef.current = "";
+      setVoicePreview("");
+
+      if (send) {
+        setVoiceStatus("sending");
+        await sendScheduleChatMessage(null, finalText);
+      }
+
+      setVoiceStatus("idle");
+    } catch (error) {
+      setVoiceStatus("error");
+      toast.error(error?.message || "Transcription failed. Please try again.");
+    } finally {
+      voiceSendLockRef.current = false;
+    }
+  }, [sendScheduleChatMessage, stopVoiceInput, voiceLiveTranscript, voicePreview]);
+
+  const startVoiceInput = useCallback(async () => {
+    if (isListening || ["requesting", "listening", "transcribing"].includes(voiceStatus)) {
+      await finalizeVoiceInput({ send: false });
+      return;
+    }
+
+    setAttachmentMenuOpen(false);
+    voiceBaseTextRef.current = message;
+    voicePreviewRef.current = "";
+    setVoicePreview("");
+    setVoiceStatus("requesting");
+    setComposerFocused(true);
+    const started = await startVoiceCapture({ language: voiceLanguage });
+
+    if (!started) {
+      setVoiceStatus("error");
+    }
+  }, [finalizeVoiceInput, isListening, message, startVoiceCapture, voiceLanguage, voiceStatus]);
+
+  const handleCancelVoiceInput = useCallback(async () => {
+    await cancelVoiceInput();
+    setMessage(voiceBaseTextRef.current);
+    voicePreviewRef.current = "";
+    setVoicePreview("");
+    setVoiceStatus("idle");
+    voiceSendLockRef.current = false;
+  }, [cancelVoiceInput]);
+
+  const handleStopVoiceInput = useCallback((previewOverride = "") => {
+    void finalizeVoiceInput({ send: false, previewOverride });
+  }, [finalizeVoiceInput]);
+
+  const handleSendVoiceInput = useCallback((previewOverride = "") => {
+    void finalizeVoiceInput({ send: true, previewOverride });
+  }, [finalizeVoiceInput]);
+
+  const mobileGlassControlStyle = isDark ? {
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.082), inset 0 -1px 0 rgba(255,255,255,0.01), inset 1px 0 0 rgba(255,255,255,0.018), inset -1px 0 0 rgba(255,255,255,0.016), 0 10px 24px rgba(0,0,0,0.24)",
+    backdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
+    WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
+  } : {
+    boxShadow: "inset 0 1px 0 rgba(17,17,17,0.06), inset 0 -1px 0 rgba(17,17,17,0.008), inset 1px 0 0 rgba(17,17,17,0.014), inset -1px 0 0 rgba(17,17,17,0.012), 0 7px 16px rgba(15,23,42,0.028)",
+    backdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
+    WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
+  };
+  const mobileGlassPanelStyle = isDark ? {
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.09), inset 0 -1px 0 rgba(255,255,255,0.012), inset 1px 0 0 rgba(255,255,255,0.02), inset -1px 0 0 rgba(255,255,255,0.018), 0 18px 44px rgba(0,0,0,0.28)",
+    backdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
+    WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(0.72) contrast(0.025)",
+  } : {
+    boxShadow: "inset 0 1px 0 rgba(17,17,17,0.06), inset 0 -1px 0 rgba(17,17,17,0.008), inset 1px 0 0 rgba(17,17,17,0.014), inset -1px 0 0 rgba(17,17,17,0.012), 0 10px 24px rgba(15,23,42,0.036)",
+    backdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
+    WebkitBackdropFilter: "blur(1120px) saturate(1.02) brightness(1.12) contrast(0.025)",
   };
 
-  const attachmentMenu = attachmentMenuOpen ? (
-    <div className="fixed inset-0 z-[160]">
-      <button type="button" className="absolute inset-0 cursor-default" onClick={() => setAttachmentMenuOpen(false)} aria-label="Close attachment menu" />
-      <div className={cn("absolute bottom-[118px] left-6 right-6 overflow-hidden rounded-[24px] border p-2 shadow-2xl", isDark ? "border-white/10 bg-[var(--bm-bg-app)] text-white" : "border-black/10 bg-white text-[var(--bm-text-primary)]")}>
-        {[
-          ["Camera", () => cameraInputRef.current?.click()],
-          ["Photos", () => photosInputRef.current?.click()],
-          ["Files", () => filesInputRef.current?.click()],
-        ].map(([label, action]) => (
+  const attachmentActions = [
+    { label: "Camera", icon: Camera, onClick: () => cameraInputRef.current?.click() },
+    { label: "Photos", icon: Image, onClick: () => photosInputRef.current?.click() },
+    { label: "Files", icon: FileText, onClick: () => filesInputRef.current?.click() },
+  ];
+
+  const attachmentMenu = typeof document !== "undefined" ? createPortal((
+    <AnimatePresence>
+      {attachmentMenuOpen && (
+        <div className="fixed inset-0 z-[160] flex items-end justify-center px-5 pb-[calc(env(safe-area-inset-bottom)+118px)]">
           <button
-            key={label}
             type="button"
-            onClick={action}
-            className={cn("h-11 w-full rounded-2xl px-3 text-left text-sm font-bold transition-colors", isDark ? "active:bg-white/[0.08]" : "active:bg-[var(--bm-hover-bg)]")}
+            className="absolute inset-0 z-0 bg-transparent"
+            onMouseDown={() => setAttachmentMenuOpen(false)}
+            onPointerDown={() => setAttachmentMenuOpen(false)}
+            onTouchStart={() => setAttachmentMenuOpen(false)}
+            onClick={() => setAttachmentMenuOpen(false)}
+            aria-label="Close attachment menu"
+          />
+          <motion.section
+            ref={attachmentMenuRef}
+            className={cn(
+              "relative z-10 w-full max-w-[356px] rounded-[32px] border p-4 backdrop-blur-[42px]",
+              isDark
+                ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.016),inset_1px_0_0_rgba(255,255,255,0.032),inset_-1px_0_0_rgba(255,255,255,0.026),0_24px_68px_rgba(0,0,0,0.34)]"
+                : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
+            )}
+            style={isDark ? undefined : mobileGlassPanelStyle}
+            initial={{ opacity: 0, y: 18, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.95 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            data-testid="mobile-schedule-ai-plus-menu"
           >
-            {label}
-          </button>
-        ))}
-      </div>
-    </div>
-  ) : null;
+            <div className="grid grid-cols-3 gap-3">
+              {attachmentActions.map((action) => {
+                const ActionIcon = action.icon;
+                return (
+                  <motion.button
+                    key={action.label}
+                    type="button"
+                    onClick={action.onClick}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                    className={cn(
+                      "flex h-[88px] min-w-0 flex-col items-center justify-center rounded-[24px] border px-2 text-center font-extrabold transition-colors",
+                      isDark
+                        ? "border-white/[0.05] bg-[rgba(255,255,255,0.032)] text-white/86 shadow-[inset_0_1px_0_rgba(255,255,255,0.09)] active:bg-[rgba(255,255,255,0.065)]"
+                        : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)] active:bg-[var(--bm-active-bg)]",
+                    )}
+                    style={isDark ? undefined : mobileGlassControlStyle}
+                  >
+                    <ActionIcon className={cn("mb-2 h-7 w-7 stroke-[2.25]", isDark ? "text-white/78" : "text-[var(--bm-icon-primary)]")} />
+                    <span className="text-[13px] leading-tight tracking-tight">{action.label}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.section>
+        </div>
+      )}
+    </AnimatePresence>
+  ), document.body) : null;
 
   return (
     <MobileModalShell open={open} isDark={isDark} title="BlueMind AI" onClose={onClose} contentClassName="flex flex-col px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-1 pb-4">
         {messages.length === 0 ? (
           <div className="flex min-h-full flex-col items-center justify-center px-3 text-center">
-            <img
-              src="/bluemind-schedule-ai-create.png"
-              alt=""
-              className="h-auto w-[min(82vw,330px)] max-w-full select-none object-contain"
-              draggable="false"
-            />
-            <h3 className={cn("mt-3 font-black", typeClasses.cardTitle)}>How should BlueMind help?</h3>
-            <p className={cn("mt-2 max-w-[290px] font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-muted)]")}>
-              Ask BlueMind to create, edit, or improve your schedule. You can include images for analysis.
-            </p>
+            <AnimatePresence initial={false}>
+              {!composerFocused && !message.trim() && !isListening && !["requesting", "listening", "transcribing", "sending"].includes(voiceStatus) && (
+                <motion.div
+                  key="schedule-ai-welcome"
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -12, scale: 0.98 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex flex-col items-center"
+                >
+                  <img
+                    src="/bluemind-schedule-ai-create.png"
+                    alt=""
+                    className="h-auto w-[min(82vw,330px)] max-w-full select-none object-contain"
+                    draggable="false"
+                  />
+                  <h3 className={cn("mt-3 font-black", typeClasses.cardTitle)}>How should BlueMind help?</h3>
+                  <p className={cn("mt-2 max-w-[290px] font-semibold leading-6", typeClasses.small, "text-[var(--bm-text-muted)]")}>
+                    Ask BlueMind to create, edit, or improve your schedule. You can include images for analysis.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         ) : (
           <div className="space-y-4">
@@ -836,33 +1133,63 @@ function AiCreateSheet({ open, isDark, selectedDate, events, onClose }) {
         )}
       </div>
 
-      <UnifiedComposer
-        value={message}
-        onChange={(event) => setMessage(event.target.value)}
-        onSubmit={sendScheduleChatMessage}
-        placeholder="Ask BlueMind..."
-        attachments={attachments}
-        onRemoveAttachment={removeAttachment}
-        onClearAttachments={() => {
-          attachments.forEach((attachment) => {
-            if (attachment.previewUrl) {
-              URL.revokeObjectURL(attachment.previewUrl);
-              objectUrlsRef.current = objectUrlsRef.current.filter((url) => url !== attachment.previewUrl);
-            }
-          });
-          setAttachments([]);
+      {attachmentMenu}
+
+      <div
+        onPointerDownCapture={() => {
+          if (composerBlurTimerRef.current) {
+            window.clearTimeout(composerBlurTimerRef.current);
+          }
+          setComposerFocused(true);
         }}
-        isUploading={isUploading}
-        onAdd={() => setAttachmentMenuOpen(true)}
-        onVoice={() => toast.info("Voice input will use the shared BlueMind voice system when enabled here.")}
-        isBusy={isSending}
-        canSend={Boolean(message.trim()) || attachments.length > 0}
-        isDark={isDark}
-        variant="mobile"
-        maxTextHeight={120}
-        actionMenu={attachmentMenu}
-        testId="mobile-schedule-ai-input"
-      />
+      >
+        <UnifiedComposer
+          value={message}
+          onFocus={() => {
+            if (composerBlurTimerRef.current) {
+              window.clearTimeout(composerBlurTimerRef.current);
+            }
+            setComposerFocused(true);
+          }}
+          onBlur={() => {
+            composerBlurTimerRef.current = window.setTimeout(() => {
+              setComposerFocused(false);
+            }, 140);
+          }}
+          onChange={(event) => setMessage(event.target.value)}
+          onSubmit={sendScheduleChatMessage}
+          placeholder="Ask BlueMind..."
+          attachments={attachments}
+          onRemoveAttachment={removeAttachment}
+          onClearAttachments={() => {
+            attachments.forEach((attachment) => {
+              if (attachment.previewUrl) {
+                URL.revokeObjectURL(attachment.previewUrl);
+                objectUrlsRef.current = objectUrlsRef.current.filter((url) => url !== attachment.previewUrl);
+              }
+            });
+            setAttachments([]);
+          }}
+          isUploading={isUploading}
+          onAdd={() => setAttachmentMenuOpen(true)}
+          onVoice={startVoiceInput}
+          isListening={isListening}
+          voiceAudioLevels={voiceAudioLevels}
+          voiceStatus={voiceStatus}
+          voiceTranscript={voicePreview}
+          onCancelVoice={handleCancelVoiceInput}
+          onStopVoice={handleStopVoiceInput}
+          onSendVoice={handleSendVoiceInput}
+          canSendVoice={Boolean(voicePreview.trim()) || isListening}
+          isBusy={isSending || voiceStatus === "transcribing" || voiceStatus === "sending"}
+          canSend={Boolean(message.trim()) || attachments.length > 0}
+          isDark={isDark}
+          variant="mobile"
+          glassTone="chat-light"
+          maxTextHeight={120}
+          testId="mobile-schedule-ai-input"
+        />
+      </div>
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleAttachmentFiles} />
       <input ref={photosInputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={handleAttachmentFiles} />
       <input ref={filesInputRef} type="file" accept=".pdf,.txt,.md,.csv,application/pdf,text/plain,text/csv" multiple className="hidden" onChange={handleAttachmentFiles} />
@@ -1435,9 +1762,9 @@ export default function MobileScheduleDashboard() {
         type="button"
         onClick={() => setSelectedDate(date)}
         className={cn(
-          "relative flex min-h-[50px] flex-col items-center justify-center rounded-[18px] transition-colors duration-150 ease-out",
+          "relative flex min-h-[50px] flex-col items-center justify-center rounded-[20px] transition-colors duration-150 ease-out",
           selected
-            ? "rounded-[22px] border border-[var(--bm-primary)] bg-[var(--bm-primary)] !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
+            ? "rounded-full border border-[#7DB7FF]/[0.18] bg-[rgba(25,59,104,0.94)] !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),inset_0_-1px_0_rgba(0,0,0,0.08)] backdrop-blur-[24px]"
             : isDark
               ? "text-white active:bg-white/[0.08]"
               : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
@@ -1445,7 +1772,7 @@ export default function MobileScheduleDashboard() {
         )}
       >
         <span className="text-[15px] font-extrabold leading-none">{date.getDate()}</span>
-        <span className="mt-1 flex h-1.5 items-center gap-1">
+        <span className="absolute bottom-2 flex h-1.5 items-center gap-1">
           {hasEvents && <span className={cn("h-1.5 w-1.5 rounded-full", selected ? "bg-white" : "bg-[var(--bm-primary)]")} />}
         </span>
       </button>
@@ -1585,22 +1912,22 @@ export default function MobileScheduleDashboard() {
           initial={false}
           animate={{ height: isExpanded ? calendarExpandedHeight : calendarCollapsedHeight }}
           transition={{ duration: 0.34, ease: [0.25, 1, 0.5, 1] }}
-          className="mt-1.5 overflow-hidden"
+          className="relative mt-1.5 overflow-hidden"
           style={{ willChange: "height" }}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.16}
           onDragEnd={handleCalendarDragEnd}
         >
-          <AnimatePresence initial={false} custom={calendarSwipeDirection} mode="popLayout">
+          <AnimatePresence initial={false} custom={calendarSwipeDirection}>
             <motion.div
               key={`${selectedDate.getFullYear()}-${selectedDate.getMonth()}`}
               custom={calendarSwipeDirection}
-              initial={(direction) => ({ x: direction > 0 ? 72 : direction < 0 ? -72 : 0, y: calendarOffset, opacity: direction ? 0.82 : 1 })}
+              initial={(direction) => ({ x: direction > 0 ? "100%" : direction < 0 ? "-100%" : 0, y: calendarOffset })}
               animate={{ x: 0, y: calendarOffset, opacity: 1 }}
-              exit={(direction) => ({ x: direction > 0 ? -72 : direction < 0 ? 72 : 0, opacity: direction ? 0.82 : 1 })}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="grid grid-cols-7 gap-1.5"
+              exit={(direction) => ({ x: direction > 0 ? "-100%" : direction < 0 ? "100%" : 0, y: calendarOffset })}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-x-0 top-0 grid grid-cols-7 gap-1.5"
               style={{ willChange: "transform" }}
             >
               {monthDates.map(renderCalendarDay)}
@@ -1654,11 +1981,11 @@ export default function MobileScheduleDashboard() {
             </div>
           </>
         ) : (
-          <div className={cn("rounded-[30px] border p-4 text-center", isDark ? "border-white/10 bg-white/[0.05]" : "border-white bg-white shadow-sm")}>
+          <div className="px-2 py-4 text-center">
             <img
               src="/bluemind-schedule-empty-character.jpg"
               alt="BlueMind relaxing on a beach chair"
-              className="mx-auto h-[168px] max-w-[238px] object-contain mix-blend-multiply"
+              className="mx-auto h-[168px] max-w-[238px] object-contain mix-blend-multiply brightness-[1.035] contrast-[1.06]"
               draggable={false}
             />
             <h2 className="mt-3 text-lg font-black">No events today!</h2>

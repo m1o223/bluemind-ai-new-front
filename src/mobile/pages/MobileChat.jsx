@@ -637,7 +637,8 @@ export default function MobileChat() {
   const featureCarouselTrackRef = useRef(null);
   const featureCarouselAnimationRef = useRef(null);
   const featureCarouselAutoTimerRef = useRef(null);
-  const featureCarouselAutoDelayRef = useRef(1300);
+  const featureCarouselAutoDelayMs = 3600;
+  const featureCarouselAutoDelayRef = useRef(featureCarouselAutoDelayMs);
   const featureCarouselIndexRef = useRef(0);
   const featureCarouselDraggingRef = useRef(false);
   const [composerKeyboardOffset, setComposerKeyboardOffset] = useState(0);
@@ -1090,7 +1091,7 @@ export default function MobileChat() {
     if (!featureCarouselStep || menuOpen || menuSearchOpen) return undefined;
 
     const delay = featureCarouselAutoDelayRef.current;
-    featureCarouselAutoDelayRef.current = 1300;
+    featureCarouselAutoDelayRef.current = featureCarouselAutoDelayMs;
     featureCarouselAutoTimerRef.current = window.setTimeout(() => {
       const currentIndex = featureCarouselIndex % featureCarouselCount;
       const nextIndex = currentIndex >= featureCarouselCount - 1 ? featureCarouselCount : currentIndex + 1;
@@ -1098,7 +1099,7 @@ export default function MobileChat() {
     }, delay);
 
     return () => window.clearTimeout(featureCarouselAutoTimerRef.current);
-  }, [animateFeatureCarouselTo, featureCarouselCount, featureCarouselIndex, featureCarouselStep, menuOpen, menuSearchOpen]);
+  }, [animateFeatureCarouselTo, featureCarouselAutoDelayMs, featureCarouselCount, featureCarouselIndex, featureCarouselStep, menuOpen, menuSearchOpen]);
 
   const handleFeatureCarouselDragStart = useCallback(() => {
     featureCarouselAnimationRef.current?.stop?.();
@@ -1113,11 +1114,11 @@ export default function MobileChat() {
 
     const projectedX = featureCarouselX.get() + info.velocity.x * 0.16;
     const targetIndex = Math.max(0, Math.min(featureCarouselCount, Math.round(-projectedX / featureCarouselStep)));
-    featureCarouselAutoDelayRef.current = 2800;
+    featureCarouselAutoDelayRef.current = featureCarouselAutoDelayMs;
     animateFeatureCarouselTo(targetIndex, {
       duration: 0.52,
     });
-  }, [animateFeatureCarouselTo, featureCarouselCount, featureCarouselStep, featureCarouselX, pauseFeatureCarousel]);
+  }, [animateFeatureCarouselTo, featureCarouselAutoDelayMs, featureCarouselCount, featureCarouselStep, featureCarouselX, pauseFeatureCarousel]);
 
   const {
     isListening,
@@ -3161,6 +3162,7 @@ export default function MobileChat() {
         isDark={isDark}
         variant="mobile"
         glassTone="chat-light"
+        minimalVoiceUi
         minRows={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
         maxTextHeight={isImageMode || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
         testId="mobile-chat-input"

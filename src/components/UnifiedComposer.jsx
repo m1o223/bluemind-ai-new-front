@@ -102,6 +102,7 @@ export default function UnifiedComposer({
   pendingPanel,
   testId = "chat-input",
   glassTone = "default",
+  minimalVoiceUi = false,
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const internalInputRef = useRef(null);
@@ -114,7 +115,7 @@ export default function UnifiedComposer({
   const textareaMinHeight = isMobile ? 44 : (isIdleState ? 30 : 38);
   const composerState = isAttachmentState ? "attachment" : isTypingState ? "typing" : "idle";
   const useSubtleAddButton = isMobile || isIdleState;
-  const isVoiceActive = isListening || ["requesting", "transcribing"].includes(voiceStatus);
+  const isVoiceActive = isListening || ["requesting", "transcribing", "sending"].includes(voiceStatus);
   const handleStopVoice = onStopVoice || onFinishVoice;
   const handleSendVoice = onSendVoice || onFinishVoice;
   const mobileGlassIconStyle = isDark ? {
@@ -310,6 +311,7 @@ export default function UnifiedComposer({
                 appColor={appColor}
                 compact
                 showSendControl
+                minimal={minimalVoiceUi}
               />
             ) : (
               <>
@@ -459,6 +461,7 @@ export default function UnifiedComposer({
               appColor={appColor}
               compact={isMobile}
               showSendControl={isMobile}
+              minimal={minimalVoiceUi}
             />
           ) : (
             <>
