@@ -4520,7 +4520,12 @@ Everything will be deleted when you leave.</p>
               aria-hidden="true"
             />
 
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-[88px] pt-[calc(env(safe-area-inset-top)+22px)] text-center">
+            <div
+              className={cn(
+                "pointer-events-none absolute inset-x-0 top-0 z-20 pt-[calc(env(safe-area-inset-top)+22px)]",
+                isRtl ? "pl-[88px] pr-5 text-right" : "pl-5 pr-[88px] text-left",
+              )}
+            >
               <h2 className={cn("truncate text-[20px] font-semibold leading-none tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</h2>
             </div>
 
@@ -4646,11 +4651,11 @@ Everything will be deleted when you leave.</p>
               <button
                 type="button"
                 onClick={startNewChat}
-                className="flex h-[50px] w-[58%] items-center justify-center gap-2.5 rounded-full border border-[#7db7ff]/[0.20] bg-[rgba(25,91,164,0.72)] px-4 text-[14px] font-extrabold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(255,255,255,0.025),0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-[24px] transition-transform active:scale-[0.98]"
+                className="flex h-[50px] w-[58%] items-center justify-center gap-2.5 rounded-full border border-white/[0.20] bg-[var(--bm-primary)] px-4 text-[14px] font-extrabold !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(255,255,255,0.025),0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur-[24px] transition-transform active:scale-[0.98]"
                 aria-label={t("newChat")}
               >
-                <PenLine className="h-5 w-5 stroke-[2.35]" />
-                <span>{t("newChat")}</span>
+                <PenLine className="h-5 w-5 stroke-[2.35] text-white" />
+                <span className="text-white" style={{ color: "#fff", WebkitTextFillColor: "#fff" }}>{t("newChat")}</span>
               </button>
 
               <button
