@@ -3922,7 +3922,7 @@ export default function MobileChat() {
 
           {shouldShowSearchCards && selectedSearchCategory && (
             <div className="pt-2">
-              <div className={`mb-4 rounded-[26px] border p-4 ${isDark ? "border-white/[0.08] bg-white/[0.05]" : "border-white/75 bg-white/82 shadow-sm shadow-slate-200/70"}`}>
+              <div className="mb-5 px-1">
                 <p className={`text-sm font-bold ${textColor}`}>Can&apos;t find what you are looking for?</p>
                 <button
                   type="button"
@@ -3930,7 +3930,7 @@ export default function MobileChat() {
                     category: selectedSearchCategory,
                     intent: "item_not_found",
                   })}
-                  className="mt-3 h-11 w-full rounded-2xl bg-[var(--bm-primary)] text-sm font-bold text-white active:opacity-90"
+                  className="mt-3 h-11 w-full rounded-2xl border border-[#7DB7FF]/[0.18] bg-[rgba(25,59,104,0.94)] text-sm font-extrabold !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),inset_0_-1px_0_rgba(0,0,0,0.08),0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-[24px] transition-transform duration-150 ease-out active:scale-[0.98]"
                 >
                   Ask AI
                 </button>
