@@ -682,6 +682,15 @@ export default function MobileChat() {
   const [privateSpaceAccessToken, setPrivateSpaceAccessToken] = useState("");
   const [hiddenChatModalOpen, setHiddenChatModalOpen] = useState(false);
   const [messageFeedback, setMessageFeedback] = useState({});
+  const [selectionToolbar, setSelectionToolbar] = useState({
+    visible: false,
+    text: "",
+    messageId: "",
+    x: 0,
+    y: 0,
+    placement: "above",
+    copied: false,
+  });
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
@@ -742,6 +751,7 @@ export default function MobileChat() {
   const sendLockRef = useRef(false);
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
   const loadedConversationRef = useRef(null);
+  const selectionToolbarRef = useRef(null);
   const featureCarouselCount = 4;
 
   const activeConversationId = searchParams.get("conversation");
@@ -1244,6 +1254,120 @@ export default function MobileChat() {
     !isOpeningConversation;
   const shouldUseChatMessageSafeArea = messages.length > 0 && !shouldShowChatHome && !shouldShowWritingModeHome;
 
+  const hideSelectionToolbar = useCallback(() => {
+    setSelectionToolbar((current) => current.visible ? { ...current, visible: false, copied: false } : current);
+  }, []);
+
+  const getSelectionMessageElement = useCallback((node) => {
+    if (!node) return null;
+    const element = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+    return element?.closest?.("[data-chat-selection-message-id]") || null;
+  }, []);
+
+  const updateSelectionToolbar = useCallback(() => {
+    const selection = window.getSelection?.();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      hideSelectionToolbar();
+      return;
+    }
+
+    const selectedText = selection.toString().trim();
+    if (!selectedText) {
+      hideSelectionToolbar();
+      return;
+    }
+
+    const anchorMessage = getSelectionMessageElement(selection.anchorNode);
+    const focusMessage = getSelectionMessageElement(selection.focusNode);
+    if (!anchorMessage || !focusMessage || anchorMessage !== focusMessage) {
+      hideSelectionToolbar();
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const rangeRect = range.getBoundingClientRect();
+    const firstClientRect = Array.from(range.getClientRects()).find((rect) => rect.width > 0 && rect.height > 0);
+    const rect = rangeRect.width || rangeRect.height ? rangeRect : firstClientRect;
+    if (!rect) {
+      hideSelectionToolbar();
+      return;
+    }
+
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 390;
+    const minX = 96;
+    const maxX = Math.max(minX, viewportWidth - 96);
+    const x = Math.min(Math.max(rect.left + rect.width / 2, minX), maxX);
+    const hasSpaceAbove = rect.top > 82;
+    const placement = hasSpaceAbove ? "above" : "below";
+    const y = placement === "above" ? rect.top - 12 : rect.bottom + 12;
+
+    setSelectionToolbar({
+      visible: true,
+      text: selectedText,
+      messageId: anchorMessage.dataset.chatSelectionMessageId || "",
+      x,
+      y,
+      placement,
+      copied: false,
+    });
+  }, [getSelectionMessageElement, hideSelectionToolbar]);
+
+  const scheduleSelectionToolbarUpdate = useCallback(() => {
+    window.setTimeout(updateSelectionToolbar, 60);
+  }, [updateSelectionToolbar]);
+
+  const clearNativeSelection = useCallback(() => {
+    window.getSelection?.()?.removeAllRanges();
+  }, []);
+
+  const askBlueMindAboutSelection = useCallback(() => {
+    const selectedText = selectionToolbar.text.trim();
+    if (!selectedText) return;
+
+    setMessage(`Explain this:\n\n"${selectedText}"`);
+    setChatHomeDismissed(true);
+    hideSelectionToolbar();
+    clearNativeSelection();
+    window.requestAnimationFrame(() => {
+      composerInputRef.current?.focus?.();
+      resizeChatComposer(composerInputRef.current);
+    });
+  }, [clearNativeSelection, hideSelectionToolbar, resizeChatComposer, selectionToolbar.text]);
+
+  const copySelectionText = useCallback(async () => {
+    const selectedText = selectionToolbar.text.trim();
+    if (!selectedText) return;
+
+    try {
+      await navigator.clipboard.writeText(selectedText);
+      setSelectionToolbar((current) => ({ ...current, copied: true }));
+      toast.success("Copied");
+      window.setTimeout(() => {
+        setSelectionToolbar((current) => ({ ...current, copied: false }));
+      }, 1200);
+    } catch {
+      toast.error("Could not copy text");
+    }
+  }, [selectionToolbar.text]);
+
+  const selectAllCurrentMessage = useCallback(() => {
+    if (!selectionToolbar.messageId) return;
+    const messageElement = Array.from(document.querySelectorAll("[data-chat-selection-message-id]"))
+      .find((element) => element.dataset.chatSelectionMessageId === selectionToolbar.messageId);
+    if (!messageElement) {
+      hideSelectionToolbar();
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(messageElement);
+    const selection = window.getSelection?.();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    window.setTimeout(updateSelectionToolbar, 40);
+  }, [hideSelectionToolbar, selectionToolbar.messageId, updateSelectionToolbar]);
+
   useEffect(() => {
     if (
       hasComposerContent ||
@@ -1269,6 +1393,41 @@ export default function MobileChat() {
     isOpeningConversation,
     isToolFocusMode,
   ]);
+
+  useEffect(() => {
+    document.addEventListener("selectionchange", scheduleSelectionToolbarUpdate);
+    document.addEventListener("mouseup", scheduleSelectionToolbarUpdate);
+    document.addEventListener("touchend", scheduleSelectionToolbarUpdate, { passive: true });
+
+    return () => {
+      document.removeEventListener("selectionchange", scheduleSelectionToolbarUpdate);
+      document.removeEventListener("mouseup", scheduleSelectionToolbarUpdate);
+      document.removeEventListener("touchend", scheduleSelectionToolbarUpdate);
+    };
+  }, [scheduleSelectionToolbarUpdate]);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!selectionToolbar.visible) return;
+      if (selectionToolbarRef.current?.contains(event.target)) return;
+      if (getSelectionMessageElement(event.target)) return;
+      hideSelectionToolbar();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [getSelectionMessageElement, hideSelectionToolbar, selectionToolbar.visible]);
+
+  useEffect(() => {
+    const scrollNode = messagesScrollRef.current;
+    if (!scrollNode) return undefined;
+    scrollNode.addEventListener("scroll", hideSelectionToolbar, { passive: true });
+    return () => scrollNode.removeEventListener("scroll", hideSelectionToolbar);
+  }, [hideSelectionToolbar, messagesScrollRef]);
+
+  useEffect(() => {
+    hideSelectionToolbar();
+  }, [messages.length, isChatSending, hideSelectionToolbar]);
 
   const getDrawerClosedX = useCallback((width = drawerWidth) => (isRtl ? width : -width), [drawerWidth, isRtl]);
 
@@ -4290,6 +4449,8 @@ export default function MobileChat() {
                   >
                     <div
                       dir="auto"
+                      data-chat-selection-message-id={item.id}
+                      data-chat-selection-role={item.role}
                       className={`break-words text-sm font-medium leading-6 ${
                         isImageOnlyUser
                           ? "inline-block w-fit max-w-[78%]"
@@ -4366,6 +4527,67 @@ export default function MobileChat() {
           )}
 
         </div>
+
+        <AnimatePresence>
+          {selectionToolbar.visible && (
+            <motion.div
+              key="chat-selection-toolbar"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed z-[65]"
+              style={{
+                left: selectionToolbar.x,
+                top: selectionToolbar.y,
+                transform: selectionToolbar.placement === "above" ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+                transformOrigin: selectionToolbar.placement === "above" ? "bottom center" : "top center",
+              }}
+              data-testid="chat-selection-toolbar"
+            >
+              <motion.div
+                ref={selectionToolbarRef}
+                initial={{ scale: 0.96 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.96 }}
+                transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                className="flex min-h-11 items-center gap-1 rounded-full border border-white/[0.12] bg-[rgba(18,18,20,0.88)] px-1.5 py-1 text-white shadow-[0_14px_34px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-[26px]"
+                role="toolbar"
+                aria-label="Text selection actions"
+              >
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={askBlueMindAboutSelection}
+                  className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-black text-white transition-transform active:scale-[0.97]"
+                >
+                  <Sparkles className="h-3.5 w-3.5 stroke-[2.5]" />
+                  Ask BlueMind
+                </button>
+                <span className="h-5 w-px bg-white/[0.13]" aria-hidden="true" />
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={copySelectionText}
+                  className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-black text-white transition-transform active:scale-[0.97]"
+                >
+                  {selectionToolbar.copied ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <Clipboard className="h-3.5 w-3.5 stroke-[2.4]" />}
+                  {selectionToolbar.copied ? "Copied" : "Copy"}
+                </button>
+                <span className="h-5 w-px bg-white/[0.13]" aria-hidden="true" />
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={selectAllCurrentMessage}
+                  className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-black text-white transition-transform active:scale-[0.97]"
+                >
+                  <FileText className="h-3.5 w-3.5 stroke-[2.4]" />
+                  Select All
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {shouldPinComposer && (
           <div
