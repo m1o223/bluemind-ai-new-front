@@ -3209,7 +3209,7 @@ export default function MobileChat() {
         {shouldShowChatHome && (
           <motion.div
             key="mobile-quick-action-chips"
-            className="-mx-4 mb-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="-mx-4 mb-1 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             data-testid="mobile-quick-action-chips"
             initial={{ opacity: 0, height: 0, y: 8 }}
             animate={{ opacity: 1, height: "auto", y: 0 }}
