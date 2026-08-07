@@ -209,6 +209,89 @@ export async function streamChatMessage({
   }
 }
 
+async function streamMessageAction({
+  conversationId,
+  messageId,
+  option,
+  onReady,
+  onAiStart,
+  onDelta,
+  onComplete,
+  onError,
+  signal,
+}) {
+  const payload = {};
+  if (option) payload.option = option;
+
+  let { response, endpoint } = await openStreamRequest(
+    payload,
+    signal,
+    `/chat/conversations/${conversationId}/messages/${messageId}/regenerate/stream`,
+    "Message action failed",
+  );
+
+  if (response.status === 401) {
+    const session = await refreshAccessToken();
+    if (session?.token) {
+      ({ response, endpoint } = await openStreamRequest(
+        payload,
+        signal,
+        `/chat/conversations/${conversationId}/messages/${messageId}/regenerate/stream`,
+        "Message action failed",
+      ));
+    }
+  }
+
+  if (!response.ok || !response.body) {
+    await throwStreamResponseError(response, endpoint, "Message action failed");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split("\n\n");
+    buffer = blocks.pop() || "";
+
+    for (const block of blocks) {
+      const parsed = parseSseBlock(block.trim());
+
+      if (parsed.event === "ready") onReady?.(parsed.data);
+      if (parsed.event === "ai_start") onAiStart?.(parsed.data);
+      if (parsed.event === "delta") onDelta?.(parsed.data);
+      if (parsed.event === "complete") onComplete?.(parsed.data);
+      if (parsed.event === "error") {
+        onError?.(parsed.data);
+        const error = createStreamError({ fallback: "Message action failed", eventData: parsed.data, endpoint });
+        logStreamError("message_action_sse_event", error);
+        throw error;
+      }
+    }
+  }
+}
+
+export function streamRegenerateMessage(options) {
+  return streamMessageAction({ ...options, option: "retry" });
+}
+
+export function streamImproveMessage(options) {
+  return streamMessageAction(options);
+}
+
+export async function branchConversation(conversationId, messageId) {
+  try {
+    const response = await api.post(`/chat/conversations/${conversationId}/branch`, { messageId });
+    return unwrapApiResponse(response);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Could not branch this chat"));
+  }
+}
+
 export async function streamHiddenChatMessage(options) {
   const {
     message,

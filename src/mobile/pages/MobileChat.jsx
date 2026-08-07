@@ -14,6 +14,8 @@ import {
   Check,
   Clipboard,
   FileText,
+  Flag,
+  GitBranch,
   Image,
   Lock,
   Glasses,
@@ -31,6 +33,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   Trash2,
+  Wand2,
   X,
 } from "lucide-react";
 
@@ -58,9 +61,20 @@ import {
 import { AI_MODES, getAiMode, getAiSpecializationLabel, normalizeAiModeId } from "@/data/aiModes";
 import { getApiErrorMessage } from "@/services/api";
 import { restoreExistingSession } from "@/services/authService";
-import { getConversation, listConversations, searchConversations, streamChatMessage, streamHiddenChatMessage, transcribeVoiceAudio } from "@/services/chatService";
+import {
+  branchConversation,
+  getConversation,
+  listConversations,
+  searchConversations,
+  streamChatMessage,
+  streamHiddenChatMessage,
+  streamImproveMessage,
+  streamRegenerateMessage,
+  transcribeVoiceAudio,
+} from "@/services/chatService";
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
+import { reportIssue } from "@/services/supportService";
 import {
   createPrivateSpace,
   changePrivateSpacePin,
@@ -650,6 +664,7 @@ export default function MobileChat() {
   const [isSearching, setIsSearching] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [chatMenuTarget, setChatMenuTarget] = useState(null);
+  const [messageMoreTarget, setMessageMoreTarget] = useState(null);
   const [chatHistoryExpanded, setChatHistoryExpanded] = useState(true);
   const [chatHistoryOverflowVisible, setChatHistoryOverflowVisible] = useState(true);
   const [renameTarget, setRenameTarget] = useState(null);
@@ -682,6 +697,11 @@ export default function MobileChat() {
   const [privateSpaceAccessToken, setPrivateSpaceAccessToken] = useState("");
   const [hiddenChatModalOpen, setHiddenChatModalOpen] = useState(false);
   const [messageFeedback, setMessageFeedback] = useState({});
+  const [improveTarget, setImproveTarget] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportReason, setReportReason] = useState("incorrect");
+  const [reportDetails, setReportDetails] = useState("");
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [selectionToolbar, setSelectionToolbar] = useState({
     visible: false,
     text: "",
@@ -2841,7 +2861,17 @@ export default function MobileChat() {
           setMessages((current) =>
             current.map((item) =>
               item.id === aiMessageId
-                ? { ...item, content: item.content || payload?.message?.content || "", isStreaming: false }
+                ? {
+                    ...item,
+                    id: payload?.message?.id || item.id,
+                    content: item.content || payload?.message?.content || "",
+                    metadata: {
+                      ...(item.metadata || {}),
+                      ...(payload?.message?.metadata || {}),
+                    },
+                    createdAt: payload?.message?.createdAt || item.createdAt,
+                    isStreaming: false,
+                  }
                 : item,
             ),
           );
@@ -2946,27 +2976,207 @@ export default function MobileChat() {
     toast.info(t("editInComposer"));
   }, [t]);
 
-  const handleRegenerateMessage = useCallback((item) => {
-    if (isChatSending) return;
-
-    const index = messages.findIndex((messageItem) => messageItem.id === item.id);
-    const previousUser = [...messages.slice(0, index)].reverse().find((messageItem) => messageItem.role === "user");
-
-    if (!previousUser) {
-      toast.error(t("regenerateFailed"));
+  const streamMessageReplacement = useCallback(async (item, option = "retry") => {
+    if (isChatSending || !item?.id) return;
+    if (chatSessionMode !== "normal" || !activeConversationId) {
+      toast.error("This action is available in saved chats.");
       return;
     }
 
-    setMessages((current) => current.slice(0, Math.max(0, index)));
-    void sendChatPrompt({
-      prompt: previousUser.content,
-      keepComposer: true,
-      mode: previousUser.metadata?.aiMode || previousUser.metadata?.mode || previousUser.metadata?.responseMode || responseMode,
-      metadata: previousUser.metadata || {},
-      imageIds: (previousUser.attachments || []).map((attachment) => attachment.id).filter(Boolean),
-      displayAttachments: previousUser.attachments || [],
-    });
-  }, [isChatSending, messages, responseMode, sendChatPrompt, t]);
+    setMessageMoreTarget(null);
+    setImproveTarget(null);
+    setIsChatSubmitting(true);
+    setIsChatSending(true);
+    stopRequestedRef.current = false;
+    activeAiMessageRef.current = item.id;
+    setMessages((current) =>
+      current.map((messageItem) =>
+        messageItem.id === item.id
+          ? {
+              ...messageItem,
+              content: "",
+              isStreaming: true,
+              metadata: {
+                ...(messageItem.metadata || {}),
+                action: option === "retry" ? "retry" : "improve_answer",
+                improvementOption: option !== "retry" ? option : undefined,
+              },
+            }
+          : messageItem,
+      ),
+    );
+    window.requestAnimationFrame(() => scrollToBottom("smooth"));
+
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+
+    try {
+      const streamAction = option === "retry" ? streamRegenerateMessage : streamImproveMessage;
+      await streamAction({
+        conversationId: activeConversationId,
+        messageId: item.id,
+        option,
+        signal: controller.signal,
+        onAiStart: () => setIsChatSubmitting(false),
+        onReady: () => setIsChatSubmitting(false),
+        onDelta: (payload) => {
+          setIsChatSubmitting(false);
+          queueAiDelta(item.id, payload?.token);
+        },
+        onComplete: (payload) => {
+          setIsChatSubmitting(false);
+          flushAiDelta(item.id);
+          setMessages((current) =>
+            current.map((messageItem) =>
+              messageItem.id === item.id
+                ? {
+                    ...messageItem,
+                    id: payload?.message?.id || messageItem.id,
+                    content: messageItem.content || payload?.message?.content || "",
+                    metadata: {
+                      ...(messageItem.metadata || {}),
+                      ...(payload?.message?.metadata || {}),
+                    },
+                    isStreaming: false,
+                  }
+                : messageItem,
+            ),
+          );
+        },
+        onError: () => {
+          toast.error(option === "retry" ? t("regenerateFailed") : "Could not improve this answer");
+        },
+      });
+    } catch (error) {
+      flushAiDelta(item.id);
+      if (stopRequestedRef.current || error?.name === "AbortError" || controller.signal.aborted) {
+        setMessages((current) =>
+          current.map((messageItem) =>
+            messageItem.id === item.id
+              ? { ...messageItem, isStreaming: false }
+              : messageItem,
+          ),
+        );
+      } else {
+        setMessages((current) =>
+          current.map((messageItem) =>
+            messageItem.id === item.id
+              ? { ...messageItem, content: item.content || "Could not regenerate this reply.", isStreaming: false }
+              : messageItem,
+          ),
+        );
+        toast.error(option === "retry" ? t("regenerateFailed") : "Could not improve this answer");
+      }
+    } finally {
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+      }
+      if (activeAiMessageRef.current === item.id) {
+        activeAiMessageRef.current = null;
+      }
+      stopRequestedRef.current = false;
+      setIsChatSubmitting(false);
+      setIsChatSending(false);
+      sendLockRef.current = false;
+    }
+  }, [activeConversationId, chatSessionMode, flushAiDelta, isChatSending, queueAiDelta, scrollToBottom, t]);
+
+  const handleRegenerateMessage = useCallback((item) => {
+    void streamMessageReplacement(item, "retry");
+  }, [streamMessageReplacement]);
+
+  const handleBranchMessage = useCallback(async (item) => {
+    if (chatSessionMode !== "normal" || !activeConversationId || !item?.id) {
+      toast.error("Branching is available in saved chats.");
+      return;
+    }
+
+    setMessageMoreTarget(null);
+    setIsOpeningConversation(true);
+    try {
+      const data = await branchConversation(activeConversationId, item.id);
+      const conversation = data?.conversation;
+      if (!conversation?.conversationId) {
+        throw new Error("Missing branched conversation");
+      }
+      setMessages(mapMobileConversationMessages(conversation));
+      setChatHomeDismissed(true);
+      setMessage("");
+      setSearchParams({ conversation: conversation.conversationId });
+      loadedConversationRef.current = conversation.conversationId;
+      await loadConversationHistory();
+      window.requestAnimationFrame(() => scrollToBottom("auto"));
+      toast.success("Branched in new chat");
+    } catch (error) {
+      toast.error(error?.message || "Could not branch this chat");
+    } finally {
+      setIsOpeningConversation(false);
+    }
+  }, [activeConversationId, chatSessionMode, loadConversationHistory, scrollToBottom, setSearchParams]);
+
+  const handleOpenImproveMenu = useCallback((item) => {
+    setMessageMoreTarget(null);
+    setImproveTarget(item);
+  }, []);
+
+  const handleSelectImproveOption = useCallback((option) => {
+    const target = improveTarget;
+    if (!target) return;
+    setImproveTarget(null);
+    void streamMessageReplacement(target, option);
+  }, [improveTarget, streamMessageReplacement]);
+
+  const handleOpenReportDialog = useCallback((item) => {
+    setMessageMoreTarget(null);
+    setReportTarget(item);
+    setReportReason("incorrect");
+    setReportDetails("");
+  }, []);
+
+  const handleSubmitMessageReport = useCallback(async (event) => {
+    event.preventDefault();
+    if (!reportTarget || isSubmittingReport) return;
+
+    setIsSubmittingReport(true);
+    try {
+      const reasonLabels = {
+        incorrect: "Incorrect answer",
+        not_helpful: "Not helpful",
+        unsafe: "Unsafe / inappropriate",
+        other: "Other",
+      };
+      const details = reportDetails.trim();
+      await reportIssue({
+        title: `Chat response problem: ${reasonLabels[reportReason] || "Other"}`,
+        description: [
+          `Reason: ${reasonLabels[reportReason] || reportReason}`,
+          `Conversation ID: ${activeConversationId || "unsaved"}`,
+          `Message ID: ${reportTarget.id}`,
+          "",
+          "Message:",
+          reportTarget.content || "(empty)",
+          "",
+          details ? `Details:\n${details}` : "Details: No extra details provided.",
+        ].join("\n"),
+        platform: "mobile",
+        appVersion: "0.1.0",
+        attachments: [],
+      });
+      persistMessageFeedback(reportTarget.id, {
+        report: {
+          reason: reportReason,
+          details,
+        },
+      });
+      setReportTarget(null);
+      setReportDetails("");
+      toast.success("Report submitted");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not submit report"));
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  }, [activeConversationId, isSubmittingReport, persistMessageFeedback, reportDetails, reportReason, reportTarget]);
 
   const handleShareMessage = useCallback(async (item) => {
     const text = item.content || "";
@@ -2983,9 +3193,9 @@ export default function MobileChat() {
     }
   }, [t]);
 
-  const handleMoreMessage = useCallback(() => {
-    toast.info(t("moreActionsSoon"));
-  }, [t]);
+  const handleMoreMessage = useCallback((item) => {
+    setMessageMoreTarget((current) => current === item.id ? null : item.id);
+  }, []);
 
   const getPreviousUserContent = useCallback((messageIndex) => {
     const previousUser = [...messages.slice(0, messageIndex)].reverse().find((item) => item.role === "user");
@@ -4490,7 +4700,7 @@ export default function MobileChat() {
                       <motion.div
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`mt-2 flex flex-wrap items-center gap-1 px-1 transition-opacity duration-200 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}
+                        className={`relative mt-2 flex flex-wrap items-center gap-1 px-1 transition-opacity duration-200 ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}
                         data-testid={`message-actions-${item.id}`}
                       >
                         {[
@@ -4500,7 +4710,7 @@ export default function MobileChat() {
                           { id: "edit", icon: PenLine, label: t("edit"), onClick: () => handleEditMessage(item) },
                           { id: "regenerate", icon: RotateCcw, label: t("regenerate"), onClick: () => handleRegenerateMessage(item) },
                           { id: "share", icon: Share2, label: t("share"), onClick: () => handleShareMessage(item) },
-                          { id: "more", icon: MoreVertical, label: t("more"), onClick: handleMoreMessage },
+                          { id: "more", icon: MoreVertical, label: t("more"), onClick: () => handleMoreMessage(item) },
                         ].map((action) => (
                           <button
                             key={action.id}
@@ -4517,6 +4727,51 @@ export default function MobileChat() {
                             <action.icon className="h-4 w-4" />
                           </button>
                         ))}
+                        {messageMoreTarget === item.id && !improveTarget && !reportTarget && (
+                            <>
+                              <button
+                                type="button"
+                                className="fixed inset-0 z-[75]"
+                                onClick={() => setMessageMoreTarget(null)}
+                                aria-label="Close message actions"
+                              />
+                              <motion.div
+                                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                                className={cn(
+                                  "bm-glass-panel absolute right-1 top-10 z-[80] w-56 overflow-hidden rounded-[24px] border p-1.5",
+                                  isDark ? "text-white" : "text-[var(--bm-text-primary)]",
+                                )}
+                                role="menu"
+                                data-testid={`message-more-menu-${item.id}`}
+                              >
+                                {[
+                                  { id: "branch", icon: GitBranch, label: "Branch in new chat", onClick: () => handleBranchMessage(item) },
+                                  { id: "retry", icon: RotateCcw, label: "Retry", onClick: () => handleRegenerateMessage(item) },
+                                  { id: "improve", icon: Wand2, label: "Improve answer", onClick: () => handleOpenImproveMenu(item) },
+                                  { id: "report", icon: Flag, label: "Report problem", onClick: () => handleOpenReportDialog(item), danger: true },
+                                ].map((action) => (
+                                  <button
+                                    key={action.id}
+                                    type="button"
+                                    onClick={action.onClick}
+                                    className={cn(
+                                      "bm-glass-menu-item flex min-h-[44px] w-full items-center gap-3 rounded-[17px] px-3 py-2.5 text-left text-sm font-bold transition-transform active:scale-[0.98]",
+                                      action.danger
+                                        ? isDark ? "text-red-300 active:bg-red-950/30" : "text-red-500 active:bg-red-50"
+                                        : isDark ? "text-white/88 active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
+                                    )}
+                                    role="menuitem"
+                                  >
+                                    <action.icon className="h-4 w-4 shrink-0 stroke-[2.35]" />
+                                    <span>{action.label}</span>
+                                  </button>
+                                ))}
+                              </motion.div>
+                            </>
+                        )}
                       </motion.div>
                     )}
                   </motion.div>
@@ -4696,6 +4951,154 @@ export default function MobileChat() {
           </div>
         )}
       </AnimatePresence>
+
+      {improveTarget && (
+          <motion.div
+            key={`improve-answer-${improveTarget.id}`}
+            className="fixed inset-0 z-[92] flex items-center justify-center bg-black/34 px-5 backdrop-blur-[8px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setImproveTarget(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.96 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className={cn(
+                "w-full max-w-[340px] rounded-[30px] border p-4 shadow-2xl",
+                isDark ? "border-white/[0.08] bg-[rgba(38,38,38,0.92)] text-white" : "border-black/[0.07] bg-white/[0.96] text-[var(--bm-text-primary)]",
+              )}
+              onClick={(event) => event.stopPropagation()}
+              data-testid={`improve-answer-dialog-${improveTarget.id}`}
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[17px] font-black tracking-tight">Improve answer</p>
+                  <p className={cn("mt-1 text-xs font-semibold", isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]")}>
+                    Choose how BlueMind should rewrite this response.
+                  </p>
+                </div>
+                <button type="button" className="bm-mobile-glass-control" onClick={() => setImproveTarget(null)} aria-label="Close improve answer">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {[
+                  ["clearer", "Clearer"],
+                  ["shorter", "Shorter"],
+                  ["more_detailed", "More detailed"],
+                  ["simpler", "Simpler"],
+                ].map(([option, label]) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => handleSelectImproveOption(option)}
+                    className={cn(
+                      "flex min-h-[46px] w-full items-center justify-between rounded-[18px] border px-3.5 text-left text-sm font-extrabold transition-transform active:scale-[0.985]",
+                      isDark ? "border-white/[0.07] bg-white/[0.055] text-white active:bg-white/[0.09]" : "border-black/[0.06] bg-white/85 text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
+                    )}
+                  >
+                    <span>{label}</span>
+                    <Wand2 className="h-4 w-4 stroke-[2.35]" />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+      )}
+
+      {reportTarget && (
+          <motion.div
+            key={`report-problem-${reportTarget.id}`}
+            className="fixed inset-0 z-[92] flex items-center justify-center bg-black/34 px-5 backdrop-blur-[8px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setReportTarget(null)}
+          >
+            <motion.form
+              initial={{ opacity: 0, y: 12, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.96 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className={cn(
+                "w-full max-w-[354px] rounded-[30px] border p-4 shadow-2xl",
+                isDark ? "border-white/[0.08] bg-[rgba(38,38,38,0.92)] text-white" : "border-black/[0.07] bg-white/[0.96] text-[var(--bm-text-primary)]",
+              )}
+              onClick={(event) => event.stopPropagation()}
+              onSubmit={handleSubmitMessageReport}
+              data-testid={`report-problem-dialog-${reportTarget.id}`}
+            >
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[17px] font-black tracking-tight">Report problem</p>
+                  <p className={cn("mt-1 text-xs font-semibold leading-5", isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]")}>
+                    Tell us what went wrong. The message will not be changed.
+                  </p>
+                </div>
+                <button type="button" className="bm-mobile-glass-control" onClick={() => setReportTarget(null)} aria-label="Close report problem">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {[
+                  ["incorrect", "Incorrect answer"],
+                  ["not_helpful", "Not helpful"],
+                  ["unsafe", "Unsafe / inappropriate"],
+                  ["other", "Other"],
+                ].map(([reason, label]) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => setReportReason(reason)}
+                    className={cn(
+                      "flex min-h-[42px] w-full items-center justify-between rounded-[17px] border px-3 text-left text-sm font-bold transition-transform active:scale-[0.985]",
+                      reportReason === reason
+                        ? "border-[#7DB7FF]/[0.24] bg-[var(--bm-primary)] text-white"
+                        : isDark ? "border-white/[0.07] bg-white/[0.055] text-white/86" : "border-black/[0.06] bg-white/85 text-[var(--bm-text-primary)]",
+                    )}
+                    style={reportReason === reason ? { color: "#fff", WebkitTextFillColor: "#fff" } : undefined}
+                  >
+                    <span>{label}</span>
+                    {reportReason === reason && <Check className="h-4 w-4 stroke-[3]" />}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reportDetails}
+                onChange={(event) => setReportDetails(event.target.value)}
+                placeholder="Optional details"
+                rows={3}
+                className={cn(
+                  "mt-3 w-full resize-none rounded-[20px] border px-3.5 py-3 text-sm font-semibold outline-none transition-shadow focus:ring-2 focus:ring-[var(--bm-primary)]/25",
+                  isDark ? "border-white/[0.08] bg-white/[0.055] text-white placeholder:text-white/38" : "border-black/[0.07] bg-white/88 text-[var(--bm-text-primary)] placeholder:text-[var(--bm-text-muted)]",
+                )}
+              />
+              <div className="mt-4 grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setReportTarget(null)}
+                  className={cn(
+                    "min-h-11 rounded-full border text-sm font-bold transition-transform active:scale-[0.98]",
+                    isDark ? "border-white/[0.07] bg-white/[0.055] text-white/84" : "border-black/[0.06] bg-white/86 text-[var(--bm-text-primary)]",
+                  )}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReport}
+                  className="min-h-11 rounded-full border border-[#7DB7FF]/[0.22] bg-[var(--bm-primary)] text-sm font-black !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_12px_28px_rgba(0,0,0,0.14)] transition-transform active:scale-[0.98] disabled:opacity-70"
+                  style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+                >
+                  {isSubmittingReport ? "Submitting..." : "Submit"}
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+      )}
 
       {renderMobilePlusMenu()}
 
