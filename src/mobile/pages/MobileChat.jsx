@@ -712,6 +712,12 @@ export default function MobileChat() {
     copied: false,
   });
   const [dislikeTarget, setDislikeTarget] = useState(null);
+  const [dislikeMenuPosition, setDislikeMenuPosition] = useState({
+    left: 0,
+    y: 0,
+    placement: "below",
+    maxHeight: 280,
+  });
   const [responseMode, setResponseMode] = useState(() => {
     const storedMode = localStorage.getItem("bluemind-response-mode");
     return normalizeAiModeId(storedMode);
@@ -2958,7 +2964,37 @@ export default function MobileChat() {
     toast.success(t("feedbackSaved"));
   }, [persistMessageFeedback, t]);
 
-  const handleDislikeMessage = useCallback((item) => {
+  const handleDislikeMessage = useCallback((item, event) => {
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    const menuWidth = Math.min(window.innerWidth * 0.78, 248);
+    const estimatedMenuHeight = 236;
+    const gap = 8;
+    const margin = 12;
+
+    if (rect) {
+      const left = Math.min(
+        Math.max(rect.left - 8, margin),
+        window.innerWidth - menuWidth - margin,
+      );
+      const spaceBelow = Math.max(0, window.innerHeight - rect.bottom - gap - margin);
+      const spaceAbove = Math.max(0, rect.top - gap - margin);
+      const shouldOpenAbove = spaceBelow < estimatedMenuHeight && spaceAbove >= spaceBelow;
+
+      setDislikeMenuPosition({
+        left,
+        y: shouldOpenAbove ? rect.top - gap : rect.bottom + gap,
+        placement: shouldOpenAbove ? "above" : "below",
+        maxHeight: Math.max(180, Math.min(estimatedMenuHeight, shouldOpenAbove ? spaceAbove : spaceBelow)),
+      });
+    } else {
+      setDislikeMenuPosition({
+        left: Math.max(12, (window.innerWidth - menuWidth) / 2),
+        y: window.innerHeight / 2,
+        placement: "below",
+        maxHeight: estimatedMenuHeight,
+      });
+    }
+
     persistMessageFeedback(item.id, { rating: "dislike" });
     setDislikeTarget(item);
   }, [persistMessageFeedback]);
@@ -4706,7 +4742,7 @@ export default function MobileChat() {
                         {[
                           { id: "copy", icon: messageFeedback[item.id]?.copied ? Check : Clipboard, label: t("copy"), onClick: () => handleCopyMessage(item) },
                           { id: "like", icon: ThumbsUp, label: t("like"), onClick: () => handleLikeMessage(item), active: messageFeedback[item.id]?.rating === "like" },
-                          { id: "dislike", icon: ThumbsDown, label: t("dislike"), onClick: () => handleDislikeMessage(item), active: messageFeedback[item.id]?.rating === "dislike" },
+                          { id: "dislike", icon: ThumbsDown, label: t("dislike"), onClick: (event) => handleDislikeMessage(item, event), active: messageFeedback[item.id]?.rating === "dislike" },
                           { id: "edit", icon: PenLine, label: t("edit"), onClick: () => handleEditMessage(item) },
                           { id: "regenerate", icon: RotateCcw, label: t("regenerate"), onClick: () => handleRegenerateMessage(item) },
                           { id: "share", icon: Share2, label: t("share"), onClick: () => handleShareMessage(item) },
@@ -5175,18 +5211,33 @@ export default function MobileChat() {
 
       <AnimatePresence>
         {dislikeTarget && (
-          <div className="fixed inset-0 z-[80]" onClick={() => setDislikeTarget(null)}>
+          <div
+            className="fixed inset-0 z-[95]"
+            onPointerDown={() => setDislikeTarget(null)}
+            onClick={() => setDislikeTarget(null)}
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              initial={{ opacity: 0, scale: 0.96, y: dislikeMenuPosition.placement === "above" ? 6 : -6 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className={`absolute left-1/2 top-1/2 w-[min(92vw,360px)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border p-3 shadow-2xl backdrop-blur-xl ${
-                isDark ? "border-white/10 bg-[var(--bm-bg-card)]/95 text-white" : "border-[var(--bm-border)] bg-white/95 text-[var(--bm-text-primary)]"
+              exit={{ opacity: 0, scale: 0.96, y: dislikeMenuPosition.placement === "above" ? 6 : -6 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className={`fixed w-[min(78vw,248px)] overflow-y-auto rounded-[24px] border p-2.5 backdrop-blur-[18px] ${
+                isDark
+                  ? "border-white/[0.09] bg-[rgba(38,38,38,0.74)] text-white shadow-[0_14px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  : "border-black/[0.07] bg-white/[0.76] text-[var(--bm-text-primary)] shadow-[0_14px_34px_rgba(15,23,42,0.11),inset_0_1px_0_rgba(255,255,255,0.72)]"
               }`}
+              style={{
+                left: dislikeMenuPosition.left,
+                top: dislikeMenuPosition.y,
+                maxHeight: dislikeMenuPosition.maxHeight,
+                translate: dislikeMenuPosition.placement === "above" ? "0 -100%" : "0 0",
+                transformOrigin: dislikeMenuPosition.placement === "above" ? "bottom center" : "top center",
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
               data-testid={`dislike-feedback-${dislikeTarget.id}`}
             >
-              <div className="px-2 pb-2 pt-1">
+              <div className="px-2 pb-1.5 pt-1">
                 <p className="text-sm font-semibold">{t("tellUsMore")}</p>
                 <p className={`mt-1 text-xs ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>{t("feedbackHelps")}</p>
               </div>
@@ -5196,8 +5247,8 @@ export default function MobileChat() {
                     key={reason}
                     type="button"
                     onClick={() => handleDislikeReason(reason)}
-                    className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition-colors ${
-                      isDark ? "active:bg-white/10" : "active:bg-[var(--bm-hover-bg)]"
+                    className={`flex w-full items-center justify-between rounded-[17px] px-3 py-2.5 text-left text-sm font-semibold transition-all duration-150 active:scale-[0.985] ${
+                      isDark ? "active:bg-white/10" : "active:bg-white/60"
                     }`}
                   >
                     {t(reason)}
