@@ -1605,8 +1605,8 @@ html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="unified-c
 }
 
 [data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-send-control .bm-send-stop-icon {
-  width: 9px !important;
-  height: 9px !important;
+  width: 10.5px !important;
+  height: 10.5px !important;
   stroke-width: 0;
   transform: none !important;
 }
