@@ -1242,6 +1242,7 @@ export default function MobileChat() {
     !isUploadingImages &&
     !isListening &&
     !isOpeningConversation;
+  const shouldUseChatMessageSafeArea = messages.length > 0 && !shouldShowChatHome && !shouldShowWritingModeHome;
 
   useEffect(() => {
     if (
@@ -3904,6 +3905,8 @@ export default function MobileChat() {
               ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
               : isSmartFocusMode
               ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
+              : shouldUseChatMessageSafeArea
+                ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+190px)] pt-[112px]"
               : shouldShowChatHome
                 ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5"
                 : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"
@@ -4266,7 +4269,12 @@ export default function MobileChat() {
           )}
 
           {messages.length > 0 && (
-            <div className="space-y-4 pb-4">
+            <div
+              className={cn(
+                "space-y-4 pb-4",
+                shouldUseChatMessageSafeArea && "flex min-h-[calc(100dvh-302px)] flex-col justify-end",
+              )}
+            >
               {messages.map((item, index) => {
                 const hasAttachments = Array.isArray(item.attachments) && item.attachments.length > 0;
                 const hasText = Boolean(String(item.content || "").trim());
