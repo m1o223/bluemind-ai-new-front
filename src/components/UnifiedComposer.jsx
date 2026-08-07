@@ -25,11 +25,12 @@ function AttachmentPreview({ attachment, isDark, isMobile, onRemove }) {
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden rounded-[16px] border shadow-sm",
-        isMobile ? "h-14 w-14" : "h-16 w-16",
+        "relative shrink-0 overflow-hidden rounded-[18px] border shadow-sm",
+        isMobile ? "h-16 w-16" : "h-[72px] w-[72px]",
         isDark ? "border-white/10 bg-white/[0.08]" : "border-[var(--bm-border)] bg-white/85",
       )}
       title={label}
+      data-testid="composer-attachment-preview"
     >
       {showImage ? (
         <img
@@ -50,10 +51,11 @@ function AttachmentPreview({ attachment, isDark, isMobile, onRemove }) {
         <button
           type="button"
           onClick={() => onRemove(attachment.id)}
-          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white shadow-lg transition-transform active:scale-95"
+          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-black/[0.06] bg-white text-black shadow-[0_8px_18px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.88)] transition-transform active:scale-95"
           aria-label={`Remove ${label}`}
+          data-testid="composer-attachment-remove"
         >
-          <X className="h-3 w-3" />
+          <X className="h-3.5 w-3.5 stroke-[2.6]" />
         </button>
       )}
     </div>
@@ -339,7 +341,7 @@ export default function UnifiedComposer({
 
                 {hasAttachments && (
                   <div
-                    className="mb-3 flex max-w-full items-center gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="mb-2.5 flex max-w-full items-center gap-2.5 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                     data-testid="composer-attachment-strip"
                   >
                     {normalizedAttachments.map((attachment) => (
@@ -353,7 +355,7 @@ export default function UnifiedComposer({
                     ))}
 
                     {isUploading && (
-                      <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85")}>
+                      <div className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85")}>
                         <BlueMindLoadingDots className="text-[var(--bm-primary)]" />
                       </div>
                     )}
@@ -390,6 +392,7 @@ export default function UnifiedComposer({
                   className={cn(
                     inputClasses.composer,
                     "relative z-10 block w-full resize-none bg-transparent px-1 pb-1 text-[16px] font-medium leading-6 outline-none",
+                    hasAttachments ? "pt-2" : "",
                     "text-white/90 placeholder:text-[#8F8F8F]",
                   )}
                   style={{
