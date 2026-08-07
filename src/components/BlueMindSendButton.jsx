@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowUp, LoaderCircle, Square } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,23 @@ export default function BlueMindSendButton({
   compact = false,
   className,
 }) {
+  const [showSubmittingSpinner, setShowSubmittingSpinner] = useState(false);
   const isActive = isBusy || isSubmitting || canSend;
+  const shouldShowSubmittingSpinner = isSubmitting && showSubmittingSpinner;
+
+  useEffect(() => {
+    if (!isSubmitting) {
+      setShowSubmittingSpinner(false);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setShowSubmittingSpinner(true);
+    }, 380);
+
+    return () => window.clearTimeout(timer);
+  }, [isSubmitting]);
+
   return (
     <motion.button
       type={isBusy ? "button" : "submit"}
@@ -31,11 +48,13 @@ export default function BlueMindSendButton({
         className,
       )}
       style={compact ? undefined : { backgroundColor: isActive ? appColor : "var(--bm-text-muted)" }}
-      data-send-state={isSubmitting ? "submitting" : isBusy ? "stopping" : canSend ? "ready" : "disabled"}
+      data-send-state={shouldShowSubmittingSpinner ? "submitting" : isSubmitting ? "sending" : isBusy ? "stopping" : canSend ? "ready" : "disabled"}
       aria-label={isSubmitting ? "Sending" : isBusy ? stopLabel : sendLabel}
     >
-      {isSubmitting ? (
+      {shouldShowSubmittingSpinner ? (
         <LoaderCircle className={compact ? "bm-send-spinner" : "h-4 w-4 animate-spin"} />
+      ) : isSubmitting ? (
+        <ArrowUp className={compact ? "bm-send-arrow-icon -translate-y-[1px] scale-y-[1.06]" : "h-5 w-5 -translate-y-[1px] stroke-[2.7]"} />
       ) : isBusy ? (
         <Square className={compact ? "bm-send-stop-icon fill-current" : "h-3 w-3 fill-current"} />
       ) : (
