@@ -4277,7 +4277,7 @@ export default function MobileChat() {
                     key={item.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                     className={item.role === "user" ? "flex justify-end" : "w-full"}
                   >
                     <div

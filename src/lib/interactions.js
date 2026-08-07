@@ -2,8 +2,13 @@ export const motionTokens = {
   hover: { y: -3 },
   tap: { scale: 0.992 },
   subtleTap: { scale: 0.98 },
-  transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
+  transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
+  quickTransition: { duration: 0.12, ease: [0.22, 1, 0.36, 1] },
   cardTransition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] },
+  panelTransition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
+  sheetTransition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+  dropdownTransition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
+  messageTransition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
 };
 
 export const interactionClasses = {
@@ -12,6 +17,12 @@ export const interactionClasses = {
   menuItem: "bm-menu-interactive bm-focus-ring",
   iconButton: "bm-icon-interactive bm-focus-ring",
   input: "bm-input-interactive",
+  overlayMotion: "bm-motion-overlay",
+  panelMotion: "bm-motion-panel",
+  dropdownMotion: "bm-motion-dropdown",
+  sheetMotion: "bm-motion-sheet",
+  layoutMotion: "bm-motion-layout",
+  messageMotion: "bm-message-enter",
 };
 
 export const inputClasses = {

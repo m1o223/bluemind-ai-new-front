@@ -42,7 +42,11 @@
   --accent-hover: var(--bm-primary-hover);
   --bm-motion-duration: 120ms;
   --bm-motion-duration-slow: 260ms;
+  --bm-motion-duration-panel: 240ms;
+  --bm-motion-duration-sheet: 280ms;
+  --bm-motion-duration-message: 220ms;
   --bm-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --bm-motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --bm-active-scale: 0.96;
   --bm-card-hover-y: -3px;
   --bm-control-hover-y: -1px;
@@ -433,6 +437,7 @@ select {
   transition-property: color, background-color, border-color, box-shadow, opacity, transform, filter;
   transition-duration: var(--bm-motion-duration);
   transition-timing-function: var(--bm-motion-ease);
+  will-change: auto;
 }
 
 :where(button, a, label, summary, [role="button"], [role="menuitem"]):focus-visible,
@@ -451,6 +456,69 @@ select {
 :where(button, a, label, summary, [role="button"], [role="menuitem"]):not(:disabled):not([aria-disabled="true"]):active {
   transform: scale(var(--bm-active-scale));
   transition-duration: 110ms;
+}
+
+.bm-motion-overlay {
+  animation-duration: var(--bm-motion-duration-panel) !important;
+  animation-timing-function: var(--bm-motion-ease) !important;
+  transition-duration: var(--bm-motion-duration-panel) !important;
+  transition-timing-function: var(--bm-motion-ease) !important;
+}
+
+.bm-motion-panel {
+  transform-origin: center;
+  animation-duration: var(--bm-motion-duration-panel) !important;
+  animation-timing-function: var(--bm-motion-ease) !important;
+  transition-property: opacity, transform, filter, backdrop-filter, background-color, border-color, box-shadow;
+  transition-duration: var(--bm-motion-duration-panel) !important;
+  transition-timing-function: var(--bm-motion-ease) !important;
+  will-change: opacity, transform;
+}
+
+.bm-motion-dropdown {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin, var(--radix-popover-content-transform-origin, var(--radix-select-content-transform-origin, center)));
+  animation-duration: var(--bm-motion-duration-panel) !important;
+  animation-timing-function: var(--bm-motion-ease) !important;
+  transition-property: opacity, transform, filter, background-color, border-color, box-shadow;
+  transition-duration: var(--bm-motion-duration-panel) !important;
+  transition-timing-function: var(--bm-motion-ease) !important;
+  will-change: opacity, transform;
+}
+
+.bm-motion-sheet {
+  animation-duration: var(--bm-motion-duration-sheet) !important;
+  animation-timing-function: var(--bm-motion-ease) !important;
+  transition-property: opacity, transform, filter, backdrop-filter, background-color, border-color, box-shadow;
+  transition-duration: var(--bm-motion-duration-sheet) !important;
+  transition-timing-function: var(--bm-motion-ease) !important;
+  will-change: opacity, transform;
+}
+
+.bm-motion-layout {
+  transition-property: opacity, transform, max-height, height, margin, padding, gap, background-color, border-color, box-shadow;
+  transition-duration: var(--bm-motion-duration-slow);
+  transition-timing-function: var(--bm-motion-ease);
+}
+
+.bm-chevron-motion {
+  transition-property: transform;
+  transition-duration: var(--bm-motion-duration-panel);
+  transition-timing-function: var(--bm-motion-ease);
+}
+
+.bm-message-enter {
+  animation: bm-message-enter var(--bm-motion-duration-message) var(--bm-motion-ease) both;
+}
+
+@keyframes bm-message-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 .bm-interactive {

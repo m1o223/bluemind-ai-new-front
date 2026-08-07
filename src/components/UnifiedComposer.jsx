@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { motion } from "framer-motion";
 import { FileText, Mic, Plus, X } from "lucide-react";
 
-import { inputClasses } from "@/lib/interactions";
+import { inputClasses, motionTokens } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import VoiceRecordingPanel from "@/components/VoiceRecordingPanel";
@@ -209,9 +209,9 @@ export default function UnifiedComposer({
         onAdd?.();
       }}
       whileTap={{ scale: 0.94 }}
-      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      transition={motionTokens.quickTransition}
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
+        "bm-interactive flex shrink-0 items-center justify-center rounded-full",
         isMobile ? "bm-mobile-glass-control bm-chat-composer-plain-control bm-chat-composer-add-control" : "h-11 w-11",
         isMobile
           ? ""
@@ -234,7 +234,7 @@ export default function UnifiedComposer({
       type="button"
       onClick={onVoice}
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
+        "bm-interactive flex shrink-0 items-center justify-center rounded-full",
         isMobile ? "bm-mobile-glass-control bm-chat-composer-plain-control bm-chat-composer-voice-control" : "h-[38px] w-[38px]",
         isMobile
           ? ""
@@ -272,7 +272,7 @@ export default function UnifiedComposer({
 
   if (isMobile) {
     const mobileBoxClasses = cn(
-      "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
+      "bm-motion-layout relative flex min-w-0 flex-1 cursor-text flex-col border",
       glassTone === "chat-light"
         ? isDark
           ? "rounded-[28px] border-white/[0.055] px-3 py-2 text-white/90 focus-within:border-white/[0.075]"
@@ -290,7 +290,7 @@ export default function UnifiedComposer({
 
         <motion.div
           layout
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          transition={motionTokens.messageTransition}
           className="w-full"
         >
           <motion.div
@@ -428,7 +428,7 @@ export default function UnifiedComposer({
 
       <motion.div
         layout
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      transition={motionTokens.messageTransition}
         className={cn("flex w-full items-end", isMobile ? "gap-2.5" : "gap-3")}
       >
         {!isIdleState && addButton}
@@ -438,7 +438,7 @@ export default function UnifiedComposer({
           onPointerDown={focusTextarea}
           onClick={focusTextarea}
           className={cn(
-            "relative flex min-w-0 flex-1 cursor-text flex-col border transition-all duration-200",
+            "bm-motion-layout relative flex min-w-0 flex-1 cursor-text flex-col border",
             isMobile
               ? isAttachmentState ? "rounded-[28px] px-3.5 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.045)]" : isTypingState ? "rounded-[27px] px-3.5 py-2.5 shadow-[0_9px_22px_rgba(15,23,42,0.038)]" : "rounded-[26px] px-2.5 py-2 shadow-[0_8px_18px_rgba(15,23,42,0.032)]"
               : isAttachmentState ? "rounded-[32px] px-4 py-3 sm:px-5" : "rounded-[31px] px-4 py-2.5 sm:px-5",

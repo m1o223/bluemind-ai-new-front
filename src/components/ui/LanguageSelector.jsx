@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, Search, Check, X, ChevronDown } from "lucide-react";
+import { motionTokens } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
 import languages from "@/data/languages";
 import { useApp } from "@/context/AppContext";
@@ -38,7 +39,7 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer",
+      "bm-interactive w-full flex items-center justify-between px-4 py-3.5 rounded-xl border cursor-pointer",
           isDark ? "bg-[var(--bm-bg-app)] border-[var(--bm-bg-elevated)] hover:border-[var(--bm-border-strong)]" : "bg-[var(--bm-bg-elevated)] border-[var(--bm-border)] hover:border-[var(--bm-border-strong)]"
         )}
         data-testid="language-selector-trigger"
@@ -61,6 +62,7 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={motionTokens.panelTransition}
               className="fixed inset-0 bg-black/30"
               onClick={() => setIsOpen(false)}
             />
@@ -69,9 +71,9 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2 }}
+              transition={motionTokens.panelTransition}
               className={cn(
-                "relative w-full max-w-md max-h-[70vh] rounded-2xl border shadow-xl flex flex-col overflow-hidden z-10",
+                "bm-motion-panel relative w-full max-w-md max-h-[70vh] rounded-2xl border shadow-xl flex flex-col overflow-hidden z-10",
                 isDark ? "bg-[var(--bm-bg-card)] border-[var(--bm-bg-elevated)]" : "bg-white border-[var(--bm-border)]"
               )}
               data-testid="language-modal"
@@ -81,7 +83,7 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
                 <h3 className={cn("text-base font-semibold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>{t("selectLanguage")}</h3>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer", isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-muted)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]")}
+                  className={cn("bm-interactive w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer", isDark ? "text-[var(--bm-text-muted)] hover:text-white hover:bg-[var(--bm-bg-elevated)]" : "text-[var(--bm-text-muted)] hover:text-[var(--bm-text-primary)] hover:bg-[var(--bm-hover-bg)]")}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -117,7 +119,7 @@ export default function LanguageSelector({ currentLang, onSelect, isDark }) {
                         key={lang.code}
                         onClick={() => { onSelect(lang.code); setIsOpen(false); setSearch(""); }}
                         className={cn(
-                          "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer mb-0.5",
+                          "bm-menu-interactive w-full flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer mb-0.5",
                           isSelected
                             ? (isDark ? "bg-[var(--bm-primary)]/30 text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-primary)]")
                             : (isDark ? "hover:bg-[var(--bm-bg-elevated)] text-[var(--bm-text-secondary)]" : "hover:bg-[var(--bm-bg-elevated)] text-[var(--bm-text-primary)]")

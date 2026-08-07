@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowUp, LoaderCircle, X } from "lucide-react";
 
+import { motionTokens } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
 
 function VoiceSpinner() {
@@ -82,7 +83,7 @@ export default function VoiceRecordingPanel({
       initial={{ opacity: 0, y: 6, scale: 0.99 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 5, scale: 0.99 }}
-      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      transition={motionTokens.messageTransition}
       className={cn(
         "flex w-full items-center gap-2.5",
         compact ? "min-h-[58px]" : "min-h-[96px]",
@@ -126,7 +127,7 @@ export default function VoiceRecordingPanel({
               <motion.span
                 key={`${index}-${levels.length}`}
                 animate={{ height, opacity }}
-                transition={{ duration: minimal ? 0.11 : 0.08, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: minimal ? 0.12 : 0.12, ease: [0.22, 1, 0.36, 1] }}
                 className={cn("rounded-full", minimal ? "w-[4px]" : "w-[3px]")}
                 style={{
                   backgroundColor: index > levels.length * 0.36 && index < levels.length * 0.64

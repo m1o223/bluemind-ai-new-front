@@ -95,8 +95,8 @@ module.exports = {
 			}
 		},
 		animation: {
-			'accordion-down': 'accordion-down 0.2s ease-out',
-			'accordion-up': 'accordion-up 0.2s ease-out'
+			'accordion-down': 'accordion-down var(--bm-motion-duration-panel) var(--bm-motion-ease)',
+			'accordion-up': 'accordion-up var(--bm-motion-duration-panel) var(--bm-motion-ease)'
 		}
 	}
   },
