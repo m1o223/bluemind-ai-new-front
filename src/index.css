@@ -1038,8 +1038,8 @@ html[data-theme="light"] [data-testid="mobile-chat-page"] .bm-mobile-glass-contr
 }
 
 .bm-voice-stop-square {
-  width: 10.5px;
-  height: 10.5px;
+  width: 12.25px;
+  height: 12.25px;
   border-radius: 2.5px;
   background: currentColor;
   display: inline-block;
@@ -1673,8 +1673,8 @@ html[data-theme="dark"] [data-testid="mobile-chat-page"] [data-testid="unified-c
 }
 
 [data-testid="mobile-chat-page"] .bm-mobile-glass-control.bm-chat-composer-send-control .bm-send-stop-icon {
-  width: 12.25px !important;
-  height: 12.25px !important;
+  width: 14.25px !important;
+  height: 14.25px !important;
   stroke-width: 0;
   transform: none !important;
 }

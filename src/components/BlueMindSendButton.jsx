@@ -14,13 +14,14 @@ export default function BlueMindSendButton({
   stopLabel = "Stop",
   compact = false,
   className,
+  showDelayedSpinner = false,
 }) {
   const [showSubmittingSpinner, setShowSubmittingSpinner] = useState(false);
   const isActive = isBusy || isSubmitting || canSend;
   const shouldShowSubmittingSpinner = !isBusy && isSubmitting && showSubmittingSpinner;
 
   useEffect(() => {
-    if (!isSubmitting) {
+    if (!isSubmitting || !showDelayedSpinner) {
       setShowSubmittingSpinner(false);
       return undefined;
     }
@@ -30,7 +31,7 @@ export default function BlueMindSendButton({
     }, 380);
 
     return () => window.clearTimeout(timer);
-  }, [isSubmitting]);
+  }, [isSubmitting, showDelayedSpinner]);
 
   return (
     <motion.button
