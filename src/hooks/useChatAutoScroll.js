@@ -16,7 +16,12 @@ function getScrollMetrics(node) {
   };
 }
 
-export default function useChatAutoScroll({ watch = [], isStreaming = false } = {}) {
+export default function useChatAutoScroll({
+  watch = [],
+  isStreaming = false,
+  alignShortContentToTop = false,
+  shortContentThreshold = 160,
+} = {}) {
   const scrollRef = useRef(null);
   const endRef = useRef(null);
   const shouldAutoFollowRef = useRef(true);
@@ -28,6 +33,10 @@ export default function useChatAutoScroll({ watch = [], isStreaming = false } = 
 
     const node = scrollRef.current;
     if (node) {
+      if (alignShortContentToTop && node.scrollHeight <= node.clientHeight + shortContentThreshold) {
+        node.scrollTo({ top: 0, behavior });
+        return;
+      }
       node.scrollTo({ top: node.scrollHeight, behavior });
       return;
     }
@@ -35,7 +44,7 @@ export default function useChatAutoScroll({ watch = [], isStreaming = false } = 
     if (endRef.current) {
       endRef.current.scrollIntoView({ behavior, block: "end" });
     }
-  }, []);
+  }, [alignShortContentToTop, shortContentThreshold]);
 
   const handleScroll = useCallback(() => {
     const node = scrollRef.current;

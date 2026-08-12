@@ -978,6 +978,7 @@ export default function MobileChat() {
   } = useChatAutoScroll({
     watch: [messages, isChatSending],
     isStreaming: isChatSending,
+    alignShortContentToTop: true,
   });
 
   const pauseImageGalleryAutoScroll = useCallback(() => {
@@ -4311,7 +4312,7 @@ export default function MobileChat() {
               : isSmartFocusMode
               ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
               : shouldUseChatMessageSafeArea
-                ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+190px)] pt-[112px]"
+                ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+190px)] pt-20"
               : shouldShowChatHome
                 ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-5"
                 : "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-4"
@@ -4677,7 +4678,7 @@ export default function MobileChat() {
             <div
               className={cn(
                 "space-y-4 pb-4",
-                shouldUseChatMessageSafeArea && "flex min-h-[calc(100dvh-302px)] flex-col justify-end",
+                shouldUseChatMessageSafeArea && "flex min-h-[calc(100dvh-302px)] flex-col",
               )}
             >
               {messages.map((item, index) => {
