@@ -10,8 +10,12 @@ import {
   Check,
   ChevronRight,
   CreditCard,
+  Database,
+  Download,
   FileUp,
   Flag,
+  Gauge,
+  Github,
   Globe2,
   HelpCircle,
   Info,
@@ -22,9 +26,14 @@ import {
   Moon,
   Palette,
   PenLine,
+  Play,
   Shield,
   Settings,
+  SlidersHorizontal,
+  Sparkles,
   Sun,
+  Trash2,
+  Volume2,
   X,
 } from "lucide-react";
 
@@ -46,6 +55,26 @@ import { reportIssue } from "@/services/supportService";
 import { AVATAR_COLORS, COLOR_OPTIONS } from "@/theme/colors";
 
 const MESSAGE_COLORS = COLOR_OPTIONS;
+const APP_ACCENT_COLORS = COLOR_OPTIONS;
+const AI_VOICE_OPTIONS = [
+  { label: "Nova", value: "nova", description: "Bright, clear and balanced." },
+  { label: "Luna", value: "luna", description: "Soft, calm and focused." },
+  { label: "Atlas", value: "atlas", description: "Confident, steady and direct." },
+  { label: "Echo", value: "echo", description: "Light, natural and conversational." },
+  { label: "Mira", value: "mira", description: "Warm, expressive and friendly." },
+  { label: "Sage", value: "sage", description: "Measured, thoughtful and precise." },
+];
+const SPEECH_SPEED_OPTIONS = [
+  { label: "Slow", value: "slow" },
+  { label: "Normal", value: "normal" },
+  { label: "Fast", value: "fast" },
+];
+const VOICE_LANGUAGE_OPTIONS = [
+  { label: "Auto", value: "auto" },
+  { label: "English", value: "en-US" },
+  { label: "العربية", value: "ar-SA" },
+  { label: "Svenska", value: "sv-SE" },
+];
 const SETTINGS_GLASS_CLASS = "border border-white/[0.055] bg-[rgba(78,78,78,0.18)]";
 const SETTINGS_LIGHT_GLASS_CLASS = "border border-black/[0.06] bg-white/[0.58]";
 const SETTINGS_LIGHT_POPUP_GLASS_CLASS = "border border-black/[0.06] bg-white/[0.74]";
@@ -487,7 +516,11 @@ export default function SettingsSheet({
   }, [prefs.theme]);
   const currentLanguage = LANGUAGE_OPTIONS.find((language) => language.value === String(prefs.appLanguage || prefs.language || "en").toLowerCase()) || LANGUAGE_OPTIONS[0];
   const currentLanguageLabel = languageDisplayName(currentLanguage);
+  const activeAppAccentColor = APP_ACCENT_COLORS.find((color) => color.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "var(--bm-primary)").toLowerCase()) || APP_ACCENT_COLORS[0];
   const activeMessageColor = MESSAGE_COLORS.find((color) => color.value.toLowerCase() === String(prefs.chatColor || "var(--bm-primary)").toLowerCase()) || MESSAGE_COLORS[0];
+  const activeAiVoice = AI_VOICE_OPTIONS.find((voice) => voice.value === (prefs.aiVoice || "nova")) || AI_VOICE_OPTIONS[0];
+  const activeSpeechSpeed = SPEECH_SPEED_OPTIONS.find((speed) => speed.value === (prefs.speechSpeed || "normal")) || SPEECH_SPEED_OPTIONS[1];
+  const activeVoiceLanguage = VOICE_LANGUAGE_OPTIONS.find((language) => language.value === (prefs.voiceLanguage || "auto")) || VOICE_LANGUAGE_OPTIONS[0];
   const plan = user?.subscription?.plan || user?.plan || user?.accountPlan || (user?.authProvider === "guest" ? "Guest" : "Free");
 
   const close = () => {
@@ -740,27 +773,72 @@ export default function SettingsSheet({
         <section>
           <Title>Account</Title>
           <Card>
-            <Row icon={Mail} title="Email" value={user?.email || "Unavailable"} />
             <Row icon={Mail} title="Change Email" onClick={() => openChild("change-email")} />
             <Row icon={KeyRound} title="Change Password" onClick={() => openChild("change-password")} />
             <Row icon={CreditCard} title="Subscription" value={plan} onClick={() => navigate(mobile ? "/mobile/subscription" : "/subscription")} />
+            <Row icon={Trash2} title="Delete Account" danger onClick={() => setSelectionPopup({ type: "delete-account" })}>
+              <span className={descriptionClass}>Permanently remove your BlueMind account when backend confirmation is connected.</span>
+            </Row>
           </Card>
         </section>
 
         <section>
-          <Title>App settings</Title>
+          <Title>Appearance &amp; Colors</Title>
+          <Card>
+            <Row icon={(APPEARANCE_OPTIONS.find((option) => option.value === (prefs.theme || "system")) || APPEARANCE_OPTIONS[0]).icon} title="Appearance" value={appearanceText} onClick={() => setSelectionPopup({ type: "appearance" })} />
+            <Row icon={Palette} title="App Accent Color" value={activeAppAccentColor.label} onClick={() => setSelectionPopup({ type: "app-accent-color" })} />
+            <Row icon={Palette} title="Chat Color" value={activeMessageColor.label} onClick={() => setSelectionPopup({ type: "message-color" })} />
+          </Card>
+        </section>
+
+        <section>
+          <Title>App Settings</Title>
           <Card>
             <Row icon={Settings} title="General" onClick={() => openChild("general")} />
+            <Row icon={Globe2} title="Language" value={currentLanguageLabel} onClick={() => setSelectionPopup({ type: "language" })} />
             <Row icon={Bell} title="Notifications" onClick={() => openChild("notifications")} />
           </Card>
         </section>
 
         <section>
-          <Title>Get help</Title>
+          <Title>Voice &amp; Audio</Title>
           <Card>
-            <Row icon={Flag} title="Report app issue" onClick={() => openChild("report-issue")} />
+            <Row icon={Volume2} title="AI Voice" value={activeAiVoice.label} onClick={() => setSelectionPopup({ type: "ai-voice" })} />
+            <Row icon={Play} title="Voice Preview" value="Unavailable" disabled>
+              <span className={descriptionClass}>Preview playback will be enabled when BlueMind voice is connected.</span>
+            </Row>
+            <Row icon={Gauge} title="Speech Speed" value={activeSpeechSpeed.label} onClick={() => setSelectionPopup({ type: "speech-speed" })} />
+            <Row icon={Volume2} title="Auto-play AI Responses" value={prefs.voiceAutoplayEnabled === true ? "On" : "Off"} onClick={() => setSelectionPopup({ type: "voice-autoplay" })} />
+            <Row icon={Globe2} title="Voice Language" value={activeVoiceLanguage.label} onClick={() => setSelectionPopup({ type: "voice-language" })} />
+          </Card>
+        </section>
+
+        <section>
+          <Title>Privacy &amp; Data</Title>
+          <Card>
+            <Row icon={Database} title="Chat History" value={prefs.chatHistoryMode || "On" } onClick={() => setSelectionPopup({ type: "chat-history" })} />
+            <Row icon={Trash2} title="Clear Chat History" value="Coming later" disabled />
+            <Row icon={Download} title="Export My Data" value="Coming later" disabled />
+            <Row icon={Shield} title="Privacy Controls" onClick={() => openChild("privacy-policy")} />
+          </Card>
+        </section>
+
+        <section>
+          <Title>Integrations</Title>
+          <Card>
+            <Row icon={Github} title="GitHub" value="Ready to connect" disabled>
+              <span className={descriptionClass}>GitHub integration settings will appear here when the connection flow is available.</span>
+            </Row>
+          </Card>
+        </section>
+
+        <section>
+          <Title>Help &amp; Support</Title>
+          <Card>
+            <Row icon={Flag} title="Report App Issue" onClick={() => openChild("report-issue")} />
             <Row icon={HelpCircle} title="Help Center" onClick={() => openChild("help-center")} />
-            <Row icon={Info} title="About" onClick={() => openChild("about")} />
+            <Row icon={Mail} title="Contact Support" value={SUPPORT_EMAIL} onClick={() => window.location.href = `mailto:${SUPPORT_EMAIL}`} />
+            <Row icon={Info} title="About BlueMind" onClick={() => openChild("about")} />
           </Card>
         </section>
 
@@ -774,7 +852,7 @@ export default function SettingsSheet({
           style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
         >
           <LogOut className="h-5 w-5" />
-          Log out
+          Sign Out
         </button>
       </div>
     </>
@@ -979,14 +1057,11 @@ export default function SettingsSheet({
 
   const renderGeneral = () => (
     <Card>
-      <Row icon={Globe2} title="Language" value={currentLanguageLabel} onClick={() => setSelectionPopup({ type: "language" })}>
-        <span className={descriptionClass}>Choose your application language.</span>
+      <Row icon={SlidersHorizontal} title="Open App Directly to Chat" value={prefs.openAppDirectlyToChat === true ? "On" : "Off"} onClick={() => setSelectionPopup({ type: "open-chat-default" })}>
+        <span className={descriptionClass}>Choose whether BlueMind opens straight into chat after sign-in.</span>
       </Row>
-      <Row icon={(APPEARANCE_OPTIONS.find((option) => option.value === (prefs.theme || "system")) || APPEARANCE_OPTIONS[0]).icon} title="Appearance" value={appearanceText} onClick={() => setSelectionPopup({ type: "appearance" })}>
-        <span className={descriptionClass}>Choose application theme.</span>
-      </Row>
-      <Row icon={Palette} title="Message Color" value={activeMessageColor.label} onClick={() => setSelectionPopup({ type: "message-color" })}>
-        <span className={descriptionClass}>Choose the color of your messages.</span>
+      <Row icon={Sparkles} title="Animations" value={prefs.animations === false ? "Off" : "On"} onClick={() => setSelectionPopup({ type: "animations" })}>
+        <span className={descriptionClass}>Keep interface motion smooth and consistent.</span>
       </Row>
     </Card>
   );
@@ -1264,9 +1339,28 @@ export default function SettingsSheet({
       );
     }
 
+    if (selectionPopup?.type === "app-accent-color") {
+      return (
+        <SettingsSelectionPopup open title="App Accent Color" isDark={isDark} onClose={closeSelectionPopup}>
+          {APP_ACCENT_COLORS.map((color) => (
+            <SettingsPopupRow
+              key={color.value}
+              selected={activeAppAccentColor.value.toLowerCase() === color.value.toLowerCase()}
+              indicator={<span className="h-6 w-6 shrink-0 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />}
+              isDark={isDark}
+              onClick={() => selectPreference({ appColor: color.value, accentColor: color.value })}
+              testId={`app-accent-color-popup-${color.label.toLowerCase()}`}
+            >
+              {color.label}
+            </SettingsPopupRow>
+          ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
     if (selectionPopup?.type === "message-color") {
       return (
-        <SettingsSelectionPopup open title="Message Color" isDark={isDark} onClose={closeSelectionPopup}>
+        <SettingsSelectionPopup open title="Chat Color" isDark={isDark} onClose={closeSelectionPopup}>
           {MESSAGE_COLORS.map((color) => (
             <SettingsPopupRow
               key={color.value}
@@ -1279,6 +1373,153 @@ export default function SettingsSheet({
               {color.label}
             </SettingsPopupRow>
           ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "ai-voice") {
+      return (
+        <SettingsSelectionPopup open title="AI Voice" isDark={isDark} onClose={closeSelectionPopup}>
+          {AI_VOICE_OPTIONS.map((voice) => (
+            <SettingsPopupRow
+              key={voice.value}
+              selected={activeAiVoice.value === voice.value}
+              indicator={<Volume2 className={cn("h-5 w-5 shrink-0", isDark ? "text-white/76" : "text-[#111111]")} />}
+              isDark={isDark}
+              onClick={() => selectPreference({ aiVoice: voice.value })}
+            >
+              <span className="block">
+                <span className="block">{voice.label}</span>
+                <span className={cn("mt-0.5 block text-xs font-medium leading-4", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>{voice.description}</span>
+                <span className={cn("mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em]", isDark ? "bg-white/[0.06] text-[var(--bm-text-muted)]" : "bg-black/[0.04] text-[var(--bm-text-secondary)]")}>Preview unavailable</span>
+              </span>
+            </SettingsPopupRow>
+          ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "speech-speed") {
+      return (
+        <SettingsSelectionPopup open title="Speech Speed" isDark={isDark} onClose={closeSelectionPopup}>
+          {SPEECH_SPEED_OPTIONS.map((speed) => (
+            <SettingsPopupRow
+              key={speed.value}
+              selected={activeSpeechSpeed.value === speed.value}
+              indicator={<Gauge className={cn("h-5 w-5 shrink-0", isDark ? "text-white/76" : "text-[#111111]")} />}
+              isDark={isDark}
+              onClick={() => selectPreference({ speechSpeed: speed.value })}
+            >
+              {speed.label}
+            </SettingsPopupRow>
+          ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "voice-language") {
+      return (
+        <SettingsSelectionPopup open title="Voice Language" isDark={isDark} onClose={closeSelectionPopup}>
+          {VOICE_LANGUAGE_OPTIONS.map((language) => (
+            <SettingsPopupRow
+              key={language.value}
+              selected={activeVoiceLanguage.value === language.value}
+              indicator={<Globe2 className={cn("h-5 w-5 shrink-0", isDark ? "text-white/76" : "text-[#111111]")} />}
+              isDark={isDark}
+              onClick={() => selectPreference({ voiceLanguage: language.value })}
+            >
+              {language.label}
+            </SettingsPopupRow>
+          ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "voice-autoplay") {
+      return (
+        <SettingsSelectionPopup open title="Auto-play AI Responses" isDark={isDark} onClose={closeSelectionPopup}>
+          <SettingsPopupRow
+            selected={prefs.voiceAutoplayEnabled === true}
+            indicator={<span className="h-3 w-3 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />}
+            isDark={isDark}
+            onClick={() => selectPreference({ voiceAutoplayEnabled: true })}
+          >
+            ON
+          </SettingsPopupRow>
+          <SettingsPopupRow
+            selected={prefs.voiceAutoplayEnabled !== true}
+            indicator={<span className="h-3 w-3 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.12)]" />}
+            isDark={isDark}
+            onClick={() => selectPreference({ voiceAutoplayEnabled: false })}
+          >
+            OFF
+          </SettingsPopupRow>
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "chat-history") {
+      const chatHistoryMode = prefs.chatHistoryMode || "On";
+
+      return (
+        <SettingsSelectionPopup open title="Chat History" isDark={isDark} onClose={closeSelectionPopup}>
+          {["On", "Off"].map((mode) => (
+            <SettingsPopupRow
+              key={mode}
+              selected={chatHistoryMode === mode}
+              indicator={<Database className={cn("h-5 w-5 shrink-0", isDark ? "text-white/76" : "text-[#111111]")} />}
+              isDark={isDark}
+              onClick={() => selectPreference({ chatHistoryMode: mode })}
+            >
+              {mode}
+            </SettingsPopupRow>
+          ))}
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "open-chat-default" || selectionPopup?.type === "animations") {
+      const isAnimations = selectionPopup.type === "animations";
+      const title = isAnimations ? "Animations" : "Open App Directly to Chat";
+      const currentValue = isAnimations ? prefs.animations !== false : prefs.openAppDirectlyToChat === true;
+      const prefKey = isAnimations ? "animations" : "openAppDirectlyToChat";
+
+      return (
+        <SettingsSelectionPopup open title={title} isDark={isDark} onClose={closeSelectionPopup}>
+          <SettingsPopupRow
+            selected={currentValue}
+            indicator={<span className="h-3 w-3 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />}
+            isDark={isDark}
+            onClick={() => selectPreference({ [prefKey]: true })}
+          >
+            ON
+          </SettingsPopupRow>
+          <SettingsPopupRow
+            selected={!currentValue}
+            indicator={<span className="h-3 w-3 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.12)]" />}
+            isDark={isDark}
+            onClick={() => selectPreference({ [prefKey]: false })}
+          >
+            OFF
+          </SettingsPopupRow>
+        </SettingsSelectionPopup>
+      );
+    }
+
+    if (selectionPopup?.type === "delete-account") {
+      return (
+        <SettingsSelectionPopup open title="Delete Account" isDark={isDark} onClose={closeSelectionPopup}>
+          <div className={cn("rounded-[22px] px-4 py-4 text-sm font-semibold leading-6", isDark ? "bg-white/[0.055] text-[var(--bm-text-secondary)]" : "bg-black/[0.035] text-[var(--bm-text-secondary)]")}>
+            Account deletion is being prepared for backend confirmation. No account data will be deleted from this frontend-only control yet.
+          </div>
+          <button
+            type="button"
+            onClick={closeSelectionPopup}
+            className={cn("mt-3 flex min-h-[52px] w-full items-center justify-center rounded-[20px] border px-4 text-sm font-extrabold text-red-500", isDark ? "border-white/[0.055] bg-white/[0.045]" : "border-black/[0.06] bg-white/[0.58]")}
+            style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
+          >
+            I Understand
+          </button>
         </SettingsSelectionPopup>
       );
     }

@@ -43,8 +43,8 @@ function normalizePrefs(preferences = {}) {
     theme: ["light", "dark", "system"].includes(preferences.theme)
       ? preferences.theme
       : defaultPrefs.theme,
-    appColor: defaultPrefs.appColor,
-    accentColor: defaultPrefs.accentColor,
+    appColor: preferences.appColor || preferences.accentColor || defaultPrefs.appColor,
+    accentColor: preferences.accentColor || preferences.appColor || defaultPrefs.accentColor,
     chatColor: preferences.chatColor || defaultPrefs.chatColor,
     appLanguage,
     language: appLanguage,
@@ -117,7 +117,7 @@ export function AppProvider({ children }) {
     document.documentElement.dataset.theme = resolvedTheme;
     document.documentElement.dataset.animations = prefs.animations === false ? "off" : "on";
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
-    document.documentElement.style.setProperty(CSS_VARIABLES.appColor, defaultPrefs.appColor);
+    document.documentElement.style.setProperty(CSS_VARIABLES.appColor, prefs.appColor || prefs.accentColor || defaultPrefs.appColor);
     document.documentElement.style.setProperty(CSS_VARIABLES.chatColor, prefs.chatColor || defaultPrefs.chatColor);
     storePreferences(prefs);
 
