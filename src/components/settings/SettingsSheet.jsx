@@ -39,8 +39,9 @@ import {
 
 import { useApp } from "@/context/AppContext";
 import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
+import { BlueMindOverlay } from "@/components/ui/BlueMindOverlay";
 import { cn } from "@/lib/utils";
-import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
+import { iconClasses, inputClasses, interactionClasses, overlayMotion, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
 import {
   changePassword,
@@ -382,43 +383,37 @@ function PrimarySettingsButton({ children, loading, style, ...props }) {
 
 function SettingsSelectionPopup({ open, title, children, isDark = true, onClose }) {
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 z-30 flex items-center justify-center bg-black/25 p-5 backdrop-blur-[10px]"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 8 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className={cn(
-              "max-h-[72dvh] w-full max-w-[420px] overflow-hidden rounded-[30px] p-4",
-              isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_POPUP_GLASS_CLASS,
-            )}
-            style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-          >
-            <div className="mb-3 flex items-center justify-between gap-3 px-1">
-              <h3 className={cn("text-[15px] font-bold", isDark ? "text-white" : "text-[#111111]")}>{title}</h3>
-              <button type="button" onClick={onClose} className="bm-mobile-glass-control" aria-label={`Close ${title}`}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="max-h-[58dvh] space-y-2 overflow-y-auto overscroll-contain pr-1">
-              {children}
-            </div>
-          </motion.div>
-        </motion.div>
+    <BlueMindOverlay
+      open={open}
+      kind="modal"
+      portal={false}
+      contained
+      className="absolute inset-0 z-30 flex items-center justify-center p-5"
+      backdropClassName="bg-black/25 backdrop-blur-[10px]"
+      contentClassName={cn(
+        "max-h-[72dvh] w-full max-w-[420px] overflow-hidden rounded-[30px] p-4",
+        isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_POPUP_GLASS_CLASS,
       )}
-    </AnimatePresence>
+      contentStyle={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
+      contentProps={{
+        onClick: (event) => event.stopPropagation(),
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-label": title,
+      }}
+      onClose={onClose}
+      closeLabel={`Dismiss ${title}`}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+        <h3 className={cn("text-[15px] font-bold", isDark ? "text-white" : "text-[#111111]")}>{title}</h3>
+        <button type="button" onClick={onClose} className="bm-mobile-glass-control" aria-label={`Close ${title}`}>
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="max-h-[58dvh] space-y-2 overflow-y-auto overscroll-contain pr-1">
+        {children}
+      </div>
+    </BlueMindOverlay>
   );
 }
 
@@ -1596,10 +1591,10 @@ export default function SettingsSheet({
 
   const sheetContent = (
     <motion.div
-      initial={{ y: "100%", opacity: 0.96 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: "100%", opacity: 0.96 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      initial={overlayMotion.sheet.initial}
+      animate={overlayMotion.sheet.animate}
+      exit={overlayMotion.sheet.exit}
+      transition={overlayMotion.transition.sheet}
       drag={mobile ? "y" : false}
       dragDirectionLock
       dragConstraints={{ top: 0, bottom: 0 }}
@@ -1672,21 +1667,18 @@ export default function SettingsSheet({
         onChange={(event) => handleIssueFiles(event.target.files)}
       />
 
-      <AnimatePresence>
-        {logoutConfirmOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 flex items-end bg-black/55 p-4"
-          >
-            <motion.div
-              initial={{ y: 18, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 18, opacity: 0 }}
-              className={cn("w-full rounded-[28px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_POPUP_GLASS_CLASS)}
-              style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
-            >
+      <BlueMindOverlay
+        open={logoutConfirmOpen}
+        kind="sheet"
+        portal={false}
+        contained
+        className="absolute inset-0 z-20 flex items-end p-4"
+        backdropClassName="bg-black/55"
+        contentClassName={cn("w-full rounded-[28px] p-5", isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_POPUP_GLASS_CLASS)}
+        contentStyle={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
+        onClose={() => setLogoutConfirmOpen(false)}
+        closeLabel="Dismiss log out confirmation"
+      >
               <p className={cn("text-lg font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Log out?</p>
               <p className={cn("mt-2 text-sm font-medium leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>You will need to sign in again to use BlueMind AI.</p>
               <div className="mt-5 grid grid-cols-2 gap-3">
@@ -1710,10 +1702,7 @@ export default function SettingsSheet({
                   Log out
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </BlueMindOverlay>
     </motion.div>
   );
 
@@ -1724,21 +1713,20 @@ export default function SettingsSheet({
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className={cn(
-          "fixed inset-0 z-[140] flex items-end justify-center md:items-center md:p-6",
-          layeredOverMenu ? "bg-black/35 backdrop-blur-[8px]" : "bg-black/55 backdrop-blur-[14px]",
-        )}
-        onClick={close}
-      >
-        <div className="w-full md:flex md:justify-center" onClick={(event) => event.stopPropagation()}>
-          {sheetContent}
-        </div>
-      </motion.div>
-    </AnimatePresence>
+    <BlueMindOverlay
+      open={open}
+      kind="sheet"
+      className="z-[140] flex items-end justify-center md:items-center md:p-6"
+      backdropClassName={layeredOverMenu ? "bg-black/35 backdrop-blur-[8px]" : "bg-black/55 backdrop-blur-[14px]"}
+      contentClassName="w-full md:flex md:justify-center"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 1 }}
+      onClose={close}
+      closeLabel="Dismiss settings"
+      contentProps={{ onClick: (event) => event.stopPropagation() }}
+    >
+      {sheetContent}
+    </BlueMindOverlay>
   );
 }

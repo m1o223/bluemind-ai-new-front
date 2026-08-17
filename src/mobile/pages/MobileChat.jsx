@@ -43,8 +43,9 @@ import MessageResponse from "@/components/MessageResponse";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
 import SettingsSheet from "@/components/settings/SettingsSheet";
+import { BlueMindOverlay } from "@/components/ui/BlueMindOverlay";
 import { useApp } from "@/context/AppContext";
-import { iconClasses, typeClasses } from "@/lib/interactions";
+import { iconClasses, overlayMotion, typeClasses } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
 import {
   buildWriteEditMessage,
@@ -1138,6 +1139,32 @@ export default function MobileChat() {
       viewport?.removeEventListener("scroll", update);
     };
   }, [responseModeMenuOpen, updateResponseModeMenuPosition]);
+
+  useEffect(() => {
+    if (!responseModeMenuOpen) return undefined;
+
+    const handleOutsidePointer = (event) => {
+      const target = event.target;
+      if (aiSelectorButtonRef.current?.contains(target)) return;
+      if (target?.closest?.(".bm-mobile-ai-menu")) return;
+      closeResponseModeMenu();
+    };
+
+    document.addEventListener("touchstart", handleOutsidePointer, true);
+    document.addEventListener("touchend", handleOutsidePointer, true);
+    document.addEventListener("pointerdown", handleOutsidePointer, true);
+    document.addEventListener("pointerup", handleOutsidePointer, true);
+    window.addEventListener("mousedown", handleOutsidePointer, true);
+    window.addEventListener("click", handleOutsidePointer, true);
+    return () => {
+      document.removeEventListener("touchstart", handleOutsidePointer, true);
+      document.removeEventListener("touchend", handleOutsidePointer, true);
+      document.removeEventListener("pointerdown", handleOutsidePointer, true);
+      document.removeEventListener("pointerup", handleOutsidePointer, true);
+      window.removeEventListener("mousedown", handleOutsidePointer, true);
+      window.removeEventListener("click", handleOutsidePointer, true);
+    };
+  }, [closeResponseModeMenu, responseModeMenuOpen]);
 
   useLayoutEffect(() => {
     const measureFeatureCarousel = () => {
@@ -4051,34 +4078,23 @@ export default function MobileChat() {
     ];
 
     return (
-      <AnimatePresence>
-        {attachmentSheetOpen && (
-          <div className="fixed inset-0 z-[88] flex items-end justify-center px-5 pb-[calc(env(safe-area-inset-bottom)+118px)]">
-            <motion.button
-              type="button"
-              className="absolute inset-0 bg-black/38 backdrop-blur-[5px]"
-              onClick={closeAttachmentSheet}
-              aria-label="Close action menu"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            />
-
-            <motion.section
-              className={cn(
+      <BlueMindOverlay
+        open={attachmentSheetOpen}
+        kind="sheet"
+        className="z-[88] flex items-end justify-center px-5 pb-[calc(env(safe-area-inset-bottom)+118px)]"
+        backdropClassName="bg-black/38 backdrop-blur-[5px]"
+        contentAs="section"
+        contentClassName={cn(
                 "relative z-10 w-full max-w-[356px] rounded-[32px] border p-4 backdrop-blur-[42px]",
                 isDark
                   ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.016),inset_1px_0_0_rgba(255,255,255,0.032),inset_-1px_0_0_rgba(255,255,255,0.026),0_24px_68px_rgba(0,0,0,0.34)]"
                   : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
-              )}
-              style={isDark ? undefined : mobileGlassPanelStyle}
-              initial={{ opacity: 0, y: 18, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.95 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              data-testid="mobile-plus-action-menu"
-            >
+        )}
+        contentStyle={isDark ? undefined : mobileGlassPanelStyle}
+        onClose={closeAttachmentSheet}
+        closeLabel="Dismiss action menu"
+        contentProps={{ "data-testid": "mobile-plus-action-menu" }}
+      >
               <div className="grid grid-cols-2 gap-3">
                 {plusActions.map((action) => {
                   const ActionIcon = action.icon;
@@ -4116,10 +4132,7 @@ export default function MobileChat() {
                   <X className="h-5 w-5 stroke-[2.4]" />
                 </motion.button>
               </div>
-            </motion.section>
-          </div>
-        )}
-      </AnimatePresence>
+      </BlueMindOverlay>
     );
   };
 
@@ -4167,34 +4180,32 @@ export default function MobileChat() {
             <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
-          <AnimatePresence onExitComplete={() => setResponseModeMenuPosition(null)}>
-            {responseModeMenuOpen && responseModeMenuPosition && (
-              <>
-                <button
-                  type="button"
-                  className="bm-mobile-ai-menu-backdrop pointer-events-auto fixed inset-0 z-[45] cursor-default"
-                  onClick={closeResponseModeMenu}
-                  aria-label="Close AI mode menu"
-                />
-                <motion.div
-                  initial={{ opacity: 0, x: "-50%", y: -8, scale: 0.98 }}
-                  animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: "-50%", y: -8, scale: 0.98 }}
-                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className={cn(
+          <BlueMindOverlay
+            open={responseModeMenuOpen && Boolean(responseModeMenuPosition)}
+            kind="popupUp"
+            className="pointer-events-auto z-[45]"
+            backdropClassName="bm-mobile-ai-menu-backdrop cursor-default bg-transparent"
+            contentClassName={cn(
                     "bm-mobile-ai-menu pointer-events-auto fixed z-50 overflow-hidden rounded-[28px] border",
                     isDark ? "text-white" : "text-[var(--bm-text-primary)]",
-                  )}
-                  style={{
-                    left: responseModeMenuPosition.left,
-                    top: responseModeMenuPosition.top,
-                    width: responseModeMenuPosition.width,
-                    maxHeight: responseModeMenuPosition.maxHeight,
-                    transformOrigin: "top center",
-                    ...mobileGlassPanelStyle,
-                  }}
-                  role="menu"
-                >
+            )}
+            contentStyle={responseModeMenuPosition ? {
+              left: responseModeMenuPosition.left,
+              top: responseModeMenuPosition.top,
+              width: responseModeMenuPosition.width,
+              maxHeight: responseModeMenuPosition.maxHeight,
+              transformOrigin: "top center",
+              ...mobileGlassPanelStyle,
+            } : undefined}
+            initial={{ opacity: 0, x: "-50%", y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
+            exit={{ opacity: 0, x: "-50%", y: -8, scale: 0.98 }}
+            transition={overlayMotion.transition.popup}
+            onClose={closeResponseModeMenu}
+            onExitComplete={() => setResponseModeMenuPosition(null)}
+            closeLabel="Dismiss AI mode menu"
+            contentProps={{ role: "menu" }}
+          >
                   <div className="max-h-[inherit] overflow-y-auto px-5 py-4">
                     <section>
                       <div className={cn("pb-2 text-[11px] font-black uppercase tracking-[0.16em]", isDark ? "text-[#D7D7D7]" : "text-[var(--bm-text-secondary)]")}>
@@ -4269,10 +4280,7 @@ export default function MobileChat() {
                       </button>
                     </section>
                   </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+          </BlueMindOverlay>
         </div>
 
         <div className="flex w-12 items-center justify-end">
@@ -4942,26 +4950,17 @@ export default function MobileChat() {
           />
       </section>
 
-      <AnimatePresence>
+      <BlueMindOverlay
+        open={Boolean(searchConfirm)}
+        kind="modal"
+        className="z-50 flex items-center justify-center px-5"
+        backdropClassName="bg-black/40"
+        contentClassName={`relative z-10 w-full max-w-[340px] rounded-[28px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-white bg-white text-[var(--bm-text-primary)]"}`}
+        onClose={() => setSearchConfirm(null)}
+        closeLabel="Dismiss Ask AI"
+      >
         {searchConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-5">
-            <motion.button
-              type="button"
-              className="absolute inset-0 bg-black/40"
-              onClick={() => setSearchConfirm(null)}
-              aria-label="Cancel Ask AI"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 14, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.96 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className={`relative z-10 w-full max-w-[340px] rounded-[28px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-white bg-white text-[var(--bm-text-primary)]"}`}
-            >
+          <>
               <h3 className="text-base font-bold tracking-tight">Ask AI?</h3>
               <p className={`mt-2 text-sm font-semibold leading-6 ${isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]"}`}>
                 {searchConfirm.intent === "learn_more_about_selected_item" && searchConfirm.item
@@ -4984,32 +4983,28 @@ export default function MobileChat() {
                   Continue
                 </button>
               </div>
-            </motion.div>
-          </div>
+          </>
         )}
-      </AnimatePresence>
+      </BlueMindOverlay>
 
-      {improveTarget && (
-          <motion.div
-            key={`improve-answer-${improveTarget.id}`}
-            className="fixed inset-0 z-[92] flex items-center justify-center bg-black/34 px-5 backdrop-blur-[8px]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setImproveTarget(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.96 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              className={cn(
+      <BlueMindOverlay
+        open={Boolean(improveTarget)}
+        kind="modal"
+        className="z-[92] flex items-center justify-center px-5"
+        backdropClassName="bg-black/34 backdrop-blur-[8px]"
+        contentClassName={cn(
                 "w-full max-w-[340px] rounded-[30px] border p-4 shadow-2xl",
                 isDark ? "border-white/[0.08] bg-[rgba(38,38,38,0.92)] text-white" : "border-black/[0.07] bg-white/[0.96] text-[var(--bm-text-primary)]",
-              )}
-              onClick={(event) => event.stopPropagation()}
-              data-testid={`improve-answer-dialog-${improveTarget.id}`}
-            >
+        )}
+        onClose={() => setImproveTarget(null)}
+        closeLabel="Dismiss improve answer"
+        contentProps={{
+          onClick: (event) => event.stopPropagation(),
+          "data-testid": improveTarget ? `improve-answer-dialog-${improveTarget.id}` : undefined,
+        }}
+      >
+        {improveTarget && (
+          <>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[17px] font-black tracking-tight">Improve answer</p>
@@ -5042,32 +5037,30 @@ export default function MobileChat() {
                   </button>
                 ))}
               </div>
-            </motion.div>
-          </motion.div>
-      )}
+          </>
+        )}
+      </BlueMindOverlay>
 
-      {reportTarget && (
-          <motion.div
-            key={`report-problem-${reportTarget.id}`}
-            className="fixed inset-0 z-[92] flex items-center justify-center bg-black/34 px-5 backdrop-blur-[8px]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setReportTarget(null)}
-          >
-            <motion.form
-              initial={{ opacity: 0, y: 12, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.96 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              className={cn(
+      <BlueMindOverlay
+        open={Boolean(reportTarget)}
+        kind="modal"
+        className="z-[92] flex items-center justify-center px-5"
+        backdropClassName="bg-black/34 backdrop-blur-[8px]"
+        contentAs="form"
+        contentClassName={cn(
                 "w-full max-w-[354px] rounded-[30px] border p-4 shadow-2xl",
                 isDark ? "border-white/[0.08] bg-[rgba(38,38,38,0.92)] text-white" : "border-black/[0.07] bg-white/[0.96] text-[var(--bm-text-primary)]",
-              )}
-              onClick={(event) => event.stopPropagation()}
-              onSubmit={handleSubmitMessageReport}
-              data-testid={`report-problem-dialog-${reportTarget.id}`}
-            >
+        )}
+        onClose={() => setReportTarget(null)}
+        closeLabel="Dismiss report problem"
+        contentProps={{
+          onClick: (event) => event.stopPropagation(),
+          onSubmit: handleSubmitMessageReport,
+          "data-testid": reportTarget ? `report-problem-dialog-${reportTarget.id}` : undefined,
+        }}
+      >
+        {reportTarget && (
+          <>
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[17px] font-black tracking-tight">Report problem</p>
@@ -5133,39 +5126,31 @@ export default function MobileChat() {
                   {isSubmittingReport ? "Submitting..." : "Submit"}
                 </button>
               </div>
-            </motion.form>
-          </motion.div>
-      )}
+          </>
+        )}
+      </BlueMindOverlay>
 
       {renderMobilePlusMenu()}
 
-      <AnimatePresence>
-        {imageSourceSheetOpen && (
-          <div className="fixed inset-0 z-50">
-            <motion.button
-              type="button"
-              className="absolute inset-0 bg-black/35"
-              onClick={closeImageSourceSheet}
-              aria-label="Close image source"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            />
-            <motion.section
-              className={`absolute inset-x-0 bottom-0 rounded-t-[28px] border-t px-4 pb-5 pt-3 shadow-[0_-24px_70px_rgba(15,23,42,0.2)] ${borderColor}`}
-              style={{
-                backgroundColor: panelColor,
-                paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
-              }}
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              onTouchStart={handleSheetTouchStart}
-              onTouchEnd={handleSheetTouchEnd}
-              data-testid="mobile-image-source-sheet"
-            >
+      <BlueMindOverlay
+        open={imageSourceSheetOpen}
+        kind="sheet"
+        className="z-50"
+        backdropClassName="bg-black/35"
+        contentAs="section"
+        contentClassName={`absolute inset-x-0 bottom-0 rounded-t-[28px] border-t px-4 pb-5 pt-3 shadow-[0_-24px_70px_rgba(15,23,42,0.2)] ${borderColor}`}
+        contentStyle={{
+          backgroundColor: panelColor,
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
+        }}
+        onClose={closeImageSourceSheet}
+        closeLabel="Dismiss image source"
+        contentProps={{
+          onTouchStart: handleSheetTouchStart,
+          onTouchEnd: handleSheetTouchEnd,
+          "data-testid": "mobile-image-source-sheet",
+        }}
+      >
               <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[var(--bm-text-muted)]/55" />
               <div className="mb-4 flex items-center justify-between">
                 <div>
@@ -5205,39 +5190,35 @@ export default function MobileChat() {
                   <span>Take Photo</span>
                 </button>
               </div>
-            </motion.section>
-          </div>
-        )}
-      </AnimatePresence>
+      </BlueMindOverlay>
 
-      <AnimatePresence>
-        {dislikeTarget && (
-          <div
-            className="fixed inset-0 z-[95]"
-            onPointerDown={() => setDislikeTarget(null)}
-            onClick={() => setDislikeTarget(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: dislikeMenuPosition.placement === "above" ? 6 : -6 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: dislikeMenuPosition.placement === "above" ? 6 : -6 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              className={`fixed w-[min(78vw,248px)] overflow-y-auto rounded-[24px] border p-2.5 backdrop-blur-[18px] ${
+      <BlueMindOverlay
+        open={Boolean(dislikeTarget)}
+        kind={dislikeMenuPosition.placement === "above" ? "popup" : "popupUp"}
+        className="z-[95]"
+        backdropClassName="bg-transparent"
+        contentClassName={`fixed w-[min(78vw,248px)] overflow-y-auto rounded-[24px] border p-2.5 backdrop-blur-[18px] ${
                 isDark
                   ? "border-white/[0.09] bg-[rgba(38,38,38,0.74)] text-white shadow-[0_14px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
                   : "border-black/[0.07] bg-white/[0.76] text-[var(--bm-text-primary)] shadow-[0_14px_34px_rgba(15,23,42,0.11),inset_0_1px_0_rgba(255,255,255,0.72)]"
-              }`}
-              style={{
-                left: dislikeMenuPosition.left,
-                top: dislikeMenuPosition.y,
-                maxHeight: dislikeMenuPosition.maxHeight,
-                translate: dislikeMenuPosition.placement === "above" ? "0 -100%" : "0 0",
-                transformOrigin: dislikeMenuPosition.placement === "above" ? "bottom center" : "top center",
-              }}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => event.stopPropagation()}
-              data-testid={`dislike-feedback-${dislikeTarget.id}`}
-            >
+        }`}
+        contentStyle={{
+          left: dislikeMenuPosition.left,
+          top: dislikeMenuPosition.y,
+          maxHeight: dislikeMenuPosition.maxHeight,
+          translate: dislikeMenuPosition.placement === "above" ? "0 -100%" : "0 0",
+          transformOrigin: dislikeMenuPosition.placement === "above" ? "bottom center" : "top center",
+        }}
+        onClose={() => setDislikeTarget(null)}
+        closeLabel="Dismiss feedback"
+        contentProps={{
+          onPointerDown: (event) => event.stopPropagation(),
+          onClick: (event) => event.stopPropagation(),
+          "data-testid": dislikeTarget ? `dislike-feedback-${dislikeTarget.id}` : undefined,
+        }}
+      >
+        {dislikeTarget && (
+          <>
               <div className="px-2 pb-1.5 pt-1">
                 <p className="text-sm font-semibold">{t("tellUsMore")}</p>
                 <p className={`mt-1 text-xs ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>{t("feedbackHelps")}</p>
@@ -5257,28 +5238,22 @@ export default function MobileChat() {
                   </button>
                 ))}
               </div>
-            </motion.div>
-          </div>
+          </>
         )}
-      </AnimatePresence>
+      </BlueMindOverlay>
 
-      <AnimatePresence>
+      <BlueMindOverlay
+        open={privateSpaceModalOpen}
+        kind="sheet"
+        className="z-[90] flex items-end"
+        backdropClassName="bg-black/40 backdrop-blur-[6px]"
+        contentClassName={privateSheetClass}
+        onClose={() => setPrivateSpaceModalOpen(false)}
+        closeLabel="Dismiss private chat"
+        contentProps={{ onClick: (event) => event.stopPropagation() }}
+      >
         {privateSpaceModalOpen && (
-          <motion.div
-            className="fixed inset-0 z-[90] flex items-end bg-black/40 backdrop-blur-[6px]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setPrivateSpaceModalOpen(false)}
-          >
-            <motion.div
-              className={privateSheetClass}
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              onClick={(event) => event.stopPropagation()}
-            >
+          <>
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-[20px] font-black leading-tight tracking-tight">Private Chat</h2>
@@ -5374,31 +5349,27 @@ export default function MobileChat() {
                   <button type="submit" className={privatePrimaryButtonClass} style={privatePrimaryButtonStyle}>Unlock</button>
                 </form>
               )}
-            </motion.div>
-          </motion.div>
+          </>
         )}
+      </BlueMindOverlay>
 
-        {hiddenChatModalOpen && (
-          <motion.div
-            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/42 px-5 backdrop-blur-[10px]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setHiddenChatModalOpen(false)}
-          >
-            <motion.div
-              className={cn(
+      <BlueMindOverlay
+        open={hiddenChatModalOpen}
+        kind="modal"
+        className="z-[90] flex items-center justify-center px-5"
+        backdropClassName="bg-black/42 backdrop-blur-[10px]"
+        contentClassName={cn(
                 "w-full max-w-[350px] rounded-[30px] border p-5 shadow-2xl",
                 isDark
                   ? "border-white/[0.08] bg-[rgba(38,38,38,0.88)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_24px_70px_rgba(0,0,0,0.42)] backdrop-blur-[44px]"
                   : "border-black/[0.07] bg-white/[0.94] text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.82),0_22px_60px_rgba(15,23,42,0.16)] backdrop-blur-[36px]",
-              )}
-              initial={{ opacity: 0, scale: 0.94, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 8 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              onClick={(event) => event.stopPropagation()}
-            >
+        )}
+        onClose={() => setHiddenChatModalOpen(false)}
+        closeLabel="Dismiss hidden chat"
+        contentProps={{ onClick: (event) => event.stopPropagation() }}
+      >
+        {hiddenChatModalOpen && (
+          <>
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
@@ -5423,10 +5394,9 @@ Everything will be deleted when you leave.</p>
               >
                 Start Hidden Chat
               </button>
-            </motion.div>
-          </motion.div>
+          </>
         )}
-      </AnimatePresence>
+      </BlueMindOverlay>
 
       <AnimatePresence>
         {menuOpen && (
@@ -5743,25 +5713,19 @@ Everything will be deleted when you leave.</p>
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
+      <BlueMindOverlay
+        open={Boolean(renameTarget)}
+        kind="modal"
+        className="z-[110] flex items-center justify-center px-5"
+        backdropClassName="bg-black/40"
+        contentAs="form"
+        contentClassName={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
+        onClose={() => setRenameTarget(null)}
+        closeLabel="Dismiss rename"
+        contentProps={{ onSubmit: handleRenameSubmit }}
+      >
         {renameTarget && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center px-5">
-            <motion.button
-              type="button"
-              className="absolute inset-0 bg-black/40"
-              onClick={() => setRenameTarget(null)}
-              aria-label="Cancel rename"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            />
-            <motion.form
-              onSubmit={handleRenameSubmit}
-              initial={{ opacity: 0, y: 14, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.96 }}
-              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
-            >
+          <>
               <h3 className="text-base font-bold">Rename chat</h3>
               <input
                 value={renameTitle}
@@ -5787,29 +5751,21 @@ Everything will be deleted when you leave.</p>
                   Save
                 </button>
               </div>
-            </motion.form>
-          </div>
+          </>
         )}
-      </AnimatePresence>
+      </BlueMindOverlay>
 
-      <AnimatePresence>
+      <BlueMindOverlay
+        open={Boolean(deleteTarget)}
+        kind="modal"
+        className="z-[110] flex items-center justify-center px-5"
+        backdropClassName="bg-black/40"
+        contentClassName={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
+        onClose={() => setDeleteTarget(null)}
+        closeLabel="Dismiss delete"
+      >
         {deleteTarget && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center px-5">
-            <motion.button
-              type="button"
-              className="absolute inset-0 bg-black/40"
-              onClick={() => setDeleteTarget(null)}
-              aria-label="Cancel delete"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 14, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.96 }}
-              className={`relative z-10 w-full max-w-[340px] rounded-[26px] border p-5 shadow-2xl ${isDark ? "border-white/[0.1] bg-[var(--bm-bg-card)] text-white" : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)]"}`}
-            >
+          <>
               <h3 className="text-base font-bold">Delete chat?</h3>
               <p className={`mt-2 text-sm font-semibold leading-6 ${mutedText}`}>
                 This removes "{deleteTarget.title || t("newChat")}" from your chat history.
@@ -5830,10 +5786,9 @@ Everything will be deleted when you leave.</p>
                   Delete
                 </button>
               </div>
-            </motion.div>
-          </div>
+          </>
         )}
-      </AnimatePresence>
+      </BlueMindOverlay>
 
       <SettingsSheet
         open={settingsSheetOpen}
