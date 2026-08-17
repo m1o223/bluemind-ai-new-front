@@ -258,3 +258,18 @@ export const changePassword = async (currentPassword, newPassword, confirmPasswo
 
   return unwrapApiResponse(response);
 };
+
+export const getAccountDeletionStatus = async () => {
+  const response = await api.get("/auth/delete-status");
+  return unwrapApiResponse(response);
+};
+
+export const requestAccountDeletion = async (password) => {
+  const response = await api.post("/auth/delete-request", { password });
+  return unwrapApiResponse(response);
+};
+
+export const cancelAccountDeletion = async () => {
+  const response = await api.post("/auth/delete-cancel", {});
+  return unwrapApiResponse(response);
+};

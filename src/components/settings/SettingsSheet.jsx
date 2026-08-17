@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -15,7 +15,6 @@ import {
   FileUp,
   Flag,
   Gauge,
-  Github,
   Globe2,
   HelpCircle,
   Info,
@@ -45,8 +44,12 @@ import { iconClasses, inputClasses, interactionClasses, overlayMotion, typeClass
 import { getApiErrorMessage } from "@/services/api";
 import {
   changePassword,
+  cancelAccountDeletion,
   confirmEmailChange,
+  clearLocalSession,
+  getAccountDeletionStatus,
   logoutUser,
+  requestAccountDeletion,
   requestEmailChange,
   requestPasswordReset,
 } from "@/services/authService";
@@ -117,6 +120,16 @@ const LANGUAGE_OPTIONS = [
 function languageDisplayName(language) {
   if (language.value === "ar") return "العربية";
   return language.label;
+}
+
+function formatDeletionCountdown(deleteAt, nowMs = Date.now()) {
+  if (!deleteAt) return "00:00";
+
+  const remainingSeconds = Math.max(0, Math.ceil((new Date(deleteAt).getTime() - nowMs) / 1000));
+  const minutes = Math.floor(remainingSeconds / 60);
+  const seconds = remainingSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 const NOTIFICATION_ROWS = [
@@ -483,6 +496,16 @@ export default function SettingsSheet({
     email: "",
     sent: false,
   });
+  const [accountDeletion, setAccountDeletion] = useState(() => readStoredUser()?.accountDeletion || null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [countdownNow, setCountdownNow] = useState(Date.now());
+
+  const close = useCallback(() => {
+    setLogoutConfirmOpen(false);
+    setSelectionPopup(null);
+    onClose?.();
+  }, [onClose]);
 
   useEffect(() => {
     if (open) {
@@ -505,6 +528,68 @@ export default function SettingsSheet({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+
+    let cancelled = false;
+
+    getAccountDeletionStatus()
+      .then((status) => {
+        if (!cancelled) {
+          setAccountDeletion(status?.status === "pending" ? status : null);
+        }
+      })
+      .catch((error) => {
+        const code = error?.response?.data?.error?.code;
+
+        if (["ACCOUNT_DELETED", "AUTH_USER_NOT_FOUND", "AUTH_SESSION_INVALID"].includes(code)) {
+          clearLocalSession();
+          close();
+          navigate(mobile ? "/mobile" : "/", { replace: true });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [close, mobile, navigate, open]);
+
+  useEffect(() => {
+    if (accountDeletion?.status !== "pending" || !accountDeletion.deleteAt) return undefined;
+
+    setCountdownNow(Date.now());
+    const timer = window.setInterval(() => {
+      setCountdownNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [accountDeletion?.deleteAt, accountDeletion?.status]);
+
+  useEffect(() => {
+    if (accountDeletion?.status !== "pending" || !accountDeletion.deleteAt) return undefined;
+    if (new Date(accountDeletion.deleteAt).getTime() > countdownNow) return undefined;
+
+    let cancelled = false;
+
+    getAccountDeletionStatus()
+      .then((status) => {
+        if (!cancelled) {
+          setAccountDeletion(status?.status === "pending" ? status : null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          clearLocalSession();
+          close();
+          navigate(mobile ? "/mobile" : "/", { replace: true });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accountDeletion?.deleteAt, accountDeletion?.status, close, countdownNow, mobile, navigate]);
+
   const appearanceText = useMemo(() => {
     const theme = prefs.theme || "system";
     return theme.charAt(0).toUpperCase() + theme.slice(1);
@@ -517,12 +602,6 @@ export default function SettingsSheet({
   const activeSpeechSpeed = SPEECH_SPEED_OPTIONS.find((speed) => speed.value === (prefs.speechSpeed || "normal")) || SPEECH_SPEED_OPTIONS[1];
   const activeVoiceLanguage = VOICE_LANGUAGE_OPTIONS.find((language) => language.value === (prefs.voiceLanguage || "auto")) || VOICE_LANGUAGE_OPTIONS[0];
   const plan = user?.subscription?.plan || user?.plan || user?.accountPlan || (user?.authProvider === "guest" ? "Guest" : "Free");
-
-  const close = () => {
-    setLogoutConfirmOpen(false);
-    setSelectionPopup(null);
-    onClose?.();
-  };
 
   const savePreference = async (patch) => {
     const previousPrefs = prefs;
@@ -567,6 +646,52 @@ export default function SettingsSheet({
       navigate(mobile ? "/mobile" : "/", { replace: true });
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Could not log out."));
+    }
+  };
+
+  const handleRequestAccountDeletion = async (event) => {
+    event.preventDefault();
+    if (!deletePassword) return;
+
+    setSaving("delete-account");
+    setDeleteError("");
+
+    try {
+      const status = await requestAccountDeletion(deletePassword);
+      setAccountDeletion(status?.status === "pending" ? status : null);
+      setDeletePassword("");
+      toast.success("Account deletion scheduled");
+    } catch (error) {
+      const message = getApiErrorMessage(error, "Could not schedule account deletion.");
+      setDeleteError(message);
+      toast.error(message);
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const handleCancelAccountDeletion = async () => {
+    setSaving("cancel-delete-account");
+    setDeleteError("");
+
+    try {
+      const status = await cancelAccountDeletion();
+      setAccountDeletion(status?.status === "pending" ? status : null);
+      setSelectionPopup(null);
+      toast.success("Account deletion cancelled");
+    } catch (error) {
+      const code = error?.response?.data?.error?.code;
+
+      if (code === "ACCOUNT_DELETION_COMPLETED" || code === "ACCOUNT_DELETED") {
+        clearLocalSession();
+        close();
+        navigate(mobile ? "/mobile" : "/", { replace: true });
+        return;
+      }
+
+      toast.error(getApiErrorMessage(error, "Could not cancel account deletion."));
+    } finally {
+      setSaving("");
     }
   };
 
@@ -771,8 +896,18 @@ export default function SettingsSheet({
             <Row icon={Mail} title="Change Email" onClick={() => openChild("change-email")} />
             <Row icon={KeyRound} title="Change Password" onClick={() => openChild("change-password")} />
             <Row icon={CreditCard} title="Subscription" value={plan} onClick={() => navigate(mobile ? "/mobile/subscription" : "/subscription")} />
-            <Row icon={Trash2} title="Delete Account" danger onClick={() => setSelectionPopup({ type: "delete-account" })}>
-              <span className={descriptionClass}>Permanently remove your BlueMind account when backend confirmation is connected.</span>
+            <Row
+              icon={Trash2}
+              title="Delete Account"
+              value={accountDeletion?.status === "pending" ? formatDeletionCountdown(accountDeletion.deleteAt, countdownNow) : undefined}
+              danger
+              onClick={() => setSelectionPopup({ type: "delete-account" })}
+            >
+              <span className={descriptionClass}>
+                {accountDeletion?.status === "pending"
+                  ? "Account deletion is scheduled. You can cancel before the countdown ends."
+                  : "Permanently remove your BlueMind account after password confirmation."}
+              </span>
             </Row>
           </Card>
         </section>
@@ -815,15 +950,6 @@ export default function SettingsSheet({
             <Row icon={Trash2} title="Clear Chat History" value="Coming later" disabled />
             <Row icon={Download} title="Export My Data" value="Coming later" disabled />
             <Row icon={Shield} title="Privacy Controls" onClick={() => openChild("privacy-policy")} />
-          </Card>
-        </section>
-
-        <section>
-          <Title>Integrations</Title>
-          <Card>
-            <Row icon={Github} title="GitHub" value="Ready to connect" disabled>
-              <span className={descriptionClass}>GitHub integration settings will appear here when the connection flow is available.</span>
-            </Row>
           </Card>
         </section>
 
@@ -1287,7 +1413,11 @@ export default function SettingsSheet({
     </div>
   );
 
-  const closeSelectionPopup = () => setSelectionPopup(null);
+  const closeSelectionPopup = () => {
+    setSelectionPopup(null);
+    setDeletePassword("");
+    setDeleteError("");
+  };
 
   const selectPreference = (patch) => {
     closeSelectionPopup();
@@ -1502,19 +1632,82 @@ export default function SettingsSheet({
     }
 
     if (selectionPopup?.type === "delete-account") {
+      const deletionPending = accountDeletion?.status === "pending" && accountDeletion.deleteAt;
+
       return (
         <SettingsSelectionPopup open title="Delete Account" isDark={isDark} onClose={closeSelectionPopup}>
-          <div className={cn("rounded-[22px] px-4 py-4 text-sm font-semibold leading-6", isDark ? "bg-white/[0.055] text-[var(--bm-text-secondary)]" : "bg-black/[0.035] text-[var(--bm-text-secondary)]")}>
-            Account deletion is being prepared for backend confirmation. No account data will be deleted from this frontend-only control yet.
-          </div>
-          <button
-            type="button"
-            onClick={closeSelectionPopup}
-            className={cn("mt-3 flex min-h-[52px] w-full items-center justify-center rounded-[20px] border px-4 text-sm font-extrabold text-red-500", isDark ? "border-white/[0.055] bg-white/[0.045]" : "border-black/[0.06] bg-white/[0.58]")}
-            style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
-          >
-            I Understand
-          </button>
+          {deletionPending ? (
+            <div className="space-y-4">
+              <div className={cn("rounded-[22px] px-4 py-4 text-sm font-semibold leading-6", isDark ? "bg-white/[0.055] text-[var(--bm-text-secondary)]" : "bg-black/[0.035] text-[var(--bm-text-secondary)]")}>
+                <p className={cn("text-[15px] font-extrabold", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Account deletion scheduled</p>
+                <p className="mt-2">Your account will be permanently deleted in:</p>
+                <p className="mt-3 text-center text-[34px] font-black tabular-nums text-red-500">
+                  {formatDeletionCountdown(accountDeletion.deleteAt, countdownNow)}
+                </p>
+                <p className="mt-3">This countdown is based on the backend deletion timestamp and will continue if you refresh or reopen BlueMind.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelAccountDeletion}
+                disabled={saving === "cancel-delete-account"}
+                className={cn("flex min-h-[52px] w-full items-center justify-center rounded-[20px] border px-4 text-sm font-extrabold", isDark ? "border-white/[0.055] bg-white/[0.045] text-white" : "border-black/[0.06] bg-white/[0.58] text-[var(--bm-text-primary)]")}
+                style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
+              >
+                {saving === "cancel-delete-account" ? <BlueMindLoadingDots /> : "Cancel Deletion"}
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleRequestAccountDeletion} className="space-y-4">
+              <div className={cn("rounded-[22px] px-4 py-4 text-sm font-semibold leading-6", isDark ? "bg-red-500/[0.10] text-[var(--bm-text-secondary)]" : "bg-red-500/[0.08] text-[var(--bm-text-secondary)]")}>
+                <p className="font-extrabold text-red-500">This action is permanent.</p>
+                <p className="mt-2">After password verification, BlueMind will schedule this account for deletion. You will have 5 minutes to cancel before your account and user data are permanently removed.</p>
+              </div>
+              <SettingsInput
+                label="Account Email"
+                type="email"
+                value={user?.email || ""}
+                readOnly
+                isDark={isDark}
+                icon={Mail}
+              />
+              <SettingsInput
+                label="Password"
+                type="password"
+                value={deletePassword}
+                onChange={(event) => {
+                  setDeletePassword(event.target.value);
+                  setDeleteError("");
+                }}
+                placeholder="Confirm your password"
+                autoComplete="current-password"
+                isDark={isDark}
+                icon={KeyRound}
+              />
+              {deleteError && (
+                <p className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-semibold leading-5 text-red-500">
+                  {deleteError}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={closeSelectionPopup}
+                  className={cn("min-h-12 rounded-2xl border text-sm font-bold", isDark ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white" : "border-black/[0.06] bg-white/[0.44] text-[var(--bm-text-primary)]")}
+                  style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!deletePassword || saving === "delete-account"}
+                  className={cn("min-h-12 rounded-2xl border border-red-500/25 px-4 text-sm font-extrabold text-red-500 disabled:cursor-not-allowed disabled:opacity-55", isDark ? "bg-white/[0.045]" : "bg-white/[0.58]")}
+                  style={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
+                >
+                  {saving === "delete-account" ? <BlueMindLoadingDots /> : "Delete Account"}
+                </button>
+              </div>
+            </form>
+          )}
         </SettingsSelectionPopup>
       );
     }
