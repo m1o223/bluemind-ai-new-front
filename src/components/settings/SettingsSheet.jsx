@@ -404,7 +404,7 @@ function SettingsSelectionPopup({ open, title, children, isDark = true, onClose 
       className="absolute inset-0 z-30 flex items-center justify-center p-5"
       backdropClassName="bg-black/25 backdrop-blur-[10px]"
       contentClassName={cn(
-        "max-h-[72dvh] w-full max-w-[420px] overflow-hidden rounded-[30px] p-4",
+        "bm-settings-popup-surface max-h-[72dvh] w-full max-w-[420px] overflow-hidden rounded-[30px] p-4",
         isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_POPUP_GLASS_CLASS,
       )}
       contentStyle={isDark ? SETTINGS_GLASS_STYLE : SETTINGS_LIGHT_GLASS_STYLE}
@@ -1784,10 +1784,12 @@ export default function SettingsSheet({
 
   const sheetContent = (
     <motion.div
-      initial={overlayMotion.sheet.initial}
-      animate={overlayMotion.sheet.animate}
-      exit={overlayMotion.sheet.exit}
-      transition={overlayMotion.transition.sheet}
+      {...(!overlay ? {
+        initial: overlayMotion.sheet.initial,
+        animate: overlayMotion.sheet.animate,
+        exit: overlayMotion.sheet.exit,
+        transition: overlayMotion.transition.sheet,
+      } : {})}
       drag={mobile ? "y" : false}
       dragDirectionLock
       dragConstraints={{ top: 0, bottom: 0 }}
@@ -1800,6 +1802,7 @@ export default function SettingsSheet({
       }}
       className={cn(
         "relative flex w-full flex-col overflow-hidden",
+        "bm-settings-sheet-surface",
         isDark ? "border border-white/[0.045] bg-[rgba(8,8,8,0.88)] text-white" : "border border-black/[0.06] bg-white/[0.82] text-[var(--bm-text-primary)]",
         mobile ? "h-[88dvh] rounded-t-[34px]" : "mx-auto h-[86dvh] max-w-[560px] rounded-[34px]",
       )}
@@ -1912,9 +1915,6 @@ export default function SettingsSheet({
       className="z-[140] flex items-end justify-center md:items-center md:p-6"
       backdropClassName={layeredOverMenu ? "bg-black/35 backdrop-blur-[8px]" : "bg-black/55 backdrop-blur-[14px]"}
       contentClassName="w-full md:flex md:justify-center"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 1 }}
       onClose={close}
       closeLabel="Dismiss settings"
       contentProps={{ onClick: (event) => event.stopPropagation() }}

@@ -102,6 +102,7 @@ export function BlueMindOverlay({
   const overlay = (
     <motion.div
       className={cn("bm-overlay-root", contained && "bm-overlay-contained", className)}
+      data-bm-overlay-kind={kind}
       initial={false}
       animate={visible ? { opacity: 1 } : { opacity: 0 }}
       transition={motionTransition}
@@ -114,6 +115,7 @@ export function BlueMindOverlay({
         <motion.button
           type="button"
           data-bm-overlay-backdrop="true"
+          data-bm-overlay-kind={kind}
           className={cn("bm-overlay-backdrop", backdropClassName)}
           style={backdropStyle}
           initial={false}
@@ -124,6 +126,8 @@ export function BlueMindOverlay({
       )}
       <Content
         {...contentProps}
+        data-bm-overlay-panel="true"
+        data-bm-overlay-kind={kind}
         className={cn("bm-overlay-panel", contentClassName)}
         style={contentStyle}
         initial={false}

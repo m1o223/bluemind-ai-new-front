@@ -472,6 +472,7 @@ select {
   inset: 0;
   isolation: isolate;
   pointer-events: auto;
+  opacity: 0;
   will-change: opacity;
 }
 
@@ -494,6 +495,63 @@ select {
   z-index: 2;
   will-change: opacity, transform;
   transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (hover: none), (max-width: 760px) {
+    .bm-overlay-root,
+    .bm-overlay-backdrop,
+    .bm-overlay-panel {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      transform: translate3d(0, 0, 0);
+      -webkit-transform: translate3d(0, 0, 0);
+    }
+
+    .bm-overlay-root {
+      contain: layout paint style;
+    }
+
+    .bm-overlay-backdrop {
+      background-color: rgba(255, 255, 255, 0.16) !important;
+      backdrop-filter: blur(8px) saturate(1.04) !important;
+      -webkit-backdrop-filter: blur(8px) saturate(1.04) !important;
+    }
+
+    html[data-theme="dark"] .bm-overlay-backdrop {
+      background-color: rgba(0, 0, 0, 0.34) !important;
+    }
+
+    html[data-theme="light"] .bm-settings-sheet-surface {
+      background-color: rgba(255, 255, 255, 0.92) !important;
+      backdrop-filter: blur(26px) saturate(1.08) !important;
+      -webkit-backdrop-filter: blur(26px) saturate(1.08) !important;
+    }
+
+    html[data-theme="dark"] .bm-settings-sheet-surface {
+      background-color: rgba(30, 30, 30, 0.90) !important;
+      backdrop-filter: blur(26px) saturate(1.08) !important;
+      -webkit-backdrop-filter: blur(26px) saturate(1.08) !important;
+    }
+
+    html[data-theme="light"] .bm-settings-popup-surface,
+    html[data-theme="light"] .bm-glass-panel,
+    html[data-theme="light"] :where([role="menu"]) {
+      background-color: rgba(255, 255, 255, 0.90) !important;
+      backdrop-filter: blur(24px) saturate(1.08) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(1.08) !important;
+    }
+
+    html[data-theme="dark"] .bm-settings-popup-surface,
+    html[data-theme="dark"] .bm-glass-panel,
+    html[data-theme="dark"] :where([role="menu"]) {
+      background-color: rgba(34, 34, 34, 0.88) !important;
+      backdrop-filter: blur(24px) saturate(1.08) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(1.08) !important;
+    }
+  }
 }
 
 .bm-radix-overlay {
