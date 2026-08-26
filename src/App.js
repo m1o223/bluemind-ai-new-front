@@ -39,7 +39,7 @@ import MobileRegister from "@/mobile/pages/MobileRegister";
 import MobileForgotPassword from "@/mobile/pages/MobileForgotPassword";
 import MobileVerifyResetCode from "@/mobile/pages/MobileVerifyResetCode";
 import MobileResetPassword from "@/mobile/pages/MobileResetPassword";
-import { getAndroidMobilePath, isNativeAndroidApp } from "@/capacitorRuntime";
+import { getNativeMobilePath, isNativeMobileApp } from "@/capacitorRuntime";
 import { restoreExistingSession } from "@/services/authService";
 import { getPreferredAppRoute } from "@/services/navigationPreferences";
 import "@/App.css";
@@ -126,13 +126,13 @@ function AppContent() {
   const location = useLocation();
   const { resolvedTheme, isRTL } = useApp();
   const isDark = resolvedTheme === "dark";
-  const androidMobilePath = isNativeAndroidApp()
-    ? getAndroidMobilePath(location.pathname, location.search, location.hash)
+  const nativeMobilePath = isNativeMobileApp()
+    ? getNativeMobilePath(location.pathname, location.search, location.hash)
     : "";
   const currentPath = `${location.pathname}${location.search}${location.hash}`;
 
-  if (androidMobilePath && androidMobilePath !== currentPath) {
-    return <Navigate to={androidMobilePath} replace />;
+  if (nativeMobilePath && nativeMobilePath !== currentPath) {
+    return <Navigate to={nativeMobilePath} replace />;
   }
 
   return (

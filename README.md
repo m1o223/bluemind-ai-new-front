@@ -2,6 +2,24 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Native Platforms
+
+The React application in `src/` is shared by the web, Android, and iOS builds. Capacitor copies the production build from `dist/` into each native project.
+
+- `android/` contains the existing Android project.
+- `ios/` contains the iPhone project and is committed so a fresh clone does not depend on files from one Mac.
+- The native app identifier is `com.bluemind.ai` and the iOS deployment target is 15.0.
+
+To prepare iOS after cloning:
+
+```bash
+npm ci
+npm run cap:sync:ios
+npm run ios:open
+```
+
+The last command requires a full Xcode installation. Select the BlueMind development team in Signing & Capabilities before running on a physical device or distributing through TestFlight/App Store Connect. Do not commit `xcuserdata`, Derived Data, signing certificates, provisioning profiles, or local build products.
+
 ## Available Scripts
 
 In the project directory, you can run:

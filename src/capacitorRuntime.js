@@ -6,7 +6,11 @@ export function isNativeAndroidApp() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
-export function getAndroidMobilePath(pathname = "/", search = "", hash = "") {
+export function isNativeMobileApp() {
+  return Capacitor.isNativePlatform() && ["android", "ios"].includes(Capacitor.getPlatform());
+}
+
+export function getNativeMobilePath(pathname = "/", search = "", hash = "") {
   if (!pathname || pathname === "/") return `/mobile${search}${hash}`;
   if (pathname === "/mobile" || pathname.startsWith("/mobile/")) return `${pathname}${search}${hash}`;
 
@@ -48,13 +52,13 @@ export function getAndroidMobilePath(pathname = "/", search = "", hash = "") {
   return `/mobile/chat${search}${hash}`;
 }
 
-function forceAndroidMobileViewport() {
+function forceNativeMobileViewport() {
   const viewport = document.querySelector('meta[name="viewport"]');
   viewport?.setAttribute("content", "width=device-width, initial-scale=1, viewport-fit=cover");
 }
 
-function forceAndroidMobileRoute() {
-  const nextPath = getAndroidMobilePath(window.location.pathname, window.location.search, window.location.hash);
+function forceNativeMobileRoute() {
+  const nextPath = getNativeMobilePath(window.location.pathname, window.location.search, window.location.hash);
   const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
   if (nextPath !== currentPath) {
@@ -69,17 +73,20 @@ export async function setupCapacitorRuntime() {
 
   document.documentElement.classList.add("capacitor-native", `capacitor-${Capacitor.getPlatform()}`);
 
-  if (isNativeAndroidApp()) {
+  if (isNativeMobileApp()) {
     document.documentElement.classList.add("force-mobile-ui");
-    forceAndroidMobileViewport();
-    forceAndroidMobileRoute();
+    forceNativeMobileViewport();
+    forceNativeMobileRoute();
 
     try {
-      await StatusBar.setOverlaysWebView({ overlay: false });
-      await StatusBar.setBackgroundColor({ color: "#000000" });
       await StatusBar.setStyle({ style: Style.Light });
+
+      if (isNativeAndroidApp()) {
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        await StatusBar.setBackgroundColor({ color: "#000000" });
+      }
     } catch (error) {
-      console.warn("Could not configure Android status bar", error);
+      console.warn("Could not configure native status bar", error);
     }
   }
 
