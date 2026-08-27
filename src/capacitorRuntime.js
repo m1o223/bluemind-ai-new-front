@@ -6,6 +6,10 @@ export function isNativeAndroidApp() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
+export function isNativeIOSApp() {
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
+}
+
 export function isNativeMobileApp() {
   return Capacitor.isNativePlatform() && ["android", "ios"].includes(Capacitor.getPlatform());
 }
@@ -16,7 +20,9 @@ export async function syncNativeStatusBarStyle(isDark) {
   try {
     await StatusBar.setStyle({ style: isDark ? Style.Light : Style.Dark });
 
-    if (isNativeAndroidApp()) {
+    if (isNativeIOSApp()) {
+      await StatusBar.setOverlaysWebView({ overlay: true });
+    } else if (isNativeAndroidApp()) {
       await StatusBar.setOverlaysWebView({ overlay: false });
       await StatusBar.setBackgroundColor({ color: isDark ? "#000000" : "#FFFFFF" });
     }
