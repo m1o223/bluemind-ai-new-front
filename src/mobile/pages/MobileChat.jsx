@@ -3643,7 +3643,7 @@ export default function MobileChat() {
         {shouldShowChatHome && (
           <motion.div
             key="mobile-quick-action-chips"
-            className="-mx-4 mb-1 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="mb-1 w-full max-w-full overflow-x-auto overscroll-x-contain px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             data-testid="mobile-quick-action-chips"
             initial={{ opacity: 0, height: 0, y: 8 }}
             animate={{ opacity: 1, height: "auto", y: 0 }}
@@ -3968,17 +3968,17 @@ export default function MobileChat() {
     return (
       <motion.section
         key="mobile-feature-carousel"
-        className="shrink-0 overflow-hidden pb-3 pt-20"
+        className="w-full max-w-full shrink-0 overflow-hidden pb-3 pt-[calc(env(safe-area-inset-top)+5rem)]"
         data-testid="mobile-feature-carousel"
         initial={{ opacity: 0, height: 0, y: -8 }}
         animate={{ opacity: 1, height: "auto", y: 0 }}
         exit={{ opacity: 0, height: 0, y: -8 }}
         transition={{ duration: 0.23, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="overflow-hidden">
+        <div className="w-full max-w-full overflow-hidden">
           <motion.div
             ref={featureCarouselTrackRef}
-            className="flex gap-3 px-4"
+            className="flex max-w-full gap-3 px-4"
             style={{ x: featureCarouselX }}
             drag="x"
             dragConstraints={featureCarouselStep ? { left: -featureCarouselStep * featureCarouselCount, right: 0 } : undefined}
@@ -3993,7 +3993,7 @@ export default function MobileChat() {
                   key={`${card.title}-${index}`}
                   data-feature-card="true"
                   className={cn(
-                    "relative h-[clamp(104px,14dvh,136px)] w-[86vw] shrink-0 overflow-hidden rounded-[28px] border",
+                    "relative h-[clamp(104px,14dvh,136px)] w-[86dvw] max-w-[calc(100dvw-2rem)] shrink-0 overflow-hidden rounded-[28px] border",
                     isDark
                       ? "border-white/[0.055] text-white/90"
                       : "border-transparent text-[var(--bm-text-primary)]",
@@ -4138,11 +4138,10 @@ export default function MobileChat() {
 
   return (
     <main
-      className={`fixed inset-0 flex flex-col overflow-hidden ${textColor}`}
+      className={`bm-mobile-chat-shell fixed inset-0 flex max-w-full flex-col overflow-hidden ${textColor}`}
       style={{
         backgroundColor: surfaceColor,
         minHeight: "100dvh",
-        paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
       onTouchStart={handlePageTouchStart}
@@ -4314,6 +4313,11 @@ export default function MobileChat() {
       <section className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={messagesScrollRef}
+          style={{
+            paddingTop: shouldShowChatHome
+              ? undefined
+              : `calc(env(safe-area-inset-top) + ${shouldShowWritingModeHome || isSmartFocusMode || shouldUseChatMessageSafeArea ? "5rem" : "1rem"})`,
+          }}
           className={
             shouldShowWritingModeHome
               ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
@@ -5799,4 +5803,3 @@ Everything will be deleted when you leave.</p>
     </main>
   );
 }
-

@@ -10,6 +10,21 @@ export function isNativeMobileApp() {
   return Capacitor.isNativePlatform() && ["android", "ios"].includes(Capacitor.getPlatform());
 }
 
+export async function syncNativeStatusBarStyle(isDark) {
+  if (!isNativeMobileApp()) return;
+
+  try {
+    await StatusBar.setStyle({ style: isDark ? Style.Light : Style.Dark });
+
+    if (isNativeAndroidApp()) {
+      await StatusBar.setOverlaysWebView({ overlay: false });
+      await StatusBar.setBackgroundColor({ color: isDark ? "#000000" : "#FFFFFF" });
+    }
+  } catch (error) {
+    console.warn("Could not configure native status bar", error);
+  }
+}
+
 export function getNativeMobilePath(pathname = "/", search = "", hash = "") {
   if (!pathname || pathname === "/") return `/mobile${search}${hash}`;
   if (pathname === "/mobile" || pathname.startsWith("/mobile/")) return `${pathname}${search}${hash}`;
@@ -78,16 +93,7 @@ export async function setupCapacitorRuntime() {
     forceNativeMobileViewport();
     forceNativeMobileRoute();
 
-    try {
-      await StatusBar.setStyle({ style: Style.Light });
-
-      if (isNativeAndroidApp()) {
-        await StatusBar.setOverlaysWebView({ overlay: false });
-        await StatusBar.setBackgroundColor({ color: "#000000" });
-      }
-    } catch (error) {
-      console.warn("Could not configure native status bar", error);
-    }
+    await syncNativeStatusBarStyle(document.documentElement.dataset.theme !== "light");
   }
 
   CapacitorApp.addListener("backButton", ({ canGoBack }) => {

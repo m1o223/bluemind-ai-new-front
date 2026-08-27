@@ -15,6 +15,7 @@ import {
 import { ensureUiLanguage } from "@/services/translationService";
 import { normalizeAiModeId } from "@/data/aiModes";
 import { BLUE_MIND_COLORS } from "@/theme/colors";
+import { syncNativeStatusBarStyle } from "@/capacitorRuntime";
 
 const defaultPrefs = {
   theme: "system",
@@ -117,6 +118,7 @@ export function AppProvider({ children }) {
     document.documentElement.dataset.theme = resolvedTheme;
     document.documentElement.dataset.animations = prefs.animations === false ? "off" : "on";
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+    void syncNativeStatusBarStyle(resolvedTheme === "dark");
     document.documentElement.style.setProperty(CSS_VARIABLES.appColor, prefs.appColor || prefs.accentColor || defaultPrefs.appColor);
     document.documentElement.style.setProperty(CSS_VARIABLES.chatColor, prefs.chatColor || defaultPrefs.chatColor);
     storePreferences(prefs);
