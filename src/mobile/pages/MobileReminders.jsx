@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -33,6 +33,15 @@ import {
   setupReminderNotifications,
 } from "@/services/notificationService";
 import { getApiErrorMessage } from "@/services/api";
+import { isNativeIOSApp } from "@/capacitorRuntime";
+import {
+  addNativeGlassActionListener,
+  prepareNativeGlassExperiment,
+  presentNativeIOSConfirmation,
+  presentNativeIOSSelection,
+  setNativeReminderFormCloseVisible,
+  setNativeRemindersHeaderVisible,
+} from "@/mobile/nativeGlassBridge";
 
 const STATUS_LABELS = {
   upcoming: "Upcoming",
@@ -45,7 +54,7 @@ const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0
 const mobileGlassControlClass = "bm-mobile-glass-control";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
 const reminderBeforeOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
-const reminderFormGlassFieldClass = "min-w-0 border-white/[0.08] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_30px_rgba(0,0,0,0.16)] backdrop-blur-[24px] placeholder:text-white/45";
+const reminderFormGlassFieldClass = "min-h-[52px] min-w-0 rounded-[20px] border-white/[0.10] bg-[rgba(48,48,48,0.62)] px-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_30px_rgba(0,0,0,0.16)] backdrop-blur-[24px] placeholder:text-white/45";
 const reminderFormGlassButtonClass = "border border-white/[0.08] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_30px_rgba(0,0,0,0.16)] backdrop-blur-[24px] transition active:scale-[0.985]";
 
 function reminderId(reminder) {
@@ -84,7 +93,7 @@ function isUnauthorizedError(error) {
   return error?.response?.status === 401;
 }
 
-function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
+function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, nativeClose }) {
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -132,9 +141,18 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
 
   if (!isOpen) return null;
 
+  const fieldClass = cn(
+    inputClasses.field,
+    typeClasses.body,
+    reminderFormGlassFieldClass,
+    "block w-full min-w-0 max-w-full box-border font-semibold",
+  );
+  const fieldLabelClass = "block min-w-0 max-w-full overflow-hidden";
+  const fieldCaptionClass = "mb-1.5 block truncate text-xs font-medium opacity-70";
+
   return (
     <motion.div
-      className="fixed inset-0 z-[140] flex items-end justify-center bg-black/55 backdrop-blur-[14px] md:items-center md:p-6"
+      className="fixed inset-0 z-[140] flex max-w-[100dvw] items-end justify-center overflow-x-hidden bg-black/55 backdrop-blur-[14px] md:items-center md:p-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -142,7 +160,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
     >
       <motion.form
         className={cn(
-          "relative flex h-[88dvh] w-full flex-col overflow-hidden rounded-t-[34px] shadow-[0_-28px_90px_rgba(0,0,0,0.18)] md:mx-auto md:h-[86dvh] md:max-w-[560px] md:rounded-[34px]",
+          "relative flex h-[88dvh] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-t-[34px] shadow-[0_-28px_90px_rgba(0,0,0,0.18)] md:mx-auto md:h-[86dvh] md:max-w-[560px] md:rounded-[34px]",
           isDark ? "bg-[var(--bm-bg-card)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
         )}
         initial={{ y: "100%", opacity: 0.96 }}
@@ -152,73 +170,78 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
         onClick={(event) => event.stopPropagation()}
         onSubmit={handleSubmit}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between px-5 pt-2">
+        <div className="grid h-14 w-full min-w-0 shrink-0 grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 px-5 pt-2">
           <span className="w-10" />
-          <h2 className="truncate text-base font-extrabold">
+          <h2 className="min-w-0 truncate text-center text-base font-extrabold">
             {reminder ? "Edit reminder" : "New reminder"}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="bm-mobile-glass-control"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          {nativeClose ? (
+            <span className="h-11 w-11" aria-hidden="true" />
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="bm-mobile-glass-control"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-2">
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-medium opacity-70">Title</span>
+        <div className="min-h-0 w-full min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-[max(28px,env(safe-area-inset-bottom))] pt-2">
+          <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-4">
+          <label className={fieldLabelClass}>
+            <span className={fieldCaptionClass}>Title</span>
             <input
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-              className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
+              className={fieldClass}
               placeholder="What should BlueMind remind you about?"
             />
           </label>
 
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-medium opacity-70">Description</span>
+          <label className={fieldLabelClass}>
+            <span className={fieldCaptionClass}>Description</span>
             <textarea
               value={form.description}
               onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-              className={cn(inputClasses.textarea, typeClasses.body, reminderFormGlassFieldClass, "resize-none font-semibold")}
+              className={cn(fieldClass, "min-h-[128px] resize-none py-3 leading-6")}
               placeholder="Optional note"
             />
           </label>
 
-          <div className="grid grid-cols-1 gap-x-4 gap-y-3 min-[390px]:grid-cols-2">
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-xs font-medium opacity-70">Date</span>
+          <div className="grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] gap-3">
+            <label className={fieldLabelClass}>
+              <span className={fieldCaptionClass}>Date</span>
               <input
                 type="date"
                 value={form.date}
                 onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
-                className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
+                className={fieldClass}
               />
             </label>
 
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-xs font-medium opacity-70">Time</span>
+            <label className={fieldLabelClass}>
+              <span className={fieldCaptionClass}>Time</span>
               <input
                 type="time"
                 value={form.time}
                 onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
-                className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
+                className={fieldClass}
               />
             </label>
           </div>
 
-          <label className="block min-w-0">
-            <span className="mb-1.5 block text-xs font-medium opacity-70">Reminder Before</span>
+          <label className={fieldLabelClass}>
+            <span className={fieldCaptionClass}>Reminder Before</span>
             <select
               value={form.reminderBefore}
               onChange={(event) => setForm((prev) => ({
                 ...prev,
                 reminderBefore: Number(event.target.value),
               }))}
-              className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
+              className={cn(fieldClass, "truncate")}
             >
               {reminderBeforeOptions.map((minutes) => (
                 <option key={minutes} value={minutes}>
@@ -228,16 +251,16 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
             </select>
           </label>
 
-          <div className="grid grid-cols-1 gap-x-4 gap-y-3 min-[390px]:grid-cols-[minmax(0,1fr)_104px]">
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-xs font-medium opacity-70">Repeat</span>
+          <div className="grid w-full min-w-0 max-w-full grid-cols-[minmax(0,2.25fr)_minmax(0,0.75fr)] gap-3">
+            <label className={fieldLabelClass}>
+              <span className={fieldCaptionClass}>Repeat</span>
               <select
                 value={form.recurrence.frequency}
                 onChange={(event) => setForm((prev) => ({
                   ...prev,
                   recurrence: { ...prev.recurrence, frequency: event.target.value },
                 }))}
-                className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
+                className={cn(fieldClass, "truncate")}
               >
                 <option value="none">Does not repeat</option>
                 <option value="daily">Daily</option>
@@ -246,8 +269,8 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
               </select>
             </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium opacity-70">Every</span>
+            <label className={fieldLabelClass}>
+              <span className={fieldCaptionClass}>Every</span>
               <input
                 type="number"
                 min="1"
@@ -256,17 +279,17 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
                   ...prev,
                   recurrence: { ...prev.recurrence, interval: event.target.value },
                 }))}
-                className={cn(inputClasses.field, typeClasses.body, reminderFormGlassFieldClass, "font-semibold")}
+                className={fieldClass}
               />
             </label>
           </div>
 
-          <div className="mt-5 flex gap-3">
+          <div className="mt-1 grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
           <button
             type="button"
             onClick={onClose}
             className={cn(
-              "h-12 flex-1 rounded-2xl text-sm font-semibold",
+              "h-12 min-w-0 max-w-full rounded-2xl text-sm font-semibold",
               reminderFormGlassButtonClass,
             )}
           >
@@ -275,14 +298,15 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
           <button
             type="submit"
             disabled={!isValid}
-            className="h-12 flex-1 rounded-2xl border text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_16px_34px_rgba(47,125,246,0.24)] backdrop-blur-[18px] transition active:scale-[0.985] disabled:opacity-45"
+            className="h-12 min-w-0 max-w-full rounded-2xl border text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_16px_34px_rgba(47,125,246,0.24)] backdrop-blur-[18px] transition active:scale-[0.985] disabled:opacity-45"
             style={{
-              backgroundColor: appColor,
+              backgroundColor: "var(--bm-primary)",
               borderColor: "rgba(255,255,255,0.14)",
             }}
           >
             Save
           </button>
+          </div>
           </div>
         </div>
       </motion.form>
@@ -290,7 +314,7 @@ function ReminderForm({ isOpen, reminder, onClose, onSave, isDark, appColor }) {
   );
 }
 
-function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdit, onDelete, onToggleStatus }) {
+function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdit, onDelete, onToggleStatus, nativeIOS, onOpenNativeActions }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const id = reminderId(reminder);
   const isCompleted = reminder.status === "completed";
@@ -305,13 +329,13 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       className={cn(
-        "relative rounded-[24px] border p-4 shadow-sm transition",
+        "relative w-full min-w-0 max-w-full overflow-hidden rounded-[24px] border p-4 shadow-sm transition",
         isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
         highlighted && "ring-2",
       )}
       style={highlighted ? { "--tw-ring-color": appColor } : undefined}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         <button
           type="button"
           onClick={() => onToggleStatus(reminder)}
@@ -340,19 +364,26 @@ function ReminderCard({ reminder, language, isDark, appColor, highlighted, onEdi
               )}
             </div>
 
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 type="button"
-                onClick={() => setMenuOpen((value) => !value)}
+                onClick={(event) => {
+                  if (nativeIOS) {
+                    onOpenNativeActions(reminder, event.currentTarget);
+                    return;
+                  }
+                  setMenuOpen((value) => !value);
+                }}
                 className={cn(
                   mobileGlassControlClass,
+                  nativeIOS && "bm-reminders-static-glass-control",
                 )}
                 aria-label="Reminder actions"
               >
                 <MoreVertical className={iconClasses.button} />
               </button>
 
-              {menuOpen && (
+              {!nativeIOS && menuOpen && (
                 <>
                   <button
                     type="button"
@@ -438,6 +469,61 @@ export default function MobileReminders() {
     refreshing: false,
     sendingTest: false,
   });
+  const [nativeHeaderActive, setNativeHeaderActive] = useState(false);
+  const nativeActionCallbacksRef = useRef(new Map());
+  const nativeIOS = isNativeIOSApp();
+
+  useEffect(() => {
+    if (!nativeIOS) return undefined;
+    let cancelled = false;
+    let listenerHandle;
+    const nativeActionCallbacks = nativeActionCallbacksRef.current;
+
+    void addNativeGlassActionListener((event) => {
+      if (event?.action === "remindersBack") {
+        navigate("/mobile/chat");
+        return;
+      }
+      if (event?.action === "remindersAdd") {
+        setEditingReminder(null);
+        setModalOpen(true);
+        return;
+      }
+      if (event?.action === "reminderFormClose") {
+        setModalOpen(false);
+        setEditingReminder(null);
+        if (routeReminderId) navigate("/mobile/reminders", { replace: true });
+        return;
+      }
+      const callback = nativeActionCallbacks.get(event?.requestId);
+      if (!callback) return;
+      nativeActionCallbacks.delete(event.requestId);
+      callback(event);
+    }).then((handle) => { listenerHandle = handle; });
+
+    void prepareNativeGlassExperiment().then(async (supported) => {
+      if (cancelled || !supported) return;
+      const visible = await setNativeRemindersHeaderVisible(true, { isDark });
+      if (!cancelled && visible) setNativeHeaderActive(true);
+    });
+
+    return () => {
+      cancelled = true;
+      listenerHandle?.remove?.();
+      nativeActionCallbacks.clear();
+      setNativeHeaderActive(false);
+      void setNativeRemindersHeaderVisible(false, { isDark });
+    };
+  }, [isDark, nativeIOS, navigate, routeReminderId]);
+
+  useEffect(() => {
+    if (!nativeHeaderActive) return undefined;
+    void setNativeRemindersHeaderVisible(!modalOpen, { isDark });
+    void setNativeReminderFormCloseVisible(modalOpen, { isDark });
+    return () => {
+      void setNativeReminderFormCloseVisible(false, { isDark });
+    };
+  }, [isDark, modalOpen, nativeHeaderActive]);
 
   const loadReminders = useCallback(async () => {
     setLoading(true);
@@ -581,6 +667,43 @@ export default function MobileReminders() {
     }
   };
 
+  const openNativeReminderActions = (reminder, anchorElement) => {
+    const id = reminderId(reminder);
+    const rect = anchorElement?.getBoundingClientRect?.();
+    const requestId = globalThis.crypto?.randomUUID?.() || `reminder-actions-${Date.now()}`;
+    nativeActionCallbacksRef.current.set(requestId, (event) => {
+      if (event.value === "edit") {
+        setEditingReminder(reminder);
+        setModalOpen(true);
+        return;
+      }
+      if (event.value !== "delete") return;
+
+      const confirmationRequestId = globalThis.crypto?.randomUUID?.() || `reminder-delete-${Date.now()}`;
+      nativeActionCallbacksRef.current.set(confirmationRequestId, (confirmation) => {
+        if (confirmation.confirmed === true) void handleDelete(id);
+      });
+      void presentNativeIOSConfirmation({
+        title: "Delete Reminder?",
+        message: `“${reminder.title}” will be permanently deleted.`,
+        confirmTitle: "Delete",
+        cancelTitle: "Cancel",
+        destructive: true,
+        requestId: confirmationRequestId,
+      });
+    });
+    void presentNativeIOSSelection({
+      title: "",
+      selectedValue: "",
+      requestId,
+      anchorRect: rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : undefined,
+      options: [
+        { label: "Edit", value: "edit", symbol: "pencil" },
+        { label: "Delete", value: "delete", symbol: "trash", destructive: true },
+      ],
+    });
+  };
+
   const handleToggleStatus = async (reminder) => {
     const nextStatus = reminder.status === "completed" ? "upcoming" : "completed";
 
@@ -662,7 +785,7 @@ export default function MobileReminders() {
   return (
     <div
       className={cn(
-        "min-h-[100dvh] pb-[max(24px,env(safe-area-inset-bottom))]",
+        "min-h-[100dvh] w-full min-w-0 max-w-[100dvw] overflow-x-hidden pb-[max(24px,env(safe-area-inset-bottom))]",
         isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
       )}
       data-testid="mobile-reminders-page"
@@ -675,16 +798,18 @@ export default function MobileReminders() {
       >
         <div className="flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate("/mobile/chat")}
-              className={cn(
-                mobileGlassControlClass,
-              )}
-              aria-label="Back to chat"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
+            {nativeHeaderActive ? (
+              <span className="h-11 w-11 shrink-0" aria-hidden="true" />
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate("/mobile/chat")}
+                className={cn(mobileGlassControlClass)}
+                aria-label="Back to chat"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
             <div className="min-w-0">
               <p className={cn("text-xs font-medium", isDark ? "text-white/[0.48]" : "text-[var(--bm-text-secondary)]")}>
                 BlueMind AI
@@ -693,25 +818,27 @@ export default function MobileReminders() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setEditingReminder(null);
-              setModalOpen(true);
-            }}
-            className={cn(
-              mobileGlassControlClass,
-            )}
-            style={{ color: appColor }}
-            aria-label="Create reminder"
-            data-testid="mobile-create-reminder"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
+          {nativeHeaderActive ? (
+            <span className="h-11 w-11 shrink-0" aria-hidden="true" />
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingReminder(null);
+                setModalOpen(true);
+              }}
+              className={cn(mobileGlassControlClass)}
+              style={{ color: appColor }}
+              aria-label="Create reminder"
+              data-testid="mobile-create-reminder"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-4">
+      <main className="mx-auto flex w-full min-w-0 max-w-md flex-col gap-4 overflow-x-hidden px-4 py-4">
         <MobileNotificationControlCard
           title="Reminder Notifications"
           description="Manage reminder notification delivery for this section."
@@ -722,6 +849,7 @@ export default function MobileReminders() {
           onEnable={handleEnableNotifications}
           onRefresh={refreshNotificationStatus}
           onTest={handleSendTestNotification}
+          nativeGlass={nativeIOS}
         />
 
         <div className="relative">
@@ -736,6 +864,7 @@ export default function MobileReminders() {
               inputClasses.search,
               typeClasses.body,
               "pl-14 pr-4 font-semibold backdrop-blur-[24px]",
+              nativeIOS && "bm-reminders-stable-search",
               isDark
                 ? `${mobileNeutralGlassSurfaceClass} placeholder:text-white/42`
                 : "border-black/[0.06] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_12px_28px_rgba(15,23,42,0.08)]",
@@ -765,6 +894,8 @@ export default function MobileReminders() {
                   }}
                   onDelete={handleDelete}
                   onToggleStatus={handleToggleStatus}
+                  nativeIOS={nativeIOS}
+                  onOpenNativeActions={openNativeReminderActions}
                 />
               ))}
             </AnimatePresence>
@@ -814,7 +945,7 @@ export default function MobileReminders() {
             onClose={closeModal}
             onSave={handleSave}
             isDark={isDark}
-            appColor={appColor}
+            nativeClose={nativeHeaderActive}
           />
         )}
       </AnimatePresence>

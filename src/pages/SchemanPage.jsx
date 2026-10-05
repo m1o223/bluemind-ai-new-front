@@ -58,6 +58,7 @@ import { toast } from "sonner";
 
 import BrandLogo from "@/components/BrandLogo";
 import BlueMindSendButton from "@/components/BlueMindSendButton";
+import IOSNativeGlassButton from "@/mobile/components/IOSNativeGlassButton";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, typeClasses } from "@/lib/interactions";
@@ -1942,9 +1943,9 @@ function BlockModal({ isDark, appColor, accentText, weekDays, initialDay, initia
       >
         <div className="flex items-center justify-between gap-4">
           <h2 className={cn("font-extrabold tracking-tight", typeClasses.sectionTitle)}>Create Schedule Block</h2>
-          <button type="button" onClick={onClose} className={cn("rounded-full p-2", interactionClasses.control)} aria-label="Close block form">
+          <IOSNativeGlassButton id="schedule-block-form-close" symbol="xmark" label="Close block form" onClick={onClose} className={cn("rounded-full p-2", interactionClasses.control)} isDark={isDark}>
             <X className={iconClasses.button} />
-          </button>
+          </IOSNativeGlassButton>
         </div>
 
         <div className="mt-5 grid gap-4">
@@ -2280,9 +2281,9 @@ function ScheduleTypeDialog({ isDark, appColor, accentText, onClose, onSelect })
             <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>Create Custom Schedule</p>
             <h2 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.sectionTitle)}>Schedule Template Gallery</h2>
           </div>
-          <button type="button" onClick={onClose} className={cn("rounded-full p-2", interactionClasses.control)} aria-label="Close schedule type selection">
+          <IOSNativeGlassButton id="schedule-template-gallery-close" symbol="xmark" label="Close schedule type selection" onClick={onClose} className={cn("rounded-full p-2", interactionClasses.control)} isDark={isDark}>
             <X className={iconClasses.button} />
-          </button>
+          </IOSNativeGlassButton>
         </div>
 
         <div className={cn("bm-search-shell mt-5 flex h-12 items-center gap-3 rounded-2xl border px-4", isDark ? "border-white/[0.08] bg-white/[0.045]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
@@ -2369,14 +2370,16 @@ function ScheduleImagePreview({ image, isDark, onClose }) {
         transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
         className={cn("relative max-h-[92vh] w-full max-w-5xl rounded-[24px] border p-3 shadow-2xl", isDark ? "border-white/[0.12] bg-[var(--bm-bg-modal)]" : "border-white/20 bg-white")}
       >
-        <button
-          type="button"
+        <IOSNativeGlassButton
+          id="schedule-image-preview-close"
+          symbol="xmark"
+          label="Close image preview"
           onClick={onClose}
           className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/65 text-white transition hover:bg-black/80"
-          aria-label="Close image preview"
+          isDark={isDark}
         >
           <X className="h-5 w-5" />
-        </button>
+        </IOSNativeGlassButton>
         <img
           src={image.src}
           alt={image.name || "Schedule image preview"}
@@ -3647,9 +3650,9 @@ export function ScheduleCustomPage() {
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1180px] flex-col gap-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <button type="button" onClick={() => navigate(basePath)} className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)} aria-label="Back to Schedule Home">
+            <IOSNativeGlassButton id="schedule-custom-back" symbol="arrow.left" label="Back to Schedule Home" onClick={() => navigate(basePath)} className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)} isDark={isDark}>
               <ArrowLeft className={iconClasses.button} />
-            </button>
+            </IOSNativeGlassButton>
             <h1 className={cn("mt-2 font-extrabold tracking-tight", typeClasses.pageTitle)}>Custom Schedule</h1>
           </div>
           <ScheduleButton onClick={openAiGenerated} active appColor={appColor} accentText={accentText}>
@@ -3878,14 +3881,16 @@ export default function SchemanPage() {
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-[1600px] flex-col gap-5">
         <header className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-start">
           <div className="lg:col-start-1 lg:row-start-1">
-            <button
-              type="button"
+            <IOSNativeGlassButton
+              id="schedule-workspace-back"
+              symbol="arrow.left"
+              label="Back to Schedule Home"
               onClick={handleBackToScheduleHome}
               className={cn("flex h-10 w-10 items-center justify-center rounded-full", interactionClasses.control)}
-              aria-label="Back to Schedule Home"
+              isDark={isDark}
             >
               <ArrowLeft className={iconClasses.button} />
-            </button>
+            </IOSNativeGlassButton>
             <h1 className={cn("mt-1 font-extrabold tracking-tight", typeClasses.pageTitle)}>Schedule workspace</h1>
           </div>
           <div className="flex justify-center lg:col-start-2 lg:row-start-1 lg:pt-1">
@@ -3990,4 +3995,3 @@ export default function SchemanPage() {
     </main>
   );
 }
-

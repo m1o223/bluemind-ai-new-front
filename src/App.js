@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { App as CapacitorApp } from "@capacitor/app";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
@@ -20,7 +21,6 @@ import RemindersPage from "@/pages/RemindersPage";
 import FeedbackPage from "@/pages/FeedbackPage";
 import SettingsPage from "@/pages/SettingsPage";
 import LearningPage from "@/pages/LearningPage";
-import AIPlansPage from "@/pages/AIPlansPage";
 import SubscriptionPage from "@/pages/SubscriptionPage";
 import SchemanPage, { ScheduleCustomPage, ScheduleHomePage } from "@/pages/SchemanPage";
 import MobileLayout from "@/mobile/layouts/MobileLayout";
@@ -33,14 +33,25 @@ import MobileLearning from "@/mobile/pages/MobileLearning";
 import MobileScheduleDashboard from "@/mobile/pages/MobileScheduleDashboard";
 import MobileSettings from "@/mobile/pages/MobileSettings";
 import MobileSmartHub from "@/mobile/pages/MobileSmartHub";
+import MobileProjects from "@/mobile/pages/MobileProjects";
 import MobileWelcome from "@/mobile/pages/MobileWelcome";
 import MobileEmail from "@/mobile/pages/MobileEmail";
 import MobileRegister from "@/mobile/pages/MobileRegister";
 import MobileForgotPassword from "@/mobile/pages/MobileForgotPassword";
 import MobileVerifyResetCode from "@/mobile/pages/MobileVerifyResetCode";
 import MobileResetPassword from "@/mobile/pages/MobileResetPassword";
-import { getNativeMobilePath, isNativeMobileApp } from "@/capacitorRuntime";
+import IOSGlobalToastBridge from "@/mobile/components/IOSGlobalToastBridge";
+import { getNativeMobilePath, isNativeIOSApp, isNativeMobileApp } from "@/capacitorRuntime";
 import { restoreExistingSession } from "@/services/authService";
+import {
+  clearSecureAuthSession,
+  getFaceIDStatus,
+  isFaceIDUnlockedForProcess,
+  lockFaceIDSessionForBackground,
+  setNativePrivacyShield,
+  unlockSecureAuthSessionWithFaceID,
+} from "@/services/secureSessionStorage";
+import { removeStoredAuthSession } from "@/services/storageKeys";
 import { getPreferredAppRoute } from "@/services/navigationPreferences";
 import "@/App.css";
 
@@ -55,6 +66,167 @@ function AppLoadingScreen() {
         textClassName={isDark ? "text-lg text-white" : "text-lg text-[var(--bm-text-primary)]"}
       />
     </div>
+  );
+}
+
+function IOSFaceIDPrivacyGate({ children }) {
+  const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  const [state, setState] = useState(() => isNativeIOSApp() ? "checking" : "ready");
+  const [contentMounted, setContentMounted] = useState(() => !isNativeIOSApp());
+  const [message, setMessage] = useState("");
+  const authenticatingRef = useRef(false);
+  const stateRef = useRef(state);
+  const backgroundedAtRef = useRef(null);
+  const backgroundWasLockedRef = useRef(false);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+
+  const unlock = useCallback(async () => {
+    if (authenticatingRef.current) return;
+    if (isFaceIDUnlockedForProcess()) {
+      stateRef.current = "ready";
+      setState("ready");
+      setContentMounted(true);
+      void setNativePrivacyShield(false);
+      return;
+    }
+    authenticatingRef.current = true;
+    void setNativePrivacyShield(true);
+    stateRef.current = "locked";
+    setState("locked");
+    setMessage("");
+    try {
+      const status = await getFaceIDStatus();
+      if (!status.enabled) {
+        stateRef.current = "ready";
+        setState("ready");
+        setContentMounted(true);
+        void setNativePrivacyShield(false);
+        return;
+      }
+      if (!status.hasProtectedSession) {
+        removeStoredAuthSession();
+        await clearSecureAuthSession();
+        stateRef.current = "ready";
+        setState("ready");
+        setContentMounted(true);
+        navigateRef.current("/mobile", { replace: true });
+        void setNativePrivacyShield(false);
+        return;
+      }
+      await unlockSecureAuthSessionWithFaceID();
+      await restoreExistingSession();
+      stateRef.current = "ready";
+      setState("ready");
+      setContentMounted(true);
+      if ([
+        "/mobile",
+        "/mobile/email",
+        "/mobile/register",
+        "/mobile/forgot-password",
+        "/mobile/verify-reset-code",
+        "/mobile/reset-password",
+      ].includes(window.location.pathname)) {
+        navigateRef.current("/mobile/chat", { replace: true });
+      }
+      void setNativePrivacyShield(false);
+    } catch (error) {
+      const currentStatus = await getFaceIDStatus().catch(() => ({ enabled: true }));
+      if (!currentStatus.enabled) {
+        stateRef.current = "ready";
+        setState("ready");
+        setContentMounted(true);
+        navigateRef.current("/mobile/email", { replace: true });
+        void setNativePrivacyShield(false);
+        return;
+      }
+      setMessage(error?.code === "FACE_ID_CANCELLED"
+        ? "Face ID was cancelled. Your BlueMind content remains locked."
+        : error?.response
+          ? "BlueMind could not validate the saved session. Check your connection or use Login."
+          : "Face ID could not unlock BlueMind. Try again or use Login.");
+      stateRef.current = "locked";
+      setState("locked");
+      void setNativePrivacyShield(false);
+    } finally {
+      authenticatingRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isNativeIOSApp()) {
+      setState("ready");
+      return undefined;
+    }
+    void unlock();
+    let listener;
+    void CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) {
+        // LocalAuthentication temporarily resigns the app while its system
+        // prompt is visible. That is part of the current unlock, not a real
+        // background transition that should lock and prompt again.
+        if (authenticatingRef.current) return;
+        backgroundedAtRef.current = Date.now();
+        backgroundWasLockedRef.current = stateRef.current !== "ready";
+        // Standard iOS screens must remain snapshot-visible. Native lifecycle
+        // protection is scoped separately to Hidden/Private Chat.
+        return;
+      }
+      if (authenticatingRef.current) return;
+      const elapsed = backgroundedAtRef.current == null
+        ? Number.POSITIVE_INFINITY
+        : Date.now() - backgroundedAtRef.current;
+      backgroundedAtRef.current = null;
+      if (backgroundWasLockedRef.current || elapsed >= 120_000) {
+        lockFaceIDSessionForBackground();
+        void unlock();
+      } else {
+        stateRef.current = "ready";
+        setState("ready");
+        setContentMounted(true);
+        void setNativePrivacyShield(false);
+      }
+    }).then((handle) => { listener = handle; });
+    return () => { listener?.remove?.(); };
+  }, [unlock]);
+
+  return (
+    <>
+      {contentMounted ? children : null}
+      {state === "checking" && !contentMounted ? <AppLoadingScreen /> : null}
+      {state === "locked" ? (
+      <div className="fixed inset-0 z-[10000] flex min-h-screen items-center justify-center bg-black px-8 text-center text-white">
+        <div className="w-full max-w-sm space-y-5">
+          <BrandLogo logoClassName="mx-auto h-14 w-14" textClassName="sr-only" />
+          <h1 className="text-xl font-bold">BlueMind is locked</h1>
+          {message && <p className="text-sm leading-6 text-white/65">{message}</p>}
+          <button type="button" className="min-h-12 w-full rounded-2xl bg-white font-semibold text-black" onClick={() => void unlock()}>
+            Try Face ID Again
+          </button>
+          <button
+            type="button"
+            className="min-h-12 w-full rounded-2xl border border-white/20 font-semibold text-white"
+            onClick={() => {
+              stateRef.current = "ready";
+              setState("ready");
+              setContentMounted(true);
+              void setNativePrivacyShield(false);
+              navigateRef.current("/mobile/email", { replace: true });
+            }}
+          >
+            Use Login
+          </button>
+        </div>
+      </div>
+      ) : null}
+    </>
   );
 }
 
@@ -122,6 +294,24 @@ function MobileAccessRoute({ children }) {
   return children;
 }
 
+function MobileIOSSessionGate() {
+  const [status, setStatus] = useState("checking");
+
+  useEffect(() => {
+    restoreExistingSession()
+      .then(() => setStatus("authenticated"))
+      .catch(() => setStatus("guest"));
+  }, []);
+
+  if (status === "checking") return <AppLoadingScreen />;
+  if (status === "authenticated") return <Navigate to="/mobile/chat" replace />;
+  return <MobileWelcome />;
+}
+
+function MobileEntryRoute() {
+  return isNativeIOSApp() ? <MobileIOSSessionGate /> : <MobileWelcome />;
+}
+
 function AppContent() {
   const location = useLocation();
   const { resolvedTheme, isRTL } = useApp();
@@ -160,7 +350,7 @@ function AppContent() {
           <Route path="/settings/:sectionId" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/settings/:sectionId/:detailId" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
-          <Route path="/ai-plans" element={<ProtectedRoute><AIPlansPage /></ProtectedRoute>} />
+          <Route path="/ai-plans/*" element={<ProtectedRoute><Navigate to="/chat" replace /></ProtectedRoute>} />
           <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route path="/subscription/payment-method" element={<ProtectedRoute><SubscriptionPage step="payment-method" /></ProtectedRoute>} />
           <Route path="/subscription/payment-method/:methodId" element={<ProtectedRoute><SubscriptionPage step="payment-details" /></ProtectedRoute>} />
@@ -174,7 +364,7 @@ function AppContent() {
           <Route path="/scheman/custom" element={<ProtectedRoute><Navigate to="/schedule/custom" replace /></ProtectedRoute>} />
           <Route path="/scheman/workspace" element={<ProtectedRoute><Navigate to="/schedule/workspace" replace /></ProtectedRoute>} />
           <Route path="/mobile" element={<MobileLayout />}>
-            <Route index element={<MobileWelcome />} />
+            <Route index element={<MobileEntryRoute />} />
             <Route path="email" element={<MobileEmail />} />
             <Route path="register" element={<MobileRegister />} />
             <Route path="forgot-password" element={<MobileForgotPassword />} />
@@ -192,7 +382,9 @@ function AppContent() {
             <Route path="settings/:sectionId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="settings/:sectionId/:detailId" element={<MobileAccessRoute><MobileSettings /></MobileAccessRoute>} />
             <Route path="smart-hub" element={<MobileAccessRoute><MobileSmartHub /></MobileAccessRoute>} />
-            <Route path="ai-plans" element={<MobileAccessRoute><AIPlansPage /></MobileAccessRoute>} />
+            <Route path="projects" element={<MobileAccessRoute><MobileProjects /></MobileAccessRoute>} />
+            <Route path="projects/:projectId" element={<MobileAccessRoute><MobileProjects /></MobileAccessRoute>} />
+            <Route path="ai-plans/*" element={<MobileAccessRoute><Navigate to="/mobile/chat" replace /></MobileAccessRoute>} />
             <Route path="subscription" element={<MobileAccessRoute><SubscriptionPage /></MobileAccessRoute>} />
             <Route path="subscription/payment-method" element={<MobileAccessRoute><SubscriptionPage step="payment-method" /></MobileAccessRoute>} />
             <Route path="subscription/payment-method/:methodId" element={<MobileAccessRoute><SubscriptionPage step="payment-details" /></MobileAccessRoute>} />
@@ -208,7 +400,7 @@ function AppContent() {
           </Route>
         </Routes>
       </AnimatePresence>
-      <Toaster position="top-center" />
+      {isNativeIOSApp() ? <IOSGlobalToastBridge /> : <Toaster position="top-center" />}
     </div>
   );
 }
@@ -219,7 +411,9 @@ function App() {
       <TooltipProvider delayDuration={100}>
         <BrowserRouter>
           <BlueMindInteractionProvider />
-          <AppContent />
+          <IOSFaceIDPrivacyGate>
+            <AppContent />
+          </IOSFaceIDPrivacyGate>
         </BrowserRouter>
       </TooltipProvider>
     </AppProvider>

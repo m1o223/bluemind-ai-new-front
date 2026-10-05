@@ -1,11 +1,14 @@
 import axios from "axios";
 import {
+  readStoredAccessToken,
   readStoredRefreshSession,
   readStoredUser,
   removeStoredAuthSession,
   STORAGE_KEYS,
+  storeAccessToken,
   storeRefreshSession,
 } from "./storageKeys";
+import { clearSecureAuthSession, persistSecureAuthSession } from "./secureSessionStorage";
 
 export const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -91,7 +94,7 @@ function canAttemptRefreshSession() {
 }
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(STORAGE_KEYS.token);
+  const token = readStoredAccessToken();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -158,19 +161,22 @@ api.interceptors.response.use(
         const session = unwrapApiResponse(refreshResponse);
 
         if (session?.token) {
-          localStorage.setItem(STORAGE_KEYS.token, session.token);
+          storeAccessToken(session.token);
           storeRefreshSession(session.session, session.refreshToken);
+          await persistSecureAuthSession(session.token, readStoredRefreshSession());
           originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${session.token}`;
           return api(originalRequest);
         }
       } catch {
         removeStoredAuthSession();
+        await clearSecureAuthSession();
       }
     }
 
     if (status === 401 && !isAuthLogin && !isAuthRegister && !isAuthRefresh && !canAttemptRefreshSession()) {
       removeStoredAuthSession();
+      await clearSecureAuthSession();
     }
 
     return Promise.reject(error);

@@ -16,19 +16,26 @@ export default function MobileNotificationControlCard({
   onRefresh,
   onTest,
   testId = "mobile-notification-panel",
+  nativeGlass = false,
 }) {
   const permission = debug?.permission || "default";
   const isEnabled = permission === "granted" && (debug?.subscriptionExists || debug?.backendDeviceSaved);
 
   return (
     <section
-      className={cn("rounded-[24px] border p-4", mobileBlueGlassSurfaceClass)}
+      className={cn(
+        "rounded-[24px] border",
+        nativeGlass ? "p-3.5" : "p-4",
+        nativeGlass
+          ? "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_18px_42px_rgba(0,0,0,0.24)] backdrop-blur-[28px]"
+          : mobileBlueGlassSurfaceClass,
+      )}
       data-testid={testId}
     >
       <div className="flex items-start gap-3">
         <div
           className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-white"
-          style={{ backgroundColor: appColor }}
+          style={{ backgroundColor: nativeGlass ? "var(--bm-primary)" : appColor }}
         >
           <Bell className="h-5 w-5" />
         </div>
@@ -40,14 +47,14 @@ export default function MobileNotificationControlCard({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      <div className={cn("grid grid-cols-3 gap-2", nativeGlass ? "mt-3" : "mt-4")}>
         <button
           type="button"
           onClick={onEnable}
           disabled={busy?.enabling || isEnabled}
           className={cn(
             "h-10 rounded-2xl text-xs font-semibold disabled:opacity-45",
-            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
+            nativeGlass ? "bm-mobile-glass-control bm-mobile-glass-chip" : isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
           )}
         >
           {busy?.enabling ? "Enabling" : "Enable"}
@@ -58,7 +65,7 @@ export default function MobileNotificationControlCard({
           disabled={busy?.refreshing}
           className={cn(
             "grid h-10 place-items-center rounded-2xl disabled:opacity-45",
-            isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
+            nativeGlass ? "bm-mobile-glass-control bm-mobile-glass-chip" : isDark ? "bg-white/[0.10] text-white" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]",
           )}
           aria-label="Refresh notification status"
         >
@@ -68,8 +75,8 @@ export default function MobileNotificationControlCard({
           type="button"
           onClick={onTest}
           disabled={busy?.sendingTest}
-          className="grid h-10 place-items-center rounded-2xl text-white disabled:opacity-45"
-          style={{ backgroundColor: appColor }}
+          className={cn("grid h-10 place-items-center rounded-2xl text-white disabled:opacity-45", nativeGlass && "bm-mobile-glass-control bm-mobile-glass-chip")}
+          style={nativeGlass ? { color: appColor } : { backgroundColor: appColor }}
           aria-label="Send test notification"
         >
           <Send className="h-4 w-4" />

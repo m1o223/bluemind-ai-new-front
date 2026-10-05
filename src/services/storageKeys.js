@@ -23,6 +23,9 @@ export const CSS_VARIABLES = {
   chatColor: "--bluemind-chat-color",
 };
 
+let accessTokenMemory = null;
+let refreshTokenMemory = null;
+
 function readJson(key) {
   try {
     return JSON.parse(localStorage.getItem(key) || "null");
@@ -69,20 +72,59 @@ export function storePreferences(preferences) {
 }
 
 export function readStoredRefreshSession() {
-  return readJson(STORAGE_KEYS.refreshSession);
+  const session = readJson(STORAGE_KEYS.refreshSession);
+  if (!session) return null;
+
+  if (session.refreshToken && !refreshTokenMemory) {
+    refreshTokenMemory = session.refreshToken;
+    const { refreshToken, ...metadata } = session;
+    localStorage.setItem(STORAGE_KEYS.refreshSession, JSON.stringify(metadata));
+  }
+
+  return {
+    ...session,
+    ...(refreshTokenMemory ? { refreshToken: refreshTokenMemory } : {}),
+  };
 }
 
 export function storeRefreshSession(session, refreshToken = undefined) {
   if (!session?.expiresAt) return;
 
+  if (refreshToken) refreshTokenMemory = refreshToken;
+
   localStorage.setItem(STORAGE_KEYS.refreshSession, JSON.stringify({
     id: session.id,
     expiresAt: session.expiresAt,
-    ...(refreshToken ? { refreshToken } : {}),
   }));
 }
 
+export function readStoredAccessToken() {
+  if (!accessTokenMemory) {
+    accessTokenMemory = localStorage.getItem(STORAGE_KEYS.token);
+    localStorage.removeItem(STORAGE_KEYS.token);
+  }
+  return accessTokenMemory;
+}
+
+export function storeAccessToken(token) {
+  accessTokenMemory = token || null;
+  localStorage.removeItem(STORAGE_KEYS.token);
+}
+
+export function hydrateAuthSessionSecrets(token, refreshSession) {
+  accessTokenMemory = token || null;
+  refreshTokenMemory = refreshSession?.refreshToken || null;
+  localStorage.removeItem(STORAGE_KEYS.token);
+  if (refreshSession?.expiresAt) {
+    localStorage.setItem(STORAGE_KEYS.refreshSession, JSON.stringify({
+      id: refreshSession.id,
+      expiresAt: refreshSession.expiresAt,
+    }));
+  }
+}
+
 export function removeStoredRefreshSession() {
+  refreshTokenMemory = null;
   localStorage.removeItem(STORAGE_KEYS.refreshSession);
 }
 
@@ -92,7 +134,7 @@ export function removeStoredUser() {
 }
 
 export function removeStoredAuthSession() {
-  localStorage.removeItem(STORAGE_KEYS.token);
+  storeAccessToken(null);
   removeStoredUser();
   removeStoredRefreshSession();
   window.dispatchEvent(new CustomEvent(AUTH_SESSION_CLEARED_EVENT));

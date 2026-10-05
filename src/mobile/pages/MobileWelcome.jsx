@@ -12,9 +12,11 @@ import {
   GoogleIcon,
 } from "@/components/auth/AuthPrimitives";
 import { getGoogleSignInErrorMessage, signInWithGoogle } from "@/services/authService";
+import { useApp } from "@/context/AppContext";
 
 export default function MobileWelcome() {
   const navigate = useNavigate();
+  const { t } = useApp();
   const [socialLoading, setSocialLoading] = useState("");
 
   const handleGoogleLogin = async () => {
@@ -23,7 +25,7 @@ export default function MobileWelcome() {
       await signInWithGoogle();
       navigate("/mobile/chat");
     } catch (error) {
-      toast.error(getGoogleSignInErrorMessage(error, "Google sign-in failed"));
+      toast.error(getGoogleSignInErrorMessage(error, t("googleSignInFailed")));
     } finally {
       setSocialLoading("");
     }
@@ -33,8 +35,8 @@ export default function MobileWelcome() {
     <AuthPage testId="mobile-auth-welcome" mobile>
       <div className="w-full">
         <AuthHeader
-          title="Get Started with BlueMind AI"
-          description="Choose how you want to enter your BlueMind workspace."
+          title={t("welcomeToBlueMind")}
+          description={t("authSelectionSubtitle")}
         />
 
         <div className="space-y-4">
@@ -44,14 +46,14 @@ export default function MobileWelcome() {
             icon={socialLoading === "google" ? <BlueMindLoadingDots /> : <GoogleIcon />}
             testId="mobile-google-auth-button"
           >
-            Continue with Google
+            {t("orContinueWith")} {t("google")}
           </AuthButton>
           <AuthButton
             onClick={() => toast.info("Apple sign-in is being prepared.")}
             disabled={Boolean(socialLoading)}
             icon={<AppleIcon />}
           >
-            Continue with Apple
+            {t("orContinueWith")} {t("apple")}
           </AuthButton>
         </div>
 
@@ -59,10 +61,10 @@ export default function MobileWelcome() {
 
         <div className="space-y-4">
           <AuthButton onClick={() => navigate("/mobile/email")} testId="mobile-login-button">
-            Login
+            {t("signIn")}
           </AuthButton>
           <AuthButton onClick={() => navigate("/mobile/register")}>
-            Create Account
+            {t("createAccountButton")}
           </AuthButton>
         </div>
       </div>

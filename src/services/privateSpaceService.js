@@ -1,5 +1,6 @@
 import api, { API_BASE_URL, getApiErrorMessage, unwrapApiResponse } from "./api";
-import { readStoredRefreshSession, STORAGE_KEYS, storeRefreshSession, storeUser } from "./storageKeys";
+import { readStoredAccessToken, readStoredRefreshSession, storeAccessToken, storeRefreshSession, storeUser } from "./storageKeys";
+import { persistSecureAuthSession } from "./secureSessionStorage";
 import { createStreamError, logStreamError } from "./streamErrorUtils";
 
 function privateHeaders(accessToken) {
@@ -26,9 +27,10 @@ function parseSseBlock(block) {
 }
 
 function persistStreamSession(session) {
-  if (session?.token) localStorage.setItem(STORAGE_KEYS.token, session.token);
+  if (session?.token) storeAccessToken(session.token);
   if (session?.user) storeUser(session.user);
   if (session?.session) storeRefreshSession(session.session, session.refreshToken);
+  if (session?.token) void persistSecureAuthSession(session.token, readStoredRefreshSession());
   return session;
 }
 
@@ -48,7 +50,7 @@ async function refreshAccessToken() {
 }
 
 function createPrivateStreamRequest(privateSpaceId, accessToken, payload, signal) {
-  const token = localStorage.getItem(STORAGE_KEYS.token);
+  const token = readStoredAccessToken();
 
   return fetch(`${API_BASE_URL}/private-spaces/${privateSpaceId}/messages/stream`, {
     method: "POST",

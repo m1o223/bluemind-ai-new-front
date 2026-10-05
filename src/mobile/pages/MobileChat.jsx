@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, animate, motion, useMotionValue, useScroll, useTransform } from "framer-motion";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ import {
   Clipboard,
   FileText,
   Flag,
+  FolderKanban,
   GitBranch,
   Image,
   Lock,
@@ -47,6 +49,7 @@ import { BlueMindOverlay } from "@/components/ui/BlueMindOverlay";
 import { useApp } from "@/context/AppContext";
 import { iconClasses, overlayMotion, typeClasses } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
+import IOSNativeGlassButton from "@/mobile/components/IOSNativeGlassButton";
 import {
   buildWriteEditMessage,
   createWriteEditTask,
@@ -60,12 +63,29 @@ import {
   getSearchResultsForCategory,
 } from "@/data/searchDiscovery";
 import { AI_MODES, getAiMode, getAiSpecializationLabel, normalizeAiModeId } from "@/data/aiModes";
+import { BLUE_MIND_COLORS } from "@/theme/colors";
+import {
+  addNativeGlassActionListener,
+  prepareNativeGlassAttachments,
+  prepareNativeGlassExperiment,
+  presentNativeIOSChatEntrySheet,
+  presentNativeIOSChatAttachmentSheet,
+  presentNativeIOSConfirmation,
+  presentNativeIOSSelection,
+  presentNativeIOSSecurePrompt,
+  presentNativeIOSTextPrompt,
+  presentNativeIOSWritingAttachmentPicker,
+  setNativeGlassVisible,
+  updateNativeGlassAudioLevels,
+  updateNativeGlassState,
+} from "@/mobile/nativeGlassBridge";
 import { getApiErrorMessage } from "@/services/api";
 import { restoreExistingSession } from "@/services/authService";
 import {
   branchConversation,
   getConversation,
   listConversations,
+  moveConversationToProject,
   searchConversations,
   streamChatMessage,
   streamHiddenChatMessage,
@@ -76,6 +96,7 @@ import {
 import { deleteChat, renameChat, shareChat } from "@/services/conversationActions";
 import { analyzeImage, generateImage, getImageUrl, uploadChatImage } from "@/services/imageService";
 import { reportIssue } from "@/services/supportService";
+import { listProjects } from "@/services/projectService";
 import {
   createPrivateSpace,
   changePrivateSpacePin,
@@ -93,9 +114,13 @@ import { AUTH_SESSION_CLEARED_EVENT, readStoredUser } from "@/services/storageKe
 import { updatePreferences } from "@/services/profileService";
 import useChatAutoScroll from "@/hooks/useChatAutoScroll";
 import useVoiceInput from "@/hooks/useVoiceInput";
+import useIOSVoiceInput from "@/mobile/hooks/useIOSVoiceInput";
 import { SEARCH_ARTWORK_COLORS, WRITE_EDIT_ARTWORK_COLORS } from "@/theme/colors";
 
+const usePlatformVoiceInput = Capacitor.getPlatform() === "ios" ? useIOSVoiceInput : useVoiceInput;
+
 const MAX_IMAGE_ATTACHMENTS = 6;
+const IS_IOS = Capacitor.getPlatform() === "ios";
 const MOBILE_THINKING_LEVEL_STORAGE_KEY = "bluemind_mobile_thinking_level";
 const MOBILE_HEADER_MODEL_STORAGE_KEY = "bluemind_mobile_header_model";
 const MOBILE_HEADER_THINKING_STORAGE_KEY = "bluemind_mobile_header_thinking";
@@ -621,9 +646,13 @@ function appendVoiceText(baseText, transcript) {
 export default function MobileChat() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const activeProjectId = searchParams.get("project") || "";
+  const activeProjectName = searchParams.get("projectName") || "Project";
+  const projectReturnPath = searchParams.get("returnTo") || (activeProjectId ? `/mobile/projects/${activeProjectId}/chats` : "");
   const { prefs, resolvedTheme, t, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuExpanded, setMenuExpanded] = useState(false);
   const isRtl = (prefs?.language || uiLanguage || "").toLowerCase().startsWith("ar");
   const getDrawerWidth = useCallback(() => {
     if (typeof window === "undefined") return 360;
@@ -638,6 +667,8 @@ export default function MobileChat() {
     return Math.max(0, Math.min(1, progress));
   });
   const drawerScrimOpacity = useTransform(drawerProgress, [0, 1], [0, 1]);
+  const chatSurfaceX = useTransform(drawerProgress, [0, 1], [0, isRtl ? -drawerWidth * 0.975 : drawerWidth * 0.975]);
+  const chatSurfaceRadius = useTransform(drawerProgress, [0, 1], [0, 30]);
   const menuUser = readStoredUser() || {};
   const menuUserName = menuUser.name || menuUser.fullName || menuUser.displayName || menuUser.email || "Profile";
   const menuUserInitial = String(menuUserName).trim().charAt(0).toUpperCase() || "B";
@@ -672,6 +703,9 @@ export default function MobileChat() {
   const [renameTitle, setRenameTitle] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [message, setMessage] = useState("");
+  const [nativeGlassSupported, setNativeGlassSupported] = useState(false);
+  const [nativeGlassBridgeReady, setNativeGlassBridgeReady] = useState(false);
+  const [nativeGlassAttachments, setNativeGlassAttachments] = useState([]);
   const [voiceStatus, setVoiceStatus] = useState("idle");
   const [voicePreview, setVoicePreview] = useState("");
   const voiceBaseTextRef = useRef("");
@@ -703,15 +737,6 @@ export default function MobileChat() {
   const [reportReason, setReportReason] = useState("incorrect");
   const [reportDetails, setReportDetails] = useState("");
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [selectionToolbar, setSelectionToolbar] = useState({
-    visible: false,
-    text: "",
-    messageId: "",
-    x: 0,
-    y: 0,
-    placement: "above",
-    copied: false,
-  });
   const [dislikeTarget, setDislikeTarget] = useState(null);
   const [dislikeMenuPosition, setDislikeMenuPosition] = useState({
     left: 0,
@@ -728,7 +753,7 @@ export default function MobileChat() {
   const [headerThinkingEnabled, setHeaderThinkingEnabled] = useState(() => localStorage.getItem(MOBILE_HEADER_THINKING_STORAGE_KEY) === "true");
   const [isImageMode, setIsImageMode] = useState(false);
   const [isWriteEditMode, setIsWriteEditMode] = useState(false);
-  const [selectedWritingCategoryId, setSelectedWritingCategoryId] = useState("email");
+  const [selectedWritingCategoryId, setSelectedWritingCategoryId] = useState(() => localStorage.getItem("bluemind-writing-type") || "email");
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [selectedSearchCategory, setSelectedSearchCategory] = useState(null);
   const [openSearchMenuItemId, setOpenSearchMenuItemId] = useState(null);
@@ -776,9 +801,16 @@ export default function MobileChat() {
   const stopRequestedRef = useRef(false);
   const activeAiMessageRef = useRef(null);
   const sendLockRef = useRef(false);
+  const nativeGlassActionRef = useRef(() => {});
+  const nativePrivateFlowRef = useRef(null);
+  const nativeGlassAckEventIdRef = useRef("0");
+  const nativeGlassMenuOpenRef = useRef(false);
+  const nativeGlassMicrophoneLockRef = useRef(false);
+  const nativeGlassSendLockRef = useRef(false);
+  const nativeGlassAudioTimerRef = useRef(null);
+  const pendingNativePhotoIdsRef = useRef(new Set());
   const streamBufferRef = useRef({ messageId: null, text: "", timer: null });
   const loadedConversationRef = useRef(null);
-  const selectionToolbarRef = useRef(null);
   const featureCarouselCount = 4;
 
   const activeConversationId = searchParams.get("conversation");
@@ -838,15 +870,16 @@ export default function MobileChat() {
   const mobileGlassMenuIdleClass = isDark
     ? "text-white/85 hover:bg-[rgba(106,106,106,0.1)] active:bg-[rgba(106,106,106,0.15)]"
     : "text-[var(--bm-text-secondary)] hover:bg-[var(--bm-hover-bg)] active:bg-[var(--bm-active-bg)]";
-  const mobileSectionTitleClass = isDark ? "text-white/72" : "text-[var(--bm-text-muted)]";
-  const mobileSubtleTextClass = isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]";
+  const menuUsesDarkAppearance = isDark || nativeGlassSupported;
+  const mobileSectionTitleClass = menuUsesDarkAppearance ? "text-white/72" : "text-[var(--bm-text-muted)]";
+  const mobileSubtleTextClass = menuUsesDarkAppearance ? "text-white/58" : "text-[var(--bm-text-secondary)]";
   const mobileMenuItemClass = (active = false) => cn(
     "bm-mobile-menu-item flex min-h-[48px] w-full items-center rounded-2xl px-3 text-left font-semibold",
     typeClasses.body,
     iconClasses.iconText,
     active
-      ? isDark ? "bg-white/[0.08] text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-text-primary)]"
-      : isDark ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
+      ? menuUsesDarkAppearance ? "bg-white/[0.08] text-white" : "bg-[var(--bm-active-bg)] text-[var(--bm-text-primary)]"
+      : menuUsesDarkAppearance ? "text-white active:bg-white/[0.08]" : "text-[var(--bm-text-primary)] active:bg-[var(--bm-hover-bg)]",
   );
 
   const mobileFeatureCards = useMemo(() => [
@@ -874,20 +907,11 @@ export default function MobileChat() {
       icon: Clipboard,
       image: "/assets/home-carousel/schedule.png",
     },
-    {
-      title: "AI Plans",
-      description: "Turn goals into clear steps and smarter routines.",
-      cta: "Try Now",
-      path: "/mobile/ai-plans",
-      icon: Sparkles,
-      image: "/assets/home-carousel/ai-plans.png",
-    },
   ], []);
 
   const bluemindMenuItems = [
     { label: "Smart Hub", path: "/mobile/smart-hub", icon: Brain },
     { label: "Reminders", path: "/mobile/reminders", icon: Bell },
-    { label: "AI Plans", path: "/mobile/ai-plans", icon: Sparkles },
     { label: "Schedule", path: "/mobile/schedule", icon: Clipboard },
   ];
 
@@ -920,7 +944,7 @@ export default function MobileChat() {
     },
     {
       id: "reports",
-      label: "Reports",
+      label: "Report",
       icon: Clipboard,
       placeholder: "Write a clear report about...",
     },
@@ -935,6 +959,12 @@ export default function MobileChat() {
       label: "Story",
       icon: PenLine,
       placeholder: "Write a story about...",
+    },
+    {
+      id: "professional",
+      label: "Professional",
+      icon: Clipboard,
+      placeholder: "Write professional content about...",
     },
     {
       id: "social",
@@ -954,8 +984,18 @@ export default function MobileChat() {
       icon: FileText,
       placeholder: "Write or improve a CV section for...",
     },
+    {
+      id: "other",
+      label: "Other",
+      icon: Sparkles,
+      placeholder: "What would you like to write?",
+    },
   ], []);
   const selectedWritingCategory = writingCategories.find((category) => category.id === selectedWritingCategoryId) || writingCategories[0];
+
+  useEffect(() => {
+    localStorage.setItem("bluemind-writing-type", selectedWritingCategory.id);
+  }, [selectedWritingCategory.id]);
 
   const searchResultsForCategory = useMemo(
     () => getSearchResultsForCategory(selectedSearchCategory),
@@ -1256,7 +1296,7 @@ export default function MobileChat() {
     start: startVoiceCapture,
     stop: stopVoiceInput,
     cancel: cancelVoiceInput,
-  } = useVoiceInput({
+  } = usePlatformVoiceInput({
     onError: (messageText) => {
       setVoiceStatus("error");
       toast.error(messageText);
@@ -1294,7 +1334,8 @@ export default function MobileChat() {
     !isUploadingImages &&
     !isListening &&
     !isOpeningConversation;
-  const shouldPinComposer = !shouldShowWritingModeHome && !isWriteEditCategoryBrowserOpen;
+  const chatEntrySheetOpen = privateSpaceModalOpen || hiddenChatModalOpen;
+  const shouldPinComposer = !menuSearchOpen && !chatEntrySheetOpen && !isWriteEditCategoryBrowserOpen;
   const shouldShowWriteEditTemplates = isWriteEditCategoryBrowserOpen && !message.trim() && writeAttachments.length === 0 && !activeWriteTask;
   const shouldShowChatHome =
     chatSessionMode === "normal" &&
@@ -1307,120 +1348,6 @@ export default function MobileChat() {
     !isListening &&
     !isOpeningConversation;
   const shouldUseChatMessageSafeArea = messages.length > 0 && !shouldShowChatHome && !shouldShowWritingModeHome;
-
-  const hideSelectionToolbar = useCallback(() => {
-    setSelectionToolbar((current) => current.visible ? { ...current, visible: false, copied: false } : current);
-  }, []);
-
-  const getSelectionMessageElement = useCallback((node) => {
-    if (!node) return null;
-    const element = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
-    return element?.closest?.("[data-chat-selection-message-id]") || null;
-  }, []);
-
-  const updateSelectionToolbar = useCallback(() => {
-    const selection = window.getSelection?.();
-    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
-      hideSelectionToolbar();
-      return;
-    }
-
-    const selectedText = selection.toString().trim();
-    if (!selectedText) {
-      hideSelectionToolbar();
-      return;
-    }
-
-    const anchorMessage = getSelectionMessageElement(selection.anchorNode);
-    const focusMessage = getSelectionMessageElement(selection.focusNode);
-    if (!anchorMessage || !focusMessage || anchorMessage !== focusMessage) {
-      hideSelectionToolbar();
-      return;
-    }
-
-    const range = selection.getRangeAt(0);
-    const rangeRect = range.getBoundingClientRect();
-    const firstClientRect = Array.from(range.getClientRects()).find((rect) => rect.width > 0 && rect.height > 0);
-    const rect = rangeRect.width || rangeRect.height ? rangeRect : firstClientRect;
-    if (!rect) {
-      hideSelectionToolbar();
-      return;
-    }
-
-    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 390;
-    const minX = 96;
-    const maxX = Math.max(minX, viewportWidth - 96);
-    const x = Math.min(Math.max(rect.left + rect.width / 2, minX), maxX);
-    const hasSpaceAbove = rect.top > 82;
-    const placement = hasSpaceAbove ? "above" : "below";
-    const y = placement === "above" ? rect.top - 12 : rect.bottom + 12;
-
-    setSelectionToolbar({
-      visible: true,
-      text: selectedText,
-      messageId: anchorMessage.dataset.chatSelectionMessageId || "",
-      x,
-      y,
-      placement,
-      copied: false,
-    });
-  }, [getSelectionMessageElement, hideSelectionToolbar]);
-
-  const scheduleSelectionToolbarUpdate = useCallback(() => {
-    window.setTimeout(updateSelectionToolbar, 60);
-  }, [updateSelectionToolbar]);
-
-  const clearNativeSelection = useCallback(() => {
-    window.getSelection?.()?.removeAllRanges();
-  }, []);
-
-  const askBlueMindAboutSelection = useCallback(() => {
-    const selectedText = selectionToolbar.text.trim();
-    if (!selectedText) return;
-
-    setMessage(`Explain this:\n\n"${selectedText}"`);
-    setChatHomeDismissed(true);
-    hideSelectionToolbar();
-    clearNativeSelection();
-    window.requestAnimationFrame(() => {
-      composerInputRef.current?.focus?.();
-      resizeChatComposer(composerInputRef.current);
-    });
-  }, [clearNativeSelection, hideSelectionToolbar, resizeChatComposer, selectionToolbar.text]);
-
-  const copySelectionText = useCallback(async () => {
-    const selectedText = selectionToolbar.text.trim();
-    if (!selectedText) return;
-
-    try {
-      await navigator.clipboard.writeText(selectedText);
-      setSelectionToolbar((current) => ({ ...current, copied: true }));
-      toast.success("Copied");
-      window.setTimeout(() => {
-        setSelectionToolbar((current) => ({ ...current, copied: false }));
-      }, 1200);
-    } catch {
-      toast.error("Could not copy text");
-    }
-  }, [selectionToolbar.text]);
-
-  const selectAllCurrentMessage = useCallback(() => {
-    if (!selectionToolbar.messageId) return;
-    const messageElement = Array.from(document.querySelectorAll("[data-chat-selection-message-id]"))
-      .find((element) => element.dataset.chatSelectionMessageId === selectionToolbar.messageId);
-    if (!messageElement) {
-      hideSelectionToolbar();
-      return;
-    }
-
-    const range = document.createRange();
-    range.selectNodeContents(messageElement);
-    const selection = window.getSelection?.();
-    if (!selection) return;
-    selection.removeAllRanges();
-    selection.addRange(range);
-    window.setTimeout(updateSelectionToolbar, 40);
-  }, [hideSelectionToolbar, selectionToolbar.messageId, updateSelectionToolbar]);
 
   useEffect(() => {
     if (
@@ -1448,55 +1375,27 @@ export default function MobileChat() {
     isToolFocusMode,
   ]);
 
-  useEffect(() => {
-    document.addEventListener("selectionchange", scheduleSelectionToolbarUpdate);
-    document.addEventListener("mouseup", scheduleSelectionToolbarUpdate);
-    document.addEventListener("touchend", scheduleSelectionToolbarUpdate, { passive: true });
-
-    return () => {
-      document.removeEventListener("selectionchange", scheduleSelectionToolbarUpdate);
-      document.removeEventListener("mouseup", scheduleSelectionToolbarUpdate);
-      document.removeEventListener("touchend", scheduleSelectionToolbarUpdate);
-    };
-  }, [scheduleSelectionToolbarUpdate]);
-
-  useEffect(() => {
-    const handlePointerDown = (event) => {
-      if (!selectionToolbar.visible) return;
-      if (selectionToolbarRef.current?.contains(event.target)) return;
-      if (getSelectionMessageElement(event.target)) return;
-      hideSelectionToolbar();
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown, true);
-    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
-  }, [getSelectionMessageElement, hideSelectionToolbar, selectionToolbar.visible]);
-
-  useEffect(() => {
-    const scrollNode = messagesScrollRef.current;
-    if (!scrollNode) return undefined;
-    scrollNode.addEventListener("scroll", hideSelectionToolbar, { passive: true });
-    return () => scrollNode.removeEventListener("scroll", hideSelectionToolbar);
-  }, [hideSelectionToolbar, messagesScrollRef]);
-
-  useEffect(() => {
-    hideSelectionToolbar();
-  }, [messages.length, isChatSending, hideSelectionToolbar]);
-
   const getDrawerClosedX = useCallback((width = drawerWidth) => (isRtl ? width : -width), [drawerWidth, isRtl]);
 
   const animateDrawerTo = useCallback((targetX, options = {}) => {
     drawerAnimationRef.current?.stop?.();
-    drawerAnimationRef.current = animate(drawerX, targetX, {
-      duration: options.duration ?? 0.28,
+    drawerAnimationRef.current = animate(drawerX, targetX, nativeGlassSupported ? {
+      type: "tween",
+      duration: 0.32,
+      ease: [0.22, 1, 0.36, 1],
+      onComplete: options.onComplete,
+    } : {
+      type: "tween",
+      duration: 0.28,
       ease: [0.22, 1, 0.36, 1],
       onComplete: options.onComplete,
     });
-  }, [drawerX]);
+  }, [drawerX, nativeGlassSupported]);
 
   const closeMenu = useCallback(() => {
     setMenuSearchOpen(false);
     setMenuSearchQuery("");
+    setMenuExpanded(false);
     drawerGestureActiveRef.current = false;
     animateDrawerTo(getDrawerClosedX(), {
       onComplete: () => setMenuOpen(false),
@@ -1572,6 +1471,19 @@ export default function MobileChat() {
     window.setTimeout(() => searchInputRef.current?.focus(), 0);
     return undefined;
   }, [menuSearchOpen]);
+
+  useEffect(() => {
+    if (!chatEntrySheetOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
+    composerInputRef.current?.blur();
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscrollBehavior;
+    };
+  }, [chatEntrySheetOpen]);
 
   useEffect(() => {
     const query = menuSearchQuery.trim();
@@ -1650,6 +1562,10 @@ export default function MobileChat() {
 
   useEffect(() => {
     if (searchParams.get("mode") === "image") {
+      if (IS_IOS) {
+        navigate("/mobile/create-image", { replace: true });
+        return;
+      }
       setIsImageMode(true);
       setIsWriteEditMode(false);
       setIsSearchMode(false);
@@ -1680,7 +1596,7 @@ export default function MobileChat() {
     if (requestedPrompt && !message.trim()) {
       setMessage(requestedPrompt);
     }
-  }, [activeWriteTask, message, pendingWriteTemplate, searchParams]);
+  }, [activeWriteTask, message, navigate, pendingWriteTemplate, searchParams]);
 
   useEffect(() => () => {
     streamAbortRef.current?.abort();
@@ -1764,11 +1680,14 @@ export default function MobileChat() {
     drawerGestureActiveRef.current = false;
     drawerX.set(getDrawerClosedX(width));
     setMenuOpen(true);
+    setMenuExpanded(true);
     setMenuSearchOpen(false);
     requestAnimationFrame(() => animateDrawerTo(0));
   };
 
   const openMenuSearch = () => {
+    composerInputRef.current?.blur();
+    setMenuExpanded(false);
     setMenuOpen(false);
     setMenuSearchOpen(true);
   };
@@ -1776,6 +1695,8 @@ export default function MobileChat() {
   const closeMenuSearch = () => {
     setMenuSearchOpen(false);
     setMenuOpen(true);
+    setMenuExpanded(true);
+    drawerX.set(0);
   };
 
   const selectResponseMode = async (mode) => {
@@ -1853,18 +1774,25 @@ export default function MobileChat() {
         return [];
       });
       setMessages(mapMobileConversationMessages(conversation));
+      const writingMetadata = (conversation.messages || []).find((item) => item?.metadata?.workspace === "writing" || item?.metadata?.chatSessionMode === "writing")?.metadata;
+      if (writingMetadata) {
+        setChatSessionMode("writing");
+        if (writingMetadata.writingType) setSelectedWritingCategoryId(String(writingMetadata.writingType));
+      }
       setChatHomeDismissed(true);
       loadedConversationRef.current = conversation.conversationId;
 
       if (updateUrl) {
-        setSearchParams({ conversation: conversation.conversationId });
+        const next = new URLSearchParams(searchParams);
+        next.set("conversation", conversation.conversationId);
+        setSearchParams(next);
       }
     } catch (error) {
       toast.error(error.message || t("couldNotOpenChat"));
     } finally {
       setIsOpeningConversation(false);
     }
-  }, [activePrivateSpace?.privateSpaceId, chatSessionMode, ensureMobileChatAuth, isChatSending, isGeneratingImage, isOpeningConversation, privateSpaceAccessToken, setSearchParams, t]);
+  }, [activePrivateSpace?.privateSpaceId, chatSessionMode, ensureMobileChatAuth, isChatSending, isGeneratingImage, isOpeningConversation, privateSpaceAccessToken, searchParams, setSearchParams, t]);
 
   useEffect(() => {
     if (
@@ -1974,7 +1902,7 @@ export default function MobileChat() {
     }
   }, []);
 
-  const openPrivateChatModal = useCallback(() => {
+  const openPrivateChatModal = useCallback(async () => {
     closeMenu();
     setPrivateSpaceModalOpen(true);
     setPrivateSpaceStep("list");
@@ -1983,10 +1911,31 @@ export default function MobileChat() {
     setPrivatePinInput("");
     setPrivateSpaceActionMenuId(null);
     setPrivateSpaceDeleteTarget(null);
-    loadMobilePrivateSpaces().then((items) => {
-      setPrivateSpaceStep(items.length ? "list" : "create");
-    }).catch(() => {});
-  }, [closeMenu, loadMobilePrivateSpaces]);
+    const items = await loadMobilePrivateSpaces();
+    if (nativeGlassSupported && nativeGlassBridgeReady) {
+      const shown = await presentNativeIOSChatEntrySheet({
+        kind: "private",
+        requestId: "private-chat-entry",
+        isDark,
+        privateChats: items.map((space) => ({ id: space.privateSpaceId, name: space.name })),
+      });
+      if (shown) return;
+    }
+    setPrivateSpaceStep(items.length ? "list" : "create");
+  }, [closeMenu, isDark, loadMobilePrivateSpaces, nativeGlassBridgeReady, nativeGlassSupported]);
+
+  const openHiddenChatModal = useCallback(async () => {
+    closeMenu();
+    setHiddenChatModalOpen(true);
+    if (nativeGlassSupported && nativeGlassBridgeReady) {
+      const shown = await presentNativeIOSChatEntrySheet({
+        kind: "hidden",
+        requestId: "hidden-chat-entry",
+        isDark,
+      });
+      if (shown) return;
+    }
+  }, [closeMenu, isDark, nativeGlassBridgeReady, nativeGlassSupported]);
 
   const handleCreatePrivateSpace = async (event) => {
     event.preventDefault();
@@ -2110,28 +2059,27 @@ export default function MobileChat() {
     setRenameTitle(conversation.title || "");
   };
 
-  const handleRenameSubmit = async (event) => {
-    event.preventDefault();
-    if (!renameTarget || !renameTitle.trim()) return;
+  const performRenameConversation = async (conversation, requestedTitle) => {
+    const nextTitle = String(requestedTitle || "").trim().slice(0, 120);
+    if (!conversation || !nextTitle) return;
 
     const previousConversations = conversations;
-    const nextTitle = renameTitle.trim();
     setConversations((current) => current.map((item) => (
-      item.conversationId === renameTarget.conversationId
+      item.conversationId === conversation.conversationId
         ? { ...item, title: nextTitle }
         : item
     )));
     setSearchResults((current) => current.map((item) => (
-      item.conversationId === renameTarget.conversationId
+      item.conversationId === conversation.conversationId
         ? { ...item, title: nextTitle }
         : item
     )));
 
     try {
       if (chatSessionMode === "private" && activePrivateSpace?.privateSpaceId && privateSpaceAccessToken) {
-        await renamePrivateSpaceChat(activePrivateSpace.privateSpaceId, renameTarget.conversationId, nextTitle, privateSpaceAccessToken);
+        await renamePrivateSpaceChat(activePrivateSpace.privateSpaceId, conversation.conversationId, nextTitle, privateSpaceAccessToken);
       } else {
-        await renameChat(renameTarget.conversationId, nextTitle);
+        await renameChat(conversation.conversationId, nextTitle);
       }
       setRenameTarget(null);
       setRenameTitle("");
@@ -2142,10 +2090,14 @@ export default function MobileChat() {
     }
   };
 
-  const handleDeleteConversation = async () => {
-    if (!deleteTarget) return;
+  const handleRenameSubmit = async (event) => {
+    event.preventDefault();
+    if (!renameTarget || !renameTitle.trim()) return;
+    await performRenameConversation(renameTarget, renameTitle);
+  };
 
-    const target = deleteTarget;
+  const performDeleteConversation = async (target) => {
+    if (!target) return;
     const previousConversations = conversations;
     setDeleteTarget(null);
     setChatMenuTarget(null);
@@ -2168,6 +2120,10 @@ export default function MobileChat() {
     }
   };
 
+  const handleDeleteConversation = async () => {
+    await performDeleteConversation(deleteTarget);
+  };
+
   const handleShareConversation = async (conversation) => {
     setChatMenuTarget(null);
     try {
@@ -2180,9 +2136,48 @@ export default function MobileChat() {
     }
   };
 
+  const moveChatToProject = async (conversationId, projectId, projectName = "") => {
+    try {
+      await moveConversationToProject(conversationId, projectId || null);
+      setConversations((current) => current.filter((item) => item.conversationId !== conversationId));
+      setSearchResults((current) => current.filter((item) => item.conversationId !== conversationId));
+      toast.success(projectId ? `Chat moved to ${projectName || "project"}` : "Chat removed from project");
+    } catch (error) {
+      toast.error(error.message || "Could not move chat");
+    }
+  };
+
+  const openMoveToProject = async (conversationId) => {
+    try {
+      const projects = await listProjects();
+      if (!projects.length) {
+        toast.info("Create a Project first");
+        return;
+      }
+      await presentNativeIOSSelection({
+        title: "Move to Project",
+        selectedValue: "",
+        requestId: `move-chat:${conversationId}`,
+        options: projects.map((project) => ({
+          label: project.name,
+          value: String(project.id || project._id || ""),
+          symbol: "folder",
+        })),
+      });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not load projects"));
+    }
+  };
+
   const clearMobileFlowParams = () => {
     const conversation = searchParams.get("conversation");
-    setSearchParams(conversation ? { conversation } : {});
+    const next = new URLSearchParams();
+    if (conversation) next.set("conversation", conversation);
+    ["project", "projectName", "returnTo"].forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) next.set(key, value);
+    });
+    setSearchParams(next);
   };
 
   const handlePageTouchStart = (event) => {
@@ -2205,6 +2200,7 @@ export default function MobileChat() {
     if (
       !menuOpen &&
       !menuSearchOpen &&
+      (!nativeGlassSupported || isDark) &&
       typeof startX === "number" &&
       typeof startY === "number" &&
       currentTouch &&
@@ -2217,6 +2213,7 @@ export default function MobileChat() {
       previousFocusRef.current = menuButtonRef.current || document.activeElement;
       drawerGestureActiveRef.current = true;
       setMenuOpen(true);
+      setMenuExpanded(true);
       setMenuSearchOpen(false);
       const nextX = isRtl
         ? Math.max(0, Math.min(width, width + deltaX))
@@ -2253,14 +2250,17 @@ export default function MobileChat() {
 
       if (shouldOpen) {
         setMenuOpen(true);
+        setMenuExpanded(true);
         animateDrawerTo(0);
       } else if (wasDrawerGesture) {
+        setMenuExpanded(false);
         animateDrawerTo(getDrawerClosedX(width), {
           onComplete: () => setMenuOpen(false),
         });
       } else if (menuOpen) {
         animateDrawerTo(0);
       } else if (drawerX.get() !== getDrawerClosedX(width)) {
+        setMenuExpanded(false);
         animateDrawerTo(getDrawerClosedX(width), {
           onComplete: () => setMenuOpen(false),
         });
@@ -2277,6 +2277,10 @@ export default function MobileChat() {
   };
 
   const enterImageMode = () => {
+    if (IS_IOS) {
+      navigate("/mobile/create-image");
+      return;
+    }
     setIsImageMode(true);
     setIsWriteEditMode(false);
     setIsWriteEditCategoryBrowserOpen(false);
@@ -2487,15 +2491,24 @@ export default function MobileChat() {
     });
   };
 
+  const openWritingAttachmentPicker = async (source, fallbackInputRef) => {
+    closeAttachmentSheet();
+    closeImageSourceSheet();
+    if (Capacitor.getPlatform() === "ios") {
+      const presented = await presentNativeIOSWritingAttachmentPicker(source);
+      if (!presented) toast.error("Couldn’t open the iOS attachment picker.");
+      return;
+    }
+    openFileInput(fallbackInputRef, source);
+  };
+
   const openTemplateImageInput = (inputRef) => {
     closeAttachmentSheet();
     closeImageSourceSheet();
     window.setTimeout(() => inputRef.current?.click(), 0);
   };
 
-  const handleWriteAttachmentSelection = async (event) => {
-    const selectedFiles = Array.from(event.target.files || []);
-    event.target.value = "";
+  const processWriteAttachmentFiles = async (selectedFiles) => {
     if (!selectedFiles.length) return;
 
     const accepted = [];
@@ -2532,6 +2545,7 @@ export default function MobileChat() {
 
       accepted.push({
         id: imageId || `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        clientId: "",
         name: file.name,
         type: isImage ? "image" : isText ? "text" : isPdf ? "pdf" : "document",
         size: file.size,
@@ -2550,20 +2564,22 @@ export default function MobileChat() {
     setWriteAttachments((current) => [...current, ...accepted].slice(0, 10));
   };
 
-  const handleImageSelection = async (event) => {
+  const handleWriteAttachmentSelection = async (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+    await processWriteAttachmentFiles(selectedFiles);
+  };
+
+  const processImageFiles = async (files, { isCameraCapture = false } = {}) => {
     if (pendingWriteTemplate) {
-      void handleWriteAttachmentSelection(event);
+      void processWriteAttachmentFiles(files);
       return;
     }
-
-    const files = Array.from(event.target.files || []);
-    event.target.value = "";
     if (files.length === 0) {
       return;
     }
 
     const templateForSelection = pendingImageTemplate;
-    const isCameraCapture = event.target === cameraInputRef.current;
     if (isImageMode || templateForSelection) {
       setIsImageMode(true);
     }
@@ -2620,13 +2636,96 @@ export default function MobileChat() {
     }
   };
 
+  const handleImageSelection = async (event) => {
+    const files = Array.from(event.target.files || []);
+    const isCameraCapture = event.target === cameraInputRef.current;
+    event.target.value = "";
+    await processImageFiles(files, { isCameraCapture });
+  };
+
+  const fileFromNativeAttachment = (attachment) => {
+    const binary = window.atob(String(attachment?.base64 || ""));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return new File([bytes], String(attachment?.name || "Attachment"), {
+      type: String(attachment?.mimeType || "application/octet-stream"),
+      lastModified: Date.now(),
+    });
+  };
+
+  const processOptimisticNativeImages = async (nativeAttachments) => {
+    const pending = nativeAttachments
+      .map((attachment) => {
+        try {
+          return {
+            clientId: String(attachment?.clientId || ""),
+            file: fileFromNativeAttachment(attachment),
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter((entry) => entry?.clientId && pendingNativePhotoIdsRef.current.has(entry.clientId));
+
+    if (!pending.length) {
+      setIsUploadingImages(false);
+      return;
+    }
+
+    let cursor = 0;
+    let failedCount = 0;
+    const uploadNext = async () => {
+      while (cursor < pending.length) {
+        const entry = pending[cursor];
+        cursor += 1;
+        try {
+          const uploaded = await uploadChatImage(entry.file, activeConversationId);
+          if (!uploaded?.id) throw new Error("Image upload failed");
+          setAttachedImages((current) => {
+            const nextImages = current.map((image) => (
+              image.id === entry.clientId || image.clientId === entry.clientId
+              ? {
+                  ...image,
+                  id: uploaded.id,
+                  clientId: entry.clientId,
+                  file: entry.file,
+                  uploadState: "uploaded",
+                }
+              : image
+            ));
+            attachedImagesRef.current = nextImages;
+            return nextImages;
+          });
+        } catch (error) {
+          failedCount += 1;
+          setAttachedImages((current) => {
+            const nextImages = current.map((image) => (
+              image.id === entry.clientId || image.clientId === entry.clientId
+              ? { ...image, uploadState: "failed", uploadError: error?.message || "Upload failed" }
+              : image
+            ));
+            attachedImagesRef.current = nextImages;
+            return nextImages;
+          });
+        } finally {
+          pendingNativePhotoIdsRef.current.delete(entry.clientId);
+        }
+      }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(3, pending.length) }, () => uploadNext()));
+    setIsUploadingImages(false);
+    if (failedCount) toast.error(failedCount === 1 ? "One image couldn’t be uploaded." : `${failedCount} images couldn’t be uploaded.`);
+  };
+
   const removeAttachedImage = (imageId) => {
+    pendingNativePhotoIdsRef.current.delete(String(imageId));
     setAttachedImages((current) => {
-      const target = current.find((image) => image.id === imageId);
+      const target = current.find((image) => image.id === imageId || image.clientId === imageId);
       if (target) {
         URL.revokeObjectURL(target.previewUrl);
       }
-      const nextImages = current.filter((image) => image.id !== imageId);
+      const nextImages = current.filter((image) => image.id !== imageId && image.clientId !== imageId);
       if (nextImages.length === 0 && isImageMode && !selectedImageTemplate) {
         window.setTimeout(() => setIsImageMode(false), 0);
       }
@@ -2784,7 +2883,10 @@ export default function MobileChat() {
       aiMode: selectedMode,
       blueMindModel: headerModelId,
       thinkingLevel,
-      chatMode: activeWriteTask ? "write_edit" : metadata.chatMode || "chat",
+      thinkingEnabled: headerThinkingEnabled,
+      chatMode: activeWriteTask || chatSessionMode === "writing" || isWriteEditMode ? "write_edit" : metadata.chatMode || "chat",
+      workspace: chatSessionMode === "writing" || isWriteEditMode ? "writing" : metadata.workspace,
+      writingType: chatSessionMode === "writing" || isWriteEditMode ? selectedWritingCategoryId : metadata.writingType,
       writeEditTask: activeWriteTask || undefined,
     };
     const userDisplayMessages = hideUserMessage
@@ -2863,6 +2965,7 @@ export default function MobileChat() {
         message: currentMessage,
         imageIds: requestImageIds,
         conversationId: chatSessionMode === "hidden" ? undefined : activeConversationId,
+        projectId: chatSessionMode === "normal" ? activeProjectId || undefined : undefined,
         privateSpaceId: activePrivateSpace?.privateSpaceId,
         accessToken: privateSpaceAccessToken,
         mode: selectedMode,
@@ -2879,7 +2982,10 @@ export default function MobileChat() {
         onReady: (payload) => {
           setIsChatSubmitting(false);
           if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
-            setSearchParams({ conversation: payload.conversation.conversationId });
+            const next = new URLSearchParams(searchParams);
+            next.set("conversation", payload.conversation.conversationId);
+            setSearchParams(next);
+            if (activeProjectId && !activeConversationId) toast.success("Chat created");
           }
         },
         onDelta: (payload) => {
@@ -2890,7 +2996,9 @@ export default function MobileChat() {
           setIsChatSubmitting(false);
           flushAiDelta(aiMessageId);
           if (payload?.conversation?.conversationId && chatSessionMode !== "hidden") {
-            setSearchParams({ conversation: payload.conversation.conversationId });
+            const next = new URLSearchParams(searchParams);
+            next.set("conversation", payload.conversation.conversationId);
+            setSearchParams(next);
           }
           setMessages((current) =>
             current.map((item) =>
@@ -2944,7 +3052,7 @@ export default function MobileChat() {
       setIsChatSending(false);
       sendLockRef.current = false;
     }
-  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, headerModelId, isChatSending, isGeneratingImage, isListening, privateSpaceAccessToken, queueAiDelta, responseMode, scrollToBottom, setSearchParams, stopVoiceInput, thinkingLevel, writeAttachments]);
+  }, [activeConversationId, activePrivateSpace?.privateSpaceId, activeProjectId, activeWriteTask, chatSessionMode, ensureMobileChatAuth, flushAiDelta, headerModelId, headerThinkingEnabled, isChatSending, isGeneratingImage, isListening, isWriteEditMode, privateSpaceAccessToken, queueAiDelta, responseMode, scrollToBottom, searchParams, selectedWritingCategoryId, setSearchParams, stopVoiceInput, thinkingLevel, writeAttachments]);
 
   const persistMessageFeedback = useCallback((messageId, feedback) => {
     setMessageFeedback((current) => ({
@@ -3042,7 +3150,7 @@ export default function MobileChat() {
 
   const streamMessageReplacement = useCallback(async (item, option = "retry") => {
     if (isChatSending || !item?.id) return;
-    if (chatSessionMode !== "normal" || !activeConversationId) {
+    if (!["normal", "writing"].includes(chatSessionMode) || !activeConversationId) {
       toast.error("This action is available in saved chats.");
       return;
     }
@@ -3166,7 +3274,9 @@ export default function MobileChat() {
       setMessages(mapMobileConversationMessages(conversation));
       setChatHomeDismissed(true);
       setMessage("");
-      setSearchParams({ conversation: conversation.conversationId });
+      const next = new URLSearchParams(searchParams);
+      next.set("conversation", conversation.conversationId);
+      setSearchParams(next);
       loadedConversationRef.current = conversation.conversationId;
       await loadConversationHistory();
       window.requestAnimationFrame(() => scrollToBottom("auto"));
@@ -3176,7 +3286,7 @@ export default function MobileChat() {
     } finally {
       setIsOpeningConversation(false);
     }
-  }, [activeConversationId, chatSessionMode, loadConversationHistory, scrollToBottom, setSearchParams]);
+  }, [activeConversationId, chatSessionMode, loadConversationHistory, scrollToBottom, searchParams, setSearchParams]);
 
   const handleOpenImproveMenu = useCallback((item) => {
     setMessageMoreTarget(null);
@@ -3189,6 +3299,24 @@ export default function MobileChat() {
     setImproveTarget(null);
     void streamMessageReplacement(target, option);
   }, [improveTarget, streamMessageReplacement]);
+
+  const handleWritingResponseAction = useCallback((item, option) => {
+    if (["clearer", "shorter", "simpler"].includes(option)) {
+      void streamMessageReplacement(item, option);
+      return;
+    }
+    const instructions = {
+      longer: "Rewrite the writing below with more useful detail while preserving its intent.",
+      professional: "Rewrite the writing below in a polished professional tone.",
+      rewrite: "Rewrite the writing below with fresh wording while preserving its meaning.",
+      translate: "Translate the writing below. Infer the target language from our conversation; if none was specified, ask me which language to use.",
+    };
+    void sendChatPrompt({
+      prompt: `${instructions[option] || instructions.rewrite}\n\n${item.content || ""}`,
+      hideUserMessage: true,
+      metadata: { workspace: "writing", chatSessionMode: "writing", writingType: selectedWritingCategoryId, sourceMessageId: item.id, writingAction: option },
+    });
+  }, [selectedWritingCategoryId, sendChatPrompt, streamMessageReplacement]);
 
   const handleOpenReportDialog = useCallback((item) => {
     setMessageMoreTarget(null);
@@ -3449,9 +3577,10 @@ export default function MobileChat() {
           metadata: isSearchMode ? { chatMode: "web_search", source: "voice" } : { source: "voice" },
           allowWhileBusy: true,
         });
+        setVoiceStatus("idle");
+      } else {
+        setVoiceStatus("transcriptReady");
       }
-
-      setVoiceStatus("idle");
     } catch (error) {
       setVoiceStatus("error");
       toast.error(error?.message || "Transcription failed. Please try again.");
@@ -3476,6 +3605,492 @@ export default function MobileChat() {
       setVoiceStatus("error");
     }
   }, [finalizeVoiceInput, isListening, message, startVoiceCapture, voiceLanguage, voiceStatus]);
+
+  const nativeGlassActive = nativeGlassSupported
+    && nativeGlassBridgeReady
+    && ["normal", "writing", "hidden", "private"].includes(chatSessionMode)
+    && !isImageMode
+    && !isWriteEditMode
+    && !isSearchMode
+    && !menuSearchOpen
+    && !chatEntrySheetOpen
+    && !settingsSheetOpen
+    && !activeWriteTask;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    prepareNativeGlassExperiment().then((supported) => {
+      if (!cancelled) setNativeGlassSupported(supported);
+    });
+
+    return () => {
+      cancelled = true;
+      void setNativeGlassVisible(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    void setNativeGlassVisible(nativeGlassActive);
+  }, [nativeGlassActive]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const composerAttachments = isWriteEditMode ? writeAttachments : attachedImages;
+    if (!nativeGlassActive || composerAttachments.length === 0) {
+      setNativeGlassAttachments([]);
+      return undefined;
+    }
+
+    prepareNativeGlassAttachments(composerAttachments).then((previews) => {
+      if (!cancelled) setNativeGlassAttachments(previews);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attachedImages, isWriteEditMode, nativeGlassActive, writeAttachments]);
+
+  useEffect(() => {
+    if (!nativeGlassActive) return;
+
+    void updateNativeGlassState({
+      ackEventId: nativeGlassAckEventIdRef.current,
+      text: message,
+      canSend: (isChatSending || hasComposerContent) && !isGeneratingImage && !isUploadingImages,
+      isSending: isChatSending || isGeneratingImage,
+      isListening,
+      voiceStatus,
+      voiceTranscript: voiceLiveTranscript || voicePreview,
+      attachments: nativeGlassAttachments,
+      isUploadingAttachments: isUploadingImages,
+      isComposerVisible: chatSessionMode === "writing" || (!attachmentSheetOpen && !imageSourceSheetOpen),
+      isHeaderVisible: true,
+      isMenuOpen: menuExpanded,
+      isDark,
+      isRTL: isRtl,
+      accentColor: prefs?.appColor || prefs?.accentColor || "#193B68",
+      brandPrimaryColor: BLUE_MIND_COLORS.primary,
+      isWritingMode: chatSessionMode === "writing",
+      isAIPlanMode: false,
+      chatSessionMode,
+      modeStatusTitle: chatSessionMode === "private"
+        ? `${activePrivateSpace?.name || "Private"} Chat`
+        : chatSessionMode === "hidden" ? "Hidden Mode" : "",
+      modeExitTitle: chatSessionMode === "private" ? "Exit Private Chat" : "Exit Hidden Chat",
+      placeholder: chatSessionMode === "writing" ? "Ask BlueMind to write…" : "Ask anything…",
+      headerTitlePrefix: chatSessionMode === "writing" ? "Writing" : "",
+      quickActions: shouldShowWritingModeHome ? ["Write an email", "Improve text", "Rewrite professionally", "Translate"] : [],
+      selectedMode: chatSessionMode === "writing" ? selectedWritingCategoryId : responseMode,
+      selectedModel: headerModelId,
+      thinkingEnabled: headerThinkingEnabled,
+      models: MOBILE_HEADER_MODELS.map((model) => ({
+        id: model.id,
+        title: model.label,
+        badge: model.badge || "",
+      })),
+      modes: chatSessionMode === "writing"
+        ? writingCategories.map((category) => ({ id: category.id, title: category.label }))
+        : AI_MODES.map((mode) => ({
+          id: mode.id,
+          title: getAiSpecializationLabel(mode),
+        })),
+    });
+  }, [activePrivateSpace?.name, attachmentSheetOpen, chatSessionMode, hasComposerContent, headerModelId, headerThinkingEnabled, imageSourceSheetOpen, isChatSending, isDark, isGeneratingImage, isListening, isRtl, isUploadingImages, menuExpanded, message, nativeGlassActive, nativeGlassAttachments, prefs?.accentColor, prefs?.appColor, responseMode, selectedWritingCategoryId, shouldShowWritingModeHome, voiceLiveTranscript, voicePreview, voiceStatus, writingCategories]);
+
+  useEffect(() => {
+    if (!nativeGlassActive || !isListening) return undefined;
+    if (nativeGlassAudioTimerRef.current) return undefined;
+
+    nativeGlassAudioTimerRef.current = window.setTimeout(() => {
+      nativeGlassAudioTimerRef.current = null;
+      void updateNativeGlassAudioLevels(voiceAudioLevels);
+    }, 70);
+
+    return undefined;
+  }, [isListening, nativeGlassActive, voiceAudioLevels]);
+
+  useEffect(() => () => {
+    if (nativeGlassAudioTimerRef.current) {
+      window.clearTimeout(nativeGlassAudioTimerRef.current);
+      nativeGlassAudioTimerRef.current = null;
+    }
+  }, []);
+
+  nativeGlassMenuOpenRef.current = menuExpanded;
+  nativeGlassActionRef.current = async ({ action, text, mode, attachmentId, conversationId, requestId, value, confirmed, privateSpaceId, attachments, source }) => {
+    console.info("[BlueMindNativeGlass][React] handler", action || "missing-action");
+    switch (action) {
+      case "settingsSelection": {
+        if (String(requestId || "").startsWith("move-chat:")) {
+          const targetConversationId = String(requestId).slice("move-chat:".length);
+          const projects = await listProjects();
+          const selectedProject = projects.find((project) => String(project.id || project._id || "") === value);
+          if (selectedProject) await moveChatToProject(targetConversationId, value, selectedProject.name);
+          break;
+        }
+        if (requestId === "writing-type") {
+          if (writingCategories.some((category) => category.id === value)) {
+            setSelectedWritingCategoryId(value);
+          }
+          break;
+        }
+        if (requestId === "writing-tools") {
+          if (value === "style") focusWritingStyleRequest();
+          if (value === "new") startNewChat();
+          if (value === "type") {
+            await presentNativeIOSSelection({
+              title: "Writing Type",
+              selectedValue: selectedWritingCategoryId,
+              requestId: "writing-type",
+              options: writingCategories.map((category) => ({ value: category.id, label: category.label, symbol: "doc.text" })),
+            });
+          }
+          break;
+        }
+        break;
+      }
+      case "chatEntrySheetAction": {
+        if (requestId === "hidden-chat-entry") {
+          if (value === "start") startHiddenChat();
+          else setHiddenChatModalOpen(false);
+          break;
+        }
+        if (requestId !== "private-chat-entry") break;
+        if (value === "close") {
+          setPrivateSpaceModalOpen(false);
+          break;
+        }
+        const space = privateSpaces.find((item) => item.privateSpaceId === privateSpaceId);
+        if (value === "select" && space) {
+          nativePrivateFlowRef.current = { kind: "unlock", space };
+          await presentNativeIOSSecurePrompt({ title: `Unlock ${space.name}`, message: "Enter the private chat PIN.", placeholder: "PIN", confirmTitle: "Unlock", requestId: "native-private-unlock" });
+        } else if (value === "create") {
+          nativePrivateFlowRef.current = { kind: "create" };
+          await presentNativeIOSTextPrompt({ title: "Create Private Chat", message: "Give this protected chat a name.", placeholder: "Chat name", confirmTitle: "Continue", requestId: "native-private-create-name" });
+        } else if (value === "rename" && space) {
+          nativePrivateFlowRef.current = { kind: "rename", space };
+          await presentNativeIOSTextPrompt({ title: "Rename Private Chat", placeholder: "Chat name", value: space.name, confirmTitle: "Save", requestId: "native-private-rename" });
+        } else if (value === "delete" && space) {
+          nativePrivateFlowRef.current = { kind: "delete", space };
+          await presentNativeIOSConfirmation({ title: "Delete Private Chat?", message: "All conversations inside it will be permanently deleted.", confirmTitle: "Delete", destructive: true, requestId: "native-private-delete" });
+        } else if (value === "changePin" && space) {
+          nativePrivateFlowRef.current = { kind: "changePin", space };
+          await presentNativeIOSSecurePrompt({ title: "Change PIN", message: "Enter the current PIN.", placeholder: "Current PIN", confirmTitle: "Continue", requestId: "native-private-current-pin" });
+        }
+        break;
+      }
+      case "settingsSecurePrompt": {
+        const flow = nativePrivateFlowRef.current;
+        if (!String(requestId || "").startsWith("native-private-")) break;
+        if (!confirmed) {
+          nativePrivateFlowRef.current = null;
+          setPrivateSpaceModalOpen(false);
+          break;
+        }
+        const entered = String(value || "");
+        try {
+          if (requestId === "native-private-create-name") {
+            const name = entered.trim();
+            if (!name) throw new Error("A private chat name is required");
+            nativePrivateFlowRef.current = { ...flow, name };
+            await presentNativeIOSSecurePrompt({ title: "Create Private Chat", message: "Choose a PIN.", placeholder: "PIN", confirmTitle: "Continue", requestId: "native-private-create-pin" });
+          } else if (requestId === "native-private-create-pin") {
+            nativePrivateFlowRef.current = { ...flow, pin: entered };
+            await presentNativeIOSSecurePrompt({ title: "Confirm PIN", message: "Enter the PIN again.", placeholder: "Confirm PIN", confirmTitle: "Create", requestId: "native-private-create-confirm" });
+          } else if (requestId === "native-private-create-confirm") {
+            await createPrivateSpace({ name: flow?.name || "", pin: flow?.pin || "", confirmPin: entered });
+            await loadMobilePrivateSpaces();
+            setPrivateSpaceModalOpen(false);
+            nativePrivateFlowRef.current = null;
+            toast.success("Private space created");
+          } else if (requestId === "native-private-unlock" && flow?.space) {
+            const data = await unlockPrivateSpace(flow.space.privateSpaceId, entered);
+            const unlockedSpace = data?.privateSpace || flow.space;
+            setActivePrivateSpace(unlockedSpace);
+            setPrivateSpaceAccessToken(data?.accessToken || "");
+            setChatSessionMode("private");
+            setPrivateSpaceModalOpen(false);
+            startNewChat();
+            const chats = await listPrivateSpaceChats(unlockedSpace.privateSpaceId, data?.accessToken || "");
+            setConversations(Array.isArray(chats?.items) ? chats.items : []);
+            nativePrivateFlowRef.current = null;
+          } else if (requestId === "native-private-rename" && flow?.space) {
+            const name = entered.trim();
+            if (!name) throw new Error("A private chat name is required");
+            const data = await renamePrivateSpace(flow.space.privateSpaceId, name);
+            if (data?.privateSpace) setPrivateSpaces((items) => items.map((item) => item.privateSpaceId === data.privateSpace.privateSpaceId ? data.privateSpace : item));
+            setPrivateSpaceModalOpen(false);
+            nativePrivateFlowRef.current = null;
+          } else if (requestId === "native-private-current-pin") {
+            nativePrivateFlowRef.current = { ...flow, currentPin: entered };
+            await presentNativeIOSSecurePrompt({ title: "Change PIN", message: "Choose a new PIN.", placeholder: "New PIN", confirmTitle: "Continue", requestId: "native-private-new-pin" });
+          } else if (requestId === "native-private-new-pin") {
+            nativePrivateFlowRef.current = { ...flow, newPin: entered };
+            await presentNativeIOSSecurePrompt({ title: "Confirm New PIN", placeholder: "Confirm New PIN", confirmTitle: "Change PIN", requestId: "native-private-confirm-pin" });
+          } else if (requestId === "native-private-confirm-pin" && flow?.space) {
+            await changePrivateSpacePin(flow.space.privateSpaceId, { currentPin: flow.currentPin, newPin: flow.newPin, confirmNewPin: entered });
+            setPrivateSpaceModalOpen(false);
+            nativePrivateFlowRef.current = null;
+            toast.success("PIN changed");
+          }
+        } catch (error) {
+          toast.error(error?.message || "Could not update private chat");
+          nativePrivateFlowRef.current = null;
+          setPrivateSpaceModalOpen(false);
+        }
+        break;
+      }
+      case "settingsConfirmation": {
+        const flow = nativePrivateFlowRef.current;
+        if (requestId !== "native-private-delete") break;
+        if (confirmed && flow?.space) {
+          try {
+            await deletePrivateSpace(flow.space.privateSpaceId);
+            setPrivateSpaces((items) => items.filter((item) => item.privateSpaceId !== flow.space.privateSpaceId));
+          } catch (error) {
+            toast.error(error?.message || "Could not delete private chat");
+          }
+        }
+        nativePrivateFlowRef.current = null;
+        setPrivateSpaceModalOpen(false);
+        break;
+      }
+      case "menu": {
+        const shouldClose = nativeGlassMenuOpenRef.current;
+        nativeGlassMenuOpenRef.current = !shouldClose;
+        if (shouldClose) closeMenu();
+        else openMenu();
+        break;
+      }
+      case "menuClose":
+        nativeGlassMenuOpenRef.current = false;
+        closeMenu();
+        break;
+      case "newChat":
+        startNewChat();
+        break;
+      case "exitChatMode":
+        if (chatSessionMode === "private") exitPrivateSpace();
+        else if (chatSessionMode === "hidden") exitHiddenMode();
+        break;
+      case "writingTools":
+        await openWritingTools();
+        break;
+      case "writingQuickAction":
+        if (text) setMessage(`${String(text)}: `);
+        break;
+      case "selectMode":
+        if (mode && chatSessionMode === "writing" && writingCategories.some((category) => category.id === mode)) {
+          setSelectedWritingCategoryId(mode);
+        } else if (mode) {
+          await selectResponseMode(mode);
+        }
+        break;
+      case "selectModel":
+        if (mode && MOBILE_HEADER_MODELS.some((model) => model.id === mode)) {
+          setHeaderModelId(mode);
+        }
+        break;
+      case "toggleThinking":
+        setHeaderThinkingEnabled((enabled) => !enabled);
+        break;
+      case "textChanged":
+        setMessage(String(text || ""));
+        break;
+      case "plus":
+        if (chatSessionMode === "normal" && nativeGlassActive) {
+          if (!await presentNativeIOSChatAttachmentSheet()) setAttachmentSheetOpen(true);
+        } else {
+          setAttachmentSheetOpen(true);
+        }
+        break;
+      case "chatAttachmentCamera":
+        await openWritingAttachmentPicker("camera", cameraInputRef);
+        break;
+      case "chatAttachmentPhotos":
+        await openWritingAttachmentPicker("photos", imageInputRef);
+        break;
+      case "chatAttachmentFiles":
+        await openWritingAttachmentPicker("files", fileInputRef);
+        break;
+      case "chatAttachmentPreviews": {
+        const previewReceivedAt = performance.now();
+        const availableSlots = Math.max(0, MAX_IMAGE_ATTACHMENTS - attachedImagesRef.current.length);
+        const previews = (Array.isArray(attachments) ? attachments : []).slice(0, availableSlots);
+        if (!previews.length) break;
+        const optimisticImages = previews.map((attachment) => {
+          const id = String(attachment?.id || crypto.randomUUID());
+          pendingNativePhotoIdsRef.current.add(id);
+          return {
+            id,
+            clientId: id,
+            name: String(attachment?.name || "Photo"),
+            previewData: `data:${String(attachment?.mimeType || "image/jpeg")};base64,${String(attachment?.previewBase64 || "")}`,
+            previewUrl: `data:${String(attachment?.mimeType || "image/jpeg")};base64,${String(attachment?.previewBase64 || "")}`,
+            assetIdentifier: String(attachment?.assetIdentifier || ""),
+            uploadState: "uploading",
+            isOptimistic: true,
+          };
+        });
+        const optimisticIds = new Set(optimisticImages.map((image) => image.clientId));
+        const retainedImages = attachedImagesRef.current.filter((image) => !optimisticIds.has(image.clientId || image.id));
+        const nextImages = [...retainedImages, ...optimisticImages].slice(0, MAX_IMAGE_ATTACHMENTS);
+        attachedImagesRef.current = nextImages;
+        setAttachedImages(nextImages);
+        setIsUploadingImages(true);
+        if (import.meta.env.DEV) {
+          window.requestAnimationFrame(() => {
+            console.info(`[BlueMindCameraTiming] native-preview-to-render-ms=${Math.round(performance.now() - previewReceivedAt)}`);
+          });
+        }
+        break;
+      }
+      case "chatToolCreateImage":
+        enterImageMode();
+        break;
+      case "chatToolWebSearch":
+        enterSearchMode();
+        break;
+      case "chatToolResearch":
+        await selectResponseMode("research");
+        break;
+      case "chatToolWriteEdit":
+        openWriteEditCategories();
+        break;
+      case "askSelectedText": {
+        const selectedText = String(text || "");
+        if (!selectedText.trim()) break;
+        setMessage(`Explain this:\n\n"${selectedText}"`);
+        setChatHomeDismissed(true);
+        window.requestAnimationFrame(() => {
+          composerInputRef.current?.focus?.();
+          resizeChatComposer(composerInputRef.current);
+        });
+        break;
+      }
+      case "writingCamera":
+        await openWritingAttachmentPicker("camera", cameraInputRef);
+        break;
+      case "writingPhotos":
+        await openWritingAttachmentPicker("photos", imageInputRef);
+        break;
+      case "writingFiles":
+        await openWritingAttachmentPicker("files", fileInputRef);
+        break;
+      case "writingAttachmentsPicked": {
+        const nativeAttachments = Array.isArray(attachments) ? attachments : [];
+        if (nativeAttachments.some((attachment) => attachment?.clientId)) {
+          await processOptimisticNativeImages(nativeAttachments);
+          break;
+        }
+        const files = nativeAttachments
+          .map((attachment) => {
+            try { return fileFromNativeAttachment(attachment); } catch { return null; }
+          })
+          .filter(Boolean);
+        if (!files.length) break;
+        if (source === "files") await processWriteAttachmentFiles(files);
+        else await processImageFiles(files, { isCameraCapture: source === "camera" });
+        break;
+      }
+      case "removeAttachment":
+        if (attachmentId) {
+          const normalizedId = String(attachmentId);
+          if (writeAttachments.some((file) => (file.clientId || file.id) === normalizedId)) {
+            removeWriteAttachment(normalizedId);
+          } else {
+            removeAttachedImage(normalizedId);
+          }
+        }
+        break;
+      case "conversationRenameConfirmed": {
+        const conversation = conversations.find((item) => item.conversationId === conversationId);
+        if (conversation) await performRenameConversation(conversation, text);
+        break;
+      }
+      case "conversationDeleteConfirmed": {
+        const conversation = conversations.find((item) => item.conversationId === conversationId);
+        if (conversation) await performDeleteConversation(conversation);
+        break;
+      }
+      case "conversationPin":
+        break;
+      case "conversationAddToProject":
+        await openMoveToProject(conversationId);
+        break;
+      case "microphone":
+        if (nativeGlassMicrophoneLockRef.current) break;
+        nativeGlassMicrophoneLockRef.current = true;
+        try {
+          await startVoiceInput();
+        } finally {
+          nativeGlassMicrophoneLockRef.current = false;
+        }
+        break;
+      case "voiceCancel":
+        await handleCancelVoiceInput();
+        break;
+      case "voiceStop":
+        handleStopVoiceInput();
+        break;
+      case "voiceSend":
+        handleSendVoiceInput();
+        break;
+      case "stop":
+        stopChatGeneration();
+        break;
+      case "send": {
+        if (nativeGlassSendLockRef.current || sendLockRef.current) break;
+        const nativeText = String(text || "").trim();
+        if (!nativeText && attachedImages.length === 0) break;
+
+        nativeGlassSendLockRef.current = true;
+        try {
+          await sendChatPrompt({
+            prompt: nativeText || "Please analyze these images.",
+            imageIds: attachedImages.map((image) => image.id).filter(Boolean),
+            displayAttachments: attachedImages,
+          });
+        } finally {
+          nativeGlassSendLockRef.current = false;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
+  useEffect(() => {
+    if (!nativeGlassSupported) return undefined;
+
+    let listenerHandle;
+    let cancelled = false;
+
+    addNativeGlassActionListener((event) => {
+      if (event?.eventId) nativeGlassAckEventIdRef.current = String(event.eventId);
+      console.info("[BlueMindNativeGlass][React] receive", event?.action || "missing-action", event?.eventId || "missing-event-id");
+      void nativeGlassActionRef.current(event);
+    })
+      .then((handle) => {
+        if (cancelled) {
+          void handle.remove();
+          return;
+        }
+        listenerHandle = handle;
+        setNativeGlassBridgeReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setNativeGlassBridgeReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+      setNativeGlassBridgeReady(false);
+      if (listenerHandle) void listenerHandle.remove();
+    };
+  }, [nativeGlassSupported]);
 
   const handleCancelVoiceInput = useCallback(async () => {
     await cancelVoiceInput();
@@ -3576,16 +4191,17 @@ export default function MobileChat() {
       { label: "Open Camera", icon: Camera, onClick: () => openFileInput(cameraInputRef, "camera") },
       { label: "Files / Photos", icon: FileText, onClick: () => openFileInput(imageInputRef, "photos") },
     ];
+    const writingQuickActions = ["Write an email", "Improve text", "Rewrite professionally", "Translate"];
 
     return (
     <motion.div
       layout
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className={
+      className={`bm-web-chat-composer ${
         centered
           ? "mx-auto w-full max-w-[430px] px-1"
           : "px-4 pb-[calc(env(safe-area-inset-bottom)+8px)]"
-      }
+      }`}
     >
       {(imageModeError || imageModeStatus) && (
         <div className={`mb-2 rounded-2xl px-3 py-2 text-xs font-bold ${
@@ -3676,6 +4292,33 @@ export default function MobileChat() {
         )}
       </AnimatePresence>
 
+      {shouldShowWritingModeHome && (
+        <div
+          className="mb-2 w-full max-w-full overflow-x-auto overscroll-x-contain px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          data-testid="mobile-writing-quick-actions"
+        >
+          <div className="flex w-max min-w-full items-center gap-2">
+            {writingQuickActions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                className={cn(
+                  "bm-mobile-glass-control bm-mobile-glass-chip shrink-0 text-[12px] font-semibold",
+                  isDark ? "text-white/72" : "text-[var(--bm-text-secondary)]",
+                )}
+                onClick={() => {
+                  setMessage(`${suggestion}: `);
+                  setChatHomeDismissed(true);
+                  window.requestAnimationFrame(() => composerInputRef.current?.focus?.());
+                }}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <UnifiedComposer
         value={message}
         onFocus={() => setChatHomeDismissed(true)}
@@ -3696,7 +4339,7 @@ export default function MobileChat() {
           isImageMode
             ? "Describe an image..."
             : (chatSessionMode === "writing" || isWriteEditMode || activeWriteTask)
-              ? selectedWritingCategory?.placeholder || "Write, paste, or choose a writing type..."
+              ? "Ask BlueMind to write..."
             : isSearchMode
                 ? "Ask AI to search..."
                 : attachedImages.length
@@ -3726,7 +4369,7 @@ export default function MobileChat() {
         variant="mobile"
         glassTone="chat-light"
         minimalVoiceUi
-        minRows={isImageMode || chatSessionMode === "writing" || isWriteEditMode || activeWriteTask || isSearchMode ? 3 : 1}
+        minRows={isImageMode || activeWriteTask || isSearchMode ? 3 : 1}
         maxTextHeight={isImageMode || chatSessionMode === "writing" || isWriteEditMode || activeWriteTask || isSearchMode ? 180 : 128}
         testId="mobile-chat-input"
       />
@@ -3782,131 +4425,91 @@ export default function MobileChat() {
     });
   };
 
+  const openWritingTypeSelector = async (event) => {
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    const shown = nativeGlassSupported && nativeGlassBridgeReady && await presentNativeIOSSelection({
+      title: "Writing Type",
+      selectedValue: selectedWritingCategoryId,
+      requestId: "writing-type",
+      anchorRect: rect ? { x: rect.left, y: rect.top, width: rect.width, height: rect.height } : undefined,
+      options: writingCategories.map((category) => ({
+        value: category.id,
+        label: category.label,
+        symbol: category.id === "email" ? "envelope" : category.id === "story" ? "book" : category.id === "professional" ? "briefcase" : "doc.text",
+      })),
+    });
+    if (!shown) setIsWriteEditCategoryBrowserOpen(true);
+  };
+
+  const openWritingTools = async (event) => {
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    const shown = nativeGlassSupported && nativeGlassBridgeReady && await presentNativeIOSSelection({
+      title: "Writing Tools",
+      selectedValue: "",
+      requestId: "writing-tools",
+      anchorRect: rect ? { x: rect.left, y: rect.top, width: rect.width, height: rect.height } : undefined,
+      options: [
+        { value: "style", label: "Personal Writing Style", symbol: "person.text.rectangle" },
+        { value: "type", label: "Change Writing Type", symbol: "doc.text" },
+        { value: "new", label: "Start New Writing Chat", symbol: "square.and.pencil" },
+      ],
+    });
+    if (!shown) focusWritingStyleRequest();
+  };
+
   const renderWritingModeHome = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 8 }}
-      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-      className="space-y-5 pb-8"
-      data-testid="mobile-writing-mode-home"
-    >
-      <section className="pt-1">
-        <p className={cn("text-[12px] font-black uppercase tracking-[0.18em]", isDark ? "text-white/48" : "text-[var(--bm-text-muted)]")}>Writing Mode</p>
-        <h1 className={cn("mt-2 flex items-center gap-2 text-[28px] font-black leading-tight tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>
-          <PenLine className="h-7 w-7 stroke-[2.45]" />
-          <span>Writing Mode</span>
-        </h1>
-        <p className={cn("mt-2 max-w-[360px] text-[14px] font-semibold leading-6", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
-          Write emails, reports, essays, stories and professional content with AI that adapts to your writing style.
-        </p>
-      </section>
-
-      <div className="-mx-4 px-0">
-        {renderComposerArea(false, false)}
-      </div>
-
-      <section>
-        <p className={cn("mb-2 px-1 text-[12px] font-black uppercase tracking-[0.16em]", isDark ? "text-white/48" : "text-[var(--bm-text-muted)]")}>Writing Categories</p>
-        <div className="-mx-4 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex w-max min-w-full items-center gap-2.5">
-            {writingCategories.map((category) => {
-              const CategoryIcon = category.icon;
-              const selected = selectedWritingCategoryId === category.id;
-
-              return (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => setSelectedWritingCategoryId(category.id)}
-                  className={cn(
-                    "bm-mobile-glass-control bm-mobile-glass-chip shrink-0 text-[13px] font-black transition-transform active:scale-[0.97]",
-                    selected
-                      ? isDark ? "text-white" : "text-[var(--bm-text-primary)]"
-                      : isDark ? "text-white/84" : "text-[var(--bm-text-primary)]",
-                  )}
-                  aria-pressed={selected}
-                >
-                  <CategoryIcon className={cn("h-4 w-4 shrink-0 stroke-[2.3]", selected ? isDark ? "text-white" : "text-[var(--bm-primary)]" : isDark ? "text-white/74" : "text-[var(--bm-icon-primary)]")} />
-                  <span className="whitespace-nowrap">{category.label}</span>
-                  {selected && <Check className={cn("h-3.5 w-3.5 shrink-0 stroke-[2.6]", isDark ? "text-white" : "text-[var(--bm-primary)]")} />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section
-        className={cn(
-          "rounded-[28px] border p-4 shadow-sm",
-          isDark
-            ? "border-white/[0.08] bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_18px_42px_rgba(0,0,0,0.22)]"
-            : "border-black/[0.07] bg-white/[0.88] shadow-[inset_0_1px_0_rgba(255,255,255,0.80),0_16px_36px_rgba(15,23,42,0.08)]",
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bm-primary)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
-            <PenLine className="h-5 w-5 stroke-[2.35]" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className={cn("text-[16px] font-black tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Personal Writing Style</h2>
-            <p className={cn("mt-1 text-[13px] font-semibold leading-5", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>
-              Create or edit your style so BlueMind can write closer to the way you naturally sound.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={focusWritingStyleRequest}
-          className="mt-4 h-11 w-full rounded-[22px] border border-white/[0.20] bg-[var(--bm-primary)] px-4 text-sm font-black !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_12px_28px_rgba(0,0,0,0.12)] transition-transform active:scale-[0.985]"
-          style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
-        >
-          Create / Edit Writing Style
-        </button>
-      </section>
-    </motion.div>
+    <div className="flex min-h-[52vh] flex-col items-center justify-center px-4 pb-24 text-center" data-testid="mobile-writing-mode-home">
+      <span className={cn("mb-4 flex h-12 w-12 items-center justify-center rounded-full", isDark ? "bg-white/[0.07] text-white" : "bg-black/[0.05] text-[var(--bm-primary)]")}>
+        <PenLine className="h-5 w-5 stroke-[2.3]" />
+      </span>
+      <h1 className={cn("text-[22px] font-bold tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>Writing Mode</h1>
+      <p className={cn("mt-2 text-[14px] font-medium", mutedText)}>Write, rewrite, improve, or translate anything.</p>
+    </div>
   );
 
   const renderMobileConversationRow = (item, context = "menu") => {
     const menuId = `${context}:${item.conversationId}`;
     const isActive = item.conversationId === activeConversationId;
+    const rowUsesDarkAppearance = isDark || (nativeGlassSupported && context === "menu");
 
     return (
       <div
         key={menuId}
         className="relative py-2.5"
+        data-native-conversation-id={nativeGlassSupported && isDark && context === "menu" ? item.conversationId : undefined}
+        data-native-conversation-title={nativeGlassSupported && isDark && context === "menu" ? item.title || t("newChat") : undefined}
+        style={nativeGlassSupported && isDark && context === "menu" ? { WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none" } : undefined}
       >
         <button
           type="button"
           onClick={() => openConversation(item.conversationId)}
-          className="flex w-full min-w-0 items-start pr-12 text-left"
+          className={cn("flex w-full min-w-0 items-start text-left", nativeGlassSupported && isDark && context === "menu" ? "pr-0" : "pr-12")}
           data-testid={`mobile-chat-row-${item.conversationId}`}
         >
           <span className="min-w-0 flex-1">
-            <span className={`block truncate font-semibold ${typeClasses.body} ${isActive ? isDark ? "text-white" : "text-[var(--bm-primary)]" : textColor}`}>
+            <span className={`block truncate font-semibold ${typeClasses.body} ${isActive ? rowUsesDarkAppearance ? "text-white" : "text-[var(--bm-primary)]" : rowUsesDarkAppearance ? "text-white" : textColor}`}>
               {item.title || t("newChat")}
             </span>
-            <span className={`mt-1 block truncate font-medium ${typeClasses.small} ${isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]"}`}>
+            <span className={`mt-1 block truncate font-medium ${typeClasses.small} ${rowUsesDarkAppearance ? "text-white/58" : "text-[var(--bm-text-secondary)]"}`}>
               {formatConversationTime(item.lastMessageAt || item.updatedAt, uiLanguage)}
             </span>
           </span>
         </button>
 
-        <button
+        {!(nativeGlassSupported && isDark && context === "menu") && <button
           type="button"
           onClick={(event) => {
             event.stopPropagation();
             setChatMenuTarget((current) => current === menuId ? null : menuId);
           }}
-          className="bm-mobile-glass-control absolute right-0 top-2"
+          className="absolute right-0 top-2 flex h-10 w-10 items-center justify-center rounded-full text-current transition-transform active:scale-90"
           aria-label="Conversation actions"
           data-testid={`mobile-chat-menu-${item.conversationId}`}
         >
           <MoreVertical className={iconClasses.button} />
-        </button>
+        </button>}
 
-        <AnimatePresence>
+        {!(nativeGlassSupported && isDark && context === "menu") && <AnimatePresence>
           {chatMenuTarget === menuId && (
             <>
               <button
@@ -3941,6 +4544,15 @@ export default function MobileChat() {
                   <Share2 className={iconClasses.button} />
                   Share
                 </button>
+                {Capacitor.getPlatform() === "ios" ? <button
+                  type="button"
+                  onClick={() => { setChatMenuTarget(null); void openMoveToProject(item.conversationId); }}
+                  className={isDark ? `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold active:bg-white/[0.08] ${typeClasses.small} ${iconClasses.iconText}` : `bm-glass-menu-item flex min-h-[42px] w-full items-center rounded-[15px] px-3 py-2 text-left font-semibold active:bg-[var(--bm-hover-bg)] ${typeClasses.small} ${iconClasses.iconText}`}
+                  role="menuitem"
+                >
+                  <FolderKanban className={iconClasses.button} />
+                  Move to Project
+                </button> : null}
                 <button
                   type="button"
                   onClick={() => {
@@ -3956,7 +4568,7 @@ export default function MobileChat() {
               </motion.div>
             </>
           )}
-        </AnimatePresence>
+        </AnimatePresence>}
       </div>
     );
   };
@@ -3993,7 +4605,7 @@ export default function MobileChat() {
                   key={`${card.title}-${index}`}
                   data-feature-card="true"
                   className={cn(
-                    "relative h-[clamp(104px,14dvh,136px)] w-[86dvw] max-w-[calc(100dvw-2rem)] shrink-0 overflow-hidden rounded-[28px] border",
+                    "relative h-[clamp(122px,16.5dvh,159px)] w-[86dvw] max-w-[calc(100dvw-2rem)] shrink-0 overflow-hidden rounded-[28px] border",
                     isDark
                       ? "border-white/[0.055] text-white/90"
                       : "border-transparent text-[var(--bm-text-primary)]",
@@ -4068,10 +4680,13 @@ export default function MobileChat() {
   };
 
   const renderMobilePlusMenu = () => {
-    const plusActions = [
-      { label: "Camera", icon: Camera, onClick: () => openFileInput(cameraInputRef, "camera") },
-      { label: "Photos", icon: Image, onClick: () => openFileInput(imageInputRef, "photos") },
-      { label: "Files", icon: FileText, onClick: () => openFileInput(fileInputRef, "files") },
+    const writingAttachmentActions = [
+      { label: "Camera", icon: Camera, onClick: () => void openWritingAttachmentPicker("camera", cameraInputRef) },
+      { label: "Photos", icon: Image, onClick: () => void openWritingAttachmentPicker("photos", imageInputRef) },
+      { label: "Files", icon: FileText, onClick: () => void openWritingAttachmentPicker("files", fileInputRef) },
+    ];
+    const plusActions = chatSessionMode === "writing" ? writingAttachmentActions : [
+      ...writingAttachmentActions,
       { label: "Write / Edit", icon: PenLine, onClick: openWriteEditCategories },
       { label: "Create Images", icon: Sparkles, onClick: enterImageMode },
       { label: "Search", icon: Search, onClick: enterSearchMode },
@@ -4149,16 +4764,35 @@ export default function MobileChat() {
       onTouchEnd={handlePageTouchEnd}
       data-testid="mobile-chat-page"
     >
-      <header className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-40 flex h-16 items-center justify-between bg-transparent px-4 shadow-none backdrop-blur-0">
+      <motion.div
+        className="fixed inset-0 flex max-w-full flex-col overflow-hidden"
+        style={nativeGlassSupported ? {
+          x: chatSurfaceX,
+          borderRadius: chatSurfaceRadius,
+          boxShadow: isDark && menuOpen
+            ? (isRtl ? "18px 0 48px rgba(0,0,0,0.72)" : "-18px 0 48px rgba(0,0,0,0.72)")
+            : "none",
+          backgroundColor: isDark && menuOpen ? "#050505" : surfaceColor,
+          clipPath: isDark && menuOpen
+            ? "inset(env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0 round 30px)"
+            : "inset(0 round 0px)",
+          WebkitClipPath: isDark && menuOpen
+            ? "inset(env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0 round 30px)"
+            : "inset(0 round 0px)",
+          zIndex: isDark && menuOpen ? 82 : 72,
+        } : { backgroundColor: surfaceColor }}
+        data-testid="mobile-chat-surface"
+      >
+      <header className="bm-web-chat-header pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-40 flex h-16 items-center justify-between bg-transparent px-4 shadow-none backdrop-blur-0">
         <div className="flex w-12 items-center justify-start">
           <button
-            ref={menuButtonRef}
+            ref={activeProjectId ? undefined : menuButtonRef}
             type="button"
-            onClick={openMenu}
+            onClick={activeProjectId ? () => navigate(projectReturnPath) : openMenu}
             className={`pointer-events-auto ${mobileGlassControlClass}`}
-            aria-label="Open menu"
+            aria-label={activeProjectId ? `Back to ${activeProjectName}` : "Open menu"}
           >
-            <Menu />
+            {activeProjectId ? <ArrowLeft /> : <Menu />}
           </button>
         </div>
 
@@ -4166,16 +4800,21 @@ export default function MobileChat() {
           <button
             ref={aiSelectorButtonRef}
             type="button"
-            onClick={toggleResponseModeMenu}
+            onClick={(chatSessionMode === "writing" || isWriteEditMode) ? openWritingTypeSelector : toggleResponseModeMenu}
             className={`pointer-events-auto ${mobileGlassSelectorClass}`}
-            aria-label="Select AI mode"
-            aria-expanded={responseModeMenuOpen}
+            aria-label={(chatSessionMode === "writing" || isWriteEditMode) ? "Select writing type" : "Select AI mode"}
+            aria-expanded={(chatSessionMode === "writing" || isWriteEditMode) ? undefined : responseModeMenuOpen}
           >
-            {(() => {
+            {(chatSessionMode === "writing" || isWriteEditMode) ? (
+              <>
+                <PenLine className="h-[17px] w-[17px] stroke-[2.25]" />
+                <span className="truncate">Writing · {selectedWritingCategory.label}</span>
+              </>
+            ) : (() => {
               const SelectedModeIcon = getAiMode(responseMode).icon;
               return <SelectedModeIcon className="h-[17px] w-[17px] stroke-[2.25]" />;
             })()}
-            <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>
+            {!(chatSessionMode === "writing" || isWriteEditMode) && <span className="truncate">{getAiSpecializationLabel(responseMode)}</span>}
             <ChevronDown className={`h-4 w-4 transition-transform ${responseModeMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
@@ -4285,11 +4924,11 @@ export default function MobileChat() {
         <div className="flex w-12 items-center justify-end">
           <button
             type="button"
-            onClick={startNewChat}
+            onClick={(chatSessionMode === "writing" || isWriteEditMode) ? openWritingTools : startNewChat}
             className={`pointer-events-auto ${mobileGlassControlClass}`}
-            aria-label="New chat"
+            aria-label={(chatSessionMode === "writing" || isWriteEditMode) ? "Writing tools" : "New chat"}
           >
-            <PenLine className="h-5 w-5" />
+            {(chatSessionMode === "writing" || isWriteEditMode) ? <Wand2 className="h-5 w-5" /> : <PenLine className="h-5 w-5" />}
           </button>
         </div>
       </header>
@@ -4298,7 +4937,7 @@ export default function MobileChat() {
         {shouldShowChatHome && renderFeatureCarousel()}
       </AnimatePresence>
 
-      {(chatSessionMode === "private" || chatSessionMode === "hidden") && (
+      {!nativeGlassActive && (chatSessionMode === "private" || chatSessionMode === "hidden") && (
         <div className={`z-30 flex items-center justify-between border-b px-4 py-2 text-xs font-bold ${borderColor}`} style={{ backgroundColor: surfaceColor }}>
           <span className="flex items-center gap-2">
             {chatSessionMode === "private" ? <Lock className="h-4 w-4" /> : <Glasses className="h-4 w-4" />}
@@ -4320,7 +4959,7 @@ export default function MobileChat() {
           }}
           className={
             shouldShowWritingModeHome
-              ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
+              ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[190px] pt-20"
               : isSmartFocusMode
               ? "min-h-0 flex-1 overflow-y-auto px-4 pb-[132px] pt-20"
               : shouldUseChatMessageSafeArea
@@ -4746,6 +5385,26 @@ export default function MobileChat() {
                     </div>
 
                     {item.role !== "user" && !item.isStreaming && (
+                      (chatSessionMode === "writing" || isWriteEditMode) && (
+                        <div className="mt-3 flex max-w-full gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Writing actions">
+                          {[
+                            ["clearer", "Improve"],
+                            ["shorter", "Shorter"],
+                            ["longer", "Longer"],
+                            ["professional", "Professional"],
+                            ["simpler", "Simpler"],
+                            ["rewrite", "Rewrite"],
+                            ["translate", "Translate"],
+                          ].map(([option, label]) => (
+                            <button key={option} type="button" className="bm-mobile-glass-control bm-mobile-glass-chip shrink-0 text-[12px] font-semibold" onClick={() => handleWritingResponseAction(item, option)}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    )}
+
+                    {item.role !== "user" && !item.isStreaming && (
                       <motion.div
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -4832,67 +5491,6 @@ export default function MobileChat() {
 
         </div>
 
-        <AnimatePresence>
-          {selectionToolbar.visible && (
-            <motion.div
-              key="chat-selection-toolbar"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed z-[65]"
-              style={{
-                left: selectionToolbar.x,
-                top: selectionToolbar.y,
-                transform: selectionToolbar.placement === "above" ? "translate(-50%, -100%)" : "translate(-50%, 0)",
-                transformOrigin: selectionToolbar.placement === "above" ? "bottom center" : "top center",
-              }}
-              data-testid="chat-selection-toolbar"
-            >
-              <motion.div
-                ref={selectionToolbarRef}
-                initial={{ scale: 0.96 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.96 }}
-                transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                className="flex min-h-11 items-center gap-1 rounded-full border border-white/[0.12] bg-[rgba(18,18,20,0.88)] px-1.5 py-1 text-white shadow-[0_14px_34px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-[26px]"
-                role="toolbar"
-                aria-label="Text selection actions"
-              >
-                <button
-                  type="button"
-                  onPointerDown={(event) => event.preventDefault()}
-                  onClick={askBlueMindAboutSelection}
-                  className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-black text-white transition-transform active:scale-[0.97]"
-                >
-                  <Sparkles className="h-3.5 w-3.5 stroke-[2.5]" />
-                  Ask BlueMind
-                </button>
-                <span className="h-5 w-px bg-white/[0.13]" aria-hidden="true" />
-                <button
-                  type="button"
-                  onPointerDown={(event) => event.preventDefault()}
-                  onClick={copySelectionText}
-                  className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-black text-white transition-transform active:scale-[0.97]"
-                >
-                  {selectionToolbar.copied ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <Clipboard className="h-3.5 w-3.5 stroke-[2.4]" />}
-                  {selectionToolbar.copied ? "Copied" : "Copy"}
-                </button>
-                <span className="h-5 w-px bg-white/[0.13]" aria-hidden="true" />
-                <button
-                  type="button"
-                  onPointerDown={(event) => event.preventDefault()}
-                  onClick={selectAllCurrentMessage}
-                  className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-black text-white transition-transform active:scale-[0.97]"
-                >
-                  <FileText className="h-3.5 w-3.5 stroke-[2.4]" />
-                  Select All
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {shouldPinComposer && (
           <div
             className="fixed inset-x-0 z-20 transition-[bottom] duration-200 ease-out"
@@ -4905,7 +5503,7 @@ export default function MobileChat() {
         )}
 
         <AnimatePresence>
-          {showScrollToBottom && (
+          {!menuSearchOpen && !chatEntrySheetOpen && showScrollToBottom && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -5247,7 +5845,7 @@ export default function MobileChat() {
       </BlueMindOverlay>
 
       <BlueMindOverlay
-        open={privateSpaceModalOpen}
+        open={privateSpaceModalOpen && !(nativeGlassSupported && nativeGlassBridgeReady)}
         kind="sheet"
         className="z-[90] flex items-end"
         backdropClassName="bg-black/40 backdrop-blur-[6px]"
@@ -5261,7 +5859,7 @@ export default function MobileChat() {
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-[20px] font-black leading-tight tracking-tight">Private Chat</h2>
-                  <p className={`mt-1 text-sm font-semibold leading-5 ${mutedText}`}>Unlock a private chat inside your account.</p>
+                  <p className={`mt-1 text-sm font-semibold leading-5 ${mutedText}`}>Open or create a protected private chat inside your account.</p>
                 </div>
                 <button type="button" className="bm-mobile-glass-control" onClick={() => setPrivateSpaceModalOpen(false)}>
                   <X className="h-5 w-5" />
@@ -5309,7 +5907,10 @@ export default function MobileChat() {
                       )}
                     </div>
                   ))}
-                  <button type="button" className={privatePrimaryButtonClass} style={privatePrimaryButtonStyle} onClick={startCreatePrivateSpace}>Create Private Chat</button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="button" className={cn("min-h-[48px] rounded-[22px] border px-4 text-sm font-black", isDark ? "border-white/[0.08] bg-white/[0.055] text-white/86" : "border-black/[0.07] bg-black/[0.035] text-[var(--bm-text-primary)]")} onClick={() => setPrivateSpaceModalOpen(false)}>Cancel</button>
+                    <button type="button" className={privatePrimaryButtonClass} style={privatePrimaryButtonStyle} onClick={startCreatePrivateSpace}>Create Private Chat</button>
+                  </div>
                 </div>
               )}
               {privateSpaceStep === "create" && (
@@ -5358,16 +5959,11 @@ export default function MobileChat() {
       </BlueMindOverlay>
 
       <BlueMindOverlay
-        open={hiddenChatModalOpen}
-        kind="modal"
-        className="z-[90] flex items-center justify-center px-5"
+        open={hiddenChatModalOpen && !(nativeGlassSupported && nativeGlassBridgeReady)}
+        kind="sheet"
+        className="z-[90] flex items-end"
         backdropClassName="bg-black/42 backdrop-blur-[10px]"
-        contentClassName={cn(
-                "w-full max-w-[350px] rounded-[30px] border p-5 shadow-2xl",
-                isDark
-                  ? "border-white/[0.08] bg-[rgba(38,38,38,0.88)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_24px_70px_rgba(0,0,0,0.42)] backdrop-blur-[44px]"
-                  : "border-black/[0.07] bg-white/[0.94] text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.82),0_22px_60px_rgba(15,23,42,0.16)] backdrop-blur-[36px]",
-        )}
+        contentClassName={privateSheetClass}
         onClose={() => setHiddenChatModalOpen(false)}
         closeLabel="Dismiss hidden chat"
         contentProps={{ onClick: (event) => event.stopPropagation() }}
@@ -5385,55 +5981,70 @@ export default function MobileChat() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <p className={`mb-5 whitespace-pre-line text-sm font-semibold leading-6 ${mutedText}`}>This chat is temporary.
-Messages are not saved.
-It does not appear in History.
-It does not appear in Search.
-Everything will be deleted when you leave.</p>
-              <button
-                type="button"
-                className="w-full rounded-[22px] border border-white/[0.20] bg-[var(--bm-primary)] px-4 py-3.5 text-sm font-black !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_12px_28px_rgba(0,0,0,0.14)] transition-transform active:scale-[0.985]"
-                style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
-                onClick={startHiddenChat}
-              >
-                Start Hidden Chat
-              </button>
+              <p className={`mb-5 text-sm font-semibold leading-6 ${mutedText}`}>This chat is temporary. Messages are not saved, do not appear in History or Search, and are deleted when you leave.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button" className={cn("min-h-[48px] rounded-[22px] border px-4 text-sm font-black", isDark ? "border-white/[0.08] bg-white/[0.055] text-white/86" : "border-black/[0.07] bg-black/[0.035] text-[var(--bm-text-primary)]")} onClick={() => setHiddenChatModalOpen(false)}>Cancel</button>
+                <button
+                  type="button"
+                  className={privatePrimaryButtonClass}
+                  style={privatePrimaryButtonStyle}
+                  onClick={startHiddenChat}
+                >
+                  Start Hidden Chat
+                </button>
+              </div>
           </>
         )}
       </BlueMindOverlay>
 
+        {nativeGlassSupported && menuOpen && (
+          <button
+            type="button"
+            className="absolute inset-0 z-[120] cursor-default bg-transparent"
+            onClick={closeMenu}
+            aria-label="Close menu"
+          />
+        )}
+      </motion.div>
+
       <AnimatePresence>
         {menuOpen && (
-          <div className="fixed inset-0 z-[70] overflow-hidden">
-            <motion.button
-              type="button"
-              className={cn("absolute inset-y-0 z-0 bg-black/14 backdrop-blur-[3px]", isRtl ? "left-0" : "right-0")}
-              style={{
-                width: `calc(100vw - ${drawerWidth}px)`,
-                opacity: drawerScrimOpacity,
-              }}
-              onClick={closeMenu}
-              aria-label="Close menu"
-            />
+          <div className={cn("fixed inset-0 overflow-hidden", nativeGlassSupported && isDark ? "z-[80]" : "z-[70]")}>
+            {!nativeGlassSupported && (
+              <motion.button
+                type="button"
+                className={cn("absolute inset-y-0 z-0 bg-black/14 backdrop-blur-[3px]", isRtl ? "left-0" : "right-0")}
+                style={{
+                  width: `calc(100vw - ${drawerWidth}px)`,
+                  opacity: drawerScrimOpacity,
+                }}
+                onClick={closeMenu}
+                aria-label="Close menu"
+              />
+            )}
             <motion.section
               ref={menuDrawerRef}
               className={cn(
                 "absolute inset-y-0 z-10 flex flex-col overflow-hidden outline-none",
                 isRtl ? "right-0" : "left-0",
-                isDark ? "bg-black text-white" : "bg-[#FFFFFF] text-[var(--bm-text-primary)]",
+                nativeGlassSupported && isDark ? "bg-black text-white" : nativeGlassSupported ? "bg-black text-white" : isDark ? "bg-black text-white" : "bg-[#FFFFFF] text-[var(--bm-text-primary)]",
               )}
               style={{
                 x: drawerX,
+                opacity: 1,
                 width: drawerWidth,
                 paddingTop: "env(safe-area-inset-top)",
                 paddingBottom: "env(safe-area-inset-bottom)",
                 touchAction: "pan-y",
-                boxShadow: isRtl ? "-10px 0 26px rgba(0,0,0,0.14)" : "10px 0 26px rgba(0,0,0,0.14)",
+                boxShadow: nativeGlassSupported && isDark
+                  ? "none"
+                  : nativeGlassSupported ? "none" : (isRtl ? "-10px 0 26px rgba(0,0,0,0.14)" : "10px 0 26px rgba(0,0,0,0.14)"),
               }}
               tabIndex={-1}
-              drag="x"
+              drag={nativeGlassSupported ? false : "x"}
               dragConstraints={isRtl ? { left: 0, right: drawerWidth } : { left: -drawerWidth, right: 0 }}
-              dragElastic={0.02}
+              dragElastic={nativeGlassSupported && isDark ? 0 : 0.02}
+              dragMomentum={!(nativeGlassSupported && isDark)}
               onDragStart={() => {
                 drawerAnimationRef.current?.stop?.();
                 drawerGestureActiveRef.current = true;
@@ -5454,8 +6065,19 @@ Everything will be deleted when you leave.</p>
               dir={isRtl ? "rtl" : "ltr"}
             >
             <div
-              className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[calc(env(safe-area-inset-top)+74px)] backdrop-blur-[6px]"
-              style={{
+              className={cn(
+                "pointer-events-none absolute inset-x-0",
+                nativeGlassSupported
+                  ? "top-0 z-30 h-[calc(env(safe-area-inset-top)+108px)] backdrop-blur-[22px]"
+                  : "top-0 z-10 h-[calc(env(safe-area-inset-top)+74px)] backdrop-blur-[6px]",
+              )}
+              style={nativeGlassSupported ? {
+                background: isDark
+                  ? "linear-gradient(to bottom, rgba(8,8,8,0.62) 0%, rgba(8,8,8,0.48) 56%, rgba(8,8,8,0.18) 78%, rgba(8,8,8,0) 100%)"
+                  : "linear-gradient(to bottom, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.52) 56%, rgba(255,255,255,0.18) 78%, rgba(255,255,255,0) 100%)",
+                WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 58%, rgba(0,0,0,0.72) 76%, transparent 100%)",
+                maskImage: "linear-gradient(to bottom, #000 0%, #000 58%, rgba(0,0,0,0.72) 76%, transparent 100%)",
+              } : {
                 background: isDark
                   ? "linear-gradient(to bottom, rgba(0,0,0,0.96), rgba(0,0,0,0.76), rgba(0,0,0,0))"
                   : "linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(255,255,255,0.76), rgba(255,255,255,0))",
@@ -5465,23 +6087,36 @@ Everything will be deleted when you leave.</p>
 
             <div
               className={cn(
-                "pointer-events-none absolute inset-x-0 top-0 z-20 pt-[calc(env(safe-area-inset-top)+22px)]",
+                "pointer-events-none absolute inset-x-0 top-0 z-40 pt-[calc(env(safe-area-inset-top)+22px)]",
                 isRtl ? "pl-[88px] pr-5 text-right" : "pl-5 pr-[88px] text-left",
               )}
             >
-              <h2 className={cn("truncate text-[20px] font-semibold leading-none tracking-tight", isDark ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</h2>
+              <h2 className={cn("truncate text-[20px] font-semibold leading-none tracking-tight", isDark || nativeGlassSupported ? "text-white" : "text-[var(--bm-text-primary)]")}>BlueMind AI</h2>
             </div>
 
-            <button
-              type="button"
-              onClick={openMenuSearch}
-              className={cn("bm-mobile-glass-control absolute top-[calc(env(safe-area-inset-top)+14px)] z-30", isRtl ? "left-5" : "right-5")}
-              aria-label="Search"
-            >
-              <Search className="h-5 w-5 stroke-[2.35]" />
-            </button>
+            {nativeGlassSupported ? (
+              <IOSNativeGlassButton
+                id="chat-menu-search"
+                symbol="magnifyingglass"
+                label="Search"
+                onClick={openMenuSearch}
+                className={cn("bm-mobile-glass-control absolute top-[calc(env(safe-area-inset-top)+14px)] z-50", isRtl ? "left-5" : "right-5")}
+                isDark={isDark}
+              >
+                <Search className="h-5 w-5 stroke-[2.35]" />
+              </IOSNativeGlassButton>
+            ) : (
+              <button
+                type="button"
+                onClick={openMenuSearch}
+                className={cn("bm-mobile-glass-control absolute top-[calc(env(safe-area-inset-top)+14px)] z-50", isRtl ? "left-5" : "right-5")}
+                aria-label="Search"
+              >
+                <Search className="h-5 w-5 stroke-[2.35]" />
+              </button>
+            )}
 
-            <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-[calc(env(safe-area-inset-top)+76px)]">
+            <nav className="relative z-20 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-[calc(env(safe-area-inset-top)+76px)]">
               <section className="space-y-1">
                 <p className={`pb-2 font-bold uppercase tracking-wide ${typeClasses.small} ${mobileSectionTitleClass}`}>CHAT MODES</p>
                 <button
@@ -5510,10 +6145,7 @@ Everything will be deleted when you leave.</p>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    closeMenu();
-                    setHiddenChatModalOpen(true);
-                  }}
+                  onClick={openHiddenChatModal}
                   className={mobileMenuItemClass(chatSessionMode === "hidden")}
                 >
                   <Glasses className={`shrink-0 ${iconClasses.sidebar}`} />
@@ -5534,9 +6166,20 @@ Everything will be deleted when you leave.</p>
                     <span>{item.label}</span>
                   </button>
                 ))}
+                {nativeGlassSupported && isDark && (
+                  <button type="button" onClick={() => goTo("/mobile/projects")} className={mobileMenuItemClass(false)}>
+                    <FolderKanban className={`shrink-0 ${iconClasses.sidebar}`} />
+                    <span>Projects</span>
+                  </button>
+                )}
               </section>
 
               <section id="mobile-history-chats" className="mt-5">
+                {nativeGlassSupported && isDark && (
+                  <div className="mb-5">
+                    <p className={`pb-2 font-bold tracking-wide ${typeClasses.small} ${mobileSectionTitleClass}`}>Pinned</p>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={toggleChatHistory}
@@ -5590,11 +6233,11 @@ Everything will be deleted when you leave.</p>
               </section>
             </nav>
 
-            <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-start gap-3 px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-4">
+            <div className={cn("absolute inset-x-0 bottom-0 z-20 flex items-center justify-start px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-4", nativeGlassSupported && isDark ? "gap-5" : "gap-3")}>
               <button
                 type="button"
                 onClick={startNewChat}
-                className="flex h-[50px] w-[58%] items-center justify-center gap-2.5 rounded-full border border-white/[0.20] bg-[var(--bm-primary)] px-4 text-[14px] font-extrabold !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(255,255,255,0.025),0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur-[24px] transition-transform active:scale-[0.98]"
+                className={cn("flex items-center justify-center gap-2.5 rounded-full border border-white/[0.20] bg-[var(--bm-primary)] px-4 text-[14px] font-extrabold !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(255,255,255,0.025),0_14px_32px_rgba(0,0,0,0.16)] backdrop-blur-[24px] transition-transform active:scale-[0.98]", nativeGlassSupported && isDark ? "h-[46px] w-[54%]" : "h-[50px] w-[58%]")}
                 aria-label={t("newChat")}
               >
                 <PenLine className="h-5 w-5 stroke-[2.35] text-white" />
@@ -5606,14 +6249,14 @@ Everything will be deleted when you leave.</p>
                 onClick={() => {
                   setSettingsSheetOpen(true);
                 }}
-                className={cn(
+                className={nativeGlassSupported ? "bm-mobile-glass-control p-[4px]" : cn(
                   "flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full border p-[5px] backdrop-blur-[42px] transition-transform active:scale-95",
                   isDark
                     ? "border-white/[0.055] bg-[rgba(78,78,78,0.18)] text-white/88"
                     : "border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-[var(--bm-text-primary)]",
                 )}
                 aria-label={menuUserName}
-                style={mobileGlassControlStyle}
+                style={nativeGlassSupported ? undefined : mobileGlassControlStyle}
               >
                 <span className={cn("flex h-full w-full items-center justify-center overflow-hidden rounded-full text-base font-black", isDark ? "bg-[rgba(255,255,255,0.08)] text-white/88" : "bg-[var(--bm-hover-bg)] text-[var(--bm-text-primary)]")}>
                   {menuUserAvatar ? (

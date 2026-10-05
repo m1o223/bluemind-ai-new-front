@@ -6,6 +6,12 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ar</string>
+		<string>sv</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>BlueMind AI</string>
 	<key>CFBundleExecutable</key>
@@ -28,6 +34,8 @@
 	<string>LaunchScreen</string>
 	<key>NSCameraUsageDescription</key>
 	<string>BlueMind AI uses the camera when you choose to capture an image for a conversation.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>BlueMind uses Face ID to securely unlock your account on this device.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BlueMind AI uses the microphone when you choose voice input.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

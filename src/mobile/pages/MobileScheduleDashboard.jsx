@@ -35,9 +35,20 @@ import MessageResponse from "@/components/MessageResponse";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
 import UnifiedComposer from "@/components/UnifiedComposer";
 import MobileNotificationControlCard from "@/mobile/components/MobileNotificationControlCard";
+import IOSNativeGlassButton from "@/mobile/components/IOSNativeGlassButton";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
+import { isNativeIOSApp } from "@/capacitorRuntime";
+import {
+  addNativeGlassActionListener,
+  prepareNativeGlassExperiment,
+  presentNativeIOSConfirmation,
+  presentNativeIOSAllSchedules,
+  presentNativeIOSSelection,
+  presentNativeIOSTextPrompt,
+  setNativeScheduleHeaderVisible,
+} from "@/mobile/nativeGlassBridge";
 import { streamChatMessage, transcribeVoiceAudio } from "@/services/chatService";
 import { uploadChatImage } from "@/services/imageService";
 import useVoiceInput from "@/hooks/useVoiceInput";
@@ -55,9 +66,9 @@ const SCHEDULE_LIBRARY_STORAGE_KEY = "bluemind-schedule-library-v1";
 const ACTIVE_SCHEDULE_ID_STORAGE_KEY = "bluemind-active-schedule-id-v1";
 const LEGACY_MOBILE_SCHEDULE_ID = "mobile-calendar-events";
 
-const mobileBlueGlassSurfaceClass = "border-[#2F7DF6]/[0.20] bg-[rgba(12,45,102,0.42)] text-white shadow-[inset_0_1px_0_rgba(115,170,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileBlueGlassMenuClass = "border-[#2F7DF6]/[0.22] bg-[rgba(10,42,96,0.72)] text-white shadow-[inset_0_1px_0_rgba(125,182,255,0.16),0_18px_42px_rgba(5,18,45,0.28)] backdrop-blur-[28px]";
 const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
+const scheduleNeutralCardSurfaceClass = "border-white/[0.085] bg-[rgba(31,31,33,0.84)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_14px_34px_rgba(0,0,0,0.20)] backdrop-blur-[24px]";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
 const mobilePrimaryButtonGlassClass = "border-[#7DB7FF]/[0.18] bg-[rgba(25,59,104,0.94)] !text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20),inset_0_-1px_0_rgba(0,0,0,0.08),0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-[24px]";
 const mobileNeutralButtonGlassClass = "border-black/[0.06] bg-white/[0.72] text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-[24px]";
@@ -453,7 +464,7 @@ function ScheduleActionSheet({ open, isDark, onClose, onManual, onAi }) {
   );
 }
 
-function MobileModalShell({ open, isDark, title, onClose, children, contentClassName = "" }) {
+function MobileModalShell({ open, isDark, title, onClose, children, contentClassName = "", sheetClassName = "" }) {
   useEffect(() => {
     if (!open) return undefined;
 
@@ -491,6 +502,7 @@ function MobileModalShell({ open, isDark, title, onClose, children, contentClass
               className={cn(
                 "relative box-border flex h-[88dvh] w-full max-w-full min-w-0 flex-col overflow-hidden rounded-t-[34px] shadow-[0_-28px_90px_rgba(0,0,0,0.18)] md:mx-auto md:h-[86dvh] md:max-w-[560px] md:rounded-[34px]",
                 isDark ? "bg-[var(--bm-bg-card)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
+                sheetClassName,
               )}
               role="dialog"
               aria-modal="true"
@@ -499,9 +511,16 @@ function MobileModalShell({ open, isDark, title, onClose, children, contentClass
               <div className="flex h-14 shrink-0 items-center justify-between px-5 pt-2">
                 <span className="w-10" />
                 <h2 className="truncate text-base font-extrabold">{title}</h2>
-                <button type="button" onClick={onClose} className="bm-mobile-glass-control" aria-label={`Close ${title}`}>
+                <IOSNativeGlassButton
+                  id={`schedule-modal-close-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  symbol="xmark"
+                  label={`Close ${title}`}
+                  onClick={onClose}
+                  className="bm-mobile-glass-control"
+                  isDark={isDark}
+                >
                   <X className="h-5 w-5" />
-                </button>
+                </IOSNativeGlassButton>
               </div>
               <div className={cn("box-border min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(28px,env(safe-area-inset-bottom))] pt-2 sm:px-6", contentClassName)}>
                 {children}
@@ -1246,7 +1265,7 @@ function ScheduleContextMenuPortal({ open, rect, isDark, onClose, onEdit, onDele
 
 function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
   return (
-    <MobileModalShell open={open} isDark={isDark} title="All schedules" onClose={onClose} contentClassName="flex flex-col">
+    <MobileModalShell open={open} isDark={isDark} title="All schedules" onClose={onClose} contentClassName="flex flex-col" sheetClassName="!h-[90dvh]">
             <p className={cn("mb-4 font-semibold", typeClasses.small, "text-[var(--bm-text-muted)]")}>
               Sorted by date and time automatically.
             </p>
@@ -1259,7 +1278,7 @@ function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
                     return (
                       <div
                         key={event.id}
-                        className={cn("relative flex items-center gap-3 rounded-[24px] border p-3", isDark ? mobileBlueGlassSurfaceClass : "border-[#2F7DF6]/[0.10] bg-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_12px_28px_rgba(15,85,170,0.08)] backdrop-blur-[18px]")}
+                        className={cn("relative flex items-center gap-3 rounded-[24px] border p-3", isDark ? scheduleNeutralCardSurfaceClass : "border-black/[0.08] bg-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_12px_28px_rgba(15,23,42,0.08)] backdrop-blur-[18px]")}
                       >
                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: color }}>
                           <Icon className={iconClasses.button} />
@@ -1271,24 +1290,26 @@ function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
                             {formatDateLabel(fromDateKey(event.date))}, {event.startTime}
                           </span>
                         </span>
-                        <button
-                          type="button"
+                        <IOSNativeGlassButton
+                          id={`schedule-library-actions-${event.id}`}
+                          symbol="ellipsis"
+                          label={`Open actions for ${event.title}`}
                           onClick={(clickEvent) => onOpenMenu(event.id, clickEvent)}
                           className="bm-mobile-glass-control"
-                          aria-label={`Open actions for ${event.title}`}
+                          isDark={isDark}
                         >
                           <MoreVertical className={iconClasses.button} />
-                        </button>
+                        </IOSNativeGlassButton>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className={cn("rounded-[24px] border p-5 text-center", isDark ? "border-white/10 bg-white/[0.05]" : "border-[var(--bm-border)] bg-[var(--bm-bg-elevated)]")}>
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-5 pb-12 text-center">
                   <CalendarDays className="mx-auto h-8 w-8 text-[var(--bm-primary)]" />
                   <p className={cn("mt-3 font-black", typeClasses.body)}>No schedules yet</p>
                   <p className={cn("mx-auto mt-1 max-w-[240px] font-semibold leading-5", typeClasses.small, "text-[var(--bm-text-muted)]")}>
-                    Use the plus button to add your first schedule.
+                    Use the + button to add your first schedule.
                   </p>
                 </div>
               )}
@@ -1296,7 +1317,7 @@ function AllSchedulesModal({ open, isDark, events, onClose, onOpenMenu }) {
   );
 }
 
-function ScheduleHomeInfoPanel({ debug, busy, isDark, appColor, onEnable, onRefresh, onTest }) {
+function ScheduleHomeInfoPanel({ debug, busy, isDark, appColor, onEnable, onRefresh, onTest, nativeIOS }) {
   return (
     <MobileNotificationControlCard
       title="Schedule Notifications"
@@ -1309,11 +1330,12 @@ function ScheduleHomeInfoPanel({ debug, busy, isDark, appColor, onEnable, onRefr
       onRefresh={onRefresh}
       onTest={onTest}
       testId="mobile-schedule-info-panel"
+      nativeGlass={nativeIOS}
     />
   );
 }
 
-function ScheduleHomeCard({ schedule, index, isDark, onOpen, onDelete }) {
+function ScheduleHomeCard({ schedule, index, isDark, onOpen, onDelete, nativeIOS, onOpenNativeActions }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const created = formatScheduleCreatedParts(schedule.createdAt || schedule.updatedAt);
   const eventCount = Array.isArray(schedule.blocks) ? schedule.blocks.length : 0;
@@ -1327,8 +1349,8 @@ function ScheduleHomeCard({ schedule, index, isDark, onOpen, onDelete }) {
       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1], delay: index * 0.035 }}
       onClick={() => onOpen(schedule)}
       className={cn(
-        "relative cursor-pointer rounded-[24px] border p-4 shadow-sm transition",
-        isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
+        "relative w-full min-w-0 max-w-full cursor-pointer overflow-hidden rounded-[24px] border p-4 shadow-sm transition",
+        isDark ? scheduleNeutralCardSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -1344,20 +1366,26 @@ function ScheduleHomeCard({ schedule, index, isDark, onOpen, onDelete }) {
           </div>
         </div>
 
-        <div className="relative">
-          <button
-            type="button"
+        <div className="relative shrink-0">
+          <IOSNativeGlassButton
+            id={`schedule-card-actions-${schedule.id}`}
+            symbol="ellipsis"
+            label={`Schedule actions for ${schedule.name}`}
             onClick={(event) => {
               event.stopPropagation();
+              if (nativeIOS) {
+                onOpenNativeActions(schedule, event.currentTarget);
+                return;
+              }
               setMenuOpen((value) => !value);
             }}
-            className="bm-mobile-glass-control"
-            aria-label={`Schedule actions for ${schedule.name}`}
+            className={cn("bm-mobile-glass-control", nativeIOS && "bm-reminders-static-glass-control")}
+            isDark={isDark}
           >
             <MoreVertical className={iconClasses.button} />
-          </button>
+          </IOSNativeGlassButton>
 
-          {menuOpen && (
+          {!nativeIOS && menuOpen && (
             <>
               <button
                 type="button"
@@ -1432,6 +1460,78 @@ export default function MobileScheduleDashboard() {
     refreshing: false,
     sendingTest: false,
   });
+  const [nativeScheduleHeaderActive, setNativeScheduleHeaderActive] = useState(false);
+  const nativeScheduleCallbacksRef = useRef(new Map());
+  const requestScheduleNameRef = useRef(null);
+  const nativeIOS = isNativeIOSApp();
+
+  function createNamedSchedule(rawName) {
+    const name = String(rawName || "").trim();
+    if (!name) return;
+    const nextRecord = createScheduleRecord({ name, blocks: [] });
+    const records = [nextRecord, ...readRawScheduleLibrary().map(normalizeScheduleRecord)];
+    writeScheduleLibrary(records);
+    setSchedules(records);
+    showCalendarForSchedule(nextRecord);
+  }
+
+  const requestScheduleName = () => {
+    if (!nativeIOS) {
+      const name = window.prompt("Give this schedule a name.", "")?.trim();
+      if (name) createNamedSchedule(name);
+      return;
+    }
+    const requestId = globalThis.crypto?.randomUUID?.() || `schedule-name-${Date.now()}`;
+    nativeScheduleCallbacksRef.current.set(requestId, (event) => {
+      if (event.confirmed !== true) return;
+      const name = String(event.value || "").trim();
+      if (name) createNamedSchedule(name);
+    });
+    void presentNativeIOSTextPrompt({
+      title: "New Schedule",
+      message: "Give this schedule a name.",
+      placeholder: "Schedule name",
+      confirmTitle: "Continue",
+      cancelTitle: "Cancel",
+      requestId,
+    });
+  };
+  requestScheduleNameRef.current = requestScheduleName;
+
+  useEffect(() => {
+    if (!nativeIOS) return undefined;
+    let cancelled = false;
+    let listenerHandle;
+    const callbacks = nativeScheduleCallbacksRef.current;
+    void addNativeGlassActionListener((event) => {
+      if (event?.action === "scheduleBack") {
+        navigate(-1);
+        return;
+      }
+      if (event?.action === "scheduleAdd") {
+        requestScheduleNameRef.current?.();
+        return;
+      }
+      const callback = callbacks.get(event?.requestId);
+      if (!callback) return;
+      callbacks.delete(event.requestId);
+      callback(event);
+    }).then((handle) => { listenerHandle = handle; });
+    void prepareNativeGlassExperiment().then((supported) => {
+      if (!cancelled && supported) setNativeScheduleHeaderActive(true);
+    });
+    return () => {
+      cancelled = true;
+      callbacks.clear();
+      listenerHandle?.remove?.();
+      void setNativeScheduleHeaderVisible(false, { isDark });
+    };
+  }, [isDark, nativeIOS, navigate]);
+
+  useEffect(() => {
+    if (!nativeScheduleHeaderActive) return;
+    void setNativeScheduleHeaderVisible(viewMode === "home", { isDark });
+  }, [isDark, nativeScheduleHeaderActive, viewMode]);
 
   const eventDates = useMemo(() => new Set(events.map((event) => event.date)), [events]);
   const sortedEvents = useMemo(() => sortEvents(events), [events]);
@@ -1576,6 +1676,30 @@ export default function MobileScheduleDashboard() {
   const openEventMenu = (eventId, clickEvent) => {
     clickEvent.stopPropagation();
     const anchor = clickEvent.currentTarget;
+    if (nativeIOS) {
+      const scheduleEvent = events.find((event) => event.id === eventId);
+      if (!scheduleEvent) return;
+      const rect = anchor?.getBoundingClientRect?.();
+      const requestId = globalThis.crypto?.randomUUID?.() || `schedule-event-actions-${Date.now()}`;
+      nativeScheduleCallbacksRef.current.set(requestId, (event) => {
+        if (event.value === "edit") {
+          openEditEvent(scheduleEvent);
+        } else if (event.value === "delete") {
+          deleteEvent(scheduleEvent.id);
+        }
+      });
+      void presentNativeIOSSelection({
+        title: "",
+        selectedValue: "",
+        requestId,
+        anchorRect: rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : undefined,
+        options: [
+          { label: "Edit", value: "edit", symbol: "pencil" },
+          { label: "Delete", value: "delete", symbol: "trash", destructive: true },
+        ],
+      });
+      return;
+    }
     setEventMenuId((current) => {
       if (current === eventId) {
         setEventMenuAnchorEl(null);
@@ -1585,6 +1709,35 @@ export default function MobileScheduleDashboard() {
       setEventMenuAnchorEl(anchor);
       setEventMenuRect(anchor.getBoundingClientRect());
       return eventId;
+    });
+  };
+
+  const openAllSchedules = () => {
+    if (!nativeIOS) {
+      setScheduleListOpen(true);
+      return;
+    }
+    const requestId = globalThis.crypto?.randomUUID?.() || `all-schedules-${Date.now()}`;
+    nativeScheduleCallbacksRef.current.set(requestId, (result) => {
+      const scheduleEvent = events.find((event) => event.id === result.scheduleId);
+      if (!scheduleEvent) return;
+      if (result.value === "edit") openEditEvent(scheduleEvent);
+      if (result.value === "delete") deleteEvent(scheduleEvent.id);
+    });
+    void presentNativeIOSAllSchedules({
+      requestId,
+      isDark,
+      schedules: sortedEvents.map((event) => ({
+        id: event.id,
+        title: event.title,
+        detail: `${formatDateLabel(fromDateKey(event.date))}, ${event.startTime}`,
+        symbol: "calendar",
+      })),
+    }).then((presented) => {
+      if (!presented) {
+        nativeScheduleCallbacksRef.current.delete(requestId);
+        setScheduleListOpen(true);
+      }
     });
   };
 
@@ -1710,14 +1863,6 @@ export default function MobileScheduleDashboard() {
     showCalendarForSchedule(schedule);
   };
 
-  const createSchedule = () => {
-    const nextRecord = createScheduleRecord({ name: "Weekly Schedule", blocks: [] });
-    const records = [nextRecord, ...readRawScheduleLibrary().map(normalizeScheduleRecord)];
-    writeScheduleLibrary(records);
-    setSchedules(records);
-    showCalendarForSchedule(nextRecord);
-  };
-
   const deleteSchedule = (scheduleId) => {
     if (scheduleId === LEGACY_MOBILE_SCHEDULE_ID) {
       persistEvents([]);
@@ -1748,6 +1893,40 @@ export default function MobileScheduleDashboard() {
     }
 
     toast.success("Schedule deleted.");
+  };
+
+  const openNativeScheduleActions = (schedule, anchorElement) => {
+    const rect = anchorElement?.getBoundingClientRect?.();
+    const requestId = globalThis.crypto?.randomUUID?.() || `schedule-actions-${Date.now()}`;
+    nativeScheduleCallbacksRef.current.set(requestId, (event) => {
+      if (event.value === "edit") {
+        openSchedule(schedule);
+        return;
+      }
+      if (event.value !== "delete") return;
+      const confirmationRequestId = globalThis.crypto?.randomUUID?.() || `schedule-delete-${Date.now()}`;
+      nativeScheduleCallbacksRef.current.set(confirmationRequestId, (confirmation) => {
+        if (confirmation.confirmed === true) deleteSchedule(schedule.id);
+      });
+      void presentNativeIOSConfirmation({
+        title: "Delete Schedule?",
+        message: `“${schedule.name}” and its events will be permanently deleted.`,
+        confirmTitle: "Delete",
+        cancelTitle: "Cancel",
+        destructive: true,
+        requestId: confirmationRequestId,
+      });
+    });
+    void presentNativeIOSSelection({
+      title: "",
+      selectedValue: "",
+      requestId,
+      anchorRect: rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : undefined,
+      options: [
+        { label: "Edit", value: "edit", symbol: "pencil" },
+        { label: "Delete", value: "delete", symbol: "trash", destructive: true },
+      ],
+    });
   };
 
   const renderCalendarDay = (date) => {
@@ -1783,7 +1962,7 @@ export default function MobileScheduleDashboard() {
     return (
     <div
       className={cn(
-        "min-h-[100dvh] pb-[max(24px,env(safe-area-inset-bottom))]",
+        "min-h-[100dvh] w-full min-w-0 max-w-[100dvw] overflow-x-hidden pb-[max(24px,env(safe-area-inset-bottom))]",
         isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]",
       )}
       data-testid="mobile-schedule-home-page"
@@ -1796,9 +1975,11 @@ export default function MobileScheduleDashboard() {
       >
         <div className="flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-2">
-            <button type="button" onClick={() => navigate(-1)} className="bm-mobile-glass-control" aria-label="Back to chat">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
+            {nativeScheduleHeaderActive ? <span className="h-11 w-11 shrink-0" aria-hidden="true" /> : (
+              <button type="button" onClick={() => navigate(-1)} className="bm-mobile-glass-control" aria-label="Back to chat">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
             <div className="min-w-0">
               <p className={cn("text-xs font-medium", isDark ? "text-white/[0.48]" : "text-[var(--bm-text-secondary)]")}>
                 BlueMind AI
@@ -1807,19 +1988,15 @@ export default function MobileScheduleDashboard() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={createSchedule}
-            className="bm-mobile-glass-control"
-            style={{ color: appColor }}
-            aria-label="Create schedule"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
+          {nativeScheduleHeaderActive ? <span className="h-11 w-11 shrink-0" aria-hidden="true" /> : (
+            <button type="button" onClick={requestScheduleName} className="bm-mobile-glass-control" style={{ color: appColor }} aria-label="Create schedule">
+              <Plus className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-4">
+      <main className="mx-auto flex w-full min-w-0 max-w-md flex-col gap-4 overflow-x-hidden px-4 py-4">
         <ScheduleHomeInfoPanel
           debug={notificationDebug}
           busy={notificationBusy}
@@ -1828,6 +2005,7 @@ export default function MobileScheduleDashboard() {
           onEnable={handleEnableNotifications}
           onRefresh={refreshNotificationStatus}
           onTest={handleSendTestNotification}
+          nativeIOS={nativeIOS}
         />
 
         <div className="relative">
@@ -1840,6 +2018,7 @@ export default function MobileScheduleDashboard() {
               inputClasses.search,
               typeClasses.body,
               "pl-14 pr-4 font-semibold backdrop-blur-[24px]",
+              nativeIOS && "bm-reminders-stable-search",
               isDark
                 ? `${mobileNeutralGlassSurfaceClass} placeholder:text-white/42`
                 : "border-black/[0.06] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_12px_28px_rgba(15,23,42,0.08)]",
@@ -1858,6 +2037,8 @@ export default function MobileScheduleDashboard() {
                 isDark={isDark}
                 onOpen={openSchedule}
                 onDelete={deleteSchedule}
+                nativeIOS={nativeIOS}
+                onOpenNativeActions={openNativeScheduleActions}
               />
             ))}
           </AnimatePresence>
@@ -1876,16 +2057,16 @@ export default function MobileScheduleDashboard() {
   return (
     <main className={cn("min-h-screen overflow-x-hidden px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.875rem,env(safe-area-inset-top))]", isDark ? "bg-[var(--bm-bg-app)] text-white" : "bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]")}>
       <header className="flex items-center justify-between">
-        <button type="button" onClick={() => setViewMode("home")} className="bm-mobile-glass-control" aria-label="Back to schedules">
+        <IOSNativeGlassButton id="schedule-calendar-back" symbol="arrow.left" label="Back to schedules" onClick={() => setViewMode("home")} className="bm-mobile-glass-control" isDark={isDark} disabled={scheduleListOpen}>
           <ArrowLeft className={iconClasses.button} />
-        </button>
+        </IOSNativeGlassButton>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setScheduleListOpen(true)} className="bm-mobile-glass-control" aria-label="View all schedules">
+          <IOSNativeGlassButton id="schedule-calendar-library" symbol="calendar" label="View all schedules" onClick={openAllSchedules} className="bm-mobile-glass-control" isDark={isDark} disabled={scheduleListOpen}>
             <CalendarDays className={iconClasses.button} />
-          </button>
-          <button type="button" onClick={() => setActionSheetOpen(true)} className="bm-mobile-glass-control" aria-label="Create schedule">
+          </IOSNativeGlassButton>
+          <IOSNativeGlassButton id="schedule-calendar-add" symbol="plus" label="Create schedule" onClick={() => setActionSheetOpen(true)} className="bm-mobile-glass-control" isDark={isDark} disabled={scheduleListOpen}>
             <Plus className={iconClasses.button} />
-          </button>
+          </IOSNativeGlassButton>
         </div>
       </header>
 
@@ -1954,8 +2135,7 @@ export default function MobileScheduleDashboard() {
                   <motion.div
                     key={event.id}
                     layout
-                    whileTap={{ scale: 0.99 }}
-                    className={cn("relative flex w-full items-center gap-3 rounded-[26px] border p-3 text-left shadow-sm transition-colors duration-150 ease-out", isDark ? mobileBlueGlassSurfaceClass : "border-[#2F7DF6]/[0.10] bg-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_12px_28px_rgba(15,85,170,0.08)] backdrop-blur-[18px]")}
+                    className={cn("relative flex w-full items-center gap-3 rounded-[26px] border p-3 text-left shadow-sm", isDark ? scheduleNeutralCardSurfaceClass : "border-black/[0.08] bg-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_12px_28px_rgba(15,23,42,0.08)] backdrop-blur-[18px]")}
                   >
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: color }}>
                       <Icon className={iconClasses.button} />
@@ -1967,14 +2147,17 @@ export default function MobileScheduleDashboard() {
                         {formatDateLabel(fromDateKey(event.date))}, {event.startTime}
                       </span>
                     </span>
-                    <button
-                      type="button"
+                    <IOSNativeGlassButton
+                      id={`schedule-event-actions-${event.id}`}
+                      symbol="ellipsis"
+                      label={`Open actions for ${event.title}`}
                       onClick={(clickEvent) => openEventMenu(event.id, clickEvent)}
                       className="bm-mobile-glass-control"
-                      aria-label={`Open actions for ${event.title}`}
+                      isDark={isDark}
+                      disabled={scheduleListOpen}
                     >
                       <MoreVertical className={iconClasses.button} />
-                    </button>
+                    </IOSNativeGlassButton>
                   </motion.div>
                 );
               })}
@@ -2018,7 +2201,7 @@ export default function MobileScheduleDashboard() {
         onOpenMenu={openEventMenu}
       />
       <ScheduleContextMenuPortal
-        open={Boolean(eventMenuId && selectedMenuEvent)}
+        open={!nativeIOS && Boolean(eventMenuId && selectedMenuEvent)}
         rect={eventMenuRect}
         isDark={isDark}
         onClose={closeEventMenu}

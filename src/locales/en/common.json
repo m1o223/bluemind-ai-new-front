@@ -199,6 +199,7 @@
   "oneUppercaseLetter": "One uppercase letter",
   "oneLowercaseLetter": "One lowercase letter",
   "oneNumber": "One number",
+  "oneSpecialCharacter": "One special character",
   "passwordsMatch": "Passwords match",
   "resetCode": "Reset code",
   "newPassword": "New password",

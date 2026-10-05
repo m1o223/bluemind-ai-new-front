@@ -84,3 +84,18 @@ export const updateProfile = async (data) => {
     throw error;
   }
 };
+
+export async function getActiveSessions() {
+  const response = await api.get("/auth/sessions");
+  return unwrapApiResponse(response)?.sessions || [];
+}
+
+export async function logoutOtherDevices() {
+  const response = await api.post("/auth/sessions/logout-others");
+  return unwrapApiResponse(response);
+}
+
+export async function clearChatHistory() {
+  const response = await api.delete("/chat/conversations");
+  return unwrapApiResponse(response);
+}

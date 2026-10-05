@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ import {
   Palette,
   PenLine,
   Play,
+  ScanFace,
   Shield,
   Settings,
   SlidersHorizontal,
@@ -52,9 +53,27 @@ import {
   requestAccountDeletion,
   requestEmailChange,
   requestPasswordReset,
+  restoreExistingSession,
 } from "@/services/authService";
-import { getProfile, updatePreferences, updateProfile } from "@/services/profileService";
+import { clearChatHistory, getActiveSessions, getProfile, logoutOtherDevices, updatePreferences, updateProfile } from "@/services/profileService";
 import { readStoredUser } from "@/services/storageKeys";
+import {
+  disableFaceIDLock,
+  enableFaceIDLock,
+  getFaceIDStatus,
+} from "@/services/secureSessionStorage";
+import { isNativeIOSApp } from "@/capacitorRuntime";
+import {
+  addNativeGlassActionListener,
+  openNativeIOSAppSettings,
+  getNativeIOSNotificationStatus,
+  presentNativeIOSConfirmation,
+  presentNativeIOSSecurePrompt,
+  presentNativeIOSSelection,
+  requestNativeIOSNotificationAuthorization,
+  setNativeSettingsBackVisible,
+  setNativeSettingsPresentation,
+} from "@/mobile/nativeGlassBridge";
 import { reportIssue } from "@/services/supportService";
 import { AVATAR_COLORS, COLOR_OPTIONS } from "@/theme/colors";
 
@@ -93,14 +112,10 @@ const SETTINGS_LIGHT_GLASS_STYLE = {
   WebkitBackdropFilter: "blur(34px) saturate(1.14)",
 };
 const SETTINGS_SHEET_GLASS_STYLE = {
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), inset 1px 0 0 rgba(255,255,255,0.018), inset -1px 0 0 rgba(255,255,255,0.016), 0 -28px 90px rgba(0,0,0,0.32)",
-  backdropFilter: "blur(38px) saturate(1.12)",
-  WebkitBackdropFilter: "blur(38px) saturate(1.12)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 -24px 80px rgba(0,0,0,0.42)",
 };
 const SETTINGS_LIGHT_SHEET_GLASS_STYLE = {
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78), inset 1px 0 0 rgba(255,255,255,0.42), inset -1px 0 0 rgba(17,17,17,0.018), 0 -28px 90px rgba(15,23,42,0.14)",
-  backdropFilter: "blur(38px) saturate(1.16)",
-  WebkitBackdropFilter: "blur(38px) saturate(1.16)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78), 0 -24px 80px rgba(15,23,42,0.16)",
 };
 const SETTINGS_BLUE_GLASS_STYLE = {
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(255,255,255,0.025), 0 16px 40px rgba(37,99,235,0.28)",
@@ -293,7 +308,7 @@ function SettingRow({ icon: Icon, title, value, trailing, accent, danger, disabl
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "relative flex min-h-[64px] w-full items-center px-4 text-left after:absolute after:bottom-0 after:left-[52px] after:right-4 after:h-px last:after:hidden",
+        "relative flex min-h-[72px] w-full items-center px-4 py-2 text-left after:absolute after:bottom-0 after:left-[52px] after:right-4 after:h-px last:after:hidden",
         iconClasses.iconText,
         onClick && interactionClasses.menuItem,
         isDark ? "after:bg-white/[0.045] active:bg-white/[0.055]" : "after:bg-black/[0.055] active:bg-black/[0.035]",
@@ -455,17 +470,82 @@ function SettingsPopupRow({ children, selected, indicator, isDark = true, onClic
   );
 }
 
+function IOSSettingsSelectionPopover({ open, label, options, value, anchor, isDark = true, onSelect, onClose }) {
+  const positionStyle = anchor?.placement === "above"
+    ? { bottom: anchor.offset, left: 16, right: 16, maxHeight: anchor.maxHeight }
+    : { top: anchor?.offset ?? 16, left: 16, right: 16, maxHeight: anchor?.maxHeight };
+
+  return (
+    <BlueMindOverlay
+      open={open}
+      kind={anchor?.placement === "above" ? "popupUp" : "popup"}
+      portal={false}
+      contained
+      className="absolute inset-0 z-30"
+      backdropClassName="bm-settings-selection-popover-backdrop"
+      contentClassName={cn(
+        "bm-settings-selection-popover absolute mx-auto w-auto max-w-[360px] overflow-hidden rounded-[28px] p-2",
+        isDark ? "text-white" : "text-[#111111]",
+      )}
+      contentStyle={positionStyle}
+      contentProps={{
+        onClick: (event) => event.stopPropagation(),
+        role: "menu",
+        "aria-label": label,
+      }}
+      onClose={onClose}
+      closeLabel={`Dismiss ${label}`}
+    >
+      <div
+        className="overflow-y-auto overscroll-contain p-1"
+        style={{ maxHeight: Math.max(164, (anchor?.maxHeight ?? 430) - 16) }}
+      >
+        {options.map((option) => {
+          const selected = String(value).toLowerCase() === String(option.value).toLowerCase();
+          const Icon = option.icon;
+
+          return (
+            <button
+              type="button"
+              role="menuitemradio"
+              aria-checked={selected}
+              key={option.value}
+              onClick={() => onSelect(option)}
+              data-testid={option.testId}
+              className={cn(
+                "bm-settings-selection-option flex min-h-[52px] w-full items-center gap-3 rounded-[20px] px-3.5 text-left",
+                selected && "bm-settings-selection-option-selected",
+              )}
+            >
+              {Icon ? (
+                <Icon className={cn("h-5 w-5 shrink-0", isDark ? "text-white/78" : "text-black/78")} />
+              ) : (
+                <span
+                  className="h-6 w-6 shrink-0 rounded-full shadow-sm ring-1 ring-black/10"
+                  style={{ backgroundColor: option.color }}
+                />
+              )}
+              <span className="min-w-0 flex-1 text-[14px] font-semibold">{option.label}</span>
+              {selected && <Check className="h-5 w-5 shrink-0 stroke-[3] text-[var(--bm-check)]" />}
+            </button>
+          );
+        })}
+      </div>
+    </BlueMindOverlay>
+  );
+}
+
 export default function SettingsSheet({
   open = true,
   onClose,
   mobile = false,
   initialPane = "main",
   overlay = true,
-  layeredOverMenu = false,
 }) {
   const navigate = useNavigate();
-  const { prefs, resolvedTheme, setPrefs } = useApp();
+  const { prefs, resolvedTheme, setPrefs, uiLanguage } = useApp();
   const isDark = resolvedTheme === "dark";
+  const settingsMotionDisabled = isNativeIOSApp();
   const fileInputRef = useRef(null);
   const issueCameraInputRef = useRef(null);
   const issuePhotosInputRef = useRef(null);
@@ -500,6 +580,15 @@ export default function SettingsSheet({
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [countdownNow, setCountdownNow] = useState(Date.now());
+  const [sheetDismissing, setSheetDismissing] = useState(false);
+  const [faceIDStatus, setFaceIDStatus] = useState({ available: false, enabled: false });
+  const [notificationAuthorization, setNotificationAuthorization] = useState("unknown");
+  const [activeSessions, setActiveSessions] = useState([]);
+  const sheetDragControls = useDragControls();
+  const sheetSurfaceRef = useRef(null);
+  const nativeActionPendingRef = useRef(null);
+  const paneHistoryRef = useRef([]);
+  const settingsPresentationOffsetRef = useRef(typeof window === "undefined" ? 1000 : window.innerHeight);
 
   const close = useCallback(() => {
     setLogoutConfirmOpen(false);
@@ -507,11 +596,45 @@ export default function SettingsSheet({
     onClose?.();
   }, [onClose]);
 
+  const requestSettingsDismiss = useCallback(() => {
+    if (!open || sheetDismissing) return;
+    setSheetDismissing(true);
+  }, [open, sheetDismissing]);
+
+  const backOneSettingsLevel = useCallback(() => {
+    const history = paneHistoryRef.current;
+    const previousPane = history.length > 0 ? history[history.length - 1] : "main";
+    paneHistoryRef.current = history.slice(0, -1);
+    setPane(previousPane);
+  }, []);
+
   useEffect(() => {
     if (open) {
+      setSheetDismissing(false);
       setPane(initialPane === "settings" ? "main" : initialPane);
+      paneHistoryRef.current = [];
     }
   }, [initialPane, open]);
+
+  useEffect(() => {
+    if (!open || !overlay || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyOverscroll = document.body.style.overscrollBehavior;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.classList.add("bm-settings-sheet-open");
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.documentElement.classList.remove("bm-settings-sheet-open");
+    };
+  }, [open, overlay]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -526,6 +649,35 @@ export default function SettingsSheet({
     return () => {
       cancelled = true;
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !isNativeIOSApp()) return undefined;
+    let cancelled = false;
+    getNativeIOSNotificationStatus().then((result) => {
+      if (!cancelled) setNotificationAuthorization(result?.status || "unknown");
+    });
+    return () => { cancelled = true; };
+  }, [open, pane]);
+
+  useEffect(() => {
+    if (!open || pane !== "active-sessions") return undefined;
+    let cancelled = false;
+    setSaving("sessions-load");
+    getActiveSessions()
+      .then((sessions) => { if (!cancelled) setActiveSessions(sessions); })
+      .catch((error) => { if (!cancelled) toast.error(getApiErrorMessage(error, "Could not load active sessions.")); })
+      .finally(() => { if (!cancelled) setSaving(""); });
+    return () => { cancelled = true; };
+  }, [open, pane]);
+
+  useEffect(() => {
+    if (!open || !isNativeIOSApp()) return undefined;
+    let cancelled = false;
+    getFaceIDStatus()
+      .then((status) => { if (!cancelled) setFaceIDStatus(status); })
+      .catch(() => { if (!cancelled) setFaceIDStatus({ available: false, enabled: false }); });
+    return () => { cancelled = true; };
   }, [open]);
 
   useEffect(() => {
@@ -594,7 +746,8 @@ export default function SettingsSheet({
     const theme = prefs.theme || "system";
     return theme.charAt(0).toUpperCase() + theme.slice(1);
   }, [prefs.theme]);
-  const currentLanguage = LANGUAGE_OPTIONS.find((language) => language.value === String(prefs.appLanguage || prefs.language || "en").toLowerCase()) || LANGUAGE_OPTIONS[0];
+  const currentLanguageCode = (isNativeIOSApp() ? uiLanguage : (prefs.appLanguage || prefs.language || "en")).split("-")[0].toLowerCase();
+  const currentLanguage = LANGUAGE_OPTIONS.find((language) => language.value === currentLanguageCode) || LANGUAGE_OPTIONS[0];
   const currentLanguageLabel = languageDisplayName(currentLanguage);
   const activeAppAccentColor = APP_ACCENT_COLORS.find((color) => color.value.toLowerCase() === String(prefs.appColor || prefs.accentColor || "var(--bm-primary)").toLowerCase()) || APP_ACCENT_COLORS[0];
   const activeMessageColor = MESSAGE_COLORS.find((color) => color.value.toLowerCase() === String(prefs.chatColor || "var(--bm-primary)").toLowerCase()) || MESSAGE_COLORS[0];
@@ -619,6 +772,63 @@ export default function SettingsSheet({
     } finally {
       setSaving("");
     }
+  };
+
+  useEffect(() => {
+    if (!open || !isNativeIOSApp()) return undefined;
+    let handle;
+    void addNativeGlassActionListener((event) => {
+      if (event?.action === "settingsClose") {
+        requestSettingsDismiss();
+        return;
+      }
+      if (event?.action === "settingsBack") {
+        backOneSettingsLevel();
+        return;
+      }
+      if (!["settingsSelection", "settingsConfirmation", "settingsSecurePrompt"].includes(event?.action)) return;
+      const pending = nativeActionPendingRef.current;
+      if (!pending || pending.requestId !== event.requestId) return;
+      nativeActionPendingRef.current = null;
+      pending.onResult(event);
+    }).then((listenerHandle) => { handle = listenerHandle; });
+    return () => { handle?.remove?.(); };
+  }, [backOneSettingsLevel, open, requestSettingsDismiss]);
+
+  useEffect(() => {
+    if (!settingsMotionDisabled) return undefined;
+    void setNativeSettingsPresentation({ visible: open, isDark, offsetY: settingsPresentationOffsetRef.current });
+    return () => {
+      void setNativeSettingsPresentation({ visible: false, isDark, offsetY: settingsPresentationOffsetRef.current });
+    };
+  }, [isDark, open, settingsMotionDisabled]);
+
+  useEffect(() => {
+    if (!settingsMotionDisabled || !open) return undefined;
+    void setNativeSettingsBackVisible(pane !== "main", { isDark });
+    return () => {
+      void setNativeSettingsBackVisible(false, { isDark });
+    };
+  }, [isDark, open, pane, settingsMotionDisabled]);
+
+  const nativeRequestId = (type) => globalThis.crypto?.randomUUID?.() || `${type}-${Date.now()}`;
+
+  const openNativeSettingsSelection = (type, title, options, selectedValue, onSelect) => {
+    const requestId = nativeRequestId(type);
+    nativeActionPendingRef.current = { requestId, onResult: (event) => onSelect(event.value) };
+    void presentNativeIOSSelection({ title, options, selectedValue, requestId });
+  };
+
+  const openNativeConfirmation = (type, details, onConfirm) => {
+    const requestId = nativeRequestId(type);
+    nativeActionPendingRef.current = { requestId, onResult: (event) => { if (event.confirmed === true) onConfirm(); } };
+    void presentNativeIOSConfirmation({ ...details, requestId });
+  };
+
+  const openNativeSecurePrompt = (type, details, onConfirm) => {
+    const requestId = nativeRequestId(type);
+    nativeActionPendingRef.current = { requestId, onResult: (event) => { if (event.confirmed === true && event.value) onConfirm(event.value); } };
+    void presentNativeIOSSecurePrompt({ ...details, requestId });
   };
 
   const handleAvatarFile = async (file) => {
@@ -649,15 +859,35 @@ export default function SettingsSheet({
     }
   };
 
-  const handleRequestAccountDeletion = async (event) => {
-    event.preventDefault();
-    if (!deletePassword) return;
+  const toggleFaceIDLock = async () => {
+    setSaving("face-id");
+    try {
+      if (!faceIDStatus.enabled) {
+        await restoreExistingSession();
+      }
+      const result = faceIDStatus.enabled
+        ? await disableFaceIDLock()
+        : await enableFaceIDLock();
+      const next = await getFaceIDStatus();
+      setFaceIDStatus(next);
+      toast.success(result?.enabled ? "Face ID Lock enabled" : "Face ID Lock disabled");
+    } catch (error) {
+      if (error?.code !== "FACE_ID_CANCELLED") {
+        toast.error(error?.message || "Face ID setting could not be changed.");
+      }
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const requestDeletionWithPassword = async (password) => {
+    if (!password) return;
 
     setSaving("delete-account");
     setDeleteError("");
 
     try {
-      const status = await requestAccountDeletion(deletePassword);
+      const status = await requestAccountDeletion(password);
       setAccountDeletion(status?.status === "pending" ? status : null);
       setDeletePassword("");
       toast.success("Account deletion scheduled");
@@ -668,6 +898,43 @@ export default function SettingsSheet({
     } finally {
       setSaving("");
     }
+  };
+
+  const handleRequestAccountDeletion = (event) => {
+    event.preventDefault();
+    void requestDeletionWithPassword(deletePassword);
+  };
+
+  const openNativeDeleteAccount = () => {
+    if (accountDeletion?.status === "pending") {
+      openNativeConfirmation("cancel-account-deletion", {
+        title: "Cancel Account Deletion?",
+        message: "Your BlueMind account will remain active.",
+        confirmTitle: "Keep Account",
+      }, () => { void handleCancelAccountDeletion(); });
+      return;
+    }
+    openNativeConfirmation("delete-account-warning", {
+      title: "Delete Account?",
+      message: "This permanently removes your BlueMind account and data after the cancellation period.",
+      confirmTitle: "Continue",
+      destructive: true,
+    }, () => {
+      openNativeSecurePrompt("delete-account-password", {
+        title: "Confirm Password",
+        message: "Enter your password to authorize account deletion.",
+        placeholder: "Password",
+        confirmTitle: "Continue",
+        destructive: true,
+      }, (password) => {
+        openNativeConfirmation("delete-account-final", {
+          title: "Permanently Delete Account?",
+          message: "BlueMind will schedule permanent deletion. This action is destructive.",
+          confirmTitle: "Delete Account",
+          destructive: true,
+        }, () => { void requestDeletionWithPassword(password); });
+      });
+    });
   };
 
   const handleCancelAccountDeletion = async () => {
@@ -820,7 +1087,10 @@ export default function SettingsSheet({
     }
   };
 
-  const openChild = (nextPane) => setPane(nextPane);
+  const openChild = (nextPane) => {
+    paneHistoryRef.current = [...paneHistoryRef.current, pane];
+    setPane(nextPane);
+  };
   const backToMain = () => setPane("main");
   const Row = (props) => <SettingRow isDark={isDark} {...props} />;
   const Card = (props) => <SettingsCard isDark={isDark} {...props} />;
@@ -833,7 +1103,20 @@ export default function SettingsSheet({
     return prefs.notificationsEnabled !== false && row.keys.some((key) => section[key] === true);
   };
 
-  const setNotificationRowEnabled = (row, enabled) => {
+  const setNotificationRowEnabled = async (row, enabled) => {
+    if (enabled && isNativeIOSApp() && row.id !== "email") {
+      let status = notificationAuthorization;
+      if (status === "notDetermined" || status === "unknown") {
+        const result = await requestNativeIOSNotificationAuthorization();
+        status = result?.status || "unknown";
+        setNotificationAuthorization(status);
+      }
+      if (!["authorized", "provisional", "ephemeral"].includes(status)) {
+        toast.error("Notifications are disabled in iOS Settings.");
+        void openNativeIOSAppSettings();
+        return;
+      }
+    }
     const nextSection = Object.fromEntries(row.keys.map((key) => [key, enabled]));
     const notificationPreferences = {
       ...(prefs.notificationPreferences || {}),
@@ -848,7 +1131,56 @@ export default function SettingsSheet({
       return candidate.keys.some((key) => section[key] === true);
     });
 
-    savePreference({ notificationsEnabled, notificationPreferences });
+    await savePreference({ notificationsEnabled, notificationPreferences });
+  };
+
+  const clearAllChatHistory = async () => {
+    setSaving("clear-chat-history");
+    try {
+      const result = await clearChatHistory();
+      toast.success(result?.cleared ? `${result.cleared} conversations cleared` : "Chat history is already clear");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not clear chat history."));
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const revokeOtherSessions = async () => {
+    setSaving("logout-other-devices");
+    try {
+      const result = await logoutOtherDevices();
+      toast.success(`${result?.revoked || 0} other sessions logged out`);
+      setActiveSessions((sessions) => sessions.filter((session) => session.current));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not log out other devices."));
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const openCompactSelection = (type, event) => {
+    const rowRect = event.currentTarget.getBoundingClientRect();
+    const sheetRect = event.currentTarget.closest(".bm-settings-sheet-surface")?.getBoundingClientRect();
+    const surfaceTop = sheetRect?.top ?? 0;
+    const surfaceBottom = sheetRect?.bottom ?? window.innerHeight;
+    const rowTop = rowRect.top - surfaceTop;
+    const rowBottom = rowRect.bottom - surfaceTop;
+    const roomBelow = surfaceBottom - rowRect.bottom;
+    const roomAbove = rowRect.top - surfaceTop;
+    const placement = roomBelow >= 250 || roomBelow >= roomAbove ? "below" : "above";
+    const availableRoom = placement === "above" ? roomAbove : roomBelow;
+
+    setSelectionPopup({
+      type,
+      anchor: {
+        placement,
+        offset: placement === "above"
+          ? Math.max(12, (surfaceBottom - surfaceTop) - rowTop + 8)
+          : rowBottom + 8,
+        maxHeight: Math.min(446, Math.max(180, availableRoom - 16)),
+      },
+    });
   };
 
   const renderProfileHeader = () => (
@@ -894,30 +1226,35 @@ export default function SettingsSheet({
           <Title>Account</Title>
           <Card>
             <Row icon={Mail} title="Change Email" onClick={() => openChild("change-email")} />
-            <Row icon={KeyRound} title="Change Password" onClick={() => openChild("change-password")} />
             <Row icon={CreditCard} title="Subscription" value={plan} onClick={() => navigate(mobile ? "/mobile/subscription" : "/subscription")} />
             <Row
               icon={Trash2}
               title="Delete Account"
               value={accountDeletion?.status === "pending" ? formatDeletionCountdown(accountDeletion.deleteAt, countdownNow) : undefined}
               danger
-              onClick={() => setSelectionPopup({ type: "delete-account" })}
-            >
-              <span className={descriptionClass}>
-                {accountDeletion?.status === "pending"
-                  ? "Account deletion is scheduled. You can cancel before the countdown ends."
-                  : "Permanently remove your BlueMind account after password confirmation."}
-              </span>
-            </Row>
+              onClick={() => isNativeIOSApp() ? openNativeDeleteAccount() : setSelectionPopup({ type: "delete-account" })}
+            />
+          </Card>
+        </section>
+
+        <section>
+          <Title>Security &amp; Login</Title>
+          <Card>
+            <Row
+              icon={Shield}
+              title="Security & Login"
+              value={isNativeIOSApp() ? (faceIDStatus.enabled ? "Face ID On" : "Face ID Off") : undefined}
+              onClick={() => openChild("security-login")}
+            />
           </Card>
         </section>
 
         <section>
           <Title>Appearance &amp; Colors</Title>
           <Card>
-            <Row icon={(APPEARANCE_OPTIONS.find((option) => option.value === (prefs.theme || "system")) || APPEARANCE_OPTIONS[0]).icon} title="Appearance" value={appearanceText} onClick={() => setSelectionPopup({ type: "appearance" })} />
-            <Row icon={Palette} title="App Accent Color" value={activeAppAccentColor.label} onClick={() => setSelectionPopup({ type: "app-accent-color" })} />
-            <Row icon={Palette} title="Chat Color" value={activeMessageColor.label} onClick={() => setSelectionPopup({ type: "message-color" })} />
+            <Row icon={(APPEARANCE_OPTIONS.find((option) => option.value === (prefs.theme || "system")) || APPEARANCE_OPTIONS[0]).icon} title="Appearance" value={appearanceText} onClick={(event) => isNativeIOSApp() ? openNativeSettingsSelection("appearance", "Appearance", APPEARANCE_OPTIONS.map(({ label, value }) => ({ label, value })), prefs.theme || "system", (value) => savePreference({ theme: value })) : openCompactSelection("appearance", event)} />
+            <Row icon={Palette} title="App Accent Color" value={activeAppAccentColor.label} onClick={(event) => isNativeIOSApp() ? openNativeSettingsSelection("app-accent-color", "App Accent Color", APP_ACCENT_COLORS, activeAppAccentColor.value, (value) => savePreference({ appColor: value, accentColor: value })) : openCompactSelection("app-accent-color", event)} />
+            <Row icon={Palette} title="Chat Color" value={activeMessageColor.label} onClick={(event) => isNativeIOSApp() ? openNativeSettingsSelection("message-color", "Chat Color", MESSAGE_COLORS, activeMessageColor.value, (value) => savePreference({ chatColor: value })) : openCompactSelection("message-color", event)} />
           </Card>
         </section>
 
@@ -925,7 +1262,18 @@ export default function SettingsSheet({
           <Title>App Settings</Title>
           <Card>
             <Row icon={Settings} title="General" onClick={() => openChild("general")} />
-            <Row icon={Globe2} title="Language" value={currentLanguageLabel} onClick={() => setSelectionPopup({ type: "language" })} />
+            <Row
+              icon={Globe2}
+              title="Language"
+              value={currentLanguageLabel}
+              onClick={() => {
+                if (isNativeIOSApp()) {
+                  void openNativeIOSAppSettings();
+                  return;
+                }
+                setSelectionPopup({ type: "language" });
+              }}
+            />
             <Row icon={Bell} title="Notifications" onClick={() => openChild("notifications")} />
           </Card>
         </section>
@@ -933,23 +1281,32 @@ export default function SettingsSheet({
         <section>
           <Title>Voice &amp; Audio</Title>
           <Card>
-            <Row icon={Volume2} title="AI Voice" value={activeAiVoice.label} onClick={() => setSelectionPopup({ type: "ai-voice" })} />
+            <Row icon={Volume2} title="AI Voice" value={activeAiVoice.label} onClick={() => isNativeIOSApp() ? openNativeSettingsSelection("ai-voice", "AI Voice", AI_VOICE_OPTIONS.map(({ label, value }) => ({ label, value, symbol: "waveform" })), activeAiVoice.value, (value) => savePreference({ aiVoice: value })) : setSelectionPopup({ type: "ai-voice" })} />
             <Row icon={Play} title="Voice Preview" value="Unavailable" disabled>
               <span className={descriptionClass}>Preview playback will be enabled when BlueMind voice is connected.</span>
             </Row>
-            <Row icon={Gauge} title="Speech Speed" value={activeSpeechSpeed.label} onClick={() => setSelectionPopup({ type: "speech-speed" })} />
-            <Row icon={Volume2} title="Auto-play AI Responses" value={prefs.voiceAutoplayEnabled === true ? "On" : "Off"} onClick={() => setSelectionPopup({ type: "voice-autoplay" })} />
-            <Row icon={Globe2} title="Voice Language" value={activeVoiceLanguage.label} onClick={() => setSelectionPopup({ type: "voice-language" })} />
+            <Row icon={Gauge} title="Speech Speed" value={activeSpeechSpeed.label} onClick={() => isNativeIOSApp() ? openNativeSettingsSelection("speech-speed", "Speech Speed", SPEECH_SPEED_OPTIONS, activeSpeechSpeed.value, (value) => savePreference({ speechSpeed: value })) : setSelectionPopup({ type: "speech-speed" })} />
+            <Row icon={Volume2} title="Auto-play AI Responses" value={prefs.voiceAutoplayEnabled === true ? "On" : "Off"} onClick={() => isNativeIOSApp() ? openNativeSettingsSelection("voice-autoplay", "Auto-play AI Responses", [{ label: "On", value: "true" }, { label: "Off", value: "false" }], String(prefs.voiceAutoplayEnabled === true), (value) => savePreference({ voiceAutoplayEnabled: value === "true" })) : setSelectionPopup({ type: "voice-autoplay" })} />
+            <Row icon={Globe2} title="Voice Language" value={activeVoiceLanguage.label} onClick={() => isNativeIOSApp() ? openNativeSettingsSelection("voice-language", "Voice Language", VOICE_LANGUAGE_OPTIONS, activeVoiceLanguage.value, (value) => savePreference({ voiceLanguage: value })) : setSelectionPopup({ type: "voice-language" })} />
           </Card>
         </section>
 
         <section>
           <Title>Privacy &amp; Data</Title>
           <Card>
-            <Row icon={Database} title="Chat History" value={prefs.chatHistoryMode || "On" } onClick={() => setSelectionPopup({ type: "chat-history" })} />
-            <Row icon={Trash2} title="Clear Chat History" value="Coming later" disabled />
-            <Row icon={Download} title="Export My Data" value="Coming later" disabled />
-            <Row icon={Shield} title="Privacy Controls" onClick={() => openChild("privacy-policy")} />
+            <Row icon={Database} title="Chat History" value={prefs.chatHistoryMode || "On" } onClick={() => isNativeIOSApp() ? openNativeSettingsSelection("chat-history", "Chat History", [{ label: "On", value: "On" }, { label: "Off", value: "Off" }], prefs.chatHistoryMode || "On", (value) => savePreference({ chatHistoryMode: value })) : setSelectionPopup({ type: "chat-history" })} />
+            <Row
+              icon={Trash2}
+              title="Clear Chat History"
+              disabled={saving === "clear-chat-history"}
+              onClick={() => isNativeIOSApp()
+                ? openNativeConfirmation("clear-chat-history", { title: "Clear Chat History?", message: "This removes all conversations from your BlueMind account. This cannot be undone.", confirmTitle: "Clear History", destructive: true }, () => { void clearAllChatHistory(); })
+                : (window.confirm("Clear all chat history? This cannot be undone.") && void clearAllChatHistory())}
+            />
+            <Row icon={Download} title="Export My Data" value="Unavailable" disabled>
+              <span className={descriptionClass}>Data export is not yet supported by the BlueMind backend.</span>
+            </Row>
+            <Row icon={Shield} title="Privacy Controls" onClick={() => openChild("privacy-controls")} />
           </Card>
         </section>
 
@@ -965,7 +1322,7 @@ export default function SettingsSheet({
 
         <button
           type="button"
-          onClick={() => setLogoutConfirmOpen(true)}
+          onClick={() => isNativeIOSApp() ? openNativeConfirmation("logout", { title: "Log out?", message: "You will need to sign in again to use BlueMind AI.", confirmTitle: "Log Out", destructive: true }, () => { void handleLogout(); }) : setLogoutConfirmOpen(true)}
           className={cn(
             "flex min-h-[64px] w-full items-center justify-center gap-3 rounded-[26px] border text-[15px] font-bold text-red-500 active:scale-[0.985]",
             isDark ? SETTINGS_GLASS_CLASS : SETTINGS_LIGHT_GLASS_CLASS,
@@ -1178,26 +1535,123 @@ export default function SettingsSheet({
 
   const renderGeneral = () => (
     <Card>
-      <Row icon={SlidersHorizontal} title="Open App Directly to Chat" value={prefs.openAppDirectlyToChat === true ? "On" : "Off"} onClick={() => setSelectionPopup({ type: "open-chat-default" })}>
+      <Row icon={SlidersHorizontal} title="Open App Directly to Chat" value={prefs.openAppDirectlyToChat === true ? "On" : "Off"} onClick={() => isNativeIOSApp() ? openNativeSettingsSelection("open-chat-default", "Open App Directly to Chat", [{ label: "On", value: "true" }, { label: "Off", value: "false" }], String(prefs.openAppDirectlyToChat === true), (value) => savePreference({ openAppDirectlyToChat: value === "true" })) : setSelectionPopup({ type: "open-chat-default" })}>
         <span className={descriptionClass}>Choose whether BlueMind opens straight into chat after sign-in.</span>
       </Row>
-      <Row icon={Sparkles} title="Animations" value={prefs.animations === false ? "Off" : "On"} onClick={() => setSelectionPopup({ type: "animations" })}>
+      <Row icon={Sparkles} title="Animations" value={prefs.animations === false ? "Off" : "On"} onClick={() => isNativeIOSApp() ? openNativeSettingsSelection("animations", "Animations", [{ label: "On", value: "true" }, { label: "Off", value: "false" }], String(prefs.animations !== false), (value) => savePreference({ animations: value === "true" })) : setSelectionPopup({ type: "animations" })}>
         <span className={descriptionClass}>Keep interface motion smooth and consistent.</span>
       </Row>
     </Card>
   );
 
-  const renderNotifications = () => (
+  const renderSecurityLogin = () => (
+    <div className="space-y-5">
+      <Card>
+        {isNativeIOSApp() && (
+          <Row
+            icon={ScanFace}
+            title="Face ID Lock"
+            value={faceIDStatus.enabled ? "On" : "Off"}
+            disabled={saving === "face-id"}
+            onClick={() => void toggleFaceIDLock()}
+          >
+            <span className={descriptionClass}>
+              {faceIDStatus.available
+                ? "Use Face ID to unlock BlueMind on this device."
+                : "Face ID is not available or configured on this device."}
+              <span className="mt-1 block">Biometric authentication is performed locally by your device. BlueMind does not receive or store your biometric data.</span>
+            </span>
+          </Row>
+        )}
+        <Row icon={KeyRound} title="Change Password" onClick={() => openChild("change-password")} />
+        <Row icon={Shield} title="Sign-in Methods" onClick={() => openChild("sign-in-methods")} />
+        <Row icon={MonitorSmartphone} title="Active Sessions & Devices" onClick={() => openChild("active-sessions")} />
+        <Row
+          icon={LogOut}
+          title="Log out of other devices"
+          disabled={saving === "logout-other-devices"}
+          onClick={() => isNativeIOSApp()
+            ? openNativeConfirmation("logout-other-devices", { title: "Log Out Other Devices?", message: "Your current iPhone session will stay signed in.", confirmTitle: "Log Out", destructive: true }, () => { void revokeOtherSessions(); })
+            : (window.confirm("Log out of all other devices?") && void revokeOtherSessions())}
+        />
+      </Card>
+    </div>
+  );
+
+  const renderSignInMethods = () => {
+    const provider = user?.authProvider || "local";
+    const methods = provider === "mixed"
+      ? ["Email and password", "Google"]
+      : provider === "google"
+        ? ["Google"]
+        : provider === "guest"
+          ? ["Guest session"]
+          : ["Email and password"];
+
+    return (
+      <Card>
+        {methods.map((method) => (
+          <Row key={method} icon={Shield} title={method} value="Linked" />
+        ))}
+      </Card>
+    );
+  };
+
+  const renderActiveSessions = () => (
+    <div className="space-y-4">
+      <Card>
+        {saving === "sessions-load" && <div className="p-5"><BlueMindLoadingDots /></div>}
+        {saving !== "sessions-load" && activeSessions.map((session) => (
+          <Row
+            key={session.id}
+            icon={MonitorSmartphone}
+            title={session.device}
+            value={session.current ? "This device" : new Date(session.lastUsedAt).toLocaleDateString()}
+          >
+            <span className={descriptionClass}>Last active {new Date(session.lastUsedAt).toLocaleString()}</span>
+          </Row>
+        ))}
+        {saving !== "sessions-load" && activeSessions.length === 0 && (
+          <p className={cn("p-5 text-sm", isDark ? "text-[var(--bm-text-muted)]" : "text-[var(--bm-text-secondary)]")}>No active sessions were returned.</p>
+        )}
+      </Card>
+    </div>
+  );
+
+  const renderPrivacyControls = () => (
     <Card>
+      <Row icon={Database} title="Chat History" value={prefs.chatHistoryMode || "On"} onClick={() => isNativeIOSApp() ? openNativeSettingsSelection("privacy-chat-history", "Chat History", [{ label: "On", value: "On" }, { label: "Off", value: "Off" }], prefs.chatHistoryMode || "On", (value) => savePreference({ chatHistoryMode: value })) : setSelectionPopup({ type: "chat-history" })}>
+        <span className={descriptionClass}>Controls whether new chats are retained in your BlueMind account.</span>
+      </Row>
+      <Row icon={Shield} title="Privacy Policy" onClick={() => openChild("privacy-policy")} />
+    </Card>
+  );
+
+  const renderNotifications = () => (
+    <div className="space-y-4">
+      {isNativeIOSApp() && (
+        <Card>
+          <Row
+            icon={Bell}
+            title="iOS Notification Permission"
+            value={["authorized", "provisional", "ephemeral"].includes(notificationAuthorization) ? "Allowed" : notificationAuthorization === "denied" ? "Denied" : "Not Set"}
+            onClick={notificationAuthorization === "denied" ? () => void openNativeIOSAppSettings() : undefined}
+          >
+            <span className={descriptionClass}>BlueMind notification preferences cannot override the permission selected in iOS.</span>
+          </Row>
+        </Card>
+      )}
+      <Card>
       {NOTIFICATION_ROWS.map((row) => {
-        const enabled = isNotificationEnabled(row);
+        const systemAllowsPush = row.id === "email" || !isNativeIOSApp() || ["authorized", "provisional", "ephemeral"].includes(notificationAuthorization);
+        const enabled = systemAllowsPush && isNotificationEnabled(row);
 
         return (
           <Row
             key={row.id}
             icon={Bell}
             title={row.title}
-            onClick={() => setSelectionPopup({ type: "notification", row })}
+            onClick={() => isNativeIOSApp() ? openNativeSettingsSelection(`notification-${row.id}`, row.title, [{ label: "On", value: "true" }, { label: "Off", value: "false" }], String(enabled), (value) => { void setNotificationRowEnabled(row, value === "true"); }) : setSelectionPopup({ type: "notification", row })}
             trailing={<span className={cn("inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-bold", enabled ? "bg-emerald-500/12 text-emerald-500" : "bg-red-500/12 text-red-500")}>
               <span className={cn("h-2 w-2 rounded-full", enabled ? "bg-emerald-500" : "bg-red-500")} />
               {enabled ? "ON" : "OFF"}
@@ -1207,7 +1661,8 @@ export default function SettingsSheet({
           </Row>
         );
       })}
-    </Card>
+      </Card>
+    </div>
   );
 
   const renderReportIssue = () => (
@@ -1448,57 +1903,46 @@ export default function SettingsSheet({
 
     if (selectionPopup?.type === "appearance") {
       return (
-        <SettingsSelectionPopup open title="Appearance" isDark={isDark} onClose={closeSelectionPopup}>
-          {APPEARANCE_OPTIONS.map(({ label, value, icon: Icon }) => (
-            <SettingsPopupRow
-              key={value}
-              selected={(prefs.theme || "system") === value}
-              indicator={<Icon className={cn("h-5 w-5 shrink-0", isDark ? "text-white/76" : "text-[#111111]")} />}
-              isDark={isDark}
-              onClick={() => selectPreference({ theme: value })}
-            >
-              {label}
-            </SettingsPopupRow>
-          ))}
-        </SettingsSelectionPopup>
+        <IOSSettingsSelectionPopover
+          open
+          label="Appearance"
+          options={APPEARANCE_OPTIONS}
+          value={prefs.theme || "system"}
+          anchor={selectionPopup.anchor}
+          isDark={isDark}
+          onSelect={(option) => selectPreference({ theme: option.value })}
+          onClose={closeSelectionPopup}
+        />
       );
     }
 
     if (selectionPopup?.type === "app-accent-color") {
       return (
-        <SettingsSelectionPopup open title="App Accent Color" isDark={isDark} onClose={closeSelectionPopup}>
-          {APP_ACCENT_COLORS.map((color) => (
-            <SettingsPopupRow
-              key={color.value}
-              selected={activeAppAccentColor.value.toLowerCase() === color.value.toLowerCase()}
-              indicator={<span className="h-6 w-6 shrink-0 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />}
-              isDark={isDark}
-              onClick={() => selectPreference({ appColor: color.value, accentColor: color.value })}
-              testId={`app-accent-color-popup-${color.label.toLowerCase()}`}
-            >
-              {color.label}
-            </SettingsPopupRow>
-          ))}
-        </SettingsSelectionPopup>
+        <IOSSettingsSelectionPopover
+          open
+          label="App Accent Color"
+          options={APP_ACCENT_COLORS.map((color) => ({ ...color, color: color.value, testId: `app-accent-color-popup-${color.label.toLowerCase()}` }))}
+          value={activeAppAccentColor.value}
+          anchor={selectionPopup.anchor}
+          isDark={isDark}
+          onSelect={(option) => selectPreference({ appColor: option.value, accentColor: option.value })}
+          onClose={closeSelectionPopup}
+        />
       );
     }
 
     if (selectionPopup?.type === "message-color") {
       return (
-        <SettingsSelectionPopup open title="Chat Color" isDark={isDark} onClose={closeSelectionPopup}>
-          {MESSAGE_COLORS.map((color) => (
-            <SettingsPopupRow
-              key={color.value}
-              selected={activeMessageColor.value.toLowerCase() === color.value.toLowerCase()}
-              indicator={<span className="h-6 w-6 shrink-0 rounded-full shadow-sm ring-1 ring-black/10" style={{ backgroundColor: color.value }} />}
-              isDark={isDark}
-              onClick={() => selectPreference({ chatColor: color.value })}
-              testId={`message-color-popup-${color.label.toLowerCase()}`}
-            >
-              {color.label}
-            </SettingsPopupRow>
-          ))}
-        </SettingsSelectionPopup>
+        <IOSSettingsSelectionPopover
+          open
+          label="Chat Color"
+          options={MESSAGE_COLORS.map((color) => ({ ...color, color: color.value, testId: `message-color-popup-${color.label.toLowerCase()}` }))}
+          value={activeMessageColor.value}
+          anchor={selectionPopup.anchor}
+          isDark={isDark}
+          onSelect={(option) => selectPreference({ chatColor: option.value })}
+          onClose={closeSelectionPopup}
+        />
       );
     }
 
@@ -1721,7 +2165,7 @@ export default function SettingsSheet({
             isDark={isDark}
             onClick={() => {
               closeSelectionPopup();
-              setNotificationRowEnabled(notificationRow, true);
+              void setNotificationRowEnabled(notificationRow, true);
             }}
           >
             ON
@@ -1732,7 +2176,7 @@ export default function SettingsSheet({
             isDark={isDark}
             onClick={() => {
               closeSelectionPopup();
-              setNotificationRowEnabled(notificationRow, false);
+              void setNotificationRowEnabled(notificationRow, false);
             }}
           >
             OFF
@@ -1754,6 +2198,10 @@ export default function SettingsSheet({
     appearance: "Appearance",
     "message-color": "Message Color",
     general: "General",
+    "security-login": "Security & Login",
+    "sign-in-methods": "Sign-in Methods",
+    "active-sessions": "Active Sessions & Devices",
+    "privacy-controls": "Privacy Controls",
     notifications: "Notifications",
     "report-issue": "Report app issue",
     "help-center": "Help Center",
@@ -1771,6 +2219,10 @@ export default function SettingsSheet({
     if (pane === "forgot-password") return renderForgotPassword();
     if (pane === "subscription") return renderSubscription();
     if (pane === "general") return renderGeneral();
+    if (pane === "security-login") return renderSecurityLogin();
+    if (pane === "sign-in-methods") return renderSignInMethods();
+    if (pane === "active-sessions") return renderActiveSessions();
+    if (pane === "privacy-controls") return renderPrivacyControls();
     if (pane === "language" || pane === "appearance" || pane === "message-color") return renderGeneral();
     if (pane === "notifications") return renderNotifications();
     if (pane === "report-issue") return renderReportIssue();
@@ -1784,45 +2236,87 @@ export default function SettingsSheet({
 
   const sheetContent = (
     <motion.div
-      {...(!overlay ? {
+      ref={sheetSurfaceRef}
+      {...(!overlay && !settingsMotionDisabled ? {
         initial: overlayMotion.sheet.initial,
         animate: overlayMotion.sheet.animate,
         exit: overlayMotion.sheet.exit,
         transition: overlayMotion.transition.sheet,
       } : {})}
-      drag={mobile ? "y" : false}
+      {...(settingsMotionDisabled ? {
+        initial: { y: typeof window === "undefined" ? 1000 : window.innerHeight },
+        animate: { y: sheetDismissing ? (typeof window === "undefined" ? 1000 : window.innerHeight) : 0 },
+        transition: { type: "tween", duration: 0.34, ease: [0.22, 1, 0.36, 1] },
+        onUpdate: (latest) => {
+          if (typeof latest.y !== "number") return;
+          settingsPresentationOffsetRef.current = latest.y;
+          void setNativeSettingsPresentation({ visible: true, isDark, offsetY: latest.y });
+        },
+        onAnimationComplete: () => {
+          if (sheetDismissing) close();
+        },
+      } : {})}
+      drag={mobile && settingsMotionDisabled ? "y" : mobile ? "y" : false}
+      dragControls={sheetDragControls}
+      dragListener={false}
       dragDirectionLock
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={{ top: 0, bottom: 0.22 }}
+      dragConstraints={settingsMotionDisabled ? { top: 0, bottom: typeof window === "undefined" ? 1000 : window.innerHeight } : { top: 0, bottom: 0 }}
+      dragElastic={settingsMotionDisabled ? 0 : { top: 0, bottom: 0.22 }}
+      dragMomentum={false}
       onDragEnd={(_, info) => {
         if (!mobile) return;
+        if (settingsMotionDisabled) {
+          const sheetHeight = sheetSurfaceRef.current?.getBoundingClientRect?.().height || window.innerHeight;
+          if (info.offset.y >= sheetHeight * 0.48 || info.velocity.y >= 1100) {
+            requestSettingsDismiss();
+          }
+          return;
+        }
         if (info.offset.y > 92 || info.velocity.y > 620) {
           close();
         }
       }}
       className={cn(
-        "relative flex w-full flex-col overflow-hidden",
+        "relative isolate flex w-full flex-col overflow-hidden",
         "bm-settings-sheet-surface",
-        isDark ? "border border-white/[0.045] bg-[rgba(8,8,8,0.88)] text-white" : "border border-black/[0.06] bg-white/[0.82] text-[var(--bm-text-primary)]",
-        mobile ? "h-[88dvh] rounded-t-[34px]" : "mx-auto h-[86dvh] max-w-[560px] rounded-[34px]",
+        settingsMotionDisabled && "bm-settings-zero-motion",
+        isDark ? "text-white" : "text-[var(--bm-text-primary)]",
+        mobile ? "bm-settings-sheet-mobile rounded-t-[38px]" : "mx-auto h-[86dvh] max-w-[560px] rounded-[34px]",
       )}
       style={isDark ? SETTINGS_SHEET_GLASS_STYLE : SETTINGS_LIGHT_SHEET_GLASS_STYLE}
       role="dialog"
       aria-modal="true"
       aria-label="Settings"
     >
-      <div className="flex h-14 shrink-0 items-center justify-between px-5 pt-2">
-        {pane === "main" ? (
+      <div
+        className="relative flex h-14 shrink-0 touch-none items-center justify-between px-5 pt-2"
+        onPointerDown={(event) => {
+          if (!mobile || !event.target?.closest?.("[data-settings-drag-handle='true']")) return;
+          sheetDragControls.start(event);
+        }}
+      >
+        {settingsMotionDisabled && (
+          <span
+            data-settings-drag-handle="true"
+            className="absolute left-1/2 top-2 h-[5px] w-10 -translate-x-1/2 rounded-full bg-white/30"
+            aria-hidden="true"
+          />
+        )}
+        {pane === "main" || settingsMotionDisabled ? (
           <span className="w-10" />
         ) : (
-          <button type="button" onClick={backToMain} className="bm-mobile-glass-control" aria-label="Back">
+          <button type="button" onClick={backOneSettingsLevel} className="bm-mobile-glass-control" aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
         <h2 className="text-[15px] font-bold">{pane === "main" ? "Settings" : childTitles[pane] || "Settings"}</h2>
-        <button type="button" onClick={close} className="bm-mobile-glass-control" aria-label="Close settings">
-          <X className="h-5 w-5" />
-        </button>
+        {settingsMotionDisabled ? (
+          <span className="w-10" aria-hidden="true" />
+        ) : (
+          <button type="button" onClick={requestSettingsDismiss} className="bm-mobile-glass-control" aria-label="Close settings">
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-2">
@@ -1912,8 +2406,10 @@ export default function SettingsSheet({
     <BlueMindOverlay
       open={open}
       kind="sheet"
-      className="z-[140] flex items-end justify-center md:items-center md:p-6"
-      backdropClassName={layeredOverMenu ? "bg-black/35 backdrop-blur-[8px]" : "bg-black/55 backdrop-blur-[14px]"}
+      className="bm-settings-presentation z-[140] flex items-end justify-center md:items-center md:p-6"
+      backdropClassName="bm-settings-sheet-backdrop"
+      closeOnBackdrop={false}
+      instant={settingsMotionDisabled}
       contentClassName="w-full md:flex md:justify-center"
       onClose={close}
       closeLabel="Dismiss settings"

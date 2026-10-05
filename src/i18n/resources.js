@@ -6,6 +6,7 @@ import esCommon from "@/locales/es/common.json";
 import frCommon from "@/locales/fr/common.json";
 import hiCommon from "@/locales/hi/common.json";
 import jaCommon from "@/locales/ja/common.json";
+import svCommon from "@/locales/sv/common.json";
 
 export const fallbackLanguage = "en";
 export const defaultNamespace = "common";
@@ -20,6 +21,7 @@ const localTranslations = {
   fr: frCommon,
   hi: hiCommon,
   ja: jaCommon,
+  sv: svCommon,
 };
 
 function withEnglishFallback(translations = {}) {

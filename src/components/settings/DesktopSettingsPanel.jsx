@@ -131,7 +131,7 @@ const HELP_TOPICS = [
   },
   {
     title: "Frequently Asked Questions",
-    text: "Most workflows start in chat. Choose a tool only when you need a specific mode, such as Create Image, Write/Edit, Search, or AI Plans.",
+    text: "Most workflows start in chat. Choose a tool only when you need a specific mode, such as Create Image, Write/Edit, or Search.",
   },
   {
     title: "Helpful links",

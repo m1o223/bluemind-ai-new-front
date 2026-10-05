@@ -6,6 +6,7 @@ import {
   BookOpen,
   BrainCircuit,
   BriefcaseBusiness,
+  Camera,
   Check,
   Edit3,
   Expand,
@@ -32,12 +33,25 @@ import { BlueMindLoadingDots } from "@/components/BlueMindActionFeedback";
 import BlueMindSendButton from "@/components/BlueMindSendButton";
 import BrandLogo from "@/components/BrandLogo";
 import ThinkingIndicator from "@/components/ThinkingIndicator";
+import UnifiedComposer from "@/components/UnifiedComposer";
 import MobileNotificationControlCard from "@/mobile/components/MobileNotificationControlCard";
+import IOSNativeGlassButton from "@/mobile/components/IOSNativeGlassButton";
+import { isNativeIOSApp } from "@/capacitorRuntime";
+import {
+  addNativeGlassActionListener,
+  prepareNativeGlassExperiment,
+  presentNativeIOSConfirmation,
+  presentNativeIOSSelection,
+  presentNativeIOSTextPrompt,
+  presentNativeIOSWritingAttachmentPicker,
+  setNativeGlassVisible,
+  updateNativeGlassState,
+} from "@/mobile/nativeGlassBridge";
 import { cn } from "@/lib/utils";
 import { iconClasses, inputClasses, interactionClasses, motionTokens, spacingClasses, typeClasses } from "@/lib/interactions";
 import { getApiErrorMessage } from "@/services/api";
+import { BLUE_MIND_COLORS } from "@/theme/colors";
 import {
-  applyAIPlanInstruction,
   analyzePlanningConversation,
   createAIPlanFromConversation,
   getPlanningQuestions,
@@ -150,6 +164,15 @@ const QUICK_PLAN_CARDS = [
     firstQuestion: "What personal goal should this plan help you organize?",
     suggestions: ["Daily Routine", "Habits", "Travel", "Budget", "Health", "Productivity", "Life Goals", "Other"],
   },
+  {
+    id: "other",
+    icon: Sparkles,
+    title: "Other",
+    description: "Plan any goal with BlueMind",
+    prompt: "Help me create a plan for",
+    firstQuestion: "What would you like this plan to help you accomplish?",
+    suggestions: ["Project", "Learning", "Work", "Personal Goal", "Other"],
+  },
 ];
 
 const GENERATION_STEPS = [
@@ -160,6 +183,7 @@ const GENERATION_STEPS = [
 ];
 
 const mobileNeutralGlassSurfaceClass = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
+const mobileScheduleCardSurfaceClass = "border-white/[0.085] bg-[rgba(31,31,33,0.84)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_14px_34px_rgba(0,0,0,0.20)] backdrop-blur-[24px]";
 const mobileNeutralGlassMenuClass = "border-white/[0.08] bg-[rgba(28,28,28,0.78)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(0,0,0,0.28)] backdrop-blur-[28px]";
 const mobileGlassControlClass = "bm-mobile-glass-control";
 
@@ -241,6 +265,28 @@ function formatPlanCreatedParts(value) {
   };
 }
 
+function startPlanVoiceInput({ value, onChange, onListeningChange }) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    toast.info("Voice input is not available on this device yet.");
+    return;
+  }
+  const recognition = new SpeechRecognition();
+  recognition.lang = navigator.language || "en-US";
+  recognition.interimResults = false;
+  recognition.onstart = () => onListeningChange?.(true);
+  recognition.onend = () => onListeningChange?.(false);
+  recognition.onerror = () => {
+    onListeningChange?.(false);
+    toast.error("Voice input could not start.");
+  };
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results || []).map((result) => result[0]?.transcript || "").join(" ").trim();
+    if (transcript) onChange(value ? `${value} ${transcript}` : transcript);
+  };
+  recognition.start();
+}
+
 function PlannerComposer({
   value,
   onChange,
@@ -284,28 +330,7 @@ function PlannerComposer({
   };
 
   const startVoice = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.info("Voice input is not available in this browser yet.");
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.onstart = () => setListening(true);
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => {
-      setListening(false);
-      toast.error("Voice input could not start.");
-    };
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results || [])
-        .map((result) => result[0]?.transcript || "")
-        .join(" ")
-        .trim();
-      if (transcript) onChange(value ? `${value} ${transcript}` : transcript);
-    };
-    recognition.start();
+    startPlanVoiceInput({ value, onChange, onListeningChange: setListening });
     setMenuOpen(false);
   };
 
@@ -439,10 +464,16 @@ function ToolMenuButton({ icon: Icon, label, onClick }) {
   );
 }
 
-function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = false }) {
+function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = false, nativeIOS = false, nativeHandlerRef }) {
   const [goal, setGoal] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [selectedPlanTypeId, setSelectedPlanTypeId] = useState("study");
+  const [nativeComposerActive, setNativeComposerActive] = useState(false);
+  const [nativeListening, setNativeListening] = useState(false);
+  const nativeCameraRef = useRef(null);
+  const nativePhotosRef = useRef(null);
+  const nativeFilesRef = useRef(null);
 
   useEffect(() => {
     if (mobile) return undefined;
@@ -462,6 +493,102 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = f
       });
     }
   };
+
+  const addNativeFiles = (files, type) => {
+    const next = Array.from(files || []).map((file) => fileToAttachment(file, type));
+    if (next.length) setAttachments((current) => [...current, ...next]);
+  };
+
+  useEffect(() => {
+    if (!mobile || !nativeIOS) return undefined;
+    let cancelled = false;
+    void prepareNativeGlassExperiment().then((supported) => {
+      if (cancelled) return;
+      setNativeComposerActive(supported);
+      if (supported) void setNativeGlassVisible(true);
+    });
+    return () => {
+      cancelled = true;
+      if (nativeHandlerRef) nativeHandlerRef.current = null;
+      void setNativeGlassVisible(false);
+    };
+  }, [mobile, nativeHandlerRef, nativeIOS]);
+
+  useEffect(() => {
+    if (!nativeComposerActive) return;
+    const selectedType = QUICK_PLAN_CARDS.find((item) => item.id === selectedPlanTypeId) || QUICK_PLAN_CARDS[0];
+    void updateNativeGlassState({
+      text: goal,
+      canSend: Boolean(goal.trim() || attachments.length),
+      isSending: false,
+      isListening: nativeListening,
+      voiceStatus: nativeListening ? "listening" : "idle",
+      voiceTranscript: "",
+      attachments: [],
+      isUploadingAttachments: false,
+      isComposerVisible: true,
+      isHeaderVisible: true,
+      isMenuOpen: false,
+      isDark,
+      isRTL: false,
+      accentColor: appColor,
+      brandPrimaryColor: BLUE_MIND_COLORS.primary,
+      isWritingMode: false,
+      isAIPlanMode: true,
+      placeholder: "Tell BlueMind what you want to plan…",
+      headerTitlePrefix: "AI Plan",
+      quickActions: ["Study", "Website", "Programming", "Personal"],
+      selectedMode: selectedType.id,
+      modes: QUICK_PLAN_CARDS.map((item) => ({ id: item.id, title: item.title.replace(" Plan", "") })),
+    });
+  }, [appColor, attachments.length, goal, isDark, nativeComposerActive, nativeListening, selectedPlanTypeId]);
+
+  if (nativeHandlerRef) {
+    nativeHandlerRef.current = async (event) => {
+      const selectedType = QUICK_PLAN_CARDS.find((item) => item.id === selectedPlanTypeId) || QUICK_PLAN_CARDS[0];
+      if (event?.action === "textChanged") setGoal(String(event.text || ""));
+      if (event?.action === "selectMode" && QUICK_PLAN_CARDS.some((item) => item.id === event.mode)) setSelectedPlanTypeId(event.mode);
+      if (event?.action === "send") submit(String(event.text || goal), selectedType);
+      if (event?.action === "menu") onBack();
+      if (event?.action === "aiPlanCamera") nativeCameraRef.current?.click();
+      if (event?.action === "aiPlanPhotos") nativePhotosRef.current?.click();
+      if (event?.action === "aiPlanFiles") nativeFilesRef.current?.click();
+      if (event?.action === "microphone") startPlanVoiceInput({ value: goal, onChange: setGoal, onListeningChange: setNativeListening });
+      if (event?.action === "aiPlanQuickAction") {
+        const match = QUICK_PLAN_CARDS.find((item) => item.title.replace(" Plan", "") === event.text);
+        if (match) {
+          setSelectedPlanTypeId(match.id);
+          setGoal(match.prompt);
+        }
+      }
+      if (event?.action === "aiPlanTools") {
+        await presentNativeIOSSelection({
+          title: "AI Plan Tools",
+          selectedValue: "",
+          requestId: "ai-plan-tools",
+          options: [
+            { value: "improve", label: "Improve Plan", symbol: "wand.and.stars" },
+            { value: "type", label: "Change Plan Type", symbol: "list.bullet" },
+            { value: "new", label: "Start New AI Plan", symbol: "plus" },
+            { value: "refine", label: "Refine Goal", symbol: "scope" },
+          ],
+        });
+      }
+      if (event?.action === "settingsSelection" && event.requestId === "ai-plan-tools") {
+        if (event.value === "new") setGoal("");
+        if (event.value === "type") {
+          await presentNativeIOSSelection({
+            title: "Plan Type",
+            selectedValue: selectedPlanTypeId,
+            requestId: "ai-plan-type",
+            options: QUICK_PLAN_CARDS.map((item) => ({ value: item.id, label: item.title.replace(" Plan", ""), symbol: "list.bullet" })),
+          });
+        }
+        if (event.value === "improve" || event.value === "refine") setGoal((current) => current || "Help me refine this plan goal: ");
+      }
+      if (event?.action === "settingsSelection" && event.requestId === "ai-plan-type" && QUICK_PLAN_CARDS.some((item) => item.id === event.value)) setSelectedPlanTypeId(event.value);
+    };
+  }
 
   if (!mobile) {
     return (
@@ -533,7 +660,7 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = f
 
   return (
     <div className="flex min-h-[calc(100dvh-3rem)] flex-col pb-[132px]">
-      <header className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center py-2">
+      <header className="bm-web-chat-header grid grid-cols-[44px_minmax(0,1fr)_44px] items-center py-2">
         <button type="button" onClick={onBack} className="bm-mobile-glass-control" aria-label="Back">
           <ArrowLeft />
         </button>
@@ -543,31 +670,10 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = f
 
       <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col items-center pt-2 text-center">
         <BrandLogo showName={false} small logoClassName="h-16 w-16" />
-        <h1 className="mt-5 text-[28px] font-semibold leading-tight tracking-tight">Create AI Plan</h1>
-        <p className="mt-2 text-sm font-medium text-[var(--bm-text-secondary)]">Tell BlueMind what you want to organize.</p>
+        <h1 className="mt-5 text-[24px] font-semibold leading-tight tracking-tight">AI Plan</h1>
+        <p className="mt-2 text-sm font-medium text-[var(--bm-text-secondary)]">Build, organize, and improve your plan with BlueMind.</p>
 
-        <div className="mt-6 w-full overflow-hidden">
-          <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {QUICK_PLAN_CARDS.map((card) => (
-              <button
-                key={card.id}
-                type="button"
-                onClick={() => submit(card.prompt, card)}
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition active:scale-[0.97]",
-                  isDark
-                    ? "border-white/[0.08] bg-[rgba(78,78,78,0.18)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-[24px]"
-                    : "border-[var(--bm-border)] bg-white text-[var(--bm-text-primary)] shadow-sm"
-                )}
-              >
-                <card.icon className="h-4 w-4" />
-                {card.title.replace(" Plan", "")}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="fixed inset-x-4 bottom-[max(10px,env(safe-area-inset-bottom))] z-30">
+        <div className="bm-web-chat-composer fixed inset-x-4 bottom-[max(10px,env(safe-area-inset-bottom))] z-30">
           <PlannerComposer
             value={goal}
             onChange={setGoal}
@@ -581,6 +687,9 @@ function StartScreen({ isDark, appColor, accentText, onStart, onBack, mobile = f
             mobile
           />
         </div>
+        <input ref={nativeCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => addNativeFiles(event.target.files, "image")} />
+        <input ref={nativePhotosRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => addNativeFiles(event.target.files, "image")} />
+        <input ref={nativeFilesRef} type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.md,.csv,.xls,.xlsx,.ppt,.pptx" multiple className="hidden" onChange={(event) => addNativeFiles(event.target.files, "file")} />
       </motion.section>
     </div>
   );
@@ -647,7 +756,7 @@ async function getPlanningAssistantReply({ goal, answers, latestAnswer, analysis
   return text.trim();
 }
 
-function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText, onCancel, onCreate, mobile = false }) {
+function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText, onCancel, onCreate, mobile = false, nativeIOS = false, nativeHandlerRef }) {
   const [messages, setMessages] = useState(() => ([
     { role: "user", content: goal },
     getInitialAIMessage(goal, draftContext),
@@ -660,6 +769,12 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
   const [generationStep, setGenerationStep] = useState(0);
   const planningResponseTimerRef = useRef(null);
   const planningSendLockRef = useRef(false);
+  const [selectedPlanTypeId, setSelectedPlanTypeId] = useState(draftContext?.sourceCard?.id || "study");
+  const [nativeComposerActive, setNativeComposerActive] = useState(false);
+  const [nativeListening, setNativeListening] = useState(false);
+  const nativeCameraRef = useRef(null);
+  const nativePhotosRef = useRef(null);
+  const nativeFilesRef = useRef(null);
   const enough = hasEnoughPlanContext(goal, answers);
   const lastAssistantMessage = [...messages].reverse().find((message) => message.role === "ai" && !message.isThinking);
 
@@ -684,10 +799,10 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
     window.setTimeout(() => onCreate(createAIPlanFromConversation(goal, sourceAnswers, {
       attachments,
       messages: sourceMessages,
-      selectedQuickCard: draftContext?.sourceCard ? {
-        id: draftContext.sourceCard.id,
-        title: draftContext.sourceCard.title,
-        prompt: draftContext.sourceCard.prompt,
+      selectedQuickCard: (QUICK_PLAN_CARDS.find((item) => item.id === selectedPlanTypeId) || draftContext?.sourceCard) ? {
+        id: (QUICK_PLAN_CARDS.find((item) => item.id === selectedPlanTypeId) || draftContext.sourceCard).id,
+        title: (QUICK_PLAN_CARDS.find((item) => item.id === selectedPlanTypeId) || draftContext.sourceCard).title,
+        prompt: (QUICK_PLAN_CARDS.find((item) => item.id === selectedPlanTypeId) || draftContext.sourceCard).prompt,
       } : null,
     })), 2300);
   };
@@ -743,9 +858,96 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
     }, 220);
   };
 
+  const addNativeFiles = (files, type) => {
+    const next = Array.from(files || []).map((file) => fileToAttachment(file, type));
+    if (next.length) setAttachments((current) => [...current, ...next]);
+  };
+
+  useEffect(() => {
+    if (!mobile || !nativeIOS) return undefined;
+    let cancelled = false;
+    void prepareNativeGlassExperiment().then((supported) => {
+      if (cancelled) return;
+      setNativeComposerActive(supported);
+      if (supported) void setNativeGlassVisible(true);
+    });
+    return () => {
+      cancelled = true;
+      if (nativeHandlerRef) nativeHandlerRef.current = null;
+      void setNativeGlassVisible(false);
+    };
+  }, [mobile, nativeHandlerRef, nativeIOS]);
+
+  useEffect(() => {
+    if (!nativeComposerActive) return;
+    void updateNativeGlassState({
+      text: input,
+      canSend: Boolean(input.trim() || attachments.length) && !generating && !isPlanningAiThinking,
+      isSending: generating || isPlanningAiThinking,
+      isListening: nativeListening,
+      voiceStatus: nativeListening ? "listening" : "idle",
+      voiceTranscript: "",
+      attachments: [],
+      isUploadingAttachments: false,
+      isComposerVisible: true,
+      isHeaderVisible: true,
+      isMenuOpen: false,
+      isDark,
+      isRTL: false,
+      accentColor: appColor,
+      brandPrimaryColor: BLUE_MIND_COLORS.primary,
+      isWritingMode: false,
+      isAIPlanMode: true,
+      placeholder: "Tell BlueMind what you want to plan…",
+      headerTitlePrefix: "AI Plan",
+      quickActions: [],
+      selectedMode: selectedPlanTypeId,
+      modes: QUICK_PLAN_CARDS.map((item) => ({ id: item.id, title: item.title.replace(" Plan", "") })),
+    });
+  }, [appColor, attachments.length, generating, input, isDark, isPlanningAiThinking, nativeComposerActive, nativeListening, selectedPlanTypeId]);
+
+  if (nativeHandlerRef) {
+    nativeHandlerRef.current = async (event) => {
+      if (event?.action === "textChanged") setInput(String(event.text || ""));
+      if (event?.action === "selectMode" && QUICK_PLAN_CARDS.some((item) => item.id === event.mode)) setSelectedPlanTypeId(event.mode);
+      if (event?.action === "send") submitAnswer(String(event.text || input));
+      if (event?.action === "menu") onCancel();
+      if (event?.action === "aiPlanCamera") nativeCameraRef.current?.click();
+      if (event?.action === "aiPlanPhotos") nativePhotosRef.current?.click();
+      if (event?.action === "aiPlanFiles") nativeFilesRef.current?.click();
+      if (event?.action === "microphone") startPlanVoiceInput({ value: input, onChange: setInput, onListeningChange: setNativeListening });
+      if (event?.action === "aiPlanTools") {
+        await presentNativeIOSSelection({
+          title: "AI Plan Tools",
+          selectedValue: "",
+          requestId: "ai-plan-tools",
+          options: [
+            { value: "improve", label: "Improve Plan", symbol: "wand.and.stars" },
+            { value: "type", label: "Change Plan Type", symbol: "list.bullet" },
+            { value: "new", label: "Start New AI Plan", symbol: "plus" },
+            { value: "refine", label: "Refine Goal", symbol: "scope" },
+          ],
+        });
+      }
+      if (event?.action === "settingsSelection" && event.requestId === "ai-plan-tools") {
+        if (event.value === "new") onCancel();
+        if (event.value === "type") {
+          await presentNativeIOSSelection({
+            title: "Plan Type",
+            selectedValue: selectedPlanTypeId,
+            requestId: "ai-plan-type",
+            options: QUICK_PLAN_CARDS.map((item) => ({ value: item.id, label: item.title.replace(" Plan", ""), symbol: "list.bullet" })),
+          });
+        }
+        if (event.value === "improve" || event.value === "refine") setInput("Help me refine this plan based on our conversation.");
+      }
+      if (event?.action === "settingsSelection" && event.requestId === "ai-plan-type" && QUICK_PLAN_CARDS.some((item) => item.id === event.value)) setSelectedPlanTypeId(event.value);
+    };
+  }
+
   return (
     <div className={cn("flex flex-col", mobile ? "min-h-[calc(100dvh-3rem)] pb-[132px]" : "min-h-[calc(100vh-4rem)]")}>
-      <header className="flex items-center justify-between py-2">
+      <header className="bm-web-chat-header flex items-center justify-between py-2">
         <button
           type="button"
           onClick={onCancel}
@@ -766,13 +968,13 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
 
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="mx-auto w-full max-w-4xl flex-1 space-y-4 overflow-y-auto px-1 py-6 sm:px-4">
-          <div className={cn("text-center", mobile ? "mb-4 pt-1" : "mb-6")}>
+          {!mobile && <div className="mb-6 text-center">
             <p className={cn("font-bold uppercase tracking-[0.16em]", typeClasses.small, "text-[var(--bm-text-muted)]")}>AI Plan Builder</p>
             <h1 className={cn("mt-2 font-extrabold tracking-tight", mobile ? "text-[24px] leading-tight" : typeClasses.pageTitle)}>BlueMind is building your plan</h1>
             <p className={cn("mx-auto mt-2 max-w-2xl font-semibold", mobile ? "text-sm leading-6" : typeClasses.body, "text-[var(--bm-text-secondary)]")}>
               Answer a few quick questions. When there is enough context, BlueMind will turn it into a visual roadmap.
             </p>
-          </div>
+          </div>}
 
           <AnimatePresence>
             {messages.map((message, index) => (
@@ -817,7 +1019,7 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
           )}
         </div>
 
-        <div className={cn(mobile ? "fixed inset-x-4 bottom-[max(10px,env(safe-area-inset-bottom))] z-30" : "pb-4")}>
+        <div className={cn(mobile ? "bm-web-chat-composer fixed inset-x-4 bottom-[max(10px,env(safe-area-inset-bottom))] z-30" : "pb-4")}>
           <PlannerComposer
             value={input}
             onChange={setInput}
@@ -833,12 +1035,19 @@ function ConversationBuilder({ goal, draftContext, isDark, appColor, accentText,
             mobile={mobile}
           />
         </div>
+        {mobile && (
+          <>
+            <input ref={nativeCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => addNativeFiles(event.target.files, "image")} />
+            <input ref={nativePhotosRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => addNativeFiles(event.target.files, "image")} />
+            <input ref={nativeFilesRef} type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.md,.csv,.xls,.xlsx,.ppt,.pptx" multiple className="hidden" onChange={(event) => addNativeFiles(event.target.files, "file")} />
+          </>
+        )}
       </section>
     </div>
   );
 }
 
-function PlanHomeCard({ plan, index, isDark, onOpen, onDelete }) {
+function PlanHomeCard({ plan, index, isDark, onOpen, onDelete, onRename, nativeIOS, onOpenNativeActions }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const created = formatPlanCreatedParts(plan.createdAt || plan.updatedAt);
 
@@ -852,8 +1061,8 @@ function PlanHomeCard({ plan, index, isDark, onOpen, onDelete }) {
       transition={{ ...motionTokens.transition, delay: index * 0.035 }}
       onClick={() => onOpen(plan.id)}
       className={cn(
-        "relative cursor-pointer rounded-[24px] border p-4 shadow-sm transition",
-        isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
+        "relative w-full min-w-0 max-w-full cursor-pointer overflow-hidden rounded-[24px] border p-4 shadow-sm",
+        isDark ? mobileScheduleCardSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_16px_36px_rgba(15,23,42,0.08)] backdrop-blur-[22px]",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -866,20 +1075,36 @@ function PlanHomeCard({ plan, index, isDark, onOpen, onDelete }) {
           </div>
         </div>
 
-        <div className="relative">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              setMenuOpen((value) => !value);
-            }}
-            className="bm-mobile-glass-control"
-            aria-label="AI plan actions"
-          >
-            <MoreVertical className={iconClasses.button} />
-          </button>
+        <div className="relative shrink-0">
+          {nativeIOS ? (
+            <IOSNativeGlassButton
+              id={`ai-plan-actions-${plan.id}`}
+              symbol="ellipsis"
+              label={`Actions for ${plan.title}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenNativeActions(plan, event.currentTarget);
+              }}
+              className="bm-mobile-glass-control"
+              isDark={isDark}
+            >
+              <MoreVertical className={iconClasses.button} />
+            </IOSNativeGlassButton>
+          ) : (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuOpen((value) => !value);
+              }}
+              className="bm-mobile-glass-control"
+              aria-label="AI plan actions"
+            >
+              <MoreVertical className={iconClasses.button} />
+            </button>
+          )}
 
-          {menuOpen && (
+          {!nativeIOS && menuOpen && (
             <>
               <button
                 type="button"
@@ -910,6 +1135,16 @@ function PlanHomeCard({ plan, index, isDark, onOpen, onDelete }) {
                 <button
                   type="button"
                   onClick={() => {
+                    onRename(plan);
+                    setMenuOpen(false);
+                  }}
+                  className={cn("w-full px-4 py-3 text-left text-sm", isDark ? "text-white hover:bg-white/[0.08]" : "hover:bg-[#2F7DF6]/[0.08]")}
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     onDelete(plan.id);
                     setMenuOpen(false);
                   }}
@@ -927,7 +1162,7 @@ function PlanHomeCard({ plan, index, isDark, onOpen, onDelete }) {
   );
 }
 
-function AIPlansInfoPanel({ debug, busy, isDark, appColor, onEnable, onRefresh, onTest }) {
+function AIPlansInfoPanel({ debug, busy, isDark, appColor, onEnable, onRefresh, onTest, nativeIOS }) {
   return (
     <MobileNotificationControlCard
       title="AI Plans Notifications"
@@ -940,16 +1175,20 @@ function AIPlansInfoPanel({ debug, busy, isDark, appColor, onEnable, onRefresh, 
       onRefresh={onRefresh}
       onTest={onTest}
       testId="mobile-ai-plans-info-panel"
+      nativeGlass={nativeIOS}
     />
   );
 }
 
-function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete, mobile = false, notificationDebug, notificationBusy, onEnableNotifications, onRefreshNotifications, onTestNotification }) {
+function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete, onRename, onOpenNativeActions, nativeIOS = false, mobile = false, notificationDebug, notificationBusy, onEnableNotifications, onRefreshNotifications, onTestNotification }) {
   const [searchQuery, setSearchQuery] = useState("");
   const filteredPlans = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return plans;
-    return plans.filter((plan) => String(plan.title || "").toLowerCase().includes(query));
+    return plans.filter((plan) => (
+      String(plan.title || "").toLocaleLowerCase().includes(query)
+      || String(plan.description || "").toLocaleLowerCase().includes(query)
+    ));
   }, [plans, searchQuery]);
 
   if (mobile) {
@@ -969,14 +1208,9 @@ function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete
         >
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={onBack}
-                className={cn(mobileGlassControlClass)}
-                aria-label="Back to chat"
-              >
+              <IOSNativeGlassButton id="ai-plans-back" symbol="arrow.left" label="Back to chat" onClick={onBack} className={cn(mobileGlassControlClass)} isDark={isDark}>
                 <ArrowLeft className="h-5 w-5" />
-              </button>
+              </IOSNativeGlassButton>
               <div className="min-w-0">
                 <p className={cn("text-xs font-medium", isDark ? "text-white/[0.48]" : "text-[var(--bm-text-secondary)]")}>
                   BlueMind AI
@@ -985,16 +1219,9 @@ function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={onCreate}
-              className={cn(mobileGlassControlClass)}
-              style={{ color: appColor }}
-              aria-label="Create AI plan"
-              data-testid="mobile-create-ai-plan"
-            >
+            <IOSNativeGlassButton id="ai-plans-add" symbol="plus" label="Create AI plan" onClick={onCreate} className={cn(mobileGlassControlClass)} isDark={isDark} data-testid="mobile-create-ai-plan">
               <Plus className="h-5 w-5" />
-            </button>
+            </IOSNativeGlassButton>
           </div>
         </header>
 
@@ -1007,6 +1234,7 @@ function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete
             onEnable={onEnableNotifications}
             onRefresh={onRefreshNotifications}
             onTest={onTestNotification}
+            nativeIOS={nativeIOS}
           />
 
           <div className="relative">
@@ -1021,6 +1249,7 @@ function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete
                 inputClasses.search,
                 typeClasses.body,
                 "pl-14 pr-4 font-semibold backdrop-blur-[24px]",
+                nativeIOS && "bm-reminders-stable-search",
                 isDark
                   ? `${mobileNeutralGlassSurfaceClass} placeholder:text-white/42`
                   : "border-black/[0.06] bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.76),0_12px_28px_rgba(15,23,42,0.08)]",
@@ -1039,16 +1268,31 @@ function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete
                   isDark={isDark}
                   onOpen={onOpen}
                   onDelete={onDelete}
+                  onRename={onRename}
+                  nativeIOS={nativeIOS}
+                  onOpenNativeActions={onOpenNativeActions}
                 />
               ))}
             </AnimatePresence>
 
-            {filteredPlans.length === 0 && (
-              <div className={cn("rounded-[24px] border p-5 text-sm", isDark ? "border-white/10 bg-white/[0.055] text-white/60" : "border-black/[0.08] bg-white text-[var(--bm-text-secondary)]")}>
-                No matching AI plans.
-              </div>
-            )}
           </section>
+
+          {filteredPlans.length === 0 && (
+            <section className="py-14 text-center">
+              <div className={cn("mx-auto mb-4 grid h-14 w-14 place-items-center rounded-[22px]", isDark ? "bg-white/[0.08]" : "bg-white shadow-sm")}>
+                <Sparkles className={cn("h-6 w-6", isDark ? "text-white/70" : "text-[var(--bm-text-secondary)]")} />
+              </div>
+              <h2 className="text-base font-semibold">{plans.length ? "No matching AI plans" : "No AI plans yet"}</h2>
+              <p className={cn("mx-auto mt-2 max-w-[280px] text-sm leading-6", isDark ? "text-white/[0.55]" : "text-[var(--bm-text-secondary)]")}>
+                {plans.length ? "Try a different plan name." : "Create a plan and let BlueMind help you organize it."}
+              </p>
+              {!plans.length && (
+                <button type="button" onClick={onCreate} className="mt-5 min-h-11 rounded-2xl bg-[var(--bm-primary)] px-5 text-sm font-semibold text-white">
+                  Create AI Plan
+                </button>
+              )}
+            </section>
+          )}
         </main>
       </div>
     );
@@ -1113,118 +1357,200 @@ function Dashboard({ plans, isDark, appColor, onCreate, onOpen, onBack, onDelete
   );
 }
 
-function MobileDeletePlanDialog({ isDark, planTitle, onCancel, onConfirm }) {
+function buildPlanAssistantContext(plan) {
+  const progress = getPlanProgress(plan);
+  const phases = (plan.phases || []).map((phase, phaseIndex) => ({
+    id: phase.id,
+    index: phaseIndex + 1,
+    title: phase.title,
+    description: phase.description,
+    tasks: (phase.tasks || []).map((task) => ({ id: task.id, title: task.title, completed: Boolean(task.done) })),
+  }));
+  return {
+    id: plan.id,
+    name: plan.title,
+    type: plan.type || plan.category || plan.goalType || "AI Plan",
+    description: plan.description || "",
+    status: getPlanStatus(plan),
+    progress,
+    phases,
+    completedTasks: phases.flatMap((phase) => phase.tasks.filter((task) => task.completed)),
+    existingInformation: {
+      goal: plan.goal || "",
+      recommendations: plan.recommendations || [],
+      createdAt: plan.createdAt,
+      updatedAt: plan.updatedAt,
+    },
+  };
+}
+
+function MobilePlanAssistantChat({ plan, isDark, appColor, accentText, nativeIOS, nativeHandlerRef }) {
+  const [messages, setMessages] = useState(() => ([{
+    role: "ai",
+    content: `I’m ready to help with “${plan.title}”. What would you like to work on?`,
+  }]));
+  const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState([]);
+  const [sending, setSending] = useState(false);
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const cameraRef = useRef(null);
+  const photosRef = useRef(null);
+  const filesRef = useRef(null);
+  const sendLockRef = useRef(false);
+  const context = useMemo(() => buildPlanAssistantContext(plan), [plan]);
+
+  const addFiles = (fileList, type) => {
+    const next = Array.from(fileList || []).map((file) => fileToAttachment(file, type));
+    if (next.length) setAttachments((current) => [...current, ...next]);
+    setAttachmentMenuOpen(false);
+  };
+
+  const openPicker = async (source, fallbackRef) => {
+    setAttachmentMenuOpen(false);
+    if (nativeIOS) {
+      const opened = await presentNativeIOSWritingAttachmentPicker(source);
+      if (!opened) toast.error("Couldn’t open the iOS attachment picker.");
+      return;
+    }
+    fallbackRef.current?.click();
+  };
+
+  useEffect(() => {
+    if (!nativeHandlerRef) return undefined;
+    nativeHandlerRef.current = (event) => {
+      if (event?.action !== "writingAttachmentsPicked") return;
+      const files = (event.attachments || []).map((item) => {
+        const binary = window.atob(String(item.base64 || ""));
+        const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+        return new File([bytes], item.name || "Attachment", { type: item.mimeType || "application/octet-stream" });
+      });
+      addFiles(files, event.source === "files" ? "file" : "image");
+    };
+    return () => { nativeHandlerRef.current = null; };
+  }, [nativeHandlerRef]);
+
+  const sendMessage = async () => {
+    const text = input.trim();
+    if ((!text && !attachments.length) || sending || sendLockRef.current) return;
+    sendLockRef.current = true;
+    const attachmentNames = attachments.map((attachment) => attachment.name).filter(Boolean);
+    setMessages((current) => [...current, {
+      role: "user",
+      content: text || `Attached: ${attachmentNames.join(", ")}`,
+    }, { role: "ai", content: "", isThinking: true }]);
+    setInput("");
+    setSending(true);
+    let answer = "";
+    try {
+      await streamHiddenChatMessage({
+        message: [
+          "You are BlueMind AI assisting with one already-created AI Plan.",
+          "Use the supplied plan context when answering. Do not silently modify the plan or its tasks.",
+          `Current plan context: ${JSON.stringify(context)}`,
+          attachmentNames.length ? `User attached files by name: ${attachmentNames.join(", ")}` : "",
+          `User message: ${text || "Please review the attached context."}`,
+        ].filter(Boolean).join("\n\n"),
+        mode: "work",
+        metadata: {
+          source: "ai_plan_assistant",
+          aiPlans: true,
+          hiddenChat: true,
+          planId: context.id,
+          planName: context.name,
+          planType: context.type,
+          planProgress: context.progress.percent,
+        },
+        onDelta: (payload) => {
+          const token = payload?.token || "";
+          if (!token) return;
+          answer += token;
+          setMessages((current) => [
+            ...current.filter((message) => !message.isThinking && !message.isStreaming),
+            { role: "ai", content: answer, isStreaming: true },
+          ]);
+        },
+        onComplete: (payload) => {
+          if (!answer.trim()) answer = payload?.message?.content || "";
+        },
+      });
+      setMessages((current) => [
+        ...current.filter((message) => !message.isThinking && !message.isStreaming),
+        { role: "ai", content: answer.trim() || "I couldn’t complete that response. Please try again." },
+      ]);
+      setAttachments([]);
+    } catch (error) {
+      setMessages((current) => [
+        ...current.filter((message) => !message.isThinking && !message.isStreaming),
+        { role: "ai", content: getApiErrorMessage(error, "BlueMind could not respond. Please try again.") },
+      ]);
+    } finally {
+      setSending(false);
+      sendLockRef.current = false;
+    }
+  };
+
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-5 backdrop-blur-[18px]"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onCancel}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 18, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 10, scale: 0.98 }}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className={cn(
-          "w-full max-w-sm rounded-[30px] border p-5 text-center",
-          isDark ? mobileNeutralGlassMenuClass : "border-black/[0.08] bg-white/90 text-[var(--bm-text-primary)] shadow-[0_24px_60px_rgba(15,23,42,0.16)] backdrop-blur-[24px]",
-        )}
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Delete AI plan"
+      <section
+        className="flex h-[calc(100dvh-118px-env(safe-area-inset-top))] min-h-[420px] w-full min-w-0 max-w-full flex-col overflow-hidden pb-[max(4px,env(safe-area-inset-bottom))]"
+        aria-label={`BlueMind AI assistant for ${plan.title}`}
       >
-        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-red-400/25 bg-red-500/12 text-red-300">
-          <Trash2 className="h-5 w-5" />
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-3">
+          {messages.map((message, index) => (
+            <div key={`${message.role}-${index}`} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
+              {message.isThinking ? (
+                <ThinkingIndicator className="mb-0" />
+              ) : (
+                <div
+                  className={cn("max-w-[86%] whitespace-pre-wrap rounded-[22px] px-4 py-3 text-sm font-medium leading-6", message.role === "user" ? "text-white" : "border border-white/[0.07] bg-white/[0.055] text-white/88")}
+                  style={message.role === "user" ? { backgroundColor: appColor, color: accentText } : undefined}
+                >
+                  {message.content}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-        <h2 className="mt-4 text-lg font-semibold">Delete this plan?</h2>
-        <p className={cn("mt-2 text-sm leading-6", isDark ? "text-white/58" : "text-[var(--bm-text-secondary)]")}>
-          {planTitle ? `"${planTitle}" will be removed from AI Plans.` : "This AI plan will be removed."}
-        </p>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className={cn("h-12 rounded-full border text-sm font-semibold", isDark ? "border-white/[0.08] bg-white/[0.06] text-white" : "border-black/[0.08] bg-white")}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="h-12 rounded-full border border-red-400/25 bg-red-500/18 text-sm font-semibold text-red-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]"
-          >
-            Delete
-          </button>
+
+        <div className="relative shrink-0 pt-2">
+          <UnifiedComposer
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}
+            attachments={attachments}
+            onRemoveAttachment={(id) => setAttachments((current) => current.filter((item) => item.id !== id))}
+            placeholder={`Ask about ${plan.title}...`}
+            isDark={isDark}
+            appColor={appColor}
+            variant="mobile"
+            canSend={Boolean(input.trim() || attachments.length) && !sending}
+            isBusy={sending}
+            isSubmitting={sending}
+            onSendAction={() => void sendMessage()}
+            onAdd={() => setAttachmentMenuOpen((open) => !open)}
+            onVoice={() => startPlanVoiceInput({ value: input, onChange: setInput })}
+            actionMenu={attachmentMenuOpen ? (
+              <div className="absolute bottom-[92px] left-0 z-20 w-44 overflow-hidden rounded-[22px] border border-white/[0.09] bg-[rgba(28,28,30,0.92)] p-1.5 shadow-[0_18px_46px_rgba(0,0,0,0.42)] backdrop-blur-[28px]">
+                {[["Files", FileText, "files", filesRef], ["Photos", Image, "photos", photosRef], ["Camera", Camera, "camera", cameraRef]].map(([label, Icon, source, ref]) => (
+                  <button key={source} type="button" onClick={() => void openPicker(source, ref)} className="flex h-11 w-full items-center gap-3 rounded-[16px] px-3 text-left text-sm font-medium text-white active:bg-white/10">
+                    <Icon className="h-4 w-4" />{label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => addFiles(event.target.files, "image")} />
+          <input ref={photosRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => addFiles(event.target.files, "image")} />
+          <input ref={filesRef} type="file" multiple className="hidden" onChange={(event) => addFiles(event.target.files, "file")} />
         </div>
-      </motion.div>
-    </motion.div>
+      </section>
   );
 }
 
-function MobileAIPlanSheet({ isDark, instruction, onInstructionChange, onClose, onApply }) {
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end bg-black/45 backdrop-blur-[12px]"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.form
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        onSubmit={onApply}
-        onClick={(event) => event.stopPropagation()}
-        className={cn(
-          "max-h-[82vh] w-full overflow-y-auto rounded-t-[34px] border-x border-t p-5 pb-[calc(env(safe-area-inset-bottom)+24px)]",
-          isDark ? mobileNeutralGlassMenuClass : "border-black/[0.08] bg-white/92 text-[var(--bm-text-primary)] shadow-[0_-20px_54px_rgba(15,23,42,0.14)] backdrop-blur-[28px]",
-        )}
-        aria-label="Improve AI plan"
-      >
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/28" />
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Improve with AI</h2>
-            <p className={cn("mt-1 text-sm leading-6", isDark ? "text-white/56" : "text-[var(--bm-text-secondary)]")}>
-              Ask BlueMind to simplify, add a phase, or split the plan into weeks.
-            </p>
-          </div>
-          <button type="button" onClick={onClose} className="bm-mobile-glass-control" aria-label="Close AI plan chat">
-            <X className={iconClasses.button} />
-          </button>
-        </div>
-        <textarea
-          value={instruction}
-          onChange={(event) => onInstructionChange(event.target.value)}
-          rows={5}
-          className={cn(inputClasses.textarea, "mt-5 resize-none font-semibold", typeClasses.body)}
-          placeholder="Make this plan simpler..."
-        />
-        <button
-          type="submit"
-          disabled={!instruction.trim()}
-          className="mt-4 h-12 w-full rounded-full text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20)] disabled:opacity-45"
-          style={{ backgroundColor: "var(--bm-primary)" }}
-        >
-          Apply AI Update
-        </button>
-      </motion.form>
-    </motion.div>
-  );
-}
-
-function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDelete, mobile = false }) {
+function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDelete, mobile = false, nativeIOS = false, nativeHandlerRef }) {
   const [fullScreen, setFullScreen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [instruction, setInstruction] = useState("");
   const [activePhaseId, setActivePhaseId] = useState(() => plan.phases?.[0]?.id || "");
-  const [aiSheetOpen, setAiSheetOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assistantSheetOpen, setAssistantSheetOpen] = useState(false);
   const progress = getPlanProgress(plan);
   const status = getPlanStatus(plan);
   const activePhase = useMemo(() => {
@@ -1263,15 +1589,6 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
     if (nextTitle?.trim()) updateTask(phaseId, task.id, { title: nextTitle.trim() });
   };
 
-  const applyInstruction = (event) => {
-    event.preventDefault();
-    if (!instruction.trim()) return;
-    onUpdate(applyAIPlanInstruction(plan, instruction));
-    setInstruction("");
-    setAiSheetOpen(false);
-    toast.success("Plan updated");
-  };
-
   if (mobile) {
     const mobileStats = [
       { label: "Progress", value: `${progress.percent}%` },
@@ -1284,30 +1601,55 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
       <PageShell isDark={isDark}>
         <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-6">
           <header className="mb-5 grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3">
-            <button type="button" onClick={onBack} className="bm-mobile-glass-control" aria-label="Back">
+            <IOSNativeGlassButton id={`ai-plan-detail-back-${plan.id}`} symbol="arrow.left" label="Back" onClick={onBack} className="bm-mobile-glass-control" isDark={isDark}>
               <ArrowLeft className={iconClasses.button} />
-            </button>
+            </IOSNativeGlassButton>
             <h1 className="truncate text-center text-lg font-semibold tracking-tight">{plan.title}</h1>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
+              <IOSNativeGlassButton
+                id={`ai-plan-detail-assistant-${plan.id}`}
+                symbol="sparkles"
+                label={`Open BlueMind AI for ${plan.title}`}
+                onClick={() => setAssistantSheetOpen((open) => !open)}
+                className={cn("bm-mobile-glass-control", assistantSheetOpen && "text-[var(--bm-primary)]")}
+                isDark={isDark}
+              >
+                <Sparkles className={iconClasses.button} />
+              </IOSNativeGlassButton>
+              <IOSNativeGlassButton
+                id={`ai-plan-detail-edit-${plan.id}`}
+                symbol="pencil"
+                label="Edit plan"
                 onClick={() => setEditMode((value) => !value)}
                 className={cn("bm-mobile-glass-control", editMode && "text-[var(--bm-primary)]")}
-                aria-label="Edit plan"
-                aria-pressed={editMode}
+                isDark={isDark}
               >
                 <Edit3 className={iconClasses.button} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleteDialogOpen(true)}
+              </IOSNativeGlassButton>
+              <IOSNativeGlassButton
+                id={`ai-plan-detail-delete-${plan.id}`}
+                symbol="trash"
+                label="Delete plan"
+                onClick={() => onDelete(plan)}
                 className="bm-mobile-glass-control text-red-200"
-                aria-label="Delete plan"
+                isDark={isDark}
               >
                 <Trash2 className={iconClasses.button} />
-              </button>
+              </IOSNativeGlassButton>
             </div>
           </header>
+
+          {assistantSheetOpen ? (
+            <MobilePlanAssistantChat
+              plan={plan}
+              isDark={isDark}
+              appColor={appColor}
+              accentText={accentText}
+              nativeIOS={nativeIOS}
+              nativeHandlerRef={nativeHandlerRef}
+            />
+          ) : (
+            <>
 
           <div className="mb-4">
             <p className={cn("text-sm font-semibold leading-6", isDark ? "text-white/56" : "text-[var(--bm-text-secondary)]")}>{plan.description}</p>
@@ -1330,18 +1672,6 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setAiSheetOpen(true)}
-            className={cn(
-              "mb-5 inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold",
-              isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] backdrop-blur-[22px]",
-            )}
-          >
-            <Sparkles className="h-4 w-4" />
-            Improve with AI
-          </button>
-
           <section className="mb-5">
             <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-3">
@@ -1354,7 +1684,7 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
                       type="button"
                       onClick={() => setActivePhaseId(phase.id)}
                       className={cn(
-                        "min-w-[178px] rounded-[24px] border p-4 text-left transition",
+                        "min-w-[178px] rounded-[24px] border p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_30px_rgba(0,0,0,0.16)] backdrop-blur-[24px]",
                         selected
                           ? "border-white/18 bg-white/[0.11] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_14px_34px_rgba(0,0,0,0.18)]"
                           : isDark ? mobileNeutralGlassSurfaceClass : "border-black/[0.08] bg-white/80 text-[var(--bm-text-primary)] backdrop-blur-[22px]",
@@ -1388,14 +1718,14 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
               <div className="space-y-2">
                 {(activePhase.tasks || []).map((task) => (
                   <div key={task.id} className={cn("group flex items-center gap-3 rounded-2xl border px-3 py-3", task.done ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : isDark ? "border-white/[0.06] bg-white/[0.035]" : "border-[var(--bm-border)] bg-[var(--bm-bg-app)]")}>
-                    <button type="button" onClick={() => updateTask(activePhase.id, task.id, { done: !task.done })} className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full border", interactionClasses.iconButton, task.done ? "border-emerald-400 bg-emerald-500 text-white" : isDark ? "border-white/[0.12]" : "border-[var(--bm-border-strong)]")} aria-label={task.done ? "Mark task incomplete" : "Mark task complete"}>
+                    <button type="button" onClick={() => updateTask(activePhase.id, task.id, { done: !task.done })} className={cn("bm-mobile-glass-control bm-reminders-static-glass-control !h-8 !min-h-8 !w-8 !min-w-8", task.done ? "!border-emerald-400 !bg-emerald-500 text-white" : isDark ? "border-white/[0.12]" : "border-[var(--bm-border-strong)]")} aria-label={task.done ? "Mark task incomplete" : "Mark task complete"}>
                       {task.done ? <Check className="h-5 w-5 stroke-[3]" /> : null}
                     </button>
                     <span className={cn("min-w-0 flex-1 text-sm font-semibold", task.done && "line-through decoration-emerald-300/70")}>{task.title}</span>
                     {editMode && (
                       <div className="flex shrink-0 gap-1">
-                        <MiniAction label="Edit" icon={Edit3} onClick={() => renameTask(activePhase.id, task)} />
-                        <MiniAction label="Delete" icon={Trash2} danger onClick={() => deleteTask(activePhase.id, task.id)} />
+                        <MiniAction label="Edit" icon={Edit3} onClick={() => renameTask(activePhase.id, task)} glass />
+                        <MiniAction label="Delete" icon={Trash2} danger onClick={() => deleteTask(activePhase.id, task.id)} glass />
                       </div>
                     )}
                   </div>
@@ -1414,30 +1744,9 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
               </div>
             </section>
           )}
+            </>
+          )}
         </motion.section>
-
-        <AnimatePresence>
-          {aiSheetOpen && (
-            <MobileAIPlanSheet
-              isDark={isDark}
-              instruction={instruction}
-              onInstructionChange={setInstruction}
-              onClose={() => setAiSheetOpen(false)}
-              onApply={applyInstruction}
-            />
-          )}
-          {deleteDialogOpen && (
-            <MobileDeletePlanDialog
-              isDark={isDark}
-              planTitle={plan.title}
-              onCancel={() => setDeleteDialogOpen(false)}
-              onConfirm={() => {
-                setDeleteDialogOpen(false);
-                onDelete(plan.id, { skipConfirm: true });
-              }}
-            />
-          )}
-        </AnimatePresence>
       </PageShell>
     );
   }
@@ -1521,18 +1830,6 @@ function PlanDetail({ plan, isDark, appColor, accentText, onBack, onUpdate, onDe
                 ))}
               </div>
             </div>
-            <form onSubmit={applyInstruction} className={cn("rounded-[26px] border p-5", isDark ? "border-white/[0.08] bg-[var(--bm-bg-card)]" : "border-[var(--bm-border)] bg-white")}>
-              <h3 className={cn("font-extrabold", typeClasses.sectionTitle)}>Improve with AI</h3>
-              <p className={cn("mt-2 font-semibold", typeClasses.body, isDark ? "text-[var(--bm-text-secondary)]" : "text-[var(--bm-text-secondary)]")}>Try: Make this plan simpler, add a testing phase, or split this into two weeks.</p>
-              <textarea
-                value={instruction}
-                onChange={(event) => setInstruction(event.target.value)}
-                rows={4}
-                className={cn(inputClasses.textarea, "mt-4 resize-none font-semibold", typeClasses.body)}
-                placeholder="Add a testing phase..."
-              />
-              <button type="submit" disabled={!instruction.trim()} className={cn("mt-3 h-11 w-full rounded-2xl font-bold disabled:opacity-50", typeClasses.small, interactionClasses.control)} style={{ backgroundColor: appColor, color: accentText }}>Apply AI Update</button>
-            </form>
           </aside>
         </div>
       </motion.section>
@@ -1549,9 +1846,9 @@ function ActionButton({ icon: Icon, label, isDark, active, onClick }) {
   );
 }
 
-function MiniAction({ icon: Icon, label, onClick, danger }) {
+function MiniAction({ icon: Icon, label, onClick, danger, glass = false }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className={cn("flex h-8 w-8 items-center justify-center rounded-full", interactionClasses.iconButton, danger ? "text-red-400" : "")}>
+    <button type="button" aria-label={label} onClick={onClick} className={cn("flex h-8 w-8 items-center justify-center rounded-full", glass ? "bm-mobile-glass-control bm-reminders-static-glass-control !h-8 !min-h-8 !w-8 !min-w-8" : interactionClasses.iconButton, danger ? "text-red-400" : "")}>
       <Icon className={iconClasses.button} />
     </button>
   );
@@ -1572,10 +1869,12 @@ export default function AIPlansPage() {
   const { prefs, resolvedTheme } = useApp();
   const isDark = resolvedTheme === "dark";
   const isMobileRoute = location.pathname.startsWith("/mobile");
+  const nativeIOS = isMobileRoute && isNativeIOSApp();
   const appColor = prefs.appColor || prefs.accentColor || "var(--bm-primary)";
   const accentText = getTextOnColor(appColor);
   const [plans, setPlans] = useState([]);
   const [mode, setMode] = useState("dashboard");
+  const [draftPlanName, setDraftPlanName] = useState("");
   const [draftGoal, setDraftGoal] = useState("");
   const [draftContext, setDraftContext] = useState(null);
   const [activePlanId, setActivePlanId] = useState("");
@@ -1585,12 +1884,33 @@ export default function AIPlansPage() {
     refreshing: false,
     sendingTest: false,
   });
+  const nativePlanCallbacksRef = useRef(new Map());
+  const nativePlanChatHandlerRef = useRef(null);
 
   useEffect(() => {
     const loaded = loadAIPlans();
     setPlans(loaded);
-    setMode(loaded.length ? "dashboard" : "start");
+    setMode("dashboard");
   }, []);
+
+  useEffect(() => {
+    if (!nativeIOS) return undefined;
+    let listenerHandle;
+    const callbacks = nativePlanCallbacksRef.current;
+    void addNativeGlassActionListener((event) => {
+      if (nativePlanChatHandlerRef.current) {
+        void nativePlanChatHandlerRef.current(event);
+      }
+      const callback = callbacks.get(event?.requestId);
+      if (!callback) return;
+      callbacks.delete(event.requestId);
+      callback(event);
+    }).then((handle) => { listenerHandle = handle; });
+    return () => {
+      callbacks.clear();
+      listenerHandle?.remove?.();
+    };
+  }, [nativeIOS]);
 
   const refreshNotificationStatus = async () => {
     setNotificationBusy((prev) => ({ ...prev, refreshing: true }));
@@ -1672,19 +1992,24 @@ export default function AIPlansPage() {
   const activePlan = useMemo(() => plans.find((plan) => plan.id === activePlanId), [plans, activePlanId]);
 
   const createPlan = (plan) => {
-    setPlans((current) => [plan, ...current]);
-    setActivePlanId(plan.id);
+    const chosenName = draftPlanName.trim();
+    const namedPlan = chosenName
+      ? { ...plan, title: chosenName, updatedAt: new Date().toISOString() }
+      : plan;
+    setPlans((current) => [namedPlan, ...current]);
+    setActivePlanId(namedPlan.id);
     setMode("detail");
+    setDraftPlanName("");
     toast.success("AI plan created");
     queueFeatureNotification({
       type: "ai_plans",
-      sourceId: plan.id,
+      sourceId: namedPlan.id,
       source: {
-        planTitle: plan.title,
-        status: plan.status || "ready",
+        planTitle: namedPlan.title,
+        status: namedPlan.status || "ready",
         deepLink: "/mobile/ai-plans",
       },
-      dedupeKey: `ai_plans:${plan.id}:ready`,
+      dedupeKey: `ai_plans:${namedPlan.id}:ready`,
     }).catch(() => {
       // Plan creation should not fail if notification delivery is unavailable.
     });
@@ -1694,14 +2019,130 @@ export default function AIPlansPage() {
     setPlans((current) => current.map((plan) => plan.id === updatedPlan.id ? updatedPlan : plan));
   };
 
+  const renamePlan = (plan, rawName) => {
+    const title = String(rawName || "").trim();
+    if (!title) return;
+    updatePlan({ ...plan, title, updatedAt: new Date().toISOString() });
+    toast.success("AI plan renamed");
+  };
+
   const deletePlan = (planId, options = {}) => {
     if (!options.skipConfirm && !window.confirm("Delete this AI plan?")) return;
     setPlans((current) => current.filter((plan) => plan.id !== planId));
     if (activePlanId === planId) {
       setActivePlanId("");
-      setMode(plans.length > 1 ? "dashboard" : "start");
+      setMode("dashboard");
     }
     toast.success("Plan deleted");
+  };
+
+  const beginNamedPlan = (rawName) => {
+    const title = String(rawName || "").trim();
+    if (!title) return;
+    setDraftPlanName(title);
+    setDraftGoal("");
+    setDraftContext(null);
+    setMode("start");
+  };
+
+  const requestPlanName = () => {
+    if (!nativeIOS) {
+      const title = window.prompt("What would you like to name this plan?", "")?.trim();
+      if (title) beginNamedPlan(title);
+      return;
+    }
+    const requestId = globalThis.crypto?.randomUUID?.() || `ai-plan-name-${Date.now()}`;
+    nativePlanCallbacksRef.current.set(requestId, (event) => {
+      if (event.confirmed === true) beginNamedPlan(event.value);
+    });
+    void presentNativeIOSTextPrompt({
+      title: "New AI Plan",
+      message: "What would you like to name this plan?",
+      placeholder: "Plan name",
+      confirmTitle: "Continue",
+      cancelTitle: "Cancel",
+      requestId,
+    });
+  };
+
+  const requestRenamePlan = (plan) => {
+    if (!nativeIOS) {
+      const title = window.prompt("Rename AI Plan", plan.title || "")?.trim();
+      if (title) renamePlan(plan, title);
+      return;
+    }
+    const requestId = globalThis.crypto?.randomUUID?.() || `ai-plan-rename-${Date.now()}`;
+    nativePlanCallbacksRef.current.set(requestId, (event) => {
+      if (event.confirmed === true) renamePlan(plan, event.value);
+    });
+    void presentNativeIOSTextPrompt({
+      title: "Rename AI Plan",
+      message: "Enter a new name for this plan.",
+      placeholder: "Plan name",
+      value: plan.title || "",
+      confirmTitle: "Rename",
+      cancelTitle: "Cancel",
+      requestId,
+    });
+  };
+
+  const requestDetailDelete = (plan) => {
+    if (!nativeIOS) {
+      deletePlan(plan.id);
+      return;
+    }
+    const requestId = globalThis.crypto?.randomUUID?.() || `ai-plan-detail-delete-${Date.now()}`;
+    nativePlanCallbacksRef.current.set(requestId, (event) => {
+      if (event.confirmed === true) deletePlan(plan.id, { skipConfirm: true });
+    });
+    void presentNativeIOSConfirmation({
+      title: "Delete this plan?",
+      message: `“${plan.title}” will be removed from AI Plans.`,
+      confirmTitle: "Delete",
+      cancelTitle: "Cancel",
+      destructive: true,
+      requestId,
+    });
+  };
+
+  const openNativePlanActions = (plan, anchorElement) => {
+    const rect = anchorElement?.getBoundingClientRect?.();
+    const requestId = globalThis.crypto?.randomUUID?.() || `ai-plan-actions-${Date.now()}`;
+    nativePlanCallbacksRef.current.set(requestId, (event) => {
+      if (event.value === "open") {
+        setActivePlanId(plan.id);
+        setMode("detail");
+        return;
+      }
+      if (event.value === "rename") {
+        requestRenamePlan(plan);
+        return;
+      }
+      if (event.value !== "delete") return;
+      const confirmationRequestId = globalThis.crypto?.randomUUID?.() || `ai-plan-delete-${Date.now()}`;
+      nativePlanCallbacksRef.current.set(confirmationRequestId, (confirmation) => {
+        if (confirmation.confirmed === true) deletePlan(plan.id, { skipConfirm: true });
+      });
+      void presentNativeIOSConfirmation({
+        title: "Delete AI Plan?",
+        message: `“${plan.title}” will be permanently deleted.`,
+        confirmTitle: "Delete",
+        cancelTitle: "Cancel",
+        destructive: true,
+        requestId: confirmationRequestId,
+      });
+    });
+    void presentNativeIOSSelection({
+      title: "",
+      selectedValue: "",
+      requestId,
+      anchorRect: rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : undefined,
+      options: [
+        { label: "Open", value: "open", symbol: "arrow.up.right" },
+        { label: "Rename", value: "rename", symbol: "pencil" },
+        { label: "Delete", value: "delete", symbol: "trash", destructive: true },
+      ],
+    });
   };
 
   if (mode === "conversation") {
@@ -1713,9 +2154,11 @@ export default function AIPlansPage() {
           isDark={isDark}
           appColor={appColor}
           accentText={accentText}
-          onCancel={() => setMode(plans.length ? "dashboard" : "start")}
+          onCancel={() => setMode("dashboard")}
           onCreate={createPlan}
           mobile={isMobileRoute}
+          nativeIOS={nativeIOS}
+          nativeHandlerRef={nativePlanChatHandlerRef}
         />
       </PageShell>
     );
@@ -1730,13 +2173,15 @@ export default function AIPlansPage() {
         accentText={accentText}
         onBack={() => setMode("dashboard")}
         onUpdate={updatePlan}
-        onDelete={deletePlan}
+        onDelete={isMobileRoute ? requestDetailDelete : deletePlan}
         mobile={isMobileRoute}
+        nativeIOS={nativeIOS}
+        nativeHandlerRef={nativePlanChatHandlerRef}
       />
     );
   }
 
-  if (!plans.length || mode === "start") {
+  if (mode === "start") {
     return (
       <PageShell isDark={isDark}>
         <StartScreen
@@ -1744,13 +2189,9 @@ export default function AIPlansPage() {
           isDark={isDark}
           appColor={appColor}
           accentText={accentText}
-          onBack={() => {
-            if (plans.length) {
-              setMode("dashboard");
-              return;
-            }
-            navigate(-1);
-          }}
+          nativeIOS={nativeIOS}
+          nativeHandlerRef={nativePlanChatHandlerRef}
+          onBack={() => setMode("dashboard")}
           onStart={(goal, context) => {
             setDraftGoal(goal);
             setDraftContext(context || null);
@@ -1768,16 +2209,16 @@ export default function AIPlansPage() {
         isDark={isDark}
         appColor={appColor}
         mobile
-        onCreate={() => {
-          setDraftContext(null);
-          setMode("start");
-        }}
+        onCreate={requestPlanName}
         onOpen={(planId) => {
           setActivePlanId(planId);
           setMode("detail");
         }}
         onBack={() => navigate("/mobile/chat")}
         onDelete={deletePlan}
+        onRename={requestRenamePlan}
+        onOpenNativeActions={openNativePlanActions}
+        nativeIOS={nativeIOS}
         notificationDebug={notificationDebug}
         notificationBusy={notificationBusy}
         onEnableNotifications={handleEnableNotifications}
@@ -1793,16 +2234,16 @@ export default function AIPlansPage() {
         plans={plans}
         isDark={isDark}
         appColor={appColor}
-        onCreate={() => {
-          setDraftContext(null);
-          setMode("start");
-        }}
+        onCreate={requestPlanName}
         onOpen={(planId) => {
           setActivePlanId(planId);
           setMode("detail");
         }}
         onBack={() => navigate(-1)}
         onDelete={deletePlan}
+        onRename={requestRenamePlan}
+        onOpenNativeActions={openNativePlanActions}
+        nativeIOS={false}
       />
     </PageShell>
   );

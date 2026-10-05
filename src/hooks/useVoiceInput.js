@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Capacitor, registerPlugin } from "@capacitor/core";
+
+const NativeVoice = registerPlugin("BlueMindNativeVoice");
+const isNativeIOS = () => Capacitor.getPlatform() === "ios";
 
 const SILENT_LEVEL = 0.08;
 const WAVEFORM_POINTS = 28;
@@ -58,6 +62,7 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
   const listeningRef = useRef(false);
   const finalTranscriptRef = useRef("");
   const interimTranscriptRef = useRef("");
+  const nativeRecordingRef = useRef(false);
 
   const getLiveTranscript = useCallback(() => {
     return [finalTranscriptRef.current, interimTranscriptRef.current].filter(Boolean).join(" ").trim();
@@ -209,6 +214,24 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
   }, [stopAnalyzer, stopSpeechRecognition]);
 
   const stop = useCallback(() => {
+    if (nativeRecordingRef.current) {
+      nativeRecordingRef.current = false;
+      setStatus("processing");
+      return NativeVoice.stop()
+        .then((result) => {
+          const encoded = String(result?.base64 || "");
+          if (!encoded) return null;
+          const binary = window.atob(encoded);
+          const bytes = new Uint8Array(binary.length);
+          for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+          return new Blob([bytes], { type: String(result?.mimeType || "audio/mp4") });
+        })
+        .finally(() => {
+          setIsListening(false);
+          setAudioLevels(createInitialLevels());
+          setStatus("idle");
+        });
+    }
     const recorder = recorderRef.current;
     stoppingRef.current = true;
     stopSpeechRecognition();
@@ -247,12 +270,39 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
   }, [cleanup, onError, onRecordingComplete, stopSpeechRecognition]);
 
   const cancel = useCallback(() => {
+    if (nativeRecordingRef.current) {
+      nativeRecordingRef.current = false;
+      return NativeVoice.cancel().finally(() => {
+        setIsListening(false);
+        setStatus("idle");
+        setLiveTranscript("");
+        setAudioLevels(createInitialLevels());
+      });
+    }
     cancelledRef.current = true;
     return stop();
   }, [stop]);
 
   const start = useCallback(async ({ language } = {}) => {
     if (isListening) return false;
+
+    if (isNativeIOS()) {
+      try {
+        setStatus("requesting");
+        setLiveTranscript("");
+        await NativeVoice.start({ language: language || "" });
+        nativeRecordingRef.current = true;
+        setIsListening(true);
+        setStatus("listening");
+        return true;
+      } catch (error) {
+        nativeRecordingRef.current = false;
+        setIsListening(false);
+        setStatus("error");
+        onError?.(error?.message || "Microphone permission is required for voice input.");
+        return false;
+      }
+    }
 
     if (!window.isSecureContext && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
       onError?.("Microphone access requires a secure HTTPS connection.");
@@ -333,6 +383,43 @@ export default function useVoiceInput({ onRecordingComplete, onError } = {}) {
     stopAnalyzer();
     stopSpeechRecognition();
   }, [stopAnalyzer, stopSpeechRecognition]);
+
+  useEffect(() => {
+    if (!isNativeIOS()) return undefined;
+    let meterHandle;
+    let interruptionHandle;
+    let disposed = false;
+
+    Promise.all([
+      NativeVoice.addListener("meter", ({ level }) => {
+        const normalized = Math.max(SILENT_LEVEL, Math.min(1, Number(level) || SILENT_LEVEL));
+        setAudioLevels((current) => [...current.slice(1), normalized]);
+      }),
+      NativeVoice.addListener("interrupted", () => {
+        nativeRecordingRef.current = false;
+        setIsListening(false);
+        setStatus("idle");
+        setLiveTranscript("");
+        setAudioLevels(createInitialLevels());
+      }),
+    ]).then(([meter, interruption]) => {
+      if (disposed) {
+        void meter.remove();
+        void interruption.remove();
+      } else {
+        meterHandle = meter;
+        interruptionHandle = interruption;
+      }
+    });
+
+    return () => {
+      disposed = true;
+      void meterHandle?.remove();
+      void interruptionHandle?.remove();
+      if (nativeRecordingRef.current) void NativeVoice.cancel();
+      nativeRecordingRef.current = false;
+    };
+  }, []);
 
   return {
     isListening,

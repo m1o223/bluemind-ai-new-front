@@ -16,6 +16,8 @@ import { ensureUiLanguage } from "@/services/translationService";
 import { normalizeAiModeId } from "@/data/aiModes";
 import { BLUE_MIND_COLORS } from "@/theme/colors";
 import { syncNativeStatusBarStyle } from "@/capacitorRuntime";
+import { isNativeIOSApp } from "@/capacitorRuntime";
+import { getNativeIOSAppLanguage } from "@/mobile/nativeGlassBridge";
 
 const defaultPrefs = {
   theme: "system",
@@ -74,6 +76,7 @@ function systemPrefersDark() {
 
 const AppContext = createContext(null);
 const RTL_LANGUAGE_CODES = new Set(languages.filter((language) => language.rtl).map((language) => language.code));
+const IOS_UI_LANGUAGE_CODES = new Set(["en", "sv", "ar"]);
 
 function resolveUiLanguage(language) {
   const normalized = String(language || defaultPrefs.language).trim().replace("_", "-").toLowerCase();
@@ -85,15 +88,31 @@ function resolveUiLanguage(language) {
   return fallbackLanguage;
 }
 
+function resolveIOSUiLanguage(language) {
+  const baseLanguage = String(language || "")
+    .trim()
+    .replace("_", "-")
+    .toLowerCase()
+    .split("-")[0];
+
+  return IOS_UI_LANGUAGE_CODES.has(baseLanguage) ? baseLanguage : fallbackLanguage;
+}
+
 export function AppProvider({ children }) {
   const { t } = useTranslation();
   const [prefs, setPrefsState] = useState(loadCachedPrefs);
   const [systemDark, setSystemDark] = useState(systemPrefersDark);
+  const nativeIOS = isNativeIOSApp();
+  const [iosAppLanguage, setIOSAppLanguage] = useState(() => (
+    nativeIOS ? resolveIOSUiLanguage(navigator.language) : null
+  ));
 
   const resolvedTheme = prefs.theme === "system"
     ? systemDark ? "dark" : "light"
     : prefs.theme;
-  const uiLanguage = resolveUiLanguage(prefs.appLanguage);
+  const uiLanguage = nativeIOS
+    ? resolveIOSUiLanguage(iosAppLanguage)
+    : resolveUiLanguage(prefs.appLanguage);
   const isRTL = RTL_LANGUAGE_CODES.has(uiLanguage.split("-")[0]);
 
   useEffect(() => {
@@ -127,6 +146,29 @@ export function AppProvider({ children }) {
       cancelled = true;
     };
   }, [isRTL, prefs, resolvedTheme, uiLanguage]);
+
+  useEffect(() => {
+    if (!nativeIOS) return undefined;
+
+    let cancelled = false;
+    const syncIOSLanguage = async () => {
+      const language = await getNativeIOSAppLanguage();
+      if (!cancelled && language) setIOSAppLanguage(resolveIOSUiLanguage(language));
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") void syncIOSLanguage();
+    };
+
+    void syncIOSLanguage();
+    window.addEventListener("focus", syncIOSLanguage);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", syncIOSLanguage);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [nativeIOS]);
 
   useEffect(() => {
     const media = window.matchMedia?.("(prefers-color-scheme: dark)");

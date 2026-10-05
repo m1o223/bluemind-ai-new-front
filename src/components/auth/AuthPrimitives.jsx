@@ -1,5 +1,11 @@
-import { useRef } from "react";
-import { ArrowLeft, Check, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, BadgeCheck, Check, Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import {
+  addNativeGlassActionListener,
+  prepareNativeGlassExperiment,
+  setNativeAuthBackVisible,
+} from "@/mobile/nativeGlassBridge";
 
 export function GoogleIcon() {
   return (
@@ -33,16 +39,71 @@ export function AuthPage({ children, testId, mobile = false }) {
   );
 }
 
+export function IOSNativeAuthBackControl({ onClick, children }) {
+  const onClickRef = useRef(onClick);
+  const ownerRef = useRef(globalThis.crypto?.randomUUID?.() || `auth-back-${Date.now()}-${Math.random()}`);
+  const [nativeActive, setNativeActive] = useState(false);
+  onClickRef.current = onClick;
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== "ios") return undefined;
+
+    let mounted = true;
+    let listenerHandle;
+    let observer;
+    const owner = ownerRef.current;
+    const appearance = () => ({
+      owner,
+      isDark: document.documentElement.dataset.theme !== "light",
+      isRTL: document.documentElement.dir === "rtl",
+    });
+
+    const activate = async () => {
+      if (!(await prepareNativeGlassExperiment()) || !mounted) return;
+      listenerHandle = await addNativeGlassActionListener((event) => {
+        if (event?.action === "authBack") onClickRef.current?.();
+      });
+      if (!mounted) {
+        listenerHandle?.remove?.();
+        return;
+      }
+      const visible = await setNativeAuthBackVisible(true, appearance());
+      if (!mounted) {
+        await setNativeAuthBackVisible(false, appearance());
+        listenerHandle?.remove?.();
+        return;
+      }
+      setNativeActive(visible);
+      observer = new MutationObserver(() => {
+        void setNativeAuthBackVisible(true, appearance());
+      });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "dir"] });
+    };
+
+    void activate();
+    return () => {
+      mounted = false;
+      observer?.disconnect();
+      listenerHandle?.remove?.();
+      void setNativeAuthBackVisible(false, appearance());
+    };
+  }, []);
+
+  return nativeActive ? null : children;
+}
+
 export function AuthBackButton({ onClick, label = "Back" }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="bm-mobile-glass-control fixed left-5 top-[calc(env(safe-area-inset-top)+20px)] z-20"
-    >
-      <ArrowLeft />
-    </button>
+    <IOSNativeAuthBackControl onClick={onClick}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        className="bm-mobile-glass-control fixed left-5 top-[calc(env(safe-area-inset-top)+20px)] z-20"
+      >
+        <ArrowLeft />
+      </button>
+    </IOSNativeAuthBackControl>
   );
 }
 
@@ -69,15 +130,21 @@ export function AuthButton({
   icon,
   disabled = false,
   testId,
+  loading = false,
+  loadingAsset = "/bluemind-logo-white-small.png",
+  continuousLoadingRotation = false,
+  success = false,
 }) {
   const isPrimary = variant === "primary";
+  const isStatusVisible = loading || success;
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
+      aria-busy={loading || undefined}
       data-testid={testId}
-      className={`relative flex h-[58px] w-full items-center justify-center rounded-[29px] px-6 text-[17px] font-semibold transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`relative flex h-[58px] w-full items-center justify-center rounded-[29px] px-6 text-[17px] font-semibold transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.985] disabled:cursor-not-allowed ${isStatusVisible ? "disabled:opacity-100" : "disabled:opacity-50"} ${
         isPrimary
           ? "border border-[#7db7ff]/[0.22] bg-[rgba(25,91,164,0.72)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_46px_rgba(25,91,164,0.30)] backdrop-blur-[24px] hover:bg-[rgba(31,111,199,0.78)]"
           : "border border-white/[0.075] bg-white/[0.09] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_42px_rgba(0,0,0,0.28)] backdrop-blur-[24px] hover:bg-white/[0.13]"
@@ -88,7 +155,24 @@ export function AuthButton({
           {icon}
         </span>
       ) : null}
-      <span className="px-8 text-center">{children}</span>
+      <span className={`px-8 text-center transition-opacity duration-300 ${isStatusVisible ? "opacity-0" : "opacity-100"}`}>
+        {children}
+      </span>
+      {loading ? (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-100 transition-opacity duration-300" aria-hidden="true">
+          <img
+            src={loadingAsset}
+            alt=""
+            className={`${continuousLoadingRotation ? "bm-auth-logo-loader--continuous" : "bm-auth-logo-loader"} h-8 w-8 object-contain`}
+            draggable="false"
+          />
+        </span>
+      ) : null}
+      {success ? (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[#63d985]" aria-hidden="true">
+          <Check className="h-6 w-6 stroke-[2.8]" />
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -114,28 +198,41 @@ export function AuthInput({
   showPasswordToggle = false,
   passwordVisible = false,
   onTogglePassword,
+  icon,
 }) {
-  const Icon = type === "email" ? Mail : Lock;
+  const iconMap = {
+    email: Mail,
+    password: Lock,
+    confirmPassword: BadgeCheck,
+    name: User,
+    phone: Phone,
+  };
+  const Icon = iconMap[icon] || (type === "email" ? Mail : Lock);
   return (
-    <label className="block">
+    <label className="bm-auth-input-group block">
       <span className="mb-2 block text-sm font-semibold text-white/74">{label}</span>
-      <span className="relative block">
-        <Icon className="pointer-events-none absolute left-6 top-1/2 h-5 w-5 -translate-y-1/2 text-white" />
+      <span className="bm-auth-input-shell relative block">
+        <Icon className="bm-auth-input-icon pointer-events-none absolute left-6 top-1/2 h-5 w-5 -translate-y-1/2 text-white" />
         <input
           type={type}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
           autoComplete={autoComplete}
+          inputMode={type === "email" ? "email" : undefined}
+          autoCapitalize={type === "email" ? "none" : undefined}
+          autoCorrect={type === "email" || autoComplete?.includes("password") ? "off" : undefined}
+          spellCheck={type === "email" || autoComplete?.includes("password") ? false : undefined}
+          dir={type === "email" || autoComplete?.includes("password") ? "ltr" : "auto"}
           data-testid={testId}
-          className={`h-[58px] w-full rounded-[29px] border border-white/[0.075] bg-white/[0.09] pl-[60px] ${showPasswordToggle ? "pr-[60px]" : "pr-6"} text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_42px_rgba(0,0,0,0.20)] outline-none backdrop-blur-[24px] transition placeholder:text-white/34 focus:border-white/[0.16] focus:bg-white/[0.13] focus:ring-2 focus:ring-white/[0.06]`}
+          className={`bm-auth-input w-full pl-[60px] ${showPasswordToggle ? "pr-[60px]" : "pr-6"} text-base font-semibold outline-none`}
         />
         {showPasswordToggle ? (
           <button
             type="button"
             onClick={onTogglePassword}
             aria-label={passwordVisible ? "Hide password" : "Show password"}
-            className="absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white transition hover:bg-white/[0.08]"
+            className="bm-auth-password-toggle absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white transition hover:bg-white/[0.08]"
           >
             {passwordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
@@ -227,7 +324,7 @@ export function ResetCodeOtpInput({ value, onChange, disabled = false, testId = 
           autoComplete={index === 0 ? "one-time-code" : "off"}
           disabled={disabled}
           aria-label={`Reset code digit ${index + 1}`}
-          className="h-14 min-w-0 flex-1 rounded-2xl border border-white/[0.075] bg-white/[0.09] text-center text-xl font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_42px_rgba(0,0,0,0.20)] outline-none backdrop-blur-[24px] transition placeholder:text-white/34 focus:border-white/[0.16] focus:bg-white/[0.13] focus:ring-2 focus:ring-white/[0.06] disabled:opacity-50"
+          className="bm-auth-input bm-auth-code-input min-w-0 flex-1 text-center text-xl font-semibold outline-none disabled:opacity-50"
         />
       ))}
     </div>

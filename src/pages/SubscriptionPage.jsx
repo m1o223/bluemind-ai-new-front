@@ -11,7 +11,6 @@ import {
   RotateCw,
   ShieldCheck,
   Smartphone,
-  Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -20,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { inputClasses, typeClasses } from "@/lib/interactions";
 
 const SAVED_METHODS_KEY = "bluemind_mock_payment_methods";
+const PAYMENT_GLASS_SURFACE = "border-white/[0.075] bg-[rgba(38,38,38,0.34)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-[24px]";
+const PAYMENT_GLASS_SURFACE_STRONG = "border-white/[0.085] bg-[rgba(31,31,33,0.84)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_14px_34px_rgba(0,0,0,0.20)] backdrop-blur-[24px]";
 
 const PLANS = [
   {
@@ -32,7 +33,7 @@ const PLANS = [
     id: "pro",
     name: "BlueMind Pro",
     badge: "Recommended",
-    features: ["Everything in Plus", "Larger file workflows", "AI plans and schedule support", "Premium productivity tools"],
+    features: ["Everything in Plus", "Larger file workflows", "Schedule support", "Premium productivity tools"],
   },
   {
     id: "studio",
@@ -104,15 +105,15 @@ function SubscriptionShell({ title, subtitle, children, right, compact = false }
 
   return (
     <main className={cn("min-h-[100dvh] bg-[var(--bm-bg-app)] text-[var(--bm-text-primary)]", isDark && "text-white")} data-testid="subscription-flow-page">
-      <div className={cn("mx-auto flex min-h-[100dvh] w-full flex-col px-4 pb-8 pt-[max(18px,env(safe-area-inset-top))]", location.pathname.startsWith("/mobile") ? "max-w-[520px]" : "max-w-6xl px-6")}>
-        <header className="mb-6 flex items-center justify-between gap-4">
+      <div className={cn("mx-auto flex min-h-[100dvh] w-full flex-col px-4 pb-8 pt-[max(12px,env(safe-area-inset-top))]", location.pathname.startsWith("/mobile") ? "max-w-[520px]" : "max-w-6xl px-6")}>
+        <header className="mb-5 flex items-center justify-between gap-4">
           <button type="button" onClick={() => navigate(-1)} className="bm-mobile-glass-control" aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1 text-center">
             <p className={cn("text-xs font-bold uppercase tracking-[0.18em]", isDark ? "text-white/45" : "text-[var(--bm-text-muted)]")}>BlueMind AI</p>
-            <h1 className={cn("mt-1 font-bold tracking-tight", compact ? "text-[22px]" : "text-[26px] sm:text-[32px]")}>{title}</h1>
-            {subtitle && <p className="mx-auto mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--bm-text-secondary)]">{subtitle}</p>}
+            <h1 className={cn("mt-1 font-bold tracking-tight", compact ? "text-[22px]" : "text-[25px] sm:text-[30px]")}>{title}</h1>
+            {subtitle && <p className="mx-auto mt-1.5 max-w-xl text-sm font-medium leading-5 text-[var(--bm-text-secondary)]">{subtitle}</p>}
           </div>
           <div className="flex h-11 w-11 items-center justify-center">{right || <span />}</div>
         </header>
@@ -135,7 +136,8 @@ function GlassCard({ children, className, onClick, testId }) {
       onClick={onClick}
       data-testid={testId}
       className={cn(
-        "rounded-[28px] border border-[var(--bm-border)] bg-[var(--bm-bg-card)] text-left shadow-sm backdrop-blur-[24px]",
+        "rounded-[28px] border text-left",
+        PAYMENT_GLASS_SURFACE,
         onClick && "transition active:scale-[0.99]",
         className,
       )}
@@ -170,7 +172,6 @@ function SubscriptionHome() {
     <SubscriptionShell
       title="Subscription"
       subtitle="Choose the BlueMind experience that fits how you learn, create and organize."
-      right={<Sparkles className="h-5 w-5 text-[var(--bm-primary)]" />}
     >
       <div className="grid gap-4 md:grid-cols-3">
         {PLANS.map((plan) => (
@@ -230,7 +231,7 @@ function PaymentBrandMark({ method, compact = false }) {
 function SavedMethodCard({ method }) {
   const payment = methodById(method.methodId || method.id);
   return (
-    <div className={cn("min-w-[220px] rounded-[24px] bg-gradient-to-br p-4 shadow-sm", payment.tone, payment.darkText ? "text-[#111111]" : "text-white")}>
+    <div className={cn("min-w-[220px] rounded-[24px] border p-4", PAYMENT_GLASS_SURFACE_STRONG)}>
       <div className="flex items-center justify-between">
         <PaymentBrandMark method={payment} />
         <ShieldCheck className="h-5 w-5 opacity-80" />
@@ -271,7 +272,7 @@ function PaymentMethodPage() {
   };
 
   return (
-    <SubscriptionShell title="Choose Payment Method" subtitle="Select a payment method to continue. Payment processing will be connected later.">
+    <SubscriptionShell title="Choose Payment Method" subtitle="Select a payment method to continue. Payment processing will be connected later." compact>
       {savedMethods.length > 0 && (
         <section className="mb-6">
           <p className="mb-3 text-sm font-bold text-[var(--bm-text-secondary)]">Saved Payment Methods</p>
@@ -286,7 +287,7 @@ function PaymentMethodPage() {
           <GlassCard
             key={method.id}
             onClick={() => chooseMethod(method)}
-            className="flex min-h-[76px] items-center gap-4 px-4 py-3"
+            className="flex min-h-[68px] items-center gap-3.5 px-4 py-2.5"
             testId={`payment-method-${method.id}`}
           >
             <PaymentMethodIcon method={method} />
@@ -353,10 +354,11 @@ function PremiumPaymentCard({ method, form, flipped, onToggle, methodId }) {
   const holder = form?.name || "CARD HOLDER";
   const expiry = form?.expiry || "MM/YY";
   const cvv = form?.cvv || "CVV";
-  const darkText = Boolean(visualMethod.darkText);
+  // The preview now uses BlueMind's shared dark glass surface for every method.
+  const darkText = false;
 
   return (
-    <div className="mx-auto w-full max-w-[390px]" style={{ perspective: "1200px" }}>
+    <div className="mx-auto w-full max-w-[350px]" style={{ perspective: "1200px" }}>
       <motion.div
         initial={{ y: 12, opacity: 0, scale: 0.985 }}
         animate={{ y: 0, opacity: 1, scale: 1, rotateY: flipped ? 180 : 0 }}
@@ -366,9 +368,8 @@ function PremiumPaymentCard({ method, form, flipped, onToggle, methodId }) {
       >
         <div
           className={cn(
-            "absolute inset-0 overflow-hidden rounded-[22px] bg-gradient-to-br p-6 shadow-[0_28px_75px_rgba(15,23,42,0.22)] ring-1",
-            visualMethod.tone,
-            darkText ? "text-[#111111] ring-black/10" : "text-white ring-white/10",
+            "absolute inset-0 overflow-hidden rounded-[22px] border p-5",
+            PAYMENT_GLASS_SURFACE_STRONG,
           )}
           style={cardFaceStyle}
         >
@@ -388,9 +389,8 @@ function PremiumPaymentCard({ method, form, flipped, onToggle, methodId }) {
 
         <div
           className={cn(
-            "absolute inset-0 overflow-hidden rounded-[22px] bg-gradient-to-br p-5 shadow-[0_28px_75px_rgba(15,23,42,0.22)] ring-1",
-            visualMethod.tone,
-            darkText ? "text-[#111111] ring-black/10" : "text-white ring-white/10",
+            "absolute inset-0 overflow-hidden rounded-[22px] border p-5",
+            PAYMENT_GLASS_SURFACE_STRONG,
           )}
           style={{ ...cardFaceStyle, transform: "rotateY(180deg)" }}
         >
@@ -528,10 +528,10 @@ function PaymentDetailsPage() {
 
   return (
     <SubscriptionShell title={method.label} subtitle="Enter payment details. The card preview updates live while typing." compact>
-      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <PremiumPaymentCard form={form} method={method} methodId={methodId} flipped={flipped} onToggle={() => setFlipped((current) => !current)} />
         <GlassCard className="p-5 sm:p-6">
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={submit} className="space-y-3.5">
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--bm-text-secondary)]">Card Holder Name</span>
               <input className={cn(inputClasses.field, typeClasses.body, "font-semibold uppercase")} value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="Alex Morgan" autoComplete="cc-name" />
@@ -585,8 +585,8 @@ function ProcessingPage() {
   return (
     <SubscriptionShell title="Processing" compact>
       <div className="flex min-h-[60dvh] flex-col items-center justify-center text-center">
-        <div className="flex h-24 w-24 items-center justify-center rounded-full border border-[var(--bm-border)] bg-[var(--bm-bg-card)] shadow-sm backdrop-blur-[24px]">
-          <Loader2 className="h-11 w-11 animate-spin text-[var(--bm-primary)]" />
+        <div className={cn("flex h-24 w-24 items-center justify-center rounded-full border", PAYMENT_GLASS_SURFACE)}>
+          <Loader2 className="h-11 w-11 animate-spin text-white/90" />
         </div>
         <p className="mt-7 text-xl font-bold">Processing your payment...</p>
       </div>

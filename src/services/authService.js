@@ -2,22 +2,32 @@ import api, { getApiErrorMessage, unwrapApiResponse } from "./api";
 import { signInWithFirebaseGoogle } from "./firebaseClient";
 import {
   dispatchUserUpdated,
+  readStoredAccessToken,
   readStoredRefreshSession,
   removeStoredAuthSession,
-  removeStoredRefreshSession,
   STORAGE_KEYS,
+  storeAccessToken,
   storePreferences,
   storeRefreshSession,
   storeUser,
 } from "./storageKeys";
+import {
+  clearSecureAuthSession,
+  persistSecureAuthSession,
+  prepareSecureAuthSessionForRestore,
+} from "./secureSessionStorage";
 
-function persistSession(session) {
+async function persistSession(session) {
   if (session?.token) {
-    localStorage.setItem(STORAGE_KEYS.token, session.token);
+    storeAccessToken(session.token);
   }
 
   if (session?.session) {
     storeRefreshSession(session.session, session.refreshToken);
+  }
+
+  if (session?.token) {
+    await persistSecureAuthSession(session.token, readStoredRefreshSession());
   }
 
   if (session?.user) {
@@ -46,7 +56,7 @@ function readAccessTokenPayload(token) {
 }
 
 export function getAuthDebugSnapshot() {
-  const token = localStorage.getItem(STORAGE_KEYS.token);
+  const token = readStoredAccessToken();
   const payload = readAccessTokenPayload(token);
   const accessTokenExpiresAt = payload?.exp ? new Date(payload.exp * 1000).toISOString() : null;
   const refreshSession = readStoredRefreshSession();
@@ -128,50 +138,80 @@ export const restoreSession = async () => {
   logAuthDebug("restoreSession:before-request", {
     endpoint: "/auth/refresh",
     method: "POST",
-    authorizationHeaderExpected: Boolean(localStorage.getItem(STORAGE_KEYS.token)),
+    authorizationHeaderExpected: Boolean(readStoredAccessToken()),
     refreshTokenFallbackPresent: Boolean(refreshToken),
   });
 
-  const response = await api.post("/auth/refresh", refreshToken ? { refreshToken } : {});
-  return persistSession(unwrapApiResponse(response));
+  try {
+    const response = await api.post("/auth/refresh", refreshToken ? { refreshToken } : {});
+    return persistSession(unwrapApiResponse(response));
+  } catch (error) {
+    if ([401, 403].includes(error?.response?.status)) {
+      removeStoredAuthSession();
+      await clearSecureAuthSession();
+    }
+    throw error;
+  }
 };
 
 export const getCurrentUser = async () => {
   logAuthDebug("getCurrentUser:before-request", {
     endpoint: "/auth/me",
     method: "GET",
-    authorizationHeaderExpected: Boolean(localStorage.getItem(STORAGE_KEYS.token)),
+    authorizationHeaderExpected: Boolean(readStoredAccessToken()),
   });
 
   const response = await api.get("/auth/me");
   const user = unwrapApiResponse(response)?.user;
 
   if (user) {
-    persistSession({ user });
+    await persistSession({ user });
   }
 
   return user;
 };
 
-export const restoreExistingSession = async () => {
+async function performSessionRestore() {
+  await prepareSecureAuthSessionForRestore();
   const snapshot = getAuthDebugSnapshot();
   logAuthDebug("restoreExistingSession:start", snapshot);
 
   if (snapshot.hasAccessToken && snapshot.accessTokenExpired !== true) {
-    return getCurrentUser();
+    try {
+      return await getCurrentUser();
+    } catch (error) {
+      if ([401, 403].includes(error?.response?.status)) {
+        removeStoredAuthSession();
+        await clearSecureAuthSession();
+      }
+      throw error;
+    }
   }
 
   if (snapshot.hasAccessToken && snapshot.accessTokenExpired === true && !shouldAttemptRefresh()) {
     removeStoredAuthSession();
+    await clearSecureAuthSession();
     throw new Error("AUTH_SESSION_EXPIRED");
   }
 
   if (!snapshot.hasAccessToken && !shouldAttemptRefresh()) {
-    removeStoredRefreshSession();
+    removeStoredAuthSession();
+    await clearSecureAuthSession();
     throw new Error("AUTH_SESSION_MISSING");
   }
 
   return restoreSession();
+}
+
+let sessionRestoreInFlight = null;
+
+export const restoreExistingSession = () => {
+  if (!sessionRestoreInFlight) {
+    sessionRestoreInFlight = performSessionRestore().finally(() => {
+      sessionRestoreInFlight = null;
+    });
+  }
+  return sessionRestoreInFlight;
 };
 
 export const signInWithGoogle = async () => {
@@ -197,12 +237,14 @@ export const logoutUser = async () => {
     await api.post("/auth/logout", refreshToken ? { refreshToken } : {});
   } finally {
     removeStoredAuthSession();
+    await clearSecureAuthSession();
     sessionStorage.removeItem(STORAGE_KEYS.pendingVerificationEmail);
   }
 };
 
 export const clearLocalSession = () => {
   removeStoredAuthSession();
+  void clearSecureAuthSession();
 };
 
 export const requestPasswordReset = async (email) => {
@@ -222,6 +264,7 @@ export const resetPassword = async (emailOrPayload, code, password) => {
   const response = await api.post("/auth/reset-password", payload);
 
   removeStoredAuthSession();
+  await clearSecureAuthSession();
   return unwrapApiResponse(response);
 };
 

@@ -12,6 +12,7 @@ import { useApp } from "@/context/AppContext";
 import BrandLogo from "@/components/BrandLogo";
 import BlueMindAnimatedBackground from "@/components/BlueMindAnimatedBackground";
 import { getPreferredAppRoute } from "@/services/navigationPreferences";
+import { IOSNativeAuthBackControl } from "@/components/auth/AuthPrimitives";
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate();
@@ -83,10 +84,12 @@ export default function VerifyEmailPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`relative min-h-screen overflow-hidden flex items-center justify-center px-4 py-10 ${pageClass}`} data-testid="verify-email-page">
       <BlueMindAnimatedBackground />
-      <button onClick={() => navigate("/auth/login")} className={`absolute top-5 left-5 z-10 flex items-center gap-1.5 transition-colors cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}>
-        <ArrowLeft className="w-4 h-4" />
-        <span className="text-sm font-medium">{t("back")}</span>
-      </button>
+      <IOSNativeAuthBackControl onClick={() => navigate("/auth/login")}>
+        <button onClick={() => navigate("/auth/login")} className={`absolute top-5 left-5 z-10 flex items-center gap-1.5 transition-colors cursor-pointer ${isDark ? "text-[var(--bm-text-muted)] hover:text-white" : "text-[var(--bm-text-secondary)] hover:text-[var(--bm-text-primary)]"}`}>
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm font-medium">{t("back")}</span>
+        </button>
+      </IOSNativeAuthBackControl>
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
@@ -98,11 +101,11 @@ export default function VerifyEmailPage() {
         <form onSubmit={handleVerify} className="space-y-4">
           <div>
             <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("email")}</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("enterEmail")} className={`py-5 rounded-xl ${inputClass}`} data-testid="verify-email-input" />
+            <Input type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("enterEmail")} className={`bm-auth-input bm-auth-standalone-input ${inputClass}`} data-testid="verify-email-input" />
           </div>
           <div>
             <label className={`text-sm font-medium mb-1.5 block ${primaryText}`}>{t("verificationCode")}</label>
-            <Input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" placeholder="000000" className={`py-5 rounded-xl text-center tracking-[0.35em] font-semibold ${inputClass}`} data-testid="verify-code-input" />
+            <Input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code" placeholder="000000" className={`bm-auth-input bm-auth-standalone-input bm-auth-code-input text-center tracking-[0.35em] font-semibold ${inputClass}`} data-testid="verify-code-input" />
           </div>
 
           <Button type="submit" disabled={!isValid || isSubmitting} className="w-full py-5 text-sm bg-[var(--bm-primary)] hover:bg-[var(--bm-primary-hover)] text-white rounded-xl font-medium disabled:opacity-50" data-testid="verify-submit-button">

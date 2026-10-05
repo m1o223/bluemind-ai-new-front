@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { CircleHelp } from "lucide-react";
@@ -17,29 +18,42 @@ import {
 } from "@/components/auth/AuthPrimitives";
 import { getApiErrorMessage } from "@/services/api";
 import { getGoogleSignInErrorMessage, loginUser, signInWithGoogle } from "@/services/authService";
+import { useApp } from "@/context/AppContext";
 
 export default function MobileEmail() {
   const navigate = useNavigate();
+  const { t } = useApp();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [loginSucceeded, setLoginSucceeded] = useState(false);
+  const loginRequestRef = useRef(false);
   const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const isFormValid = formData.email.trim() && formData.password.trim();
+  const useIOSAuthPolish = Capacitor.getPlatform() === "ios";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid || loginRequestRef.current) return;
+    loginRequestRef.current = true;
     setIsLoading(true);
+    setLoginSucceeded(false);
     setErrorMessage("");
     try {
       await loginUser(formData.email, formData.password);
+      if (useIOSAuthPolish) {
+        setLoginSucceeded(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 220));
+      }
       navigate("/mobile/chat");
     } catch (error) {
-      const message = getApiErrorMessage(error, "Login failed. Please check your email and password.");
+      setLoginSucceeded(false);
+      const message = getApiErrorMessage(error, t("loginFailed"));
       setErrorMessage(message);
       toast.error(message);
     } finally {
+      loginRequestRef.current = false;
       setIsLoading(false);
     }
   };
@@ -51,7 +65,7 @@ export default function MobileEmail() {
       await signInWithGoogle();
       navigate("/mobile/chat");
     } catch (error) {
-      const message = getGoogleSignInErrorMessage(error, "Google sign-in failed");
+      const message = getGoogleSignInErrorMessage(error, t("googleSignInFailed"));
       setErrorMessage(message);
       toast.error(message);
     } finally {
@@ -61,13 +75,13 @@ export default function MobileEmail() {
 
   return (
     <AuthPage testId="mobile-login-page" mobile>
-      <AuthBackButton onClick={() => navigate("/mobile")} />
+      <AuthBackButton onClick={() => navigate("/mobile")} label={t("back")} />
 
       <form onSubmit={handleSubmit} className="w-full space-y-5">
-        <AuthHeader title="Login" />
+        <AuthHeader title={t("signIn")} description={t("signInSubtitle")} />
 
         <AuthInput
-          label="Email"
+          label={t("email")}
           type="email"
           value={formData.email}
           onChange={(event) => setFormData({ ...formData, email: event.target.value })}
@@ -76,11 +90,11 @@ export default function MobileEmail() {
           testId="mobile-email-input"
         />
         <AuthInput
-          label="Password"
+          label={t("password")}
           type={showPassword ? "text" : "password"}
           value={formData.password}
           onChange={(event) => setFormData({ ...formData, password: event.target.value })}
-          placeholder="Enter your password"
+          placeholder={t("enterPassword")}
           autoComplete="current-password"
           testId="mobile-password-input"
           showPasswordToggle
@@ -95,7 +109,7 @@ export default function MobileEmail() {
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/54 underline underline-offset-4 transition hover:text-white/80"
           >
             <CircleHelp className="h-3.5 w-3.5" />
-            Forgot Password
+            {t("forgotPassword")}
           </button>
         </div>
 
@@ -104,20 +118,24 @@ export default function MobileEmail() {
           variant="primary"
           disabled={!isFormValid || isLoading}
           testId="mobile-login-submit-button"
+          loading={useIOSAuthPolish && isLoading && !loginSucceeded}
+          loadingAsset="/bluemind-logo-white.png"
+          continuousLoadingRotation
+          success={useIOSAuthPolish && loginSucceeded}
         >
-          {isLoading ? "Logging in..." : "Login"}
+          {isLoading && !useIOSAuthPolish ? t("signingIn") : t("signIn")}
         </AuthButton>
 
         <AuthError testId="mobile-login-error">{errorMessage}</AuthError>
 
         <p className="text-center text-sm font-medium text-white/48">
-          Don't have an account?{" "}
+          {t("noAccount")}{" "}
           <button
             type="button"
             onClick={() => navigate("/mobile/register")}
             className="font-semibold text-white underline underline-offset-4 transition hover:text-white/72"
           >
-            Create Account
+            {t("createAccountButton")}
           </button>
         </p>
 
@@ -130,14 +148,14 @@ export default function MobileEmail() {
             icon={socialLoading === "google" ? <BlueMindLoadingDots /> : <GoogleIcon />}
             testId="mobile-google-login"
           >
-            Continue with Google
+            {t("orContinueWith")} {t("google")}
           </AuthButton>
           <AuthButton
             onClick={() => toast.info("Apple sign-in is being prepared.")}
             disabled={Boolean(socialLoading)}
             icon={<AppleIcon />}
           >
-            Continue with Apple
+            {t("orContinueWith")} {t("apple")}
           </AuthButton>
         </div>
       </form>

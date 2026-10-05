@@ -26,7 +26,7 @@ function AttachmentPreview({ attachment, isDark, isMobile, onRemove }) {
     <div
       className={cn(
         "relative shrink-0 overflow-hidden rounded-[18px] border shadow-sm",
-        isMobile ? "h-16 w-16" : "h-[72px] w-[72px]",
+        isMobile ? "h-28 w-28" : "h-[72px] w-[72px]",
         isDark ? "border-white/10 bg-white/[0.08]" : "border-[var(--bm-border)] bg-white/85",
       )}
       title={label}
@@ -355,7 +355,7 @@ export default function UnifiedComposer({
                     ))}
 
                     {isUploading && (
-                      <div className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85")}>
+                      <div className={cn("flex h-28 w-28 shrink-0 items-center justify-center rounded-[18px] border", isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85")}>
                         <BlueMindLoadingDots className="text-[var(--bm-primary)]" />
                       </div>
                     )}
@@ -511,7 +511,7 @@ export default function UnifiedComposer({
                     <div
                       className={cn(
                         "flex shrink-0 items-center justify-center rounded-[16px] border",
-                        isMobile ? "h-14 w-14" : "h-16 w-16",
+                        isMobile ? "h-28 w-28" : "h-16 w-16",
                         isDark ? "border-white/10 bg-white/[0.06]" : "border-[var(--bm-border)] bg-white/85",
                       )}
                     >

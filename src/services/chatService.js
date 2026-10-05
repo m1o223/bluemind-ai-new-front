@@ -1,5 +1,6 @@
 import api, { API_BASE_URL, getApiErrorMessage, unwrapApiResponse } from "./api";
-import { readStoredRefreshSession, STORAGE_KEYS, storeRefreshSession, storeUser } from "./storageKeys";
+import { readStoredAccessToken, readStoredRefreshSession, storeAccessToken, storeRefreshSession, storeUser } from "./storageKeys";
+import { persistSecureAuthSession } from "./secureSessionStorage";
 import { createStreamError, logStreamError } from "./streamErrorUtils";
 
 function parseSseBlock(block) {
@@ -28,7 +29,7 @@ function parseSseBlock(block) {
 
 function persistStreamSession(session) {
   if (session?.token) {
-    localStorage.setItem(STORAGE_KEYS.token, session.token);
+    storeAccessToken(session.token);
   }
 
   if (session?.user) {
@@ -37,6 +38,10 @@ function persistStreamSession(session) {
 
   if (session?.session) {
     storeRefreshSession(session.session, session.refreshToken);
+  }
+
+  if (session?.token) {
+    void persistSecureAuthSession(session.token, readStoredRefreshSession());
   }
 
   return session;
@@ -66,7 +71,7 @@ function getStreamEndpoint(path = "/chat/stream") {
 }
 
 function createStreamRequest(payload, signal, path = "/chat/stream") {
-  const token = localStorage.getItem(STORAGE_KEYS.token);
+  const token = readStoredAccessToken();
 
   return fetch(getStreamEndpoint(path), {
     method: "POST",
@@ -106,7 +111,7 @@ async function throwStreamResponseError(response, endpoint, fallback) {
 }
 
 function createAuthedRequest(path, options = {}) {
-  const token = localStorage.getItem(STORAGE_KEYS.token);
+  const token = readStoredAccessToken();
 
   return fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -135,6 +140,7 @@ export async function streamChatMessage({
   message,
   imageIds = [],
   conversationId,
+  projectId,
   mode,
   metadata,
   onReady,
@@ -149,6 +155,7 @@ export async function streamChatMessage({
   if (conversationId) {
     payload.conversationId = conversationId;
   }
+  if (projectId) payload.projectId = projectId;
 
   if (imageIds.length > 0) {
     payload.imageIds = imageIds;
@@ -410,9 +417,11 @@ export async function getLatestConversation() {
   }
 }
 
-export async function listConversations() {
+export async function listConversations(projectId) {
   try {
-    const response = await api.get("/chat/conversations");
+    const response = await api.get("/chat/conversations", {
+      params: projectId ? { projectId } : undefined,
+    });
     return unwrapApiResponse(response);
   } catch (error) {
     throw new Error(getApiErrorMessage(error, "Could not load chat history"));
@@ -445,6 +454,15 @@ export async function renameConversation(conversationId, title) {
     return unwrapApiResponse(response);
   } catch (error) {
     throw new Error(getApiErrorMessage(error, "Could not rename conversation"));
+  }
+}
+
+export async function moveConversationToProject(conversationId, projectId) {
+  try {
+    const response = await api.patch(`/chat/conversations/${conversationId}/project`, { projectId: projectId || null });
+    return unwrapApiResponse(response);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Could not move conversation"));
   }
 }
 

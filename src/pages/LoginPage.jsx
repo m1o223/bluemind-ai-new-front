@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { CircleHelp } from "lucide-react";
@@ -23,24 +24,35 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [loginSucceeded, setLoginSucceeded] = useState(false);
+  const loginRequestRef = useRef(false);
   const [socialLoading, setSocialLoading] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const isFormValid = formData.email.trim() && formData.password.trim();
+  const useIOSAuthPolish = Capacitor.getPlatform() === "ios";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid || loginRequestRef.current) return;
+    loginRequestRef.current = true;
     setIsLoading(true);
+    setLoginSucceeded(false);
     setErrorMessage("");
     try {
       const session = await loginUser(formData.email, formData.password);
+      if (useIOSAuthPolish) {
+        setLoginSucceeded(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 220));
+      }
       navigate(getPreferredAppRoute(session));
     } catch (error) {
+      setLoginSucceeded(false);
       const message = getApiErrorMessage(error, "Login failed. Please check your email and password.");
       setErrorMessage(message);
       toast.error(message);
     } finally {
+      loginRequestRef.current = false;
       setIsLoading(false);
     }
   };
@@ -106,8 +118,12 @@ export default function LoginPage() {
           variant="primary"
           disabled={!isFormValid || isLoading}
           testId="login-submit-button"
+          loading={useIOSAuthPolish && isLoading && !loginSucceeded}
+          loadingAsset="/bluemind-logo-white.png"
+          continuousLoadingRotation
+          success={useIOSAuthPolish && loginSucceeded}
         >
-          {isLoading ? "Logging in..." : "Login"}
+          {isLoading && !useIOSAuthPolish ? "Logging in..." : "Login"}
         </AuthButton>
 
         <AuthError testId="login-error">{errorMessage}</AuthError>

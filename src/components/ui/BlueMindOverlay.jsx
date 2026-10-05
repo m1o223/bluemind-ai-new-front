@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { overlayMotion } from "@/lib/interactions";
@@ -35,6 +35,7 @@ export function BlueMindOverlay({
   onClose,
   closeLabel = "Close overlay",
   showBackdrop = true,
+  closeOnBackdrop = true,
   contentAs = "div",
   contentProps,
   initial,
@@ -44,21 +45,25 @@ export function BlueMindOverlay({
   onExitComplete,
   portal = true,
   contained = false,
+  instant = false,
 }) {
   const Content = motion[contentAs] || motion.div;
   const motionState = motionByKind[kind] || overlayMotion.modal;
   const motionTransition = transition || transitionByKind[kind] || overlayMotion.transition.modal;
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
+  const overlayRootRef = useRef(null);
 
   const requestClose = useCallback(() => {
     onClose?.();
   }, [onClose]);
 
   const requestBackdropClose = useCallback((event) => {
-    if (!event.target?.closest?.("[data-bm-overlay-backdrop='true']")) return;
+    if (!closeOnBackdrop) return;
+    const backdrop = event.target?.closest?.("[data-bm-overlay-backdrop='true']");
+    if (!backdrop || backdrop.parentElement !== overlayRootRef.current) return;
     requestClose(event);
-  }, [requestClose]);
+  }, [closeOnBackdrop, requestClose]);
 
   const durationMs = useMemo(() => {
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
@@ -75,6 +80,12 @@ export function BlueMindOverlay({
   useEffect(() => {
     let frameId;
     let timeoutId;
+
+    if (instant) {
+      setMounted(open);
+      setVisible(open);
+      return undefined;
+    }
 
     if (open) {
       setMounted(true);
@@ -95,17 +106,18 @@ export function BlueMindOverlay({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [durationMs, mounted, onExitComplete, open]);
+  }, [durationMs, instant, mounted, onExitComplete, open]);
 
   if (!mounted) return null;
 
   const overlay = (
     <motion.div
+      ref={overlayRootRef}
       className={cn("bm-overlay-root", contained && "bm-overlay-contained", className)}
       data-bm-overlay-kind={kind}
       initial={false}
       animate={visible ? { opacity: 1 } : { opacity: 0 }}
-      transition={motionTransition}
+      transition={instant ? { duration: 0 } : motionTransition}
       onPointerDownCapture={requestBackdropClose}
       onMouseDownCapture={requestBackdropClose}
       onTouchStartCapture={requestBackdropClose}
@@ -120,7 +132,7 @@ export function BlueMindOverlay({
           style={backdropStyle}
           initial={false}
           animate={visible ? overlayMotion.backdrop.animate : overlayMotion.backdrop.exit}
-          transition={motionTransition}
+          transition={instant ? { duration: 0 } : motionTransition}
           aria-label={closeLabel}
         />
       )}
@@ -132,7 +144,7 @@ export function BlueMindOverlay({
         style={contentStyle}
         initial={false}
         animate={visible ? (animate || motionState.animate) : (exit || initial || motionState.exit)}
-        transition={motionTransition}
+        transition={instant ? { duration: 0 } : motionTransition}
       >
         {children}
       </Content>

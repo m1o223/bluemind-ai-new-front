@@ -57,8 +57,8 @@ function expireAccessibleAuthCookies() {
   });
 }
 
-export async function runDevAuthStartupCleanup() {
-  if (!isLocalDevelopmentHost()) return;
+export async function runDevAuthStartupCleanup({ isNative = false } = {}) {
+  if (isNative || !isLocalDevelopmentHost()) return;
 
   const alreadyCleaned = localStorage.getItem(CLEANUP_MARKER_KEY) === DEV_AUTH_CLEANUP_VERSION;
 

@@ -33,7 +33,6 @@ import {
   Globe2,
   Check,
   Star,
-  Sparkles,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
@@ -877,12 +876,6 @@ function Sidebar({
       action: () => navigate("/learning"),
     },
     {
-      id: "ai_plans",
-      icon: Sparkles,
-      label: "AI Plans",
-      action: () => navigate("/ai-plans"),
-    },
-    {
       id: "scheman",
       icon: CalendarDays,
       label: "Schedule",
@@ -906,13 +899,6 @@ function Sidebar({
       label: t("learning"),
       action: () => navigate("/learning"),
       active: location.pathname.startsWith("/learning"),
-    },
-    {
-      id: "ai_plans",
-      icon: Sparkles,
-      label: "AI Plans",
-      action: () => navigate("/ai-plans"),
-      active: location.pathname.startsWith("/ai-plans"),
     },
     {
       id: "dashboard",

@@ -6,6 +6,10 @@ export function isNativeAndroidApp() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
+export function isNativeIOSApp() {
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
+}
+
 export function isNativeMobileApp() {
   return Capacitor.isNativePlatform() && ["android", "ios"].includes(Capacitor.getPlatform());
 }
@@ -42,7 +46,7 @@ export function getNativeMobilePath(pathname = "/", search = "", hash = "") {
     ["/settings", "/mobile/settings"],
     ["/reminders", "/mobile/reminders"],
     ["/learning", "/mobile/learning"],
-    ["/ai-plans", "/mobile/ai-plans"],
+    ["/ai-plans", "/mobile/chat"],
     ["/schedule", "/mobile/schedule"],
     ["/scheman", "/mobile/schedule"],
   ]);
